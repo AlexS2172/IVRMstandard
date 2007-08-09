@@ -16,3 +16,4 @@ del *.idb /s
 del *.tlh /s
 del *.tli /s
 del *.tli /s
+del *.tli /s
