@@ -1,0 +1,27 @@
+HKCR
+{
+	EtsMmGeneral.MmTradeMatchColl.1 = s 'MmTradeMatchColl Class'
+	{
+		CLSID = s '{554CC50D-82CD-435C-A779-9A70F1230165}'
+	}
+	EtsMmGeneral.MmTradeMatchColl = s 'MmTradeMatchColl Class'
+	{
+		CLSID = s '{554CC50D-82CD-435C-A779-9A70F1230165}'
+		CurVer = s 'EtsMmGeneral.MmTradeMatchColl.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {554CC50D-82CD-435C-A779-9A70F1230165} = s 'MmTradeMatchColl Class'
+		{
+			ProgID = s 'EtsMmGeneral.MmTradeMatchColl.1'
+			VersionIndependentProgID = s 'EtsMmGeneral.MmTradeMatchColl'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			val AppID = s '%APPID%'
+			'TypeLib' = s '{ECC5DD29-4F8D-4AD1-9E2F-C9B61683C08C}'
+		}
+	}
+}

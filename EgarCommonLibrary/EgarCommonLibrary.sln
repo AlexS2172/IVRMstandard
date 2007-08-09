@@ -1,0 +1,100 @@
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgDebugUtil", "EgDebugUtil\EgDebugUtil.vcproj", "{43F3133E-29F1-4896-B3C6-0DF24A3CA374}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgHttp", "EgHttp\eghttp.vcproj", "{48DD7667-1914-42F1-A5AE-9A300BE448D5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OptionCalc", "OptionCalc\OptionCalc.vcproj", "{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0} = {6C229602-124D-4FAA-B36C-7FC5FF1948D0}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OptionPriceModels", "OptionPriceModels\OptionPriceModels.vcproj", "{6C229602-124D-4FAA-B36C-7FC5FF1948D0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgTcpDriver", "EgTcpDriver\egtcpdriver.vcproj", "{5ECB148A-0108-4B69-A861-6536E30BDE79}"
+EndProject
+Global
+	GlobalSection(SourceCodeControl) = preSolution
+		SccNumberOfProjects = 6
+		SccProjectName0 = EgarCommonLibrary
+		SccLocalPath0 = .
+		SccProvider0 = MSSCCI:ClearCase
+		CanCheckoutShared = false
+		SccProjectUniqueName1 = EgDebugUtil\\EgDebugUtil.vcproj
+		SccProjectName1 = \u0022$/EgCommon/EgDebugUtil\u0022,\u0020TAZCAAAA
+		SccLocalPath1 = EgDebugUtil
+		CanCheckoutShared = false
+		SccProjectUniqueName2 = EgHttp\\eghttp.vcproj
+		SccProjectName2 = \u0022$/EgCommon\u0022,\u0020HNDAAAAA
+		SccLocalPath2 = .
+		CanCheckoutShared = false
+		SccProjectFilePathRelativizedFromConnection2 = EgHttp\\
+		SccProjectUniqueName3 = OptionCalc\\OptionCalc.vcproj
+		SccProjectName3 = \u0022$/EgCommon/OptionCalc\u0022,\u0020BIIBAAAA
+		SccLocalPath3 = OptionCalc
+		CanCheckoutShared = false
+		SccProjectUniqueName4 = OptionPriceModels\\OptionPriceModels.vcproj
+		SccProjectName4 = \u0022$/EgCommon/OptionPriceModels\u0022,\u0020GYDAAAAA
+		SccLocalPath4 = OptionPriceModels
+		CanCheckoutShared = false
+		SccProjectUniqueName5 = EgTcpDriver\\egtcpdriver.vcproj
+		SccProjectName5 = SAK
+		SccLocalPath5 = .
+		CanCheckoutShared = false
+		SccProjectFilePathRelativizedFromConnection5 = EgTcpDriver\\
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+		Unicode Debug|Win32 = Unicode Debug|Win32
+		Unicode Release|Win32 = Unicode Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Debug|Win32.ActiveCfg = Debug|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Debug|Win32.Build.0 = Debug|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Release|Win32.ActiveCfg = Release|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Release|Win32.Build.0 = Release|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Unicode Debug|Win32.ActiveCfg = Debug|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Unicode Debug|Win32.Build.0 = Debug|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Unicode Release|Win32.ActiveCfg = Release|Win32
+		{43F3133E-29F1-4896-B3C6-0DF24A3CA374}.Unicode Release|Win32.Build.0 = Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Debug|Win32.Build.0 = Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Release|Win32.ActiveCfg = Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Release|Win32.Build.0 = Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Debug|Win32.ActiveCfg = Unicode Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Debug|Win32.Build.0 = Unicode Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Release|Win32.ActiveCfg = Unicode Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Release|Win32.Build.0 = Unicode Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Debug|Win32.Build.0 = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Release|Win32.ActiveCfg = Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Release|Win32.Build.0 = Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Debug|Win32.ActiveCfg = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Debug|Win32.Build.0 = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Release|Win32.ActiveCfg = Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Release|Win32.Build.0 = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Debug|Win32.Build.0 = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Release|Win32.ActiveCfg = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Release|Win32.Build.0 = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Debug|Win32.ActiveCfg = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Debug|Win32.Build.0 = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Release|Win32.ActiveCfg = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Release|Win32.Build.0 = Release|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Debug|Win32.Build.0 = Debug|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Release|Win32.ActiveCfg = Release|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Release|Win32.Build.0 = Release|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Unicode Debug|Win32.ActiveCfg = Unicode Debug|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Unicode Debug|Win32.Build.0 = Unicode Debug|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Unicode Release|Win32.ActiveCfg = Unicode Release|Win32
+		{5ECB148A-0108-4B69-A861-6536E30BDE79}.Unicode Release|Win32.Build.0 = Unicode Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
+	EndGlobalSection
+EndGlobal

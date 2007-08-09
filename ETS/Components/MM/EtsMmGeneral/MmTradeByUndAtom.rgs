@@ -1,0 +1,27 @@
+HKCR
+{
+	EtsMmGeneral.MmTradeByUndAtom.1 = s 'MmTradeByUndAtom Class'
+	{
+		CLSID = s '{F07158D5-FA20-4383-AC41-924D0D3F2FA2}'
+	}
+	EtsMmGeneral.MmTradeByUndAtom = s 'MmTradeByUndAtom Class'
+	{
+		CLSID = s '{F07158D5-FA20-4383-AC41-924D0D3F2FA2}'
+		CurVer = s 'EtsMmGeneral.MmTradeByUndAtom.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {F07158D5-FA20-4383-AC41-924D0D3F2FA2} = s 'MmTradeByUndAtom Class'
+		{
+			ProgID = s 'EtsMmGeneral.MmTradeByUndAtom.1'
+			VersionIndependentProgID = s 'EtsMmGeneral.MmTradeByUndAtom'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			val AppID = s '%APPID%'
+			'TypeLib' = s '{ECC5DD29-4F8D-4AD1-9E2F-C9B61683C08C}'
+		}
+	}
+}
