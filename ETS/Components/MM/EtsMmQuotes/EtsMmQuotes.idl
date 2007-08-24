@@ -68,9 +68,10 @@ library EtsMmQuotesLib
 		[helpstring("QUC_BA_EXCHANGE")]		QUC_BA_EXCHANGE		= 27,
 		[helpstring("QUC_INDEXCALCPRICE")]	QUC_INDEXCALCPRICE	= 28,
 		[helpstring("QUC_ACTIVEFUTURE")]	QUC_ACTIVEFUTURE	= 29,
-		[helpstring("QUC_BASIS")]			QUC_BASIS			= 30,
+		[helpstring("QUC_ACTIVEFUTUREPRICE")] QUC_ACTIVEFUTUREPRICE = 30,
+		[helpstring("QUC_BASIS")]			QUC_BASIS			= 31,
 
-		[helpstring("QUC_COLUMN_COUNT")]	QUC_COLUMN_COUNT = 31,
+		[helpstring("QUC_COLUMN_COUNT")]	QUC_COLUMN_COUNT = 32,
 		[helpstring("QUC_LAST_COLUMN")]	QUC_LAST_COLUMN	 = QUC_COLUMN_COUNT - 1
 	} MmQvUndColumnEnum;
 //-----------------------------------------------------------------------------------
@@ -108,7 +109,8 @@ library EtsMmQuotesLib
 		[helpstring("QVC_VOLA")]			QVC_VOLA			= 0,
 		[helpstring("QVC_VOLA_VAL")]		QVC_VOLA_VAL		= 1,
 		[helpstring("QVC_VOLA_DATECALC")]	QVC_VOLA_DATECALC	= 2,
-		[helpstring("QVC_COLUMN_COUNT")]	QVC_COLUMN_COUNT	= 3,
+		[helpstring("QVC_VOLA_IS_MANUAL")]	QVC_VOLA_IS_MANUAL	= 3,
+		[helpstring("QVC_COLUMN_COUNT")]	QVC_COLUMN_COUNT	= 4,
 		[helpstring("QVC_LAST_COLUMN")]		QVC_LAST_COLUMN		= QVC_COLUMN_COUNT - 1
 
 	} MmQvVolaColumnEnum;
@@ -729,8 +731,10 @@ library EtsMmQuotesLib
 		ETSGENERAL_PROP_DEF(42,			LONG,						OptPosExchID)
 		ETSGENERAL_PROPPUTREF_DEF(43,	IEtsIndexDivAtom*,			Dividend)
 		ETSGENERAL_PROPREADONLY_DEF(44,	IMmQvFutCollection*,		Fut)
-		ETSGENERAL_PROPREADONLY_DEF(45,			DOUBLE,				ActivePrice)
+		ETSGENERAL_PROP_DEF(45,			DOUBLE,				ActivePrice)
 		ETSGENERAL_PROP_DEF(46,			LONG,						PrimaryExchangeID)
+		ETSGENERAL_PROP_DEF(47,			VARIANT_BOOL,			UseManualActivePrice)
+		ETSGENERAL_PROP_DEF(48,			VARIANT_BOOL,			IsManualVol)
 
 		[id(60), helpstring("method SetDirty")]
 		HRESULT SetDirty();
@@ -810,6 +814,8 @@ library EtsMmQuotesLib
 								   [out]		VARIANT_BOOL *bFutureUsed, 
 								   [out,retval]	DOUBLE	*pPrice);
 
+
+
 	};							
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -885,7 +891,8 @@ library EtsMmQuotesLib
 
 		ETSGENERAL_PROP_DEF(33,			DOUBLE,						Ratio)
 		ETSGENERAL_PROP_DEF(34,			DOUBLE,						Basis)
-		ETSGENERAL_PROPREADONLY_DEF(35,	DOUBLE,						ActivePrice)
+		ETSGENERAL_PROP_DEF(35,	DOUBLE,						ActivePrice)
+		ETSGENERAL_PROP_DEF(36,	VARIANT_BOOL,				IsUseManualActivePrice)
 
 		[id(60), helpstring("method SetDirty")]
 		HRESULT SetDirty();

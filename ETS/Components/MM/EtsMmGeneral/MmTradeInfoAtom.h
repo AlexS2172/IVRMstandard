@@ -25,6 +25,7 @@ struct __MmTradeInfoAtom
 	LONG						m_nMark;
 	LONG						m_nOrderID;
 	LONG						m_nExecStatus;
+	DOUBLE					m_dManualActivePrice;
 
 	IUndAtomPtr					m_spUnd;
 	IEtsOptAtomPtr				m_spOpt;
@@ -41,7 +42,8 @@ struct __MmTradeInfoAtom
 		m_nTradeID(0L), m_nSeqNum(0L), m_dPrice(0.), m_nQuantity(0L),
 		m_bIsBuy(VARIANT_FALSE), m_dtTradeDate(0.), m_dSpotReference(0.), m_dTradedIV(0.),
 		m_bIsPosition(VARIANT_FALSE), m_enStatus(enTrsRealtime),
-		m_dBrokerCommission(0.), m_dClearingBrokerCommission(0.), m_nMark(0L), m_nOrderID(0L), m_nExecStatus(0L)
+		m_dBrokerCommission(0.), m_dClearingBrokerCommission(0.), m_nMark(0L), m_nOrderID(0L), m_nExecStatus(0L),
+		m_dManualActivePrice(0.)
 	{
 	}
 };
@@ -151,6 +153,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, Mark, m_nMark)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, OrderID, m_nOrderID)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, ExecStatus, m_nExecStatus)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualActivePrice, m_dManualActivePrice)
 
 	IMPLEMENT_OBJECT_PROPERTY(IUndAtom*, Und, m_spUnd)
 	IMPLEMENT_OBJECT_PROPERTY(IEtsOptAtom*, Opt, m_spOpt)

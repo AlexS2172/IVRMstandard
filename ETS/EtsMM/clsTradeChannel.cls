@@ -400,7 +400,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
     aDst.SymbolType = ContractTypeToSymbolType(aSrc.ContractType)
     aDst.Symbol = aSrc.Symbol
     aDst.UndSymbolID = aSrc.Und.ID
-    aDst.UndSymbol = aSrc.Und.Symbol
+    aDst.undSymbol = aSrc.Und.Symbol
     aDst.LotSize = aSrc.LotSize
     aDst.IsPosition = aSrc.IsPosition
     
@@ -423,6 +423,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
             aDst.FutRootID = aSrc.FutRoot.ID
             
             aDst.PriceClose = aSrc.Fut.PriceClose
+            aDst.PriceTheoClose = aSrc.Fut.PriceTheoClose
         
         Case enCtFutOption
             aDst.FutID = aSrc.Fut.ID
@@ -536,7 +537,7 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
         
         End Select
     Else
-        AddEvent EVENT_WARNING, "New underlying '" & aSrc.UndSymbol & "' was added by trade feed. Please restart application."
+        AddEvent EVENT_WARNING, "New underlying '" & aSrc.undSymbol & "' was added by trade feed. Please restart application."
     End If
     
     Set aUnd = Nothing
@@ -1625,9 +1626,9 @@ Private Sub DoTradeUpdate(ByRef Data As MSGSTRUCTLib.ITradeUpdate)
                     Set aTrd = Nothing
                     
                 ElseIf aAction = enTeNew Then
-                    AddEvent EVENT_WARNING, "New underlying '" & Data.UndSymbol & "' was added by trade feed. Please restart application."
+                    AddEvent EVENT_WARNING, "New underlying '" & Data.undSymbol & "' was added by trade feed. Please restart application."
                     If Not g_PerformanceLog Is Nothing Then _
-                        g_PerformanceLog.LogMmInfo enLogWarning, "New underlying '" & Data.UndSymbol & "' was added by trade feed. Please restart application.", "TradeChannel"
+                        g_PerformanceLog.LogMmInfo enLogWarning, "New underlying '" & Data.undSymbol & "' was added by trade feed. Please restart application.", "TradeChannel"
                 End If
                 
             ElseIf g_CurTraderID = 0 Then

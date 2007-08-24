@@ -3216,14 +3216,23 @@ Private Function CalcTheoPnLCommonExercItmDailyPrevDate(ByRef aPos As EtsMmRisks
     
     bBadPnl = False
     dPnlTheo = BAD_DOUBLE_VALUE
+        
+    'SUD-0909
+    Dim dPriceClose As Double
+    dPriceClose = aPos.Quote.Price.Close
+    If (Not g_Main Is Nothing) Then
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.Price.TheoClose
+        End If
+    End If
     
-    If aPos.Quote.Price.Close > 0# And (dSpotPriceBid > 0# And aPos.QtyDailyPrevDateBuy > BAD_LONG_VALUE _
+    If dPriceClose > 0# And (dSpotPriceBid > 0# And aPos.QtyDailyPrevDateBuy > BAD_LONG_VALUE _
         Or dSpotPriceAsk > 0# And aPos.QtyDailyPrevDateSell > BAD_LONG_VALUE) Then
     
         If aPos.OptType = enOtCall Then
             If aPos.QtyDailyPrevDateBuy > BAD_LONG_VALUE Then
                 If dSpotPriceBid > 0# Then
-                    dPnlTheo = aPos.QtyDailyPrevDateBuy * (dSpotPriceBid - aPos.Strike - aPos.Quote.Price.Close)
+                    dPnlTheo = aPos.QtyDailyPrevDateBuy * (dSpotPriceBid - aPos.Strike - dPriceClose)
                 Else
                     bBadPnl = True
                 End If
@@ -3232,7 +3241,7 @@ Private Function CalcTheoPnLCommonExercItmDailyPrevDate(ByRef aPos As EtsMmRisks
             If Not bBadPnl And aPos.QtyDailyPrevDateSell > BAD_LONG_VALUE Then
                 If dSpotPriceAsk > 0# Then
                     If dPnlTheo <= BAD_DOUBLE_VALUE Then dPnlTheo = 0#
-                    dPnlTheo = dPnlTheo + aPos.QtyDailyPrevDateSell * (dSpotPriceAsk - aPos.Strike - aPos.Quote.Price.Close)
+                    dPnlTheo = dPnlTheo + aPos.QtyDailyPrevDateSell * (dSpotPriceAsk - aPos.Strike - dPriceClose)
                 Else
                     bBadPnl = True
                 End If
@@ -3241,7 +3250,7 @@ Private Function CalcTheoPnLCommonExercItmDailyPrevDate(ByRef aPos As EtsMmRisks
         Else
             If aPos.QtyDailyPrevDateBuy > BAD_LONG_VALUE Then
                 If dSpotPriceBid > 0# Then
-                    dPnlTheo = aPos.QtyDailyPrevDateBuy * (aPos.Strike - dSpotPriceBid - aPos.Quote.Price.Close)
+                    dPnlTheo = aPos.QtyDailyPrevDateBuy * (aPos.Strike - dSpotPriceBid - dPriceClose)
                 Else
                     bBadPnl = True
                 End If
@@ -3250,7 +3259,7 @@ Private Function CalcTheoPnLCommonExercItmDailyPrevDate(ByRef aPos As EtsMmRisks
             If Not bBadPnl And aPos.QtyDailyPrevDateSell > BAD_LONG_VALUE Then
                 If dSpotPriceAsk > 0# Then
                     If dPnlTheo <= BAD_DOUBLE_VALUE Then dPnlTheo = 0#
-                    dPnlTheo = dPnlTheo + aPos.QtyDailyPrevDateSell * (aPos.Strike - dSpotPriceAsk - aPos.Quote.Price.Close)
+                    dPnlTheo = dPnlTheo + aPos.QtyDailyPrevDateSell * (aPos.Strike - dSpotPriceAsk - dPriceClose)
                 Else
                     bBadPnl = True
                 End If
@@ -3338,17 +3347,26 @@ Private Function CalcTheoPnLCommonExercOtm(ByRef aPos As EtsMmRisksLib.MmRvPosAt
     
     dPnlTheo = BAD_DOUBLE_VALUE
     
+    'SUD-0909
+    Dim dPriceClose As Double
+    dPriceClose = aPos.Quote.Price.Close
+    If (Not g_Main Is Nothing) Then
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.Price.TheoClose
+        End If
+    End If
+    
     If g_Params.PnLCalcType = PNLCT_DAILY _
         And (aPos.QtyDailyTodayBuy > BAD_LONG_VALUE Or aPos.QtyDailyTodaySell > BAD_LONG_VALUE) Then
     
-        If aPos.Quote.Price.Close > 0# Then
+        If dPriceClose > 0# Then
             If aPos.QtyDailyTodayBuy > BAD_LONG_VALUE Then
-                dPnlTheo = -aPos.QtyDailyTodayBuy * aPos.Quote.Price.Close
+                dPnlTheo = -aPos.QtyDailyTodayBuy * dPriceClose
             End If
         
             If aPos.QtyDailyTodaySell > BAD_LONG_VALUE Then
                 If dPnlTheo <= BAD_DOUBLE_VALUE Then dPnlTheo = 0#
-                dPnlTheo = dPnlTheo - aPos.QtyDailyTodaySell * aPos.Quote.Price.Close
+                dPnlTheo = dPnlTheo - aPos.QtyDailyTodaySell * dPriceClose
             End If
         End If
     Else

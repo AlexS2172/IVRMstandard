@@ -44,9 +44,11 @@ public:
 	DOUBLE							m_dPriceAsk;
 	DOUBLE							m_dPriceLast;
 	DOUBLE							m_dPriceClose;
+	DOUBLE							m_dPriceTheoClose;
 	DOUBLE							m_dNetChange;
 	DOUBLE							m_dActivePrice;
 	VARIANT_BOOL					m_bDirty;
+	VARIANT_BOOL					m_bManualActive;
 
 
 	__CMmRvPrice()
@@ -63,8 +65,10 @@ public:
 		m_dPriceClose = BAD_DOUBLE_VALUE;
 		m_dNetChange = BAD_DOUBLE_VALUE;
 		m_dActivePrice = BAD_DOUBLE_VALUE;
+		m_dPriceTheoClose = BAD_DOUBLE_VALUE;
 
 		m_bDirty = VARIANT_TRUE;
+		m_bManualActive = VARIANT_FALSE;
 	}
 };
 
@@ -114,10 +118,13 @@ public:
 		IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, Ask,	 m_dPriceAsk)
 		IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, Last,	 m_dPriceLast)
 		IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, Close,	 m_dPriceClose)
-		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Active,    m_dActivePrice)
+		IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, Active,    m_dActivePrice)
+		IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, TheoClose,	 m_dPriceTheoClose)
+
 
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,		NetChange, m_dNetChange)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsDirty, m_bDirty)
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsUseManualActive, m_bManualActive)
 
 };
 

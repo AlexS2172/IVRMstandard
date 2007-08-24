@@ -118,6 +118,8 @@ struct __MmRvPosAtom
 
 	double						m_dKEq;
 	VARIANT_BOOL				m_bMultOptDltEq;
+	VARIANT_BOOL				m_bUseManualActivePrice;
+	double						m_dManualActivePrice;
 	__MmRvPosAtom() :
 		m_nID(0L), m_enContractType(enCtNone),
 		m_enOptType(enOtCall),
@@ -158,7 +160,9 @@ struct __MmRvPosAtom
 		m_dUndPriceSave(BAD_DOUBLE_VALUE),
 		m_spActiveFuture(NULL),
 		m_dKEq(1.),
-		m_bMultOptDltEq(VARIANT_FALSE)
+		m_bMultOptDltEq(VARIANT_FALSE),
+		m_bUseManualActivePrice(VARIANT_FALSE),
+		m_dManualActivePrice(0)
 	{
 		AggregationsPtr_[0] = AggregationsPtr_[1] = AggregationsPtr_[2] = NULL;
 		ClearValues();
@@ -373,6 +377,9 @@ public:
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, DeltaEq, m_dDeltaEq)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadDeltaEq, m_bBadDeltaEq)
 
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsUseManualActivePrice, m_bUseManualActivePrice)
+		
+
 		// synthetic info
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsSynthetic, m_bIsSynthetic)
 		IMPLEMENT_OBJECT_PROPERTY(IMmRvSynthGreeksColl*, SynthGreeks, m_spSynthGreeks)
@@ -440,7 +447,7 @@ public:
 			m_dPnlTheo = m_dPnlMtm;
 		return S_OK;
 	}
-	STDMETHOD(AddTrade)(IMmTradeInfoAtom* pTrade, IMmRvUndAtom* pUnd);
+	//STDMETHOD(AddTrade)(IMmTradeInfoAtom* pTrade, IMmRvUndAtom* pUnd);
 	STDMETHOD(GetOpositOption)(BSTR*vSymbol);
 	STDMETHOD(GetCopyOfObject)(VARIANT_BOOL bNewQuote , IMmRvPosAtom**ppCopy);
 	STDMETHOD(InitSyntAndFut)( IMmRvSynthGreeksColl* , IMmRvFutAtom*, IMmRvFutAtom*) ;

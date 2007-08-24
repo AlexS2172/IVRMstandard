@@ -1138,6 +1138,13 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 
 	 if (!bFutureUsed || !pPrice || !aUnd)		return E_POINTER;
 
+	 if (this->m_bUseManualActivePrice)
+	 {
+		 *pPrice = this->m_dActivePrice;
+
+		 return S_OK;
+	 }
+
 	 m_dActivePrice = BAD_DOUBLE_VALUE;
 	 *bFutureUsed = VARIANT_FALSE;
 	 *pPrice = 0.;

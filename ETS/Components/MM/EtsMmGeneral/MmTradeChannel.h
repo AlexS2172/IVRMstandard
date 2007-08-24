@@ -144,6 +144,7 @@ public:
 								IEtsStrategyAtom** pStrategyAtom, 
 								VARIANT_BOOL* bNew);
 
+		STDMETHOD(UpdateManualActivePrices)();
 
 };
 

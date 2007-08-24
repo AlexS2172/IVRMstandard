@@ -1024,6 +1024,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                     aUnd.ActiveFuture.Price.Ask = BAD_DOUBLE_VALUE
                     aUnd.ActiveFuture.Price.Last = BAD_DOUBLE_VALUE
                     aUnd.ActiveFuture.Price.Close = aTrd.Und.ActiveFuture.PriceClose
+                    aUnd.ActiveFuture.Price.TheoClose = aTrd.Und.ActiveFuture.PriceTheoClose
                     aUnd.ActiveFuture.ContractName = aTrd.Und.ActiveFuture.ContractName
                     aUnd.ActiveFuture.OptLotSize = aTrd.Und.FutRoots(aUnd.ActiveFuture.FutRootID).OptLotSize
                     aUnd.ActiveFuture.FutLotSize = aTrd.Und.FutRoots(aUnd.ActiveFuture.FutRootID).FutLotSize
@@ -1043,6 +1044,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                 Set aUnd.OptPriceProfile = aTrd.Und.OptPriceProfile
 
                 aUnd.Price.Close = aTrd.Und.PriceClose
+                aUnd.Price.TheoClose = aTrd.Und.PriceTheoClose
                 aUnd.LotSize = aTrd.Und.LotSize
 
                 gDBW.usp_DataHistoryDH_Get aUnd.ID, aUnd.UndType, fIV, fHV, fVolOfVol, fVega, dtUpdateDate
@@ -1106,6 +1108,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                 aFut.Price.Ask = BAD_DOUBLE_VALUE
                 aFut.Price.Last = BAD_DOUBLE_VALUE
                 aFut.Price.Close = aTrd.Fut.PriceClose
+                aFut.Price.TheoClose = aTrd.Fut.PriceTheoClose
                 aFut.ContractName = aTrd.ContractName
                 aFut.OptLotSize = aTrd.FutRoot.OptLotSize
                 aFut.FutLotSize = aTrd.FutRoot.FutLotSize
@@ -1159,6 +1162,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                             End If
                 
                             aOpt.Price.Close = aTrd.Opt.PriceClose
+                            aOpt.Price.TheoClose = aTrd.Opt.PriceTheoClose
                             aOpt.UnderlyingName = aUnd.Symbol
                             aOpt.PriceTheoClose = aTrd.Opt.PriceTheoClose
                             aOpt.RootID = aTrd.OptRootID
@@ -1211,6 +1215,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                             aFut.Price.Ask = BAD_DOUBLE_VALUE
                             aFut.Price.Last = BAD_DOUBLE_VALUE
                             aFut.Price.Close = aTrd.Fut.PriceClose
+                            aFut.Price.TheoClose = aTrd.Fut.PriceTheoClose
                             aFut.OptLotSize = aTrd.FutRoot.OptLotSize
                             aFut.FutLotSize = aTrd.FutRoot.FutLotSize
                             If Not aUnd.ActiveFuture Is Nothing Then Set aFut.ActiveFuture = aUnd.ActiveFuture
@@ -1287,6 +1292,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                                                 End If
 
                                                 aSynthUnd.Price.Close = aGUnd.PriceClose
+                                                aSynthUnd.Price.TheoClose = aGUnd.PriceTheoClose
                                                 aSynthUnd.LotSize = aGUnd.LotSize
 
                                                 aSynthUnd.IsAmerican = aGUnd.IsAmerican
@@ -1669,6 +1675,7 @@ Private Function OptionsLoad() As Boolean
                                     aFuture.Price.Ask = BAD_DOUBLE_VALUE
                                     aFuture.Price.Last = BAD_DOUBLE_VALUE
                                     aFuture.Price.Close = g_ContractAll(futureID).Fut.PriceClose
+                                    aFuture.Price.TheoClose = g_ContractAll(futureID).Fut.PriceTheoClose
                                     aFuture.OptLotSize = g_ContractAll(futureID).FutRoot.OptLotSize
                                     aFuture.FutLotSize = g_ContractAll(futureID).FutRoot.FutLotSize
                                     If Not bUnd.ActiveFuture Is Nothing Then Set aFuture.ActiveFuture = bUnd.ActiveFuture

@@ -48,7 +48,7 @@ Begin VB.Form frmParams
       Caption         =   "&Calculations|&Price Profiles|&Quotes|&Risks|Risk &Matrix|&Orders/Msgs|&Reports|&Advanced "
       Align           =   0
       Appearance      =   1
-      CurrTab         =   6
+      CurrTab         =   0
       FirstTab        =   0
       Style           =   3
       Position        =   0
@@ -68,7 +68,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   7
-         Left            =   10530
+         Left            =   12330
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   111
@@ -430,7 +430,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   6
-         Left            =   45
+         Left            =   12030
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   96
@@ -500,7 +500,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   5
-         Left            =   -10440
+         Left            =   11730
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   142
@@ -519,19 +519,11 @@ Begin VB.Form frmParams
                TabIndex        =   54
                Top             =   720
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":0018
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":0018
+               font            =   "frmParams.frx":0036
+               hideselection   =   -1
             End
             Begin EtsMM.ctlEditEx txtOrdOptIncrQty 
                Height          =   315
@@ -539,19 +531,11 @@ Begin VB.Form frmParams
                TabIndex        =   53
                Top             =   270
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":0034
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":005A
+               font            =   "frmParams.frx":0078
+               hideselection   =   -1
             End
             Begin EtsMM.ctlEditEx txtOrdOptIncrPriceExpensive 
                Height          =   315
@@ -559,19 +543,11 @@ Begin VB.Form frmParams
                TabIndex        =   55
                Top             =   1170
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":0050
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":009C
+               font            =   "frmParams.frx":00BA
+               hideselection   =   -1
             End
             Begin VB.Label lblOrdOptIncrPriceExpensive 
                Alignment       =   1  'Right Justify
@@ -630,19 +606,11 @@ Begin VB.Form frmParams
                TabIndex        =   58
                Top             =   270
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":006C
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":00DE
+               font            =   "frmParams.frx":00FC
+               hideselection   =   -1
             End
             Begin EtsMM.ctlEditEx txtCrdIncrPriceCheap 
                Height          =   315
@@ -650,19 +618,11 @@ Begin VB.Form frmParams
                TabIndex        =   59
                Top             =   720
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":0088
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":0120
+               font            =   "frmParams.frx":013E
+               hideselection   =   -1
             End
             Begin EtsMM.ctlEditEx txtCrdIncrPriceExpensive 
                Height          =   315
@@ -670,19 +630,11 @@ Begin VB.Form frmParams
                TabIndex        =   60
                Top             =   1170
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":00A4
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":0162
+               font            =   "frmParams.frx":0180
+               hideselection   =   -1
             End
             Begin VB.Label lblCrdIncrPriceExpensive 
                Alignment       =   1  'Right Justify
@@ -725,19 +677,11 @@ Begin VB.Form frmParams
                TabIndex        =   56
                Top             =   270
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":00C0
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":01A4
+               font            =   "frmParams.frx":01C2
+               hideselection   =   -1
             End
             Begin EtsMM.ctlEditEx txtOrdStkIncrPrice 
                Height          =   315
@@ -745,19 +689,11 @@ Begin VB.Form frmParams
                TabIndex        =   57
                Top             =   720
                Width           =   795
-               _ExtentX        =   1402
-               _ExtentY        =   556
-               MouseIcon       =   "frmParams.frx":00DC
-               BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-                  Name            =   "Arial"
-                  Size            =   8.25
-                  Charset         =   204
-                  Weight          =   400
-                  Underline       =   0   'False
-                  Italic          =   0   'False
-                  Strikethrough   =   0   'False
-               EndProperty
-               HideSelection   =   -1  'True
+               _extentx        =   1402
+               _extenty        =   556
+               mouseicon       =   "frmParams.frx":01E6
+               font            =   "frmParams.frx":0204
+               hideselection   =   -1
             End
             Begin VB.Label lblOrdStkIncrPrice 
                Alignment       =   1  'Right Justify
@@ -783,7 +719,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   4
-         Left            =   -10740
+         Left            =   11430
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   79
@@ -882,7 +818,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   3
-         Left            =   -11040
+         Left            =   11130
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   78
@@ -1095,7 +1031,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   2
-         Left            =   -11340
+         Left            =   10830
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   77
@@ -1265,9 +1201,9 @@ Begin VB.Form frmParams
             Width           =   3885
             Begin VB.ComboBox cboQuoteDefExchOpt 
                Height          =   315
-               ItemData        =   "frmParams.frx":00F8
+               ItemData        =   "frmParams.frx":0228
                Left            =   1050
-               List            =   "frmParams.frx":00FA
+               List            =   "frmParams.frx":022A
                Sorted          =   -1  'True
                Style           =   2  'Dropdown List
                TabIndex        =   35
@@ -1276,9 +1212,9 @@ Begin VB.Form frmParams
             End
             Begin VB.ComboBox cboQuoteDefExchUnd 
                Height          =   315
-               ItemData        =   "frmParams.frx":00FC
+               ItemData        =   "frmParams.frx":022C
                Left            =   1050
-               List            =   "frmParams.frx":00FE
+               List            =   "frmParams.frx":022E
                Sorted          =   -1  'True
                Style           =   2  'Dropdown List
                TabIndex        =   34
@@ -1418,7 +1354,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   1
-         Left            =   -11640
+         Left            =   10530
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   76
@@ -1613,9 +1549,9 @@ Begin VB.Form frmParams
          Begin VB.ListBox lstPpProfiles 
             Height          =   3840
             IntegralHeight  =   0   'False
-            ItemData        =   "frmParams.frx":0100
+            ItemData        =   "frmParams.frx":0230
             Left            =   120
-            List            =   "frmParams.frx":0102
+            List            =   "frmParams.frx":0232
             TabIndex        =   14
             Top             =   120
             Width           =   3015
@@ -1643,7 +1579,7 @@ Begin VB.Form frmParams
          BorderStyle     =   0  'None
          Height          =   3945
          Index           =   0
-         Left            =   -11940
+         Left            =   45
          ScaleHeight     =   3945
          ScaleWidth      =   9795
          TabIndex        =   75
@@ -1854,6 +1790,14 @@ Begin VB.Form frmParams
             TabIndex        =   80
             Top             =   120
             Width           =   3885
+            Begin VB.CheckBox chkUseTheoCloseForPNL 
+               Caption         =   "Use Theo Close"
+               Height          =   435
+               Left            =   1800
+               TabIndex        =   158
+               Top             =   600
+               Width           =   1695
+            End
             Begin MSForms.OptionButton optCalcPnlDaily 
                Height          =   375
                Left            =   120
@@ -2001,6 +1945,10 @@ Private Sub chkRTEditMsg_Click()
     m_bDirty = True
 End Sub
 
+Private Sub chkUseTheoCloseForPNL_Click()
+    m_bDirty = True
+End Sub
+
 Private Sub ckOptWithPos_Click()
     g_Params.EAOptWithPosition = ckOptWithPos.Value
     m_bDirty = True
@@ -2079,6 +2027,8 @@ End Sub
 Private Sub LoadData()
     On Error Resume Next
     m_bInitializing = True
+    
+    chkUseTheoCloseForPNL.Value = IIf(g_Params.UseTheoCloseForPNL, 1, 0)
     
     optCalcPnlDaily.Value = IIf(g_Params.PnLCalcType = PNLCT_DAILY, 1, 0)
     optCalcPnlLTD.Value = Not optCalcPnlDaily.Value
@@ -2366,6 +2316,11 @@ Private Sub SaveData()
     g_Params.UseTheoBadMarketVola = (chkCalcUseTheoBadMarketVola.Value <> 0)
     g_Params.NetExposureAUM = CDbl(entAUM.Text)
     g_Params.ShowMessageUnableToEdit = IIf(chkRTEditMsg.Value = vbChecked, True, False)
+    
+    If (Not g_Main Is Nothing) Then
+        g_Main.UseTheoCloseForPNL = IIf(chkUseTheoCloseForPNL.Value = vbChecked, True, False)
+        g_Params.UseTheoCloseForPNL = g_Main.UseTheoCloseForPNL
+    End If
     
     LogParameter "PnLCalcType", g_Params.PnLCalcType, False
     LogParameter "UseTheoVolatility", g_Params.UseTheoVolatility, False
@@ -2840,7 +2795,7 @@ Private Sub btnCancel_Click()
     Unload Me
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub btnOk_Click()
     On Error Resume Next
     'Me.Hide
     

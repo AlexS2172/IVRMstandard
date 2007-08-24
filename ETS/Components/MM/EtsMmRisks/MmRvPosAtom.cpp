@@ -369,7 +369,8 @@ void CMmRvPosAtom::_CalcOptPositionData(
 	DOUBLE dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusMid);
 
 	m_pQuote->m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enPriceStatusMid | enPriceStatusBid | enPriceStatusAsk);
-	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+
+	if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 
 	// pnl
 	_CalcPnlMtm(bIsPnlLTD, dOptPriceBid, dOptPriceAsk, spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero , dtCalcDate);
@@ -420,7 +421,7 @@ void CMmRvPosAtom::_CalcOptPositionData(
 			ISynthRootCompCollPtr spSRCompColl;
 			
 			//only for display ActivPrice for main SU component as price of SU
-			m_pQuote->m_pPrice->m_dActivePrice = m_pQuote->m_pSuPrice->m_dPriceLast;
+			if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = m_pQuote->m_pSuPrice->m_dPriceLast;
 
 			spSRCompColl = spSynthRoot->SynthRootComponents;
 			if(spSRCompColl != NULL)
@@ -705,7 +706,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 		dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, 0., &enPriceStatusMid);
 
 		m_pQuote->m_enReplacePriceStatus = enPriceStatusMid;
-		m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+		if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 
 		CSafeArrayWrapper<double> saDates;
 		CSafeArrayWrapper<double> saAmounts;
@@ -1184,7 +1185,7 @@ void CMmRvPosAtom::_CalcPnlMtm(VARIANT_BOOL bIsPnlLTD, DOUBLE dPriceBid, DOUBLE 
 	_dtCalculationDate = (DWORD)_dtCalculationDate ;
 	DATE dtCurr = EgLib::vt_date::GetCurrentDate ( true ) ;
 
-	if ( bIsPnlLTD || dtCurr != _dtCalculationDate )
+	if ( bIsPnlLTD /*|| dtCurr != _dtCalculationDate*/ )
 	{
 		if(m_nQtyLTDBuy > BAD_LONG_VALUE)
 		{
@@ -1361,213 +1362,215 @@ void CMmRvPosAtom::_GetSyntheticRootBasketDividends(ISynthRootAtomPtr spSynthRoo
 	}
 }
 
-STDMETHODIMP CMmRvPosAtom::AddTrade(IMmTradeInfoAtom* pTrade, IMmRvUndAtom* pUnd)
-{
-	long nQty = 0;
-	long nQtyInShares = 0;
-	HRESULT hr = S_OK;
-	IMmTradeInfoAtomPtr			spTrade(pTrade);
-	IMmRvAggregationDataAtomPtr spUndAtomData(pUnd);
-
-	try
-	{
-		if(spTrade!=NULL)
-		{
-			bool bIsBuy  = spTrade->IsBuy!=VARIANT_FALSE?true:false;
-			nQty		 = spTrade->Quantity * (bIsBuy?1:-1);
-			nQtyInShares = nQty * m_pQuote->m_nLotSize;
-
-			if(bIsBuy)
-			{
-				if (m_nQtyLTDBuy == BAD_LONG_VALUE)
-					m_nQtyLTDBuy = 0 ;
-
-				m_nQtyLTDBuy += nQtyInShares;
-				if(spTrade->IsPosition)
-				{
-					if (m_pQuote->m_pPrice->m_dPriceClose >= DBL_EPSILON )
-					{
-						if(m_dPosLTDBuy == BAD_DOUBLE_VALUE ) 
-							m_dPosLTDBuy = 0;
-
-						m_dPosLTDBuy += (m_pQuote->m_pPrice->m_dPriceClose * nQtyInShares);
-					}
-				}else
-				{
-					if (m_dPosLTDBuy == BAD_DOUBLE_VALUE)
-						m_dPosLTDBuy = 0;
-
-					m_dPosLTDBuy += (spTrade->Price * nQtyInShares);
-				}
-
-				if( spTrade->TradeDate < vt_date::GetCurrentDate(true))
-				{
-					if (m_nQtyDailyPrevDateBuy == BAD_LONG_VALUE) 
-						m_nQtyDailyPrevDateBuy = 0;
-
-					m_nQtyDailyPrevDateBuy +=  nQtyInShares;
-
-					if (m_pQuote->m_pPrice->m_dPriceClose >= DBL_EPSILON) 
-					{
-						if(m_dPosDailyPrevDateBuy == BAD_DOUBLE_VALUE) 
-							m_dPosDailyPrevDateBuy = 0;
-						m_dPosDailyPrevDateBuy +=  (m_pQuote->m_pPrice->m_dPriceClose * nQtyInShares);
-					}
-					else
-						if(!spTrade->IsPosition)
-						{
-							if(m_dPosDailyPrevDateBuy == BAD_DOUBLE_VALUE) m_dPosDailyPrevDateBuy = 0;
-
-							m_dPosDailyPrevDateBuy += (spTrade->Price * nQtyInShares);
-						}
-				}else
-				{
-					if(m_nQtyDailyTodayBuy == BAD_LONG_VALUE) m_nQtyDailyTodayBuy = 0;
-
-					m_nQtyDailyTodayBuy += nQtyInShares;
-					if(spTrade->IsPosition) 
-					{
-						if(m_pQuote->m_pPrice->m_dPriceClose >= DBL_EPSILON)
-						{
-							if (m_dPosDailyTodayBuy == BAD_DOUBLE_VALUE) m_dPosDailyTodayBuy = 0;
-							m_dPosDailyTodayBuy += (m_pQuote->m_pPrice->m_dPriceClose * nQtyInShares);
-						}
-					}
-					else
-					{
-						if (m_dPosDailyTodayBuy == BAD_DOUBLE_VALUE) m_dPosDailyTodayBuy = 0;
-						m_dPosDailyTodayBuy += (spTrade->Price * nQtyInShares);
-					}
-				}
-			}
-			else
-			{
-				if(m_nQtyLTDSell == BAD_LONG_VALUE)
-					m_nQtyLTDSell = 0;
-				m_nQtyLTDSell += nQtyInShares;
-
-				if (spTrade->IsPosition) 
-				{
-					if(m_pQuote->m_pPrice->m_dPriceClose >= DBL_EPSILON)
-					{
-						if(m_dPosLTDSell == BAD_DOUBLE_VALUE) 
-							m_dPosLTDSell = 0;
-						m_dPosLTDSell += (m_pQuote->m_pPrice->m_dPriceClose * nQtyInShares);
-					}
-				}
-				else
-				{
-					if (m_dPosLTDSell == BAD_DOUBLE_VALUE) 
-						m_dPosLTDSell = 0;
-					m_dPosLTDSell += (spTrade->Price * nQtyInShares);
-				}
-
-				if (spTrade->TradeDate < vt_date::GetCurrentDate(true))
-				{
-					if (m_nQtyDailyPrevDateSell == BAD_LONG_VALUE) 
-						m_nQtyDailyPrevDateSell = 0; 
-					m_nQtyDailyPrevDateSell += nQtyInShares;
-					if (m_pQuote->m_pPrice->m_dPriceClose >= DBL_EPSILON)
-					{
-						if (m_dPosDailyPrevDateSell == BAD_DOUBLE_VALUE) m_dPosDailyPrevDateSell = 0;
-						m_dPosDailyPrevDateSell +=  (m_pQuote->m_pPrice->m_dPriceClose * nQtyInShares);
-					}
-					else if(!spTrade->IsPosition)
-					{
-						if (m_dPosDailyPrevDateSell == BAD_DOUBLE_VALUE) m_dPosDailyPrevDateSell = 0;
-						m_dPosDailyPrevDateSell += (spTrade->Price * nQtyInShares);
-					}
-				}
-				else
-				{
-					if(m_nQtyDailyTodaySell == BAD_LONG_VALUE) m_nQtyDailyTodaySell = 0;
-					m_nQtyDailyTodaySell += nQtyInShares;
-					if (spTrade->IsPosition)
-					{
-						if (m_pQuote->m_pPrice->m_dPriceClose >= DBL_EPSILON) 
-						{
-							if(m_dPosDailyTodaySell == BAD_DOUBLE_VALUE) 
-								m_dPosDailyTodaySell = 0;
-
-							m_dPosDailyTodaySell += (m_pQuote->m_pPrice->m_dPriceClose * nQtyInShares);
-						}
-					}
-					else
-					{
-						if (m_dPosDailyTodaySell == BAD_DOUBLE_VALUE) m_dPosDailyTodaySell = 0;
-						m_dPosDailyTodaySell += (spTrade->Price * nQtyInShares);
-					}
-				}
-			}
-
-			m_nQty +=  nQty;
-			m_nQtyInShares += nQtyInShares;
-
-			if(pUnd != NULL)
-			{
-				if(enCtOption==m_enContractType || enCtFutOption ==m_enContractType)
-				{
-					long lUndOptQty = BAD_LONG_VALUE;
-					spUndAtomData->get_OptQty(&lUndOptQty);
-
-					if (lUndOptQty == BAD_LONG_VALUE) 
-					{
-						lUndOptQty = 0L;
-						spUndAtomData->put_OptQty(0L);
-					}
-					spUndAtomData->put_OptQty(lUndOptQty + nQty);
-				}
-				else 
-					if (m_enContractType == enCtFuture)
-					{
-						long lUndFutQty = BAD_LONG_VALUE;
-						spUndAtomData->get_FutQty(&lUndFutQty);
-
-						if(lUndFutQty == BAD_LONG_VALUE) 
-						{
-							lUndFutQty = 0L;
-							spUndAtomData->put_FutQty(0L);
-						}
-						spUndAtomData->put_FutQty(lUndFutQty + nQty);
-
-						long lUndQty = BAD_LONG_VALUE;
-						spUndAtomData->get_Qty(&lUndQty);
-
-						if(lUndQty == BAD_LONG_VALUE){
-							spUndAtomData->put_Qty(0);
-							lUndQty = 0;
-						}
-						spUndAtomData->put_Qty(lUndQty+ nQtyInShares);
-
-					}
-					else
-					{
-						long lUndQty = BAD_LONG_VALUE;
-						spUndAtomData->get_Qty(&lUndQty);
-
-						if(lUndQty == BAD_LONG_VALUE){
-							spUndAtomData->put_Qty(0);
-							lUndQty = 0;
-						}
-						spUndAtomData->put_Qty(lUndQty+ nQtyInShares);
-					}
-			}
-
-		}
-		else
-			hr = E_POINTER;
-	}
-	catch (_com_error& e)
-	{
-		hr = Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvPosAtom, e.Error());
-	}
-	catch (...) 
-	{
-		hr = Error((LPCOLESTR)_bstr_t(L"Unknown error while adding trade to position"), IID_IMmRvPosAtom, E_FAIL);
-	}
-
-	return hr;
-}
+//STDMETHODIMP CMmRvPosAtom::AddTrade(IMmTradeInfoAtom* pTrade, IMmRvUndAtom* pUnd)
+//{
+//	long nQty = 0;
+//	long nQtyInShares = 0;
+//	HRESULT hr = S_OK;
+//	IMmTradeInfoAtomPtr			spTrade(pTrade);
+//	IMmRvAggregationDataAtomPtr spUndAtomData(pUnd);
+//	double	dPriceClose = BAD_DOUBLE_VALUE;
+//
+//	try
+//	{
+//		if(spTrade!=NULL)
+//		{
+//			bool bIsBuy  = spTrade->IsBuy!=VARIANT_FALSE?true:false;
+//			nQty		 = spTrade->Quantity * (bIsBuy?1:-1);
+//			nQtyInShares = nQty * m_pQuote->m_nLotSize;
+//			dPriceClose	 = m_pQuote->m_pPrice->m_dPriceClose;
+//
+//			if(bIsBuy)
+//			{
+//				if (m_nQtyLTDBuy == BAD_LONG_VALUE)
+//					m_nQtyLTDBuy = 0 ;
+//
+//				m_nQtyLTDBuy += nQtyInShares;
+//				if(spTrade->IsPosition)
+//				{
+//					if (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= DBL_EPSILON )
+//					{
+//						if(m_dPosLTDBuy == BAD_DOUBLE_VALUE ) 
+//							m_dPosLTDBuy = 0;
+//
+//						m_dPosLTDBuy += (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * nQtyInShares);
+//					}
+//				}else
+//				{
+//					if (m_dPosLTDBuy == BAD_DOUBLE_VALUE)
+//						m_dPosLTDBuy = 0;
+//
+//					m_dPosLTDBuy += (spTrade->Price * nQtyInShares);
+//				}
+//
+//				if( spTrade->TradeDate < vt_date::GetCurrentDate(true))
+//				{
+//					if (m_nQtyDailyPrevDateBuy == BAD_LONG_VALUE) 
+//						m_nQtyDailyPrevDateBuy = 0;
+//
+//					m_nQtyDailyPrevDateBuy +=  nQtyInShares;
+//
+//					if (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= DBL_EPSILON) 
+//					{
+//						if(m_dPosDailyPrevDateBuy == BAD_DOUBLE_VALUE) 
+//							m_dPosDailyPrevDateBuy = 0;
+//						m_dPosDailyPrevDateBuy +=  (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * nQtyInShares);
+//					}
+//					else
+//						if(!spTrade->IsPosition)
+//						{
+//							if(m_dPosDailyPrevDateBuy == BAD_DOUBLE_VALUE) m_dPosDailyPrevDateBuy = 0;
+//
+//							m_dPosDailyPrevDateBuy += (spTrade->Price * nQtyInShares);
+//						}
+//				}else
+//				{
+//					if(m_nQtyDailyTodayBuy == BAD_LONG_VALUE) m_nQtyDailyTodayBuy = 0;
+//
+//					m_nQtyDailyTodayBuy += nQtyInShares;
+//					if(spTrade->IsPosition) 
+//					{
+//						if(/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= DBL_EPSILON)
+//						{
+//							if (m_dPosDailyTodayBuy == BAD_DOUBLE_VALUE) m_dPosDailyTodayBuy = 0;
+//							m_dPosDailyTodayBuy += (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * nQtyInShares);
+//						}
+//					}
+//					else
+//					{
+//						if (m_dPosDailyTodayBuy == BAD_DOUBLE_VALUE) m_dPosDailyTodayBuy = 0;
+//						m_dPosDailyTodayBuy += (spTrade->Price * nQtyInShares);
+//					}
+//				}
+//			}
+//			else
+//			{
+//				if(m_nQtyLTDSell == BAD_LONG_VALUE)
+//					m_nQtyLTDSell = 0;
+//				m_nQtyLTDSell += nQtyInShares;
+//
+//				if (spTrade->IsPosition) 
+//				{
+//					if(/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= DBL_EPSILON)
+//					{
+//						if(m_dPosLTDSell == BAD_DOUBLE_VALUE) 
+//							m_dPosLTDSell = 0;
+//						m_dPosLTDSell += (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * nQtyInShares);
+//					}
+//				}
+//				else
+//				{
+//					if (m_dPosLTDSell == BAD_DOUBLE_VALUE) 
+//						m_dPosLTDSell = 0;
+//					m_dPosLTDSell += (spTrade->Price * nQtyInShares);
+//				}
+//
+//				if (spTrade->TradeDate < vt_date::GetCurrentDate(true))
+//				{
+//					if (m_nQtyDailyPrevDateSell == BAD_LONG_VALUE) 
+//						m_nQtyDailyPrevDateSell = 0; 
+//					m_nQtyDailyPrevDateSell += nQtyInShares;
+//					if (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= DBL_EPSILON)
+//					{
+//						if (m_dPosDailyPrevDateSell == BAD_DOUBLE_VALUE) m_dPosDailyPrevDateSell = 0;
+//						m_dPosDailyPrevDateSell +=  (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * nQtyInShares);
+//					}
+//					else if(!spTrade->IsPosition)
+//					{
+//						if (m_dPosDailyPrevDateSell == BAD_DOUBLE_VALUE) m_dPosDailyPrevDateSell = 0;
+//						m_dPosDailyPrevDateSell += (spTrade->Price * nQtyInShares);
+//					}
+//				}
+//				else
+//				{
+//					if(m_nQtyDailyTodaySell == BAD_LONG_VALUE) m_nQtyDailyTodaySell = 0;
+//					m_nQtyDailyTodaySell += nQtyInShares;
+//					if (spTrade->IsPosition)
+//					{
+//						if (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= DBL_EPSILON) 
+//						{
+//							if(m_dPosDailyTodaySell == BAD_DOUBLE_VALUE) 
+//								m_dPosDailyTodaySell = 0;
+//
+//							m_dPosDailyTodaySell += (/*m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * nQtyInShares);
+//						}
+//					}
+//					else
+//					{
+//						if (m_dPosDailyTodaySell == BAD_DOUBLE_VALUE) m_dPosDailyTodaySell = 0;
+//						m_dPosDailyTodaySell += (spTrade->Price * nQtyInShares);
+//					}
+//				}
+//			}
+//
+//			m_nQty +=  nQty;
+//			m_nQtyInShares += nQtyInShares;
+//
+//			if(pUnd != NULL)
+//			{
+//				if(enCtOption==m_enContractType || enCtFutOption ==m_enContractType)
+//				{
+//					long lUndOptQty = BAD_LONG_VALUE;
+//					spUndAtomData->get_OptQty(&lUndOptQty);
+//
+//					if (lUndOptQty == BAD_LONG_VALUE) 
+//					{
+//						lUndOptQty = 0L;
+//						spUndAtomData->put_OptQty(0L);
+//					}
+//					spUndAtomData->put_OptQty(lUndOptQty + nQty);
+//				}
+//				else 
+//					if (m_enContractType == enCtFuture)
+//					{
+//						long lUndFutQty = BAD_LONG_VALUE;
+//						spUndAtomData->get_FutQty(&lUndFutQty);
+//
+//						if(lUndFutQty == BAD_LONG_VALUE) 
+//						{
+//							lUndFutQty = 0L;
+//							spUndAtomData->put_FutQty(0L);
+//						}
+//						spUndAtomData->put_FutQty(lUndFutQty + nQty);
+//
+//						long lUndQty = BAD_LONG_VALUE;
+//						spUndAtomData->get_Qty(&lUndQty);
+//
+//						if(lUndQty == BAD_LONG_VALUE){
+//							spUndAtomData->put_Qty(0);
+//							lUndQty = 0;
+//						}
+//						spUndAtomData->put_Qty(lUndQty+ nQtyInShares);
+//
+//					}
+//					else
+//					{
+//						long lUndQty = BAD_LONG_VALUE;
+//						spUndAtomData->get_Qty(&lUndQty);
+//
+//						if(lUndQty == BAD_LONG_VALUE){
+//							spUndAtomData->put_Qty(0);
+//							lUndQty = 0;
+//						}
+//						spUndAtomData->put_Qty(lUndQty+ nQtyInShares);
+//					}
+//			}
+//
+//		}
+//		else
+//			hr = E_POINTER;
+//	}
+//	catch (_com_error& e)
+//	{
+//		hr = Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvPosAtom, e.Error());
+//	}
+//	catch (...) 
+//	{
+//		hr = Error((LPCOLESTR)_bstr_t(L"Unknown error while adding trade to position"), IID_IMmRvPosAtom, E_FAIL);
+//	}
+//
+//	return hr;
+//}
 
 STDMETHODIMP CMmRvPosAtom::GetOpositOption(BSTR*pVal)
 {

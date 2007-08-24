@@ -296,6 +296,7 @@ STDMETHODIMP CEtsMain::LoadTraderGroup()
 	}
 	return hr;
 }
+
 STDMETHODIMP CEtsMain::LoadTrader(LONG lTraderID)
 {
 	HRESULT hr = S_OK;
@@ -892,6 +893,8 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 						pObject->m_bstrContractName	= rs[L"vcContractName"]; 
 						pObject->m_nLotSize			= 1;
 						pObject->m_dPriceClose      = rs[L"fPriceClose"];
+						pObject->m_dPriceTheoClose	 = rs[L"fPriceTheoClose"];
+
 						pObject->m_dSkew            = rs[L"fSkew"];
 						pObject->m_dKurt		    = rs[L"fKurt"];
 						pObject->m_bIsHedgeSymbol = ((bool)rs[L"tiIsHedgeSymbol"]) ? VARIANT_TRUE : VARIANT_FALSE;
@@ -902,6 +905,8 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 						pObject->m_nVolume10Day			= rs[L"iVolume10Day"];
 						pObject->m_nVolume5Expiration	= rs[L"iVolume5Expiration"];
 						pObject->m_nPrimaryExchangeID	= rs[L"iPrimaryExchangeID"];
+						pObject->m_dManualActivePrice = rs[L"dManualActivePrice"];
+						pObject->m_fIsManualVol = (bool)rs[L"fManualVol"]?VARIANT_TRUE:VARIANT_FALSE;
 
 						long lUndPriceProfileID =rs[L"iUndPriceProfileID"];
 						long lOptPriceProfileID =rs[L"iOptPriceProfileID"];

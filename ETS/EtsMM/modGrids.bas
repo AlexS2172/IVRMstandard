@@ -1042,8 +1042,9 @@ Private Sub InitQuotesGrids()
         .Col(QUC_FUT_ROOT).Init "FutRoot", "Futures Root Symbol", "", flexDTString, False, True, False, True
         .Col(QUC_FUT_QTY).Init "FutQty", "Futures Contracts Quantity", "#,##0", flexDTLong, False, True, False, True
     
-        .Col(QUC_INDEXCALCPRICE).Init "Active Prc", "Active Price", "#,##0.00", flexDTDouble, False, True, True, True
+        .Col(QUC_INDEXCALCPRICE).Init "Active Prc", "Active Price", "#,##0.00", flexDTDouble, True, True, True, True
         .Col(QUC_ACTIVEFUTURE).Init "Active Fut", "Active Future", "", flexDTString, True, True, True, True
+        .Col(QUC_ACTIVEFUTUREPRICE).Init "Fut Prc", "Active Future Price", "#,##0.00", flexDTDouble, True, True, True, True
         .Col(QUC_BASIS).Init "Basis", "Basis", "#,##0.00", flexDTDouble, True, True, True, True
     
         .Col(QUC_BID).ForeColorAlt1 = &H8000&
@@ -1087,8 +1088,9 @@ Private Sub InitQuotesGrids()
         
         .Col(QVC_VOLA).Init "Exp", "Expiry", "", flexDTString, False, False, True, False
         .Col(QVC_VOLA_VAL).Init "Vola", "ATM Volatility", "#,##0.00", flexDTDouble, True, False, True, False
+        .Col(QVC_VOLA_IS_MANUAL).Init "ManualVola", "Is Vola Manual", "", flexDTBoolean, True, False, True, False
         .Col(QVC_VOLA_DATECALC).Init "Calculation Date", "Calculation Date", "Short Date", flexDTDate, True, False, True, True
-                
+    
     End With
     
     ' quotes futures grid
@@ -1148,7 +1150,7 @@ Private Sub InitQuotesGrids()
         .Col(QOF_BASIS).Init "Basis", "Future Price Basis", "#,##0.00", flexDTDouble, True, True, True, True, "Some Items N/A"
         .Col(QOF_RATIO).Init "Ratio", "Future Price Ratio", "#,##0.00", flexDTDouble, True, True, True, True, "Some Items N/A"
         .Col(QOF_ACTIVE).Init "Active", "Active Futures", "", flexDTString, True, True, True, True, "Some Items N/A"
-        .Col(QOF_ACTIVEPRICE).Init "Active Prc", "Future Active Price", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
+        .Col(QOF_ACTIVEPRICE).Init "Active Prc", "Future Active Price", "#,##0.00", flexDTDouble, True, True, True, True, "Some Items N/A"
 
         .Col(QOF_BID).ForeColorAlt1 = &H8000&
         .Col(QOF_BID).ForeColorAlt2 = &HC0&
@@ -1608,7 +1610,7 @@ Private Sub InitRisksGrids()
         .Col(RPC_RHOP).Init "rho%", "Rho %", "#,##0.00", flexDTDouble, False, True, False, True
         '.Col(RPC_SYNTHETIC_PRICE).Init "SU Prc", "Synthetic Price", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(RPC_THEO_VOL).Init "TheoVol", "Theo Volatility", "#,##0.00", flexDTDouble, False, True, False, True
-        .Col(RPC_ACTIVEPRC).Init "Active Prc", "Active Price", "#,##0.00", flexDTDouble, False, True, True, True
+        .Col(RPC_ACTIVEPRC).Init "Active Prc", "Active Price", "#,##0.00", flexDTDouble, True, True, True, True
 
         .Col(RPC_FPRICE_FORMAT).Init "FPrFormat", "Fut Price Format", "", flexDTString, False, True, True, True, "Some Items N/A"
         '.Col(RPC_FCNTR_SIZE).Init "FCntrSize", "Fut Cntr Size", "#,##0", flexDTLong, False, True, True, True, "Some Items N/A"
@@ -1625,6 +1627,7 @@ Private Sub InitRisksGrids()
         '.Col(RPC_FTHETA_DELTA).Init "FThtDlt", "Fut Theta Delta", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         '.Col(RPC_FTHETA_GAMMA).Init "FThtGma", "Fut Theta Gamma", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         .Col(RPC_THEO_PRICE_VALUE).Init "Thv", "Theo Price", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
+        .Col(RPC_THEO_PRICE_CLOSE).Init "TheoClose", "Theo Price Close", "#,##0.00", flexDTDouble, True, True, True, True
         .Col(RPC_OPT_DELTA_USD).Init "OptDlt$", "Option Delta$", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         
         For i = RPC_PNL_MTM To RPC_BETA_WTD_DELTA_USD

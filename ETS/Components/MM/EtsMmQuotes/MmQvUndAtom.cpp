@@ -438,6 +438,13 @@ STDMETHODIMP CMmQvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance,
 	IEtsPriceProfileAtomPtr	activeFuturePriceProfile;
 	double						activeFuturePrice = 0.;
 
+	if (m_bUseManualActivePrice) 
+	{
+		*pPrice = m_bUseManualActivePrice;
+
+		return S_OK;
+	}
+
 	m_dActivePrice = BAD_DOUBLE_VALUE;
 	if (!bFutureUsed || !pPrice )		return E_POINTER;
 	*bFutureUsed = VARIANT_FALSE;
@@ -1138,7 +1145,7 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 				undQuoteData.m_dBid = m_spUndPriceProfile->GetUndPriceBid(undQuoteData.m_dBid, undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enBidPriceStatus);
 				undQuoteData.m_dAsk = m_spUndPriceProfile->GetUndPriceAsk(dSpotBidOld,         undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enAskPriceStatus);
 				undQuoteData.m_dPrice = dSpotPrice;
-				m_dActivePrice = dSpotPrice;
+				if (!this->m_bUseManualActivePrice) m_dActivePrice = dSpotPrice;
 				_CHK(pUndQuote->put_ReplacePriceStatus((EtsReplacePriceStatusEnum)(enMidPriceStatus | enBidPriceStatus | enAskPriceStatus)));
 			}
 			bIsDirtyUnderlying = (bForceRecalc ? true :pUndQuote->IsDirty());

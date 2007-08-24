@@ -100,7 +100,7 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 	catch (_com_error& e) {
 		hr = Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), __uuidof(IMmRvFutAtom), e.Error());
 	}
-	m_pPrice->m_dActivePrice = *pPrice;
+	if (!m_pPrice->m_bManualActive) m_pPrice->m_dActivePrice = *pPrice;
 	return hr;
 }
 

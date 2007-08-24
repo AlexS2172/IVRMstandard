@@ -406,6 +406,9 @@ private:
 	long					m_lVisibleColumns;
 	long					m_ColumnsEncoding[RPC_COLUMN_COUNT];
 
+	_bstr_t                   m_bsConnectionString;
+	EgLib::CDBConnection	  m_Connection;
+
 public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvUndAtom*,			Idx,			m_spIdx)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvGrpAtom*,			Grp,			m_spGrp)
@@ -455,6 +458,8 @@ public:
 	}
 
 	STDMETHOD(PositionsLoad)(IN IMmTradeInfoColl* pTradesColl);
+	IMPLEMENT_BSTRT_PROPERTY(ConnectionString, m_bsConnectionString);
+	STDMETHOD (SaveTheoPricesAsClose)(IN IMmTradeInfoColl* pTradesColl = NULL);
 	STDMETHOD(AddOpositSymbol)( LONG ContractID , LONG ContractOfOposit );
 	STDMETHOD(AddNewPosition)(IN IMmTradeInfoAtom* pTradeAtom, IN IMmRvUndAtom* pUndAtom, IN IMmRvReqColl* pRequestColl, LONG lOptionOposit, VARIANT_BOOL bUpdateVola, OUT IMmRvPosAtom** ppPosition)
 	{

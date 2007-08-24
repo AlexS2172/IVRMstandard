@@ -6,6 +6,88 @@
 //#include "MmTradeByUndAtom.h"
 
 // CMmTradeChannel
+
+STDMETHODIMP CMmTradeChannel::UpdateManualActivePrices()
+{
+		CMmTradeInfoColl::EnumCollType::iterator itrX    = m_pTrd->m_coll.begin();
+		CMmTradeInfoColl::EnumCollType::iterator itrXend = m_pTrd->m_coll.end();
+
+		for(; itrX != itrXend; ++itrX)
+		{
+			IMmTradeInfoAtomPtr spTradeInfoAtom = itrX->second;
+			CMmTradeInfoAtom*  pTradeInfoAtom = static_cast<CMmTradeInfoAtom*>((IMmTradeInfoAtom*)spTradeInfoAtom);
+			pTradeInfoAtom->m_dManualActivePrice = 0;
+		}
+
+		IEnumVARIANTPtr _cts = this->m_spMain->Contract->_NewEnum;
+		
+		_cts->Reset();
+
+		_variant_t var;
+
+		while(_cts->Next(1L, &var, NULL) == S_OK)
+		{
+			IEtsContractAtomPtr ctr = var;
+
+			if(ctr->Und != NULL)
+			{
+				ctr->Und->ManualActivePrice = 0;
+			}
+			
+			if (ctr->Fut != NULL)
+			{
+				ctr->Fut->ManualActivePrice = 0;
+			}
+		}
+
+		_cts = NULL;
+
+		CStoredProc<CClientRecordset> rs(m_Connection, L"usp_MmManualPriceForTrade_Get");
+		rs.Open();
+		if(rs.GetRecordCount())
+		{
+			rs.MoveFirst();
+
+			while (!rs.IsEOF()) 
+			{
+				IMmTradeInfoAtom* pTradeInfo = NULL;
+
+				m_pTrd->get_Item((LONG)rs[L"TradeID"], &pTradeInfo);
+
+				if(pTradeInfo != NULL)
+				{
+					static_cast<CMmTradeInfoAtom*>(pTradeInfo)->m_dManualActivePrice = rs[L"ManualPrice"];
+
+					pTradeInfo->Release();
+				}else 
+				{
+
+					IEtsContractAtomPtr ctr = this->m_spMain->Contract->GetItem((LONG)rs[L"ContractID"]);
+
+					//ATLASSERT(ctr != NULL);
+
+					if (ctr != NULL)
+					{
+						if (ctr->Fut != NULL)
+						{
+							ctr->Fut->ManualActivePrice = rs[L"ManualPrice"];
+						}
+						else
+						{
+							ctr->Und->ManualActivePrice = rs[L"ManualPrice"];
+						}
+					}
+				}
+
+				rs.MoveNext();
+			}
+		}
+
+		rs.Close();
+
+		return S_OK;
+}
+
 STDMETHODIMP CMmTradeChannel::LoadTrades(LONG lTraderId, 
 										 IEtsMain* pMain,
 										 VARIANT_BOOL bShowProgress)
@@ -97,6 +179,8 @@ STDMETHODIMP CMmTradeChannel::LoadTrades(LONG lTraderId,
 
 				}
 			}   
+
+			this->UpdateManualActivePrices();
 		}   
 	}
 	catch (_com_error& err)

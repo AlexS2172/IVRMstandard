@@ -146,6 +146,7 @@ library EtsMmGeneralLib
 		ETSGENERAL_PROPREADONLY_DEF(64,	LONG,						ClearingBrokerID)
 		ETSGENERAL_PROPREADONLY_DEF(65,	BSTR,						ImportID)
 		ETSGENERAL_PROPREADONLY_DEF(66,	BSTR,						ExecStatusString)
+		ETSGENERAL_PROPREADONLY_DEF(67,	DOUBLE,					ManualActivePrice)
 
 		[id(71), helpstring("method CopyTo")] 
 		HRESULT CopyTo([in] IMmTradeInfoAtom* pDest);
@@ -620,6 +621,10 @@ library EtsMmGeneralLib
 		HRESULT LoadStrategy([in] LONG lStrategyID, 
 							 [out] IEtsStrategyAtom** pStrategyAtom, 
 							 [out, retval] VARIANT_BOOL* bNew);
+
+  		[id(22), helpstring("UpdateManualActivePrices")]		
+		HRESULT UpdateManualActivePrices();
+
 
 	};
 

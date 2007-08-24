@@ -66,6 +66,8 @@ struct __MmQvUndAtom
 
 	IMmQvFutAtomPtr				m_spActiveFuture;
 	LONG						m_nPrimaryExchangeID;
+	VARIANT_BOOL					m_bUseManualActivePrice;
+	VARIANT_BOOL			m_fIsManualVol;
 
 
 	__MmQvUndAtom()
@@ -98,6 +100,8 @@ struct __MmQvUndAtom
 		, m_dFuturePrice(BAD_DOUBLE_VALUE)
 		, m_dActivePrice(BAD_DOUBLE_VALUE)
 		, m_nPrimaryExchangeID(0)
+		, m_bUseManualActivePrice(VARIANT_FALSE)
+		, m_fIsManualVol(FALSE)
 	{
 	}
 };
@@ -521,8 +525,10 @@ public:
 	//IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, SU_Price, m_dSU_Price)
 
 	IMPLEMENT_SIMPLE_PROPERTY( DOUBLE, FuturePrice, m_dFuturePrice)
-	IMPLEMENT_SIMPLEREADONLY_PROPERTY( DOUBLE, ActivePrice, m_dActivePrice)
+	IMPLEMENT_SIMPLE_PROPERTY( DOUBLE, ActivePrice, m_dActivePrice)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, PrimaryExchangeID, m_nPrimaryExchangeID)
+	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, UseManualActivePrice, m_bUseManualActivePrice)
+	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsManualVol, m_fIsManualVol)
 
 
 	IMPLEMENT_OBJECT_PROPERTY(IMmQvFutAtom*, ActiveFuture, m_spActiveFuture)

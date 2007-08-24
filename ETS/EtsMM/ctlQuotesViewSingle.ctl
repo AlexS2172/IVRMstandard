@@ -1,7 +1,7 @@
 VERSION 5.00
 Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
-Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCT2.OCX"
+Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomct2.ocx"
 Begin VB.UserControl ctlQuotesViewSingle 
    ClientHeight    =   8265
    ClientLeft      =   0
@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   63963137
+      Format          =   61341697
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -1029,6 +1029,7 @@ Private Function SavePriceClose(ByVal ContractType As Long, ByVal ContractID As 
         Null, _
         Null, _
         ContractType, _
+        Null, _
         Null
         
         SavePriceClose = True
@@ -1543,11 +1544,18 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
     m_Aux.Grp.Und.IsHTB = aContract.Und.IsHTB
     m_Aux.Grp.Und.Skew = aContract.Und.Skew
     m_Aux.Grp.Und.Kurt = aContract.Und.Kurt
+    m_Aux.Grp.Und.IsManualVol = aContract.Und.IsManualVol
     
     Set m_Aux.Grp.Und.UndPriceProfile = aContract.Und.UndPriceProfile
     Set m_Aux.Grp.Und.OptPriceProfile = aContract.Und.OptPriceProfile
     
     m_Aux.Grp.Und.UndPosForRates = 0#
+    
+    If aContract.Und.manualActivePrice <> 0 Then
+        m_Aux.Grp.Und.UseManualActivePrice = True
+        m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
+    End If
+        
     
     If m_Aux.IsAmerican < 0 Then
         m_Aux.Grp.Und.IsAmerican = aContract.Und.IsAmerican
@@ -2618,8 +2626,12 @@ Private Sub ShowGroup()
     Dim nRow&, i&, sKey$, aExp As EtsMmQuotesLib.MmQvExpAtom, aStr As EtsMmQuotesLib.MmQvStrikeAtom, aQuote As EtsMmQuotesLib.MmQvQuoteAtom
     Dim bAllExpVisible As Boolean, bAllExchVisible As Boolean, bAllRootVisible As Boolean, bShowOnlyDefExch As Boolean, aRoot As EtsMmQuotesLib.MmQvOptRootAtom
     Dim bAllStrVisible As Boolean, aStrAll As EtsMmQuotesLib.MmQvStrikeAtom
-        
-    If m_Aux.Grp.ID = 0 Or m_bShutDown Then Exit Sub
+               
+    DoEvents
+
+    If m_bShutDown Then Exit Sub
+       
+    If (m_Aux.Grp.ID = 0) Then Exit Sub
     
     AdjustState
     DoEvents
@@ -2628,7 +2640,7 @@ Private Sub ShowGroup()
     m_Aux.GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
     m_Aux.GridLock(GT_QUOTES_FUTURES).LockRedraw
     m_Aux.GridLock(GT_QUOTES_OPTIONS).LockRedraw
-
+    
     pbProgress.Max = QV.UndQuotesCount + QV.OptQuotesCount + QV.FutQuotesCount
 
     lblProcess.Caption = "Formatting..."
@@ -2786,13 +2798,7 @@ Private Sub ShowGroup()
         m_AuxOut.OptionsUpdateColors
    
         i = -1
-        'begin 8801
-        'i = .ColIndex(QOC_C_SERIES)
-        'If i < 0 Then i = .ColIndex(QOC_P_SERIES)
-        'geOpt.ShowSortImage i, 1
-        
-        'end 8801
-        
+       
         m_AuxOut.OptionsUpdateBackColor g_Params.QuoteOptExpirySeparation
     End With
     
@@ -3251,6 +3257,13 @@ Private Sub fgFut_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                UpdateRatio aFut, dValue
                             Case QOF_BASIS
                                 UpdateBasis aFut, ReadDbl(sValue)
+                                
+                            Case QOF_ACTIVEPRICE
+
+                                    aFut.ActivePrice = CDbl(sValue)
+                                    aFut.IsUseManualActivePrice = True
+                                    gDBW.usp_MmManualPrice_Save aFut.ID, aFut.ActivePrice
+
                             Case QOF_CLOSE
                                 If aQuote.IsDirty Then
                                     If Not g_PerformanceLog Is Nothing Then _
@@ -3606,6 +3619,12 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
         Set aExpColl = m_Aux.Grp.Und.Exp
         With fgVol
             sValue = Trim$(.TextMatrix(Row, Col))
+            If m_sCurrentOriginalText <> sValue And Col = aExpColl.Count + 2 Then
+                dValue = ReadLng(sValue)
+                gDBW.usp_IsManualVol_Save m_Aux.Grp.Und.ID, IIf(dValue = 0, 0, 1)
+                m_Aux.Grp.Und.IsManualVol = IIf(dValue = 0, False, True)
+                g_Main.Contract(m_Aux.Grp.Und.ID).Und.IsManualVol = m_Aux.Grp.Und.IsManualVol
+            Else
             If m_sCurrentOriginalText <> sValue And Col > 0 And Col <= aExpColl.Count Then
                 Set aExp = .ColData(Col)
                 If Not aExp Is Nothing Then
@@ -3644,17 +3663,17 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                         IIf(aOpt.OptType = enOtCall, nCallMask, nPutMask), GetIvMask(nOptType), False, False
                                                 End If
                                             
-'                                                If aQuote.Exch.Visible Then
-'                                                    sKey = aOpt.Symbol
-'                                                    If aQuote.Exch.ID > 0 Then sKey = sKey & "." & aQuote.Exch.Code
-'
-'    '                                                nRow = fgOpt.FindRow(sKey, , IIf(nOptType = enOtCall, QOC_C_KEY, QOC_P_KEY))
-'    '                                                If nRow > 0 Then
-'    '                                                    m_AuxOut.OptionUpdateQuote nRow, nOptType, False, True, True
-'    '                                                Else
-'    '                                                    Debug.Assert False
-'    '                                                End If
-'                                                End If
+    '                                                If aQuote.Exch.Visible Then
+    '                                                    sKey = aOpt.Symbol
+    '                                                    If aQuote.Exch.ID > 0 Then sKey = sKey & "." & aQuote.Exch.Code
+    '
+    '    '                                                nRow = fgOpt.FindRow(sKey, , IIf(nOptType = enOtCall, QOC_C_KEY, QOC_P_KEY))
+    '    '                                                If nRow > 0 Then
+    '    '                                                    m_AuxOut.OptionUpdateQuote nRow, nOptType, False, True, True
+    '    '                                                Else
+    '    '                                                    Debug.Assert False
+    '    '                                                End If
+    '                                                End If
                                             Next
                                         End If
                                         Set aOpt = Nothing
@@ -3669,6 +3688,7 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             
                             Screen.MousePointer = vbDefault
                         End If
+                    End If
                     End If
                 Else
                     Debug.Assert False
@@ -3810,6 +3830,9 @@ Private Sub fgVol_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
             End If
         End If
     End If
+    
+    If fgVol.ColDataType(Col) = flexDTBoolean Then Cancel = False
+    
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Vola Filter StartEdit Exit", m_frmOwner.GetCaption
 
@@ -5190,6 +5213,32 @@ Private Sub fgOpt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
         End With
     End If
 End Sub
+
+Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, ByRef isManual() As Boolean)
+
+    Dim aRowData As MmQvRowData
+
+    Set aRowData = fgUnd.RowData(1)
+
+    Dim l, i As Long
+
+    i = 1
+
+    For Each l In ctrID
+
+        If l = QV.Grp.Und.ID Then
+            QV.Grp.Und.ActivePrice = price(i)
+            QV.Grp.Und.UseManualActivePrice = isManual(i)
+         End If
+
+        i = i + 1
+
+    Next
+    
+    Me.Refresh
+    
+End Sub
+
 Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
@@ -5357,6 +5406,20 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             Case QUC_ACTIVEFUTURE
                                     UpdateActiveFutures CLng(sValue)
                                     bNeedRecalc = True
+                            Case QUC_ACTIVEFUTUREPRICE
+                                    dValue = ReadDbl(sValue)
+                                    If dValue <> 0 Then
+                                        UpdateActiveFuturesPrice dValue
+                                        bNeedRecalc = True
+                                        bManualEdit = True
+                                    End If
+                            Case QUC_INDEXCALCPRICE
+                                If QV.Grp.Und.ActiveFuture Is Nothing Then
+                                    QV.Grp.Und.ActivePrice = CDbl(sValue)
+                                    QV.Grp.Und.UseManualActivePrice = True
+                                    gDBW.usp_MmManualPrice_Save QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
+                                    bNeedRecalc = True
+                                 End If
                             Case QUC_CLOSE
                                 m_AuxOut.UnderlyingUpdateQuoteColors Row, aQuote
                                 dValue = Abs(ReadDbl(sValue))
@@ -10073,16 +10136,14 @@ Public Sub Term()
     On Error Resume Next
     m_bShutDown = True
     
+
     If gCmn Is Nothing Then Exit Sub
     m_AuxOut.Term
     Unload frmSpread
     
     QV.Cancel
     tmrShow.Enabled = False
-    
-    QV.Cancel
-    tmrShow.Enabled = False
-    
+        
     m_bSubscribingNow = False
     m_bDataLoad = False
     m_bLastQuoteReqNow = False
@@ -12552,5 +12613,12 @@ Er:
         g_PerformanceLog.LogMmInfo enLogFaults, "UpdateActiveFutures " & Err.Description, m_frmOwner.GetCaption
 End Sub
 
+Private Sub UpdateActiveFuturesPrice(newActiveFuturePrice As Double)
+    
 
+       If Not QV.Grp.Und.ActiveFuture Is Nothing Then
+            QV.Grp.Und.ActiveFuture.ActivePrice = newActiveFuturePrice
+        End If
+        
+End Sub
 

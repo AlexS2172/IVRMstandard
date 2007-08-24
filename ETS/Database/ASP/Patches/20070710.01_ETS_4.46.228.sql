@@ -26,7 +26,7 @@ if not exists(select * from DataInfo where dataInfoID = 1 and (keyValue = '3.46.
 
 --=============================================================================================
 
-
+GO
 ALTER     PROC dbo.usp_MmEtsCustomDividend_Get 
 	@iStockID int = null
 AS

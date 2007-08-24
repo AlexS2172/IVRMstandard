@@ -21,6 +21,7 @@ public:
 	DOUBLE							m_dPriceLast;
 	DOUBLE							m_dPriceClose;
 	DOUBLE							m_dNetChange;
+	DOUBLE							m_dPriceTheoClose;
 
 
 	__CMmRpPrice()
@@ -36,6 +37,7 @@ public:
 		m_dPriceLast = BAD_DOUBLE_VALUE;
 		m_dPriceClose = BAD_DOUBLE_VALUE;
 		m_dNetChange = BAD_DOUBLE_VALUE;
+		m_dPriceTheoClose = BAD_DOUBLE_VALUE;
 	}
 };
 } ;
@@ -78,12 +80,12 @@ END_COM_MAP()
 
 public:
 
-	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Bid,       m_dPriceBid)
+		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Bid,       m_dPriceBid)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Ask,       m_dPriceAsk)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Last,      m_dPriceLast)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Close,     m_dPriceClose)
-
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, NetChange, m_dNetChange)
+		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, TheoClose, m_dPriceTheoClose)
 
 };
 

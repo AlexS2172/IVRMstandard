@@ -616,6 +616,7 @@ HRESULT CMmTradeInfoAtom::Load(EtsContractTypeEnum enType, CClientRecordset& rc)
 		m_nMark					    =   rc[L"iMark"];
 		m_nOrderID					=	rc[L"iOrderID"];
 		m_nExecStatus				=	rc[L"iExecStatus"];
+		//m_dManualActivePrice		= rc[L"fManualPrice"];
 		switch(enType)
 		{
 		case enCtOption:

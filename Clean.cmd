@@ -11,9 +11,8 @@ del *.exp /s
 del *.ncb /s
 del *.cnt /s
 del *.pdb /s
+del *.tli /s
 del *.map /s
 del *.idb /s
 del *.tlh /s
-del *.tli /s
-del *.tli /s
-
+rem for_merge_testing

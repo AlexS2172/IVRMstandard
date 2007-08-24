@@ -91,6 +91,35 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 		long lColumnId = m_ColumnsEncoding[lFieldID];
 		switch (lColumnId)
 		{
+			case RPC_ACTIVEPRC:
+			{
+				IMmRvRowDataPtr spAtom = m_Rows[Record];
+				CMmRvRowData* pAtom = static_cast<CMmRvRowData*>(spAtom.GetInterfacePtr());
+				_variant_t	vtVal = _bstr_t(newData);
+				double dblValue = vtVal;
+				if(dblValue > 0.)
+				{
+					if(pAtom->m_pPos) 
+					{
+						if (pAtom->m_pPos->m_bUseManualActivePrice) pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue); // set close for position
+					}
+					else 
+					{
+						if(pAtom->m_Type == RDT_UNDAGG) 
+						{
+							if (pAtom->m_pUnd->m_pPrice->m_bManualActive) pAtom->m_pUnd->m_pPrice->put_Active(dblValue); // set close for underlying aggregation
+						}
+						else 
+						{
+							if(pAtom->m_pAgg && CMmRvAggData::enFutAgg == pAtom->m_pAgg->Type_ && pAtom->m_pAgg->pFut_) 
+							{
+								if (pAtom->m_pAgg->pFut_->m_pPrice->m_bManualActive) pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue); // set close for aggregation that have a price
+							}
+						}
+					}
+				}
+			}break;
+
 			case RPC_CLOSE:
 			{
 				IMmRvRowDataPtr spAtom = m_Rows[Record];
@@ -109,6 +138,19 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 								pAtom->m_pAgg->pFut_->m_pPrice->put_Close(dblValue); // set close for aggregation that have a price
 				}
 			}break;
+			case RPC_THEO_PRICE_CLOSE:
+				{
+					IMmRvRowDataPtr spAtom = m_Rows[Record];
+					CMmRvRowData* pAtom = static_cast<CMmRvRowData*>(spAtom.GetInterfacePtr());
+					_variant_t	vtVal = _bstr_t(newData);
+					double dblValue = vtVal;
+					if(dblValue > 0.)
+					{
+					
+						if(pAtom->m_pPos)
+							pAtom->m_pPos->m_pQuote->m_pPrice->put_TheoClose(dblValue); // set CloseTheo for position
+					}
+				}break;
 			case RPC_BID:
 				{
 					IMmRvRowDataPtr spAtom = m_Rows[Record];
@@ -164,6 +206,190 @@ STDMETHODIMP CMmRiskView::AddOpositSymbol( LONG ContractID, LONG ContractOfOposi
 	return S_OK ;
 }
 
+STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
+{
+	try 
+	{
+
+		CMmRvUndColl::EnumCollType::iterator itUnd    =  m_pUnd->m_coll.begin();
+		CMmRvUndColl::EnumCollType::iterator itUndEnd =  m_pUnd->m_coll.end();
+
+		double	dTheoClosePrice = BAD_DOUBLE_VALUE;
+		bool	bNeedToSaveData	= false;
+		CRvMmQuoteAtom * pPosQuote = NULL;
+		long	lUndCount = static_cast<long>(m_pUnd->m_coll.size());
+		long	lProcessed = 1;
+
+		//prepare xpath string
+		_bstr_t bstrXPath = L"<root>";
+
+		for(; itUnd != itUndEnd; ++itUnd)
+		{
+			CMmRvUndAtom* pUnd = dynamic_cast<CMmRvUndAtom*>(itUnd->second);
+
+			if(pUnd != NULL)
+			{
+
+				CMmRvPosColl::EnumCollType::iterator itrPos    = pUnd->m_pPos->m_coll.begin();
+				const CMmRvPosColl::EnumCollType::iterator itrPosEnd = pUnd->m_pPos->m_coll.end();
+
+				for(;itrPos!=itrPosEnd; ++itrPos)
+				{
+					CMmRvPosAtom* pPos = dynamic_cast<CMmRvPosAtom*>(itrPos->second);
+
+					if(pPos != NULL)
+					{
+						//if(pPos->m_bVisible)
+						{
+							EtsContractTypeEnum enContractType = pPos->m_enContractType;
+							long	lContractID = pPos->m_nID;
+
+							if (lContractID != 0) //not synthetic cash part "$"
+							{
+									
+								if ( pPos->m_pQuote != NULL && pPos->m_pQuote->m_pPrice != NULL )
+								{
+									pPosQuote = pPos->m_pQuote;
+								}
+								else continue;
+								
+								if (enContractType == enCtStock)
+								{
+									//is this ETF?
+									if (pUnd->m_spActiveFuture == NULL)
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
+									else
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
+								}
+								else if (enContractType == enCtIndex)
+								{
+									if (pUnd->m_spActiveFuture == NULL)
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
+									else
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
+								}
+								else if (enContractType == enCtFuture)
+								{
+									if (pUnd->m_spActiveFuture == NULL)
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
+									else
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
+								}
+								else if (enContractType == enCtFutOption)
+								{
+									dTheoClosePrice = pPos->m_pQuote->m_dPriceTheo;
+								}
+								else if (enContractType == enCtOption)
+								{
+									dTheoClosePrice = pPos->m_pQuote->m_dPriceTheo;
+								}
+								else if (enContractType == enCtFutUnd)
+								{
+									if (pUnd->m_spActiveFuture == NULL)
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
+									else
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
+								}
+								
+								if (dTheoClosePrice <= DBL_EPSILON)
+								{
+									dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
+								}
+
+								if (dTheoClosePrice != BAD_DOUBLE_VALUE && dTheoClosePrice > 0.0)
+								{
+									bstrXPath += L"<contract id=\"" + _bstr_t(lContractID) + "\" ";
+									bstrXPath += L"price=\"" + _bstr_t(dTheoClosePrice) + "\" ";
+									bstrXPath += L"symbol=\"" + _bstr_t(pPos->m_bstrSymbol) + "\" ";
+									bstrXPath += L"type=\""	+ _bstr_t(enContractType) + "\" />";
+									bNeedToSaveData	=	true;
+
+									//update all trades CloseTheoPrice
+									if (pTradesColl)
+									{
+										IMmTradeInfoCollPtr spTrades(pTradesColl);
+										if(spTrades->Count && SUCCEEDED(spTrades->raw_ResetTradesPosition()))
+										{
+											VARIANT_BOOL bIsLast = VARIANT_FALSE;
+											while(!bIsLast)
+											{
+												IMmTradeInfoAtomPtr spTradeAtom = spTrades->TradeAtCurrentPosition;
+												if(spTradeAtom)
+												{
+													if(spTradeAtom->ContractID == lContractID && spTradeAtom->ContractType == enContractType)
+													{
+														if (enContractType == enCtOption)
+														{
+															spTradeAtom->Opt->put_PriceTheoClose(dTheoClosePrice);
+														}
+														else if (enContractType == enCtFutOption)
+														{
+															spTradeAtom->FutOpt->put_PriceTheoClose(dTheoClosePrice);
+														}
+														else if (enContractType == enCtFuture)
+														{
+															spTradeAtom->Fut->put_PriceTheoClose(dTheoClosePrice);
+														}
+														else
+														{
+															spTradeAtom->Und->put_PriceTheoClose(dTheoClosePrice);
+														}
+													}
+												}
+												spTrades->MoveNextTrade(&bIsLast);
+											}
+										}
+									}
+
+								}
+							}
+						}
+					}
+					
+				}
+				double dPercent = 100.* double(lProcessed)/lUndCount;
+				long lPercent = static_cast<long>(dPercent);
+				Fire_Progress(L"Saving theoretical price . . .", lPercent);
+
+				lProcessed++;
+			}
+		}
+		bstrXPath += L"</root>";
+		//xpath string is prepared and now try to save it to db
+
+		if (bNeedToSaveData)
+		{
+			if(!m_Connection.IsOpened())
+				m_Connection.Open(m_bsConnectionString, 10, 120, 300, 300);
+
+			//save all data to db
+			if(m_Connection.IsOpened())
+			{
+
+				CStoredProc<CClientRecordset> spTheoPrices(m_Connection, L"usp_MmTheoPrices_Save");
+				spTheoPrices << bstrXPath;
+				spTheoPrices.Open();
+			}
+		}
+
+	}
+	catch (const _com_error& Err)
+	{
+		return 
+			Error((PTCHAR)CComErrorWrapper::ErrorDescription(Err), __uuidof(IMmRiskView), Err.Error());
+	}
+	catch (...)
+	{
+		HRESULT _hr = HRESULT_FROM_WIN32(::GetLastError());
+		if(SUCCEEDED(_hr)) _hr = E_FAIL;
+
+		return 
+			Error((PTCHAR)"An exception occurred while trying to save data", __uuidof(IMmRiskView), _hr);
+	}
+
+	return S_OK;
+}
+
 STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 {
 	//ATLASSERT ( 0 ) ;
@@ -209,12 +435,6 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 					if(spPosAtom == NULL)
 					{
 						spPosAtom = _AddNewPosition(spTradeAtom, spUndAtom , -1 );
-						//IRvMmQuoteAtomPtr pQuote ;
-						////pQuote.CreateInstance(( CLSID_RvMmQuoteAtom , IID_IRvMmQuoteAtom ) ;
-						//spPosAtom->get_Quote ( &pQuote ) ;
-						//ATLASSERT  ( pQuote != NULL ) ;
-						//if ( pQuote != NULL )
-						//	pQuote->put_VolatilityEnginrCalculation (  m_enViewMode == RV_VME ? VARIANT_TRUE : VARIANT_FALSE ) ;
 					}
 					_AddNewTradeToPosition(spUndAtom, spPosAtom,spTradeAtom);					
 					if(m_bIsStopped)
@@ -248,6 +468,8 @@ void CMmRiskView::InitVola(CMmRvUndAtom* pUnd)
 	}
 }
 
+
+
 IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, IMmRvUndAtomPtr spUndAtom, LONG lOptionOposit, IMmRvReqColl* pRequestColl, VARIANT_BOOL bUpdateVola)
 {
 	struct null_deleter
@@ -277,6 +499,15 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 
 		pPosAtom->m_pQuote->m_nLotSize    = spTradeAtom->LotSize;
 		pPosAtom->m_bVisible              = VARIANT_TRUE;   
+
+
+		if (spTradeAtom->ManualActivePrice != 0)
+		{
+			pPosAtom->m_bUseManualActivePrice = TRUE;
+
+			pPosAtom->m_pQuote->m_pPrice->m_dActivePrice = spTradeAtom->ManualActivePrice;
+		}
+
 
 		_bstr_t sKey = _bstr_t(static_cast<long>(pPosAtom->m_enContractType )) + _bstr_t(L"_") + pPosAtom->m_bstrSymbol;
 
@@ -318,6 +549,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 				pPosAtom->m_dtExpiry     = spOpt->Expiry;
 
 				pPosAtom->m_pQuote->m_pPrice->m_dPriceClose  = spOpt->PriceClose;
+				pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose = spOpt->PriceTheoClose;
 				//pPosAtom->m_pQuote->m_bManual				 = spOpt->IsVolaManual;
 				
 				vt_date dtExpiry(pPosAtom->m_dtExpiry);
@@ -491,7 +723,8 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 						pFutAtom->m_nUndID				= pUndAtom->m_nID;
 						pFutAtom->m_nOptLotSize			= spTradeAtom->FutRoot->OptLotSize; 
 						pFutAtom->m_nFutLotSize			= spTradeAtom->FutRoot->FutLotSize; 
-						pFutAtom->m_pPrice->m_dPriceClose	= spFutAtom->PriceClose; 
+						pFutAtom->m_pPrice->m_dPriceClose	= spFutAtom->PriceClose;
+						pFutAtom->m_pPrice->m_dPriceTheoClose = spFutAtom->PriceTheoClose;
 						pFutAtom->m_bIsAmerican			= spFutAtom->IsAmerican;
 						pFutAtom->m_spUnd					= spUndAtom;
 						pFutAtom->m_dBasis				= spFutAtom->FutureBasis;
@@ -500,6 +733,11 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 
 						pFutAtom->m_dKEq				= spFutAtom->KEq;
 						pFutAtom->m_bMultOptDltEq		= spFutAtom->MultOptDltEq;
+						if (spFutAtom->ManualActivePrice != 0)
+						{
+							pFutAtom->m_pPrice->m_bManualActive = TRUE;
+							pFutAtom->m_pPrice->m_dActivePrice = spFutAtom->ManualActivePrice;
+						}
 
 						pFutAtom->m_bstrQuotationUnitName = spTradeAtom->FutRoot->QuotationUnitName;
 						switch(spTradeAtom->FutRoot->QuoteFormat) {
@@ -539,6 +777,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 
 					IEtsFutOptAtomPtr spFutOpt					= spTradeAtom->FutOpt;
 					pPosAtom->m_pQuote->m_pPrice->m_dPriceClose = spFutOpt->PriceClose;
+					pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose = spFutOpt->PriceTheoClose;
 					pPosAtom->m_enOptType   = spFutOpt->OptType;
 					pPosAtom->m_dtExpiry    = spFutOpt->Expiry;
 					pPosAtom->m_dStrike     = spFutOpt->Strike;
@@ -608,6 +847,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 					pPosAtom->m_pQuote->m_pPrice = pFutAtom->m_pPrice;
 					pPosAtom->m_pQuote->m_spPrice = pFutAtom->m_spPrice;
 					pPosAtom->m_pQuote->m_pPrice->m_dPriceClose = spFutAtom->PriceClose;
+					pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose = spFutAtom->PriceTheoClose;
 				}
 
 
@@ -617,7 +857,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 			{
 				//IUndAtomPtr              spUnd       = spTradeAtom->Und;
 				pPosAtom->m_pQuote->m_pPrice->m_dPriceClose = pUndAtom->m_pPrice->m_dPriceClose;
-
+				pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose = pUndAtom->m_pPrice->m_dPriceTheoClose;
 				// check for existence of active future for index 
 				if ( pPosAtom->m_enContractType == enCtIndex )
 				{
@@ -830,6 +1070,13 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 	pUndAtom->m_spUndPriceProfile		= spUnd->UndPriceProfile;
 	pUndAtom->m_spOptPriceProfile		= spUnd->OptPriceProfile;
 	pUndAtom->m_pPrice->m_dPriceClose   = spUnd->PriceClose;
+	if (spUnd->ManualActivePrice != 0)
+	{
+		pUndAtom->m_pPrice->m_bManualActive = TRUE;
+		pUndAtom->m_pPrice->m_dActivePrice = spUnd->ManualActivePrice;
+	}
+
+	pUndAtom->m_pPrice->m_dPriceTheoClose   = spUnd->PriceTheoClose;
 	pUndAtom->m_nLotSize				= spUnd->LotSize;
 
 	//if (pUndAtom->m_enContractType == enCtStock)
@@ -1055,6 +1302,9 @@ void CMmRiskView::AddActiveFuture( IUndAtomPtr spUnd, CComObject<CMmRvUndAtom>* 
 			_CHK(spIdxActiveFuture->get_Price(&spPrice));
 			_CHK(spPrice->put_Close(valueDouble));
 
+			valueDouble = spActiveFuture->GetPriceTheoClose();
+			_CHK(spPrice->put_TheoClose(valueDouble));
+
 			CComBSTR	valueBstr;
 			_CHK(spActiveFuture->get_ContractName(&valueBstr));
 			_CHK(spIdxActiveFuture->put_ContractName(valueBstr));
@@ -1105,6 +1355,14 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 	long lQty         = spTradeAtom->Quantity * (bIsBuy? 1: -1);
 	long lQtyInShares = lQty * pPosAtom->m_pQuote->m_nLotSize;
 
+
+	double dPriceClose = pPosAtom->m_pQuote->m_pPrice->m_dPriceClose;
+
+	if (m_spEtsMain->UseTheoCloseForPNL && pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose > 0.0)
+	{
+		dPriceClose = pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose;
+	}
+
 	if(bIsBuy)
 	{
 		// Buy Side
@@ -1113,11 +1371,11 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 		pPosAtom->m_nQtyLTDBuy += lQtyInShares;
 		if(spTradeAtom->IsPosition== VARIANT_TRUE)
 		{
-			if(pPosAtom->m_pQuote->m_pPrice->m_dPriceClose >= 0.0 )
+			if(/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= 0.0 )
 			{
 				if(pPosAtom->m_dPosLTDBuy == BAD_DOUBLE_VALUE)  
 					pPosAtom->m_dPosLTDBuy = 0;
-				pPosAtom->m_dPosLTDBuy += (pPosAtom->m_pQuote->m_pPrice->m_dPriceClose * lQtyInShares);
+				pPosAtom->m_dPosLTDBuy += (/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * lQtyInShares);
 
 			}
 		}
@@ -1137,12 +1395,12 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 			pPosAtom->m_nQtyDailyPrevDateBuy += lQtyInShares;
 
 
-			if(pPosAtom->m_pQuote->m_pPrice->m_dPriceClose >= 0.0)
+			if(/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= 0.0)
 			{
 
 				if (pPosAtom->m_dPosDailyPrevDateBuy == BAD_DOUBLE_VALUE) 
 					pPosAtom->m_dPosDailyPrevDateBuy = 0;
-				pPosAtom->m_dPosDailyPrevDateBuy +=  pPosAtom->m_pQuote->m_pPrice->m_dPriceClose * lQtyInShares;
+				pPosAtom->m_dPosDailyPrevDateBuy +=  /*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * lQtyInShares;
 			}
 			else
 				if( spTradeAtom->IsPosition!=VARIANT_TRUE)
@@ -1161,11 +1419,11 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 
 			if( spTradeAtom->IsPosition==VARIANT_TRUE)
 			{
-				if(pPosAtom->m_pQuote->m_pPrice->m_dPriceClose >= 0.0)
+				if(/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= 0.0)
 				{
 
 					if(pPosAtom->m_dPosDailyTodayBuy == BAD_DOUBLE_VALUE) pPosAtom->m_dPosDailyTodayBuy = 0;
-					pPosAtom->m_dPosDailyTodayBuy += pPosAtom->m_pQuote->m_pPrice->m_dPriceClose * lQtyInShares;
+					pPosAtom->m_dPosDailyTodayBuy += /*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * lQtyInShares;
 				}
 			}
 			else
@@ -1184,11 +1442,11 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 
 		if(spTradeAtom->IsPosition)
 		{
-			if(pPosAtom->m_pQuote->m_pPrice->m_dPriceClose >= 0.0)
+			if(/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= 0.0)
 			{
 
 				if(pPosAtom->m_dPosLTDSell == BAD_DOUBLE_VALUE)  pPosAtom->m_dPosLTDSell = 0;
-				pPosAtom->m_dPosLTDSell +=  pPosAtom->m_pQuote->m_pPrice->m_dPriceClose * lQtyInShares;
+				pPosAtom->m_dPosLTDSell +=  /*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * lQtyInShares;
 			}
 		}
 		else
@@ -1201,10 +1459,10 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 		{
 			if (pPosAtom->m_nQtyDailyPrevDateSell == BAD_LONG_VALUE) pPosAtom->m_nQtyDailyPrevDateSell = 0;
 			pPosAtom->m_nQtyDailyPrevDateSell += lQtyInShares;
-			if(pPosAtom->m_pQuote->m_pPrice->m_dPriceClose >= 0.0)
+			if(/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= 0.0)
 			{
 				if (pPosAtom->m_dPosDailyPrevDateSell == BAD_DOUBLE_VALUE)  pPosAtom->m_dPosDailyPrevDateSell = 0;
-				pPosAtom->m_dPosDailyPrevDateSell +=  pPosAtom->m_pQuote->m_pPrice->m_dPriceClose * lQtyInShares;
+				pPosAtom->m_dPosDailyPrevDateSell +=  /*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * lQtyInShares;
 			}
 			else
 				if(VARIANT_TRUE!=spTradeAtom->IsPosition)
@@ -1220,10 +1478,10 @@ void CMmRiskView::AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom, const IMmTra
 			pPosAtom->m_nQtyDailyTodaySell += lQtyInShares;
 			if(spTradeAtom->IsPosition)
 			{
-				if(pPosAtom->m_pQuote->m_pPrice->m_dPriceClose >= 0.0)
+				if(/*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose >= 0.0)
 				{
 					if(pPosAtom->m_dPosDailyTodaySell == BAD_DOUBLE_VALUE) pPosAtom->m_dPosDailyTodaySell = 0;
-					pPosAtom->m_dPosDailyTodaySell +=  pPosAtom->m_pQuote->m_pPrice->m_dPriceClose * lQtyInShares;
+					pPosAtom->m_dPosDailyTodaySell +=  /*pPosAtom->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose * lQtyInShares;
 				}
 			}
 			else
@@ -3185,7 +3443,14 @@ HRESULT CMmRiskView::_RemoveOldTradeFromPosition(CMmRvUndAtom* pUnd, /*CMmRvStra
 	bool    bIsBuy          =spTradeAtom->IsBuy!=VARIANT_FALSE; 
 	nQty					=spTradeAtom->Quantity * (bIsBuy?1: -1);
     nQtyInShares			=nQty * pPos->m_pQuote->m_nLotSize;
-    
+
+	double	dPriceClose = pPos->m_pQuote->m_pPrice->m_dPriceClose;
+
+	if (m_spEtsMain->UseTheoCloseForPNL && pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > 0.0)
+	{
+		dPriceClose = pPos->m_pQuote->m_pPrice->m_dPriceTheoClose;
+	}
+
 	if (bIsBuy)
 	{
 	    pPos->m_nQtyLTDBuy -= nQtyInShares;
@@ -3194,7 +3459,7 @@ HRESULT CMmRiskView::_RemoveOldTradeFromPosition(CMmRvUndAtom* pUnd, /*CMmRvStra
 		if (spTradeAtom->TradeDate < vt_date::GetCurrentDate(true))
 		{
 			pPos->m_nQtyDailyPrevDateBuy -= nQtyInShares;
-			pPos->m_dPosDailyPrevDateBuy -= nQtyInShares *  pPos->m_pQuote->m_pPrice->m_dPriceClose > DBL_EPSILON? pPos->m_pQuote->m_pPrice->m_dPriceClose: dTradePrice;
+			pPos->m_dPosDailyPrevDateBuy -= nQtyInShares *  /*pPos->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose  > DBL_EPSILON? /*pPos->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose : dTradePrice;
 		}
 		else
 		{
@@ -3210,7 +3475,7 @@ HRESULT CMmRiskView::_RemoveOldTradeFromPosition(CMmRvUndAtom* pUnd, /*CMmRvStra
         if(spTradeAtom->TradeDate < vt_date::GetCurrentDate(true))
 		{
 			pPos->m_nQtyDailyPrevDateSell -= nQtyInShares;
-			pPos->m_dPosDailyPrevDateSell -= nQtyInShares * pPos->m_pQuote->m_pPrice->m_dPriceClose > DBL_EPSILON? pPos->m_pQuote->m_pPrice->m_dPriceClose: dTradePrice;
+			pPos->m_dPosDailyPrevDateSell -= nQtyInShares * /*pPos->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose > DBL_EPSILON? /*pPos->m_pQuote->m_pPrice->m_dPriceClose*/ dPriceClose : dTradePrice;
 		}
 		else
 		{

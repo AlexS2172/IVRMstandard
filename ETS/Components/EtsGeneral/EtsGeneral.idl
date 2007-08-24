@@ -932,6 +932,8 @@ library EtsGeneralLib
 		ETSGENERAL_PROP_DEF(17,			DOUBLE,					K)
 		ETSGENERAL_PROP_DEF(18,			DOUBLE,					KEq)
 		ETSGENERAL_PROP_DEF(19,			VARIANT_BOOL,			MultOptDltEq)
+		ETSGENERAL_PROP_DEF(20,			DOUBLE,					ManualActivePrice)
+		ETSGENERAL_PROP_DEF(21,			DOUBLE,					PriceTheoClose)
 	};
 
 
@@ -1121,6 +1123,10 @@ library EtsGeneralLib
 		ETSGENERAL_PROP_DEF(40,			DOUBLE,				        dKOptDeltaEq)
 		ETSGENERAL_PROP_DEF(41,			VARIANT_BOOL,				IsHedgeSymbol)
 		ETSGENERAL_PROP_DEF(42,			LONG,						PrimaryExchangeID)
+		ETSGENERAL_PROP_DEF(43,			DOUBLE,						ManualActivePrice)
+		ETSGENERAL_PROP_DEF(44,			DOUBLE,						PriceTheoClose)
+		ETSGENERAL_PROP_DEF(45,			VARIANT_BOOL,				IsManualVol)
+
 	};
 	/////////////////////////////////////////////////////////////////////////////
 	//
@@ -1640,6 +1646,8 @@ library EtsGeneralLib
 		[id(54), helpstring("LoadTrader")]			HRESULT LoadTrader([in] LONG lTraderID);
 		[id(55), helpstring("LoadUnderlying")]		HRESULT LoadUnderlying([in] LONG lTraderID);
 		[id(56), helpstring("LoadBetas")]			HRESULT LoadBetas();
+
+		ETSGENERAL_PROP_DEF(57,	VARIANT_BOOL,	UseTheoCloseForPNL)
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

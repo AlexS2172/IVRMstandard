@@ -1135,7 +1135,13 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                         aFut.IsAmerican = (ReadByte(rs!tiCalcOptionType) <> 0)
                         aFut.IsActive = (ReadByte(rs!tiIsActive) <> 0)
                         aFut.PriceClose = ReadDbl(rs!fPriceClose)
+                        aFut.PriceTheoClose = ReadDbl(rs!fPriceTheoClose)
                         aFut.HaveOptions = (ReadLng(rs!iHaveOptions) <> 0)
+                        aFut.ManualActivePrice = ReadDbl(rs!fManualActivePrice)
+                        
+                        If aFut.ManualActivePrice <> 0 Then
+                            aFut.ManualActivePrice = aFut.ManualActivePrice
+                        End If
 
                         Set aFut.UndPriceProfile = g_PriceProfile(ReadLng(rs!iUndPriceProfileID))
                         Set aFut.OptPriceProfile = g_PriceProfile(ReadLng(rs!iOptPriceProfileID))

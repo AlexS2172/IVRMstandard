@@ -174,6 +174,12 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 							pFuture->m_dBasis			= spFutures[L"dBasis"];
 							pFuture->m_dRatio			= spFutures[L"dActiveRatio"];
 
+							if ((LONG)spFutures[L"fManualPrice"] > 0 )
+							{
+								pFuture->m_bUseManualActivePrice = TRUE;
+								pFuture->m_dActivePrice = spFutures[L"fManualPrice"];
+							}
+
 							bool bIsActiveFutures =     spFutures[L"bUseInCalculation"];
 							if(bIsActiveFutures)
 								m_pGrp->m_pUnd->m_spActiveFuture = pFuture;

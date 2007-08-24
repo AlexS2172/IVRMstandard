@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmQuotesViewSingle 
    Caption         =   "Quotes"
@@ -115,8 +115,8 @@ Begin VB.Form frmQuotesViewSingle
       TabIndex        =   0
       Top             =   0
       Width           =   5175
-      _extentx        =   9128
-      _extenty        =   7646
+      _ExtentX        =   9128
+      _ExtentY        =   7646
    End
    Begin MSComctlLib.StatusBar sbStatus 
       Align           =   2  'Align Bottom
@@ -699,6 +699,12 @@ Begin VB.Form frmQuotesViewSingle
          Caption         =   "&Event Log"
          Shortcut        =   ^L
       End
+      Begin VB.Menu mnuManageSeparator1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuManualPrices 
+         Caption         =   "Manual Prices..."
+      End
    End
    Begin VB.Menu mnuWindow 
       Caption         =   "&Window"
@@ -851,7 +857,7 @@ Public Sub ShowWindowInTaskbar(ByVal bShow As Boolean, Optional ByVal bExtended 
     
     If m_bShowInTaskbar <> bShow Then
         m_bShowInTaskbar = bShow
-        mnuWindowShowInTaskBar.Checked = bShow
+        mnuWindowShowInTaskbar.Checked = bShow
         m_bShowInTaskbarChanging = True
         
         If bExtended Then SetWindowPos Me.hWnd, 0, 0, 0, 0, 0, SWP_HIDEWINDOW Or SWP_NOSIZE Or SWP_NOMOVE Or SWP_NOZORDER Or SWP_NOACTIVATE
@@ -1485,7 +1491,7 @@ Private Sub Form_Load()
         Exit Sub
     End If
     m_bShowInTaskbar = True
-    mnuWindowShowInTaskBar.Checked = True
+    mnuWindowShowInTaskbar.Checked = True
     lblStatus.Caption = ""
     lblProcess.Caption = ""
     m_nCurImgIdx = 0
@@ -1998,6 +2004,23 @@ Private Sub mnuFileOtcOptionCalc_Click()
 
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""File->OTC Option Calc..."" Exit. " & ctlView.GetOptionInfo, Me.Caption
+End Sub
+
+Private Sub mnuManualPrices_Click()
+    Dim frmMPrices As New frmManualPrices
+    Dim i As Integer
+    Dim ctrID() As Long, price() As Double, isManual() As Boolean
+    
+    frmMPrices.Show vbModal, Me
+    
+    If (frmMPrices.ChangedCount > 0) Then
+
+        frmMPrices.GetChanged ctrID, price, isManual
+        
+        ctlView.UpdateManualPrices ctrID, price, isManual
+    
+    End If
+        
 End Sub
 
 Private Sub mnuRootAll_Click()

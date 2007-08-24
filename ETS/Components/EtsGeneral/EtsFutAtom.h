@@ -21,6 +21,7 @@ struct __EtsFutAtom
 	VARIANT_BOOL			m_bIsAmerican;
 	VARIANT_BOOL			m_bIsActive;
 	DOUBLE					m_dPriceClose;
+	DOUBLE					m_dPriceTheoClose;
 	VARIANT_BOOL			m_bHaveOptions;
 
 	VARIANT_BOOL			m_bShowInFutureContractEq;
@@ -34,6 +35,7 @@ struct __EtsFutAtom
 	DOUBLE					m_dBasis;
 	VARIANT_BOOL			m_bUseInCalc;
 	DOUBLE					m_dActiveFutureRatio;
+	DOUBLE					m_dManualActivePrice;
 
 	__EtsFutAtom()
 		: m_nID(0L)
@@ -54,6 +56,8 @@ struct __EtsFutAtom
 		,m_dK(1.)
 		,m_dKEq(1.)
 		,m_bMultOptDltEq(VARIANT_FALSE)
+		,m_dManualActivePrice(0)
+		,m_dPriceTheoClose(BAD_DOUBLE_VALUE)
 	{
 	}
 };
@@ -106,6 +110,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsAmerican, m_bIsAmerican)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsActive, m_bIsActive)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceClose, m_dPriceClose)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceTheoClose, m_dPriceTheoClose)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, HaveOptions, m_bHaveOptions)
 
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL,	ShowInFutureContractEq, m_bShowInFutureContractEq)
@@ -119,6 +124,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, K, m_dK)
     IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, KEq, m_dKEq)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, MultOptDltEq, m_bMultOptDltEq)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualActivePrice, m_dManualActivePrice)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(EtsFutAtom), CEtsFutAtom)

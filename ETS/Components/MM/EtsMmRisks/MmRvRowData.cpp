@@ -477,6 +477,9 @@ bool CMmRvRowData::GetUndField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 	case RPC_CLOSE:
 		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceClose): bForSorting?_variant_t(0):STR_NA;
 		break;
+	case RPC_THEO_PRICE_CLOSE:
+		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose): bForSorting?_variant_t(0):STR_NA;
+		break;
 	case RPC_IMPORT_ID:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
@@ -822,6 +825,9 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 	case RPC_CLOSE:
 		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceClose): bForSorting?_variant_t(0):STR_NA;
 		break;
+	case RPC_THEO_PRICE_CLOSE:
+		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose): bForSorting?_variant_t(0):STR_NA;
+		break;
 	case RPC_FUT_QTY:
 		GetValue( m_pPos->m_nQty, bForSorting, bNegativeFormatting, vtRet );
 		break;
@@ -976,9 +982,9 @@ bool CMmRvRowData::GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet
 		}break;
 	case RPC_ACTIVEPRC:
 		{
-			vtRet = m_pPos->m_pQuote->m_pPrice->m_dActivePrice > BAD_DOUBLE_VALUE?
-				_variant_t(m_pPos->m_pQuote->m_pPrice->m_dActivePrice):
-			bForSorting? _variant_t(0.0): STR_NA;
+				vtRet = m_pPos->m_pQuote->m_pPrice->m_dActivePrice > BAD_DOUBLE_VALUE?
+					_variant_t(m_pPos->m_pQuote->m_pPrice->m_dActivePrice):
+				bForSorting? _variant_t(0.0): STR_NA;
 		}break;
 	case RPC_LAST:
 		{
@@ -1076,6 +1082,9 @@ bool CMmRvRowData::GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet
 		break;
 	case RPC_CLOSE:
 		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceClose): bForSorting?_variant_t(0):STR_NA;
+		break;
+	case RPC_THEO_PRICE_CLOSE:
+		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose): bForSorting?_variant_t(0):STR_NA;
 		break;
 	case RPC_IMPORT_ID:
 		vtRet = _variant_t(m_pPos->m_bstrImportId);
@@ -1219,8 +1228,8 @@ bool CMmRvRowData::GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, b
 					_variant_t(m_pSynthGreeks->m_pSuPrice->m_dPriceLast):*/	bForSorting? _variant_t(0.0): STR_NA;
 			}
 			else{
-				vtRet = m_pPos->m_pQuote->m_pPrice->m_dActivePrice > BAD_DOUBLE_VALUE?
-					_variant_t(m_pPos->m_pQuote->m_pPrice->m_dActivePrice):	bForSorting? _variant_t(0.0): STR_NA;
+					vtRet = m_pPos->m_pQuote->m_pPrice->m_dActivePrice > BAD_DOUBLE_VALUE?
+						_variant_t(m_pPos->m_pQuote->m_pPrice->m_dActivePrice):	bForSorting? _variant_t(0.0): STR_NA;
 			}
 		}break;
 
@@ -1453,6 +1462,17 @@ bool CMmRvRowData::GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, b
 			else{
 				vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE?
 					_variant_t(m_pPos->m_pQuote->m_pPrice->m_dPriceClose):bForSorting? _variant_t(0.0): STR_NA;
+			}
+		}break;
+	case RPC_THEO_PRICE_CLOSE:
+		{
+			if ( m_pSynthGreeks && m_pSynthGreeks->m_pSuPrice) {
+				vtRet = m_pSynthGreeks->m_pSuPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE?
+					_variant_t(m_pSynthGreeks->m_pSuPrice->m_dPriceTheoClose):bForSorting? _variant_t(0.0): STR_NA;
+			}
+			else{
+				vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE?
+					_variant_t(m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose):bForSorting? _variant_t(0.0): STR_NA;
 			}
 		}break;
 	case RPC_IMPORT_ID:
@@ -1700,6 +1720,23 @@ bool CMmRvRowData::GetAggregationField(RisksPosColumnEnum enCol, _variant_t& vtR
 							GetValue( pAgg->pUnd_->m_pPrice->m_dPriceClose, bForSorting, bNegativeFormatting, lRound, vtRet);
 				}
 				else
+					vtRet = bForSorting ? _variant_t(0.) : STR_NA;
+			}
+			break;
+		case RPC_THEO_PRICE_CLOSE:
+			{
+				/*if ( pAgg->Type_ == CMmRvAggData::enFutAgg ) {
+					if ( pAgg->pFut_ ) 
+						GetValue( pAgg->pFut_->m_pPrice->m_dPriceTheoClose, bForSorting, bNegativeFormatting, lRound, vtRet);
+				}
+				else if (pAgg->Type_ == CMmRvAggData::enUndAgg ) {
+					if (pAgg->pUnd_ && pAgg->pUnd_->m_pPrice) 
+						if(pAgg->pUnd_->m_enContractType == enCtFutUnd)
+							vtRet = bForSorting ? _variant_t(0.) : STR_NA;
+						else
+							GetValue( pAgg->pUnd_->m_pPrice->m_dPriceTheoClose, bForSorting, bNegativeFormatting, lRound, vtRet);
+				}
+				else*/
 					vtRet = bForSorting ? _variant_t(0.) : STR_NA;
 			}
 			break;

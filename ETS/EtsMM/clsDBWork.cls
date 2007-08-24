@@ -689,7 +689,8 @@ Public Function usp_ContractPrice_Save( _
     ByVal iOpenInterest As Variant, _
     ByVal vcSymbol As Variant, _
     ByVal iContractTypeID As Variant, _
-    ByVal vcExchangeCode As Variant _
+    ByVal vcExchangeCode As Variant, _
+    ByVal fPriceTheo As Variant _
 ) As Boolean
     usp_ContractPrice_Save = 0 = Execute(False, "usp_ContractPrice_Save", _
         iContractPriceID, _
@@ -707,7 +708,8 @@ Public Function usp_ContractPrice_Save( _
         iOpenInterest, _
         vcSymbol, _
         iContractTypeID, _
-        vcExchangeCode _
+        vcExchangeCode, _
+        fPriceTheo _
         )
 End Function
 
@@ -1931,5 +1933,24 @@ End Function
 
 Public Function usp_IndexUnderlyingBeta_Get(ByVal iHedgeSymbolID As Long) As ADODB.Recordset
     Set usp_IndexUnderlyingBeta_Get = Execute(True, "usp_IndexUnderlyingBeta_Get", iHedgeSymbolID)
+End Function
+
+Public Function usp_IsManualVol_Save(ByVal iContractID As Long, ByVal bIsManualActivePrice As Byte) As Long
+On Error Resume Next
+    usp_IsManualVol_Save = Execute(False, "usp_IsManualVol_Save", iContractID, bIsManualActivePrice)
+End Function
+
+Public Function usp_MmManualPrice_Save(ByVal iContractID As Long, ByVal manualActivePrice As Double) As Long
+On Error Resume Next
+    usp_MmManualPrice_Save = Execute(False, "usp_MmManualPrice_Save", iContractID, manualActivePrice)
+End Function
+
+Public Function usp_MmManualPrice_Del(ByVal iContractID As Long) As Long
+On Error Resume Next
+    usp_MmManualPrice_Del = Execute(False, "usp_MmManualPrice_Del", iContractID)
+End Function
+
+Public Function usp_MmManualPrice_Get() As ADODB.Recordset
+    Set usp_MmManualPrice_Get = Execute(True, "usp_MmManualPrice_Get")
 End Function
 

@@ -237,6 +237,7 @@ Public ScanOptionsPath As String
 Public ScanStrategyWindClass As String
 Public ScanOptionsWindClass As String
 Public ShowMessageUnableToEdit As Boolean
+Public UseTheoCloseForPNL As Boolean
 
 Public Property Get IsVSCalcEnabled() As Boolean
     IsVSCalcEnabled = m_VSCalcEnabled
@@ -491,6 +492,11 @@ Public Sub LoadSettings()
     RiskDirectlyToRealtime = False '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskDirectlyToRealtime", 0) <> 0)
     RiskReqTypeAlwaysNonGroup = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskReqTypeAlwaysNonGroup", 1) <> 0)
     ShowMessageUnableToEdit = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "ShowMessageUnableToEdit", 1) <> 0)
+    UseTheoCloseForPNL = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTheoCloseForPNL", 1) <> 0)
+    
+    If (Not g_Main Is Nothing) Then
+        g_Main.UseTheoCloseForPNL = UseTheoCloseForPNL
+    End If
     
     MatrixExerciseOptions = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixExerciseOptions", 0) <> 0)
     MatrixCalcModel = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixCalcModel", enCmBinomialOpt)
@@ -733,6 +739,7 @@ Public Sub SaveSettings()
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskDirectlyToRealtime", IIf(RiskDirectlyToRealtime, 1, 0)
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskReqTypeAlwaysNonGroup", IIf(RiskReqTypeAlwaysNonGroup, 1, 0)
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ShowMessageUnableToEdit", IIf(ShowMessageUnableToEdit, 1, 0)
+    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoCloseForPNL", IIf(UseTheoCloseForPNL, 1, 0)
 
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixExerciseOptions", IIf(MatrixExerciseOptions, 1, 0)
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixCalcModel", MatrixCalcModel

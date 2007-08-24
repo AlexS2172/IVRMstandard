@@ -179,14 +179,23 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
         
     nQty = aTrd.Quantity * IIf(aTrd.IsBuy, 1, -1)
     nQtyInShares = nQty * aPos.Quote.LotSize
+    
+    'SUD-0909
+    Dim dPriceClose As Double
+    dPriceClose = aPos.Quote.Price.Close
+    If (Not g_Main Is Nothing) Then
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.Price.TheoClose
+        End If
+    End If
             
     If aTrd.IsBuy Then
         If aPos.QtyLTDBuy = BAD_LONG_VALUE Then aPos.QtyLTDBuy = 0
         aPos.QtyLTDBuy = aPos.QtyLTDBuy + nQtyInShares
         If aTrd.IsPosition Then
-            If aPos.Quote.Price.Close >= 0# Then
+            If dPriceClose >= 0# Then
                 If aPos.PosLTDBuy = BAD_DOUBLE_VALUE Then aPos.PosLTDBuy = 0
-                aPos.PosLTDBuy = aPos.PosLTDBuy + aPos.Quote.Price.Close * nQtyInShares
+                aPos.PosLTDBuy = aPos.PosLTDBuy + dPriceClose * nQtyInShares
             End If
         Else
             If aPos.PosLTDBuy = BAD_DOUBLE_VALUE Then aPos.PosLTDBuy = 0
@@ -196,9 +205,9 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
         If aTrd.TradeDate < Date Then
             If aPos.QtyDailyPrevDateBuy = BAD_LONG_VALUE Then aPos.QtyDailyPrevDateBuy = 0
             aPos.QtyDailyPrevDateBuy = aPos.QtyDailyPrevDateBuy + nQtyInShares
-            If aPos.Quote.Price.Close >= 0# Then
+            If dPriceClose >= 0# Then
                 If aPos.PosDailyPrevDateBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateBuy = 0
-                aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aPos.Quote.Price.Close * nQtyInShares
+                aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + dPriceClose * nQtyInShares
             ElseIf Not aTrd.IsPosition Then
                 If aPos.PosDailyPrevDateBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateBuy = 0
                 aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aTrd.Price * nQtyInShares
@@ -207,9 +216,9 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
             If aPos.QtyDailyTodayBuy = BAD_LONG_VALUE Then aPos.QtyDailyTodayBuy = 0
             aPos.QtyDailyTodayBuy = aPos.QtyDailyTodayBuy + nQtyInShares
             If aTrd.IsPosition Then
-                If aPos.Quote.Price.Close >= 0# Then
+                If dPriceClose >= 0# Then
                     If aPos.PosDailyTodayBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyTodayBuy = 0
-                    aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + aPos.Quote.Price.Close * nQtyInShares
+                    aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + dPriceClose * nQtyInShares
                 End If
             Else
                 If aPos.PosDailyTodayBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyTodayBuy = 0
@@ -220,9 +229,9 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
         If aPos.QtyLTDSell = BAD_LONG_VALUE Then aPos.QtyLTDSell = 0
         aPos.QtyLTDSell = aPos.QtyLTDSell + nQtyInShares
         If aTrd.IsPosition Then
-            If aPos.Quote.Price.Close >= 0# Then
+            If dPriceClose >= 0# Then
                 If aPos.PosLTDSell = BAD_DOUBLE_VALUE Then aPos.PosLTDSell = 0
-                aPos.PosLTDSell = aPos.PosLTDSell + aPos.Quote.Price.Close * nQtyInShares
+                aPos.PosLTDSell = aPos.PosLTDSell + dPriceClose * nQtyInShares
             End If
         Else
             If aPos.PosLTDSell = BAD_DOUBLE_VALUE Then aPos.PosLTDSell = 0
@@ -232,9 +241,9 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
         If aTrd.TradeDate < Date Then
             If aPos.QtyDailyPrevDateSell = BAD_LONG_VALUE Then aPos.QtyDailyPrevDateSell = 0
             aPos.QtyDailyPrevDateSell = aPos.QtyDailyPrevDateSell + nQtyInShares
-            If aPos.Quote.Price.Close >= 0# Then
+            If dPriceClose >= 0# Then
                 If aPos.PosDailyPrevDateSell = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateSell = 0
-                aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aPos.Quote.Price.Close * nQtyInShares
+                aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + dPriceClose * nQtyInShares
             ElseIf Not aTrd.IsPosition Then
                 If aPos.PosDailyPrevDateSell = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateSell = 0
                 aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aTrd.Price * nQtyInShares
@@ -243,9 +252,9 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
             If aPos.QtyDailyTodaySell = BAD_LONG_VALUE Then aPos.QtyDailyTodaySell = 0
             aPos.QtyDailyTodaySell = aPos.QtyDailyTodaySell + nQtyInShares
             If aTrd.IsPosition Then
-                If aPos.Quote.Price.Close >= 0# Then
+                If dPriceClose >= 0# Then
                     If aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE Then aPos.PosDailyTodaySell = 0
-                    aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + aPos.Quote.Price.Close * nQtyInShares
+                    aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + dPriceClose * nQtyInShares
                 End If
             Else
                 If aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE Then aPos.PosDailyTodaySell = 0

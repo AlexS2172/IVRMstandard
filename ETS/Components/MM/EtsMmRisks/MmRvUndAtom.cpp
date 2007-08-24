@@ -550,7 +550,8 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 				}
 			}
 		}
-		m_pPrice->m_dActivePrice = dUndPriceMid;
+		if (!m_pPrice->m_bManualActive) m_pPrice->m_dActivePrice = dUndPriceMid;
+
 
 		//DATE dtToday = vt_date::GetCurrentDate(true);
 		VARIANT_BOOL bNeedRecalc = VARIANT_FALSE;
@@ -769,6 +770,9 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 						{
 							_CHK(spQuote->put_ReplacePriceStatus(m_enReplacePriceStatus));
 						}
+
+						if (enContractType == enCtIndex)
+							pPos->m_pQuote->m_pPrice->m_dActivePrice = dUndPriceMid;
 					}
 
 					// futures
@@ -943,9 +947,8 @@ void CMmRvUndAtom::_CalcTotalsForOptionPos(CMmRvPosAtom* pPos) throw()
 	CMmRvFutAtom* pFut = static_cast<CMmRvFutAtom*>(pPos->m_spFut.GetInterfacePtr());
 
 	DOUBLE dUndPriceMid = m_pPrice->m_dActivePrice;
-	if((pFut && m_enContractType == enCtFutUnd)/*||(pFut && m_spActiveFuture)*/)
+	if((pFut && m_enContractType == enCtFutUnd))
 		dUndPriceMid = pFut->m_pPrice->m_dActivePrice;
-
 
 	if ( pPos )
 		pPos->m_dUndPriceSave = dUndPriceMid;

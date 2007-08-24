@@ -1,7 +1,7 @@
 VERSION 5.00
 Object = "{54850C51-14EA-4470-A5E4-8C5DB32DC853}#1.0#0"; "vsprint8.ocx"
 Object = "{C115893A-A3BF-43AF-B28D-69DB846077F3}#1.0#0"; "vsflex8u.ocx"
-Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
+Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1Sizer.ocx"
 Object = "{0BE3824E-5AFE-4B11-A6BC-4B3AD564982A}#8.0#0"; "olch2x8.ocx"
 Begin VB.UserControl ctlPnLGraphic 
    ClientHeight    =   9705
@@ -2389,6 +2389,7 @@ Private Function PositionsLoad() As Boolean
                     Set aUnd.OptPriceProfile = aTrd.Und.OptPriceProfile
                 
                     aUnd.Price.Close = aTrd.Und.PriceClose
+                    aUnd.Price.TheoClose = aTrd.Und.PriceTheoClose
                     aUnd.LotSize = aTrd.Und.LotSize
                     
                     aUnd.Qty = BAD_LONG_VALUE
@@ -2418,6 +2419,7 @@ Private Function PositionsLoad() As Boolean
                         aUnd.HasOptPos = True
                         aPos.Symbol = aTrd.Opt.Symbol
                         aPos.Quote.Price.Close = aTrd.Opt.PriceClose
+                        aPos.Quote.Price.TheoClose = aTrd.Opt.PriceTheoClose
                         aPos.Quote.LotSize = aTrd.OptRoot.LotSize
                         aPos.OptType = aTrd.Opt.OptType
                         aPos.Expiry = aTrd.Opt.Expiry
@@ -2470,6 +2472,7 @@ Private Function PositionsLoad() As Boolean
                                                 aSynthUnd.Kurt = aGUnd.Kurt
                                                 aSynthUnd.HasSynthetic = aGUnd.HaveSyntheticRoots
                                                 aSynthUnd.Price.Close = aGUnd.PriceClose
+                                                aSynthUnd.Price.TheoClose = aGUnd.PriceTheoClose
                                                 aSynthUnd.LotSize = aGUnd.LotSize
                                                 Set aSynthUnd.SynthRoots = aGUnd.SyntheticRoots
                                                 
@@ -2513,6 +2516,7 @@ Private Function PositionsLoad() As Boolean
                     Else
                         aPos.Symbol = aUnd.Symbol
                         aPos.Quote.Price.Close = aUnd.Price.Close
+                        aPos.Quote.Price.TheoClose = aUnd.Price.TheoClose
                         aPos.Quote.LotSize = aUnd.LotSize
                     End If
                 
@@ -2550,13 +2554,22 @@ Private Function PositionsLoad() As Boolean
                 nQty = aTrd.Quantity * IIf(aTrd.IsBuy, 1, -1)
                 nQtyInShares = nQty * aPos.Quote.LotSize
                 
+                'SUD-0909
+                Dim dPriceClose As Double
+                dPriceClose = aPos.Quote.Price.Close
+                If (Not g_Main Is Nothing) Then
+                    If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
+                        dPriceClose = aPos.Quote.Price.TheoClose
+                    End If
+                End If
+                
                 If aTrd.IsBuy Then
                     If aPos.QtyLTDBuy = BAD_LONG_VALUE Then aPos.QtyLTDBuy = 0
                     aPos.QtyLTDBuy = aPos.QtyLTDBuy + nQtyInShares
                     If aTrd.IsPosition Then
-                        If aPos.Quote.Price.Close >= DBL_EPSILON Then
+                        If dPriceClose >= DBL_EPSILON Then
                             If aPos.PosLTDBuy = BAD_DOUBLE_VALUE Then aPos.PosLTDBuy = 0
-                            aPos.PosLTDBuy = aPos.PosLTDBuy + aPos.Quote.Price.Close * nQtyInShares
+                            aPos.PosLTDBuy = aPos.PosLTDBuy + dPriceClose * nQtyInShares
                         End If
                     Else
                         If aPos.PosLTDBuy = BAD_DOUBLE_VALUE Then aPos.PosLTDBuy = 0
@@ -2566,9 +2579,9 @@ Private Function PositionsLoad() As Boolean
                     If aTrd.TradeDate < Date Then
                         If aPos.QtyDailyPrevDateBuy = BAD_LONG_VALUE Then aPos.QtyDailyPrevDateBuy = 0
                         aPos.QtyDailyPrevDateBuy = aPos.QtyDailyPrevDateBuy + nQtyInShares
-                        If aPos.Quote.Price.Close >= DBL_EPSILON Then
+                        If dPriceClose >= DBL_EPSILON Then
                             If aPos.PosDailyPrevDateBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateBuy = 0
-                            aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aPos.Quote.Price.Close * nQtyInShares
+                            aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + dPriceClose * nQtyInShares
                         ElseIf Not aTrd.IsPosition Then
                             If aPos.PosDailyPrevDateBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateBuy = 0
                             aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aTrd.Price * nQtyInShares
@@ -2577,9 +2590,9 @@ Private Function PositionsLoad() As Boolean
                         If aPos.QtyDailyTodayBuy = BAD_LONG_VALUE Then aPos.QtyDailyTodayBuy = 0
                         aPos.QtyDailyTodayBuy = aPos.QtyDailyTodayBuy + nQtyInShares
                         If aTrd.IsPosition Then
-                            If aPos.Quote.Price.Close >= DBL_EPSILON Then
+                            If dPriceClose >= DBL_EPSILON Then
                                 If aPos.PosDailyTodayBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyTodayBuy = 0
-                                aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + aPos.Quote.Price.Close * nQtyInShares
+                                aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + dPriceClose * nQtyInShares
                             End If
                         Else
                             If aPos.PosDailyTodayBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyTodayBuy = 0
@@ -2590,9 +2603,9 @@ Private Function PositionsLoad() As Boolean
                     If aPos.QtyLTDSell = BAD_LONG_VALUE Then aPos.QtyLTDSell = 0
                     aPos.QtyLTDSell = aPos.QtyLTDSell + nQtyInShares
                     If aTrd.IsPosition Then
-                        If aPos.Quote.Price.Close >= DBL_EPSILON Then
+                        If dPriceClose >= DBL_EPSILON Then
                             If aPos.PosLTDSell = BAD_DOUBLE_VALUE Then aPos.PosLTDSell = 0
-                            aPos.PosLTDSell = aPos.PosLTDSell + aPos.Quote.Price.Close * nQtyInShares
+                            aPos.PosLTDSell = aPos.PosLTDSell + dPriceClose * nQtyInShares
                         End If
                     Else
                         If aPos.PosLTDSell = BAD_DOUBLE_VALUE Then aPos.PosLTDSell = 0
@@ -2602,9 +2615,9 @@ Private Function PositionsLoad() As Boolean
                     If aTrd.TradeDate < Date Then
                         If aPos.QtyDailyPrevDateSell = BAD_LONG_VALUE Then aPos.QtyDailyPrevDateSell = 0
                         aPos.QtyDailyPrevDateSell = aPos.QtyDailyPrevDateSell + nQtyInShares
-                        If aPos.Quote.Price.Close >= DBL_EPSILON Then
+                        If dPriceClose >= DBL_EPSILON Then
                             If aPos.PosDailyPrevDateSell = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateSell = 0
-                            aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aPos.Quote.Price.Close * nQtyInShares
+                            aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + dPriceClose * nQtyInShares
                         ElseIf Not aTrd.IsPosition Then
                             If aPos.PosDailyPrevDateSell = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateSell = 0
                             aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aTrd.Price * nQtyInShares
@@ -2613,9 +2626,9 @@ Private Function PositionsLoad() As Boolean
                         If aPos.QtyDailyTodaySell = BAD_LONG_VALUE Then aPos.QtyDailyTodaySell = 0
                         aPos.QtyDailyTodaySell = aPos.QtyDailyTodaySell + nQtyInShares
                         If aTrd.IsPosition Then
-                            If aPos.Quote.Price.Close >= DBL_EPSILON Then
+                            If dPriceClose >= DBL_EPSILON Then
                                 If aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE Then aPos.PosDailyTodaySell = 0
-                                aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + aPos.Quote.Price.Close * nQtyInShares
+                                aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + dPriceClose * nQtyInShares
                             End If
                         Else
                             If aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE Then aPos.PosDailyTodaySell = 0

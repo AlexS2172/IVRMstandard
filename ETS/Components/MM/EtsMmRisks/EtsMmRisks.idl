@@ -258,8 +258,8 @@ library EtsMmRisksLib
 		RPC_NET_EXPOSURE				= 47,
 		RPC_OPT_DELTA_USD				= 48,
 		RPC_THEO_PRICE_VALUE			= 49,
-
-		RPC_COLUMN_COUNT		= 50,
+		RPC_THEO_PRICE_CLOSE			= 50,
+		RPC_COLUMN_COUNT		= 51,
 		RPC_LAST_COLUMN			= RPC_COLUMN_COUNT - 1
 	}RisksPosColumnEnum;
 	/////////////////////////////////////////////////////////////////////////////
@@ -267,7 +267,6 @@ library EtsMmRisksLib
 	struct MmRvMatrixCalcResultType{
 		DOUBLE		ShiftX;
 		DOUBLE		ShiftY;
-
 		DOUBLE		PnL;
 		DOUBLE		Delta;
 		DOUBLE		NetDelta;
@@ -434,6 +433,8 @@ library EtsMmRisksLib
 			ETSGENERAL_PROP_DEF(5,	DOUBLE,				NetChange)
 			ETSGENERAL_PROP_DEF(6,	DOUBLE,				Active)
 			ETSGENERAL_PROP_DEF(7,	VARIANT_BOOL,		IsDirty)
+			ETSGENERAL_PROP_DEF(8,  VARIANT_BOOL,		IsUseManualActive)
+			ETSGENERAL_PROP_DEF(9,	DOUBLE,				TheoClose)
 	};
 
 
@@ -886,8 +887,8 @@ library EtsMmRisksLib
 							[in] DATE dtCalculationDate);
 
 
-		[id(86), helpstring("method AddTrade")]
-		HRESULT AddTrade([in] IMmTradeInfoAtom* pTrade, [in]IMmRvUndAtom* pUnd);
+		//[id(86), helpstring("method AddTrade")]
+		//HRESULT AddTrade([in] IMmTradeInfoAtom* pTrade, [in]IMmRvUndAtom* pUnd);
 
 		[id(87), helpstring("method GetOpositOption")]	HRESULT GetOpositOption([out,retval]BSTR*vSymbol);
 		[id(88), helpstring("method GetCopyOfObject")]	HRESULT GetCopyOfObject([in] VARIANT_BOOL bNewQuote ,[out,retval]IMmRvPosAtom**ppCopy);
@@ -896,6 +897,8 @@ library EtsMmRisksLib
 		[id(90), helpstring("method IsOTM")]		HRESULT IsOTM(DOUBLE dUndPriceTolerance, enum EtsPriceRoundingRuleEnum enPriceRoundingRule,[out,retval]VARIANT_BOOL*pVal);
 		
 		[id(91), helpstring("method GetFormatedXMLForDBUpdate")]		HRESULT GetFormatedXMLForDBUpdate([in] LONG vUndID, [out,retval]BSTR*pVal);
+		
+		ETSGENERAL_PROP_DEF(92,	VARIANT_BOOL,	IsUseManualActivePrice)
 	};
 	//
 	//[
@@ -1750,6 +1753,11 @@ library EtsMmRisksLib
 		HRESULT SetAllRowsExpanded();
 		[id(63), helpstring("method SetDirty")]
 		HRESULT SetDirty();
+
+		[id(64), helpstring("method SaveTheoPricesAsClose")]
+		HRESULT SaveTheoPricesAsClose([in] IMmTradeInfoColl* pTradesColl);
+
+		ETSGENERAL_PROP_DEF(65,	 BSTR,	ConnectionString)
 
 	};
 	/////////////////////////////////////////////////////////////////////////////

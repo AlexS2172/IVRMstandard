@@ -67,6 +67,7 @@ struct __MmQvFutAtom
 	DOUBLE						m_dRatio;
 	DOUBLE						m_dBasis;				
 	DOUBLE						m_dActivePrice;
+	VARIANT_BOOL				m_bUseManualActivePrice;
 
 
 	__MmQvFutAtom()
@@ -97,6 +98,7 @@ struct __MmQvFutAtom
 		, m_dRatio(BAD_DOUBLE_VALUE)
 		, m_dBasis(BAD_DOUBLE_VALUE)
 		, m_dActivePrice(BAD_DOUBLE_VALUE)
+		, m_bUseManualActivePrice(VARIANT_FALSE)
 	{
 	}
 };
@@ -267,7 +269,8 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Basis, m_dBasis)
 
 	
-	IMPLEMENT_SIMPLEREADONLY_PROPERTY( DOUBLE, ActivePrice, m_dActivePrice)
+	IMPLEMENT_SIMPLE_PROPERTY( DOUBLE, ActivePrice, m_dActivePrice)
+	IMPLEMENT_SIMPLE_PROPERTY( VARIANT_BOOL, IsUseManualActivePrice, m_bUseManualActivePrice)
 
 	STDMETHOD(CalcOptionGreeks)(IMmQvUndAtom* aUnd, IMmQvOptAtom* aOpt, IMmQvQuoteAtom* aQuote,
 							IMmQvExpAtom* aExp, LONG nGreekMask, MmQvIvCalcEnum enCalcIV,

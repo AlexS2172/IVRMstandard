@@ -20,6 +20,7 @@
 #include "_IEtsMainEvents_CP.h"
 
 
+
 // CEtsMain
 
 class ATL_NO_VTABLE CEtsMain : 
@@ -50,6 +51,7 @@ public:
 		,m_pIndex(NULL)
 		,m_pHedgeSymbols(NULL)
 		,m_pBasketIndex(NULL)
+		,m_bUseTheoCloseForPNL(VARIANT_FALSE)
 	{
 	}
 
@@ -177,6 +179,7 @@ private:
 private:
 	CDBConnection                       m_DbConnection; 
 	_bstr_t								m_bstrDatabaseString;
+	VARIANT_BOOL						m_bUseTheoCloseForPNL;
 
 	CComObject<CEtsTraderColl>*			m_pTraderColl;
 	CComObject<CEtsTraderGroupColl>*	m_pTraderGroup;
@@ -257,6 +260,7 @@ public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IExchColl*,			Exch,		m_spExhc);
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IIndexColl*,	BasketIndex, m_spBasketIndex);
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IIndexColl*,	HedgeSymbols, m_spHedgeSymbols);
+	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, UseTheoCloseForPNL, m_bUseTheoCloseForPNL);
 	//IMPLEMENT_OBJECT_PROPERTY(IETSLog*,			Logger,		m_spLogger);
 };
 

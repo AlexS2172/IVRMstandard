@@ -29,6 +29,7 @@ struct __UndAtom
 	VARIANT_BOOL			m_bIsHTB;
 	DOUBLE					m_dYield;
 	DOUBLE					m_dPriceClose;
+	DOUBLE					m_dPriceTheoClose;
 	LONG					m_nLotSize;
 	VARIANT_BOOL			m_bIsTraderContract;
 	DOUBLE					m_dSkew;
@@ -63,6 +64,8 @@ struct __UndAtom
 	IEtsFutAtomPtr			m_spActiveFuture;	// pointer to active future for indexes used in calculations
 	DOUBLE				m_dSOQ;
 	VARIANT_BOOL		m_bIsHedgeSymbol;
+	DOUBLE m_dManualActivePrice;
+	VARIANT_BOOL		m_fIsManualVol;
 
 
 	__UndAtom()
@@ -73,7 +76,9 @@ struct __UndAtom
 		m_bHaveOptions(VARIANT_FALSE), m_bIsActive(VARIANT_FALSE),
 		m_bIsBasketIndex(VARIANT_FALSE), m_nVolume10Day(0), m_nVolume5Expiration(0),
 		m_dUndPosForRates(0.), m_bHaveFutures(VARIANT_FALSE), m_nTotalQtyInShares(BAD_LONG_VALUE)
-		, m_enDivType(enDivMarket), m_dSOQ(0.), m_bIsHedgeSymbol(VARIANT_FALSE), m_nPrimaryExchangeID(0)
+		, m_enDivType(enDivMarket), m_dSOQ(0.), m_bIsHedgeSymbol(VARIANT_FALSE), m_nPrimaryExchangeID(0),
+		m_dManualActivePrice(0), m_fIsManualVol(FALSE),
+		m_dPriceTheoClose(BAD_DOUBLE_VALUE)
 
 	{
 	}
@@ -159,6 +164,7 @@ public:
 		//IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, SOQ, m_dSOQ)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Yield, m_dYield)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceClose, m_dPriceClose)
+		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceTheoClose, m_dPriceTheoClose)
 		IMPLEMENT_SIMPLE_PROPERTY(LONG, LotSize, m_nLotSize)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsTraderContract, m_bIsTraderContract)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Skew, m_dSkew)
@@ -189,6 +195,8 @@ public:
 	
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, SOQ, m_dSOQ)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsHedgeSymbol, m_bIsHedgeSymbol)
+		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualActivePrice, m_dManualActivePrice)
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsManualVol, m_fIsManualVol)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(UndAtom), CUndAtom)

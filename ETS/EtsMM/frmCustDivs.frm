@@ -172,7 +172,7 @@ Begin VB.Form frmCustomDivs
          _ExtentX        =   2566
          _ExtentY        =   556
          _Version        =   393216
-         Format          =   62521345
+         Format          =   64159745
          CurrentDate     =   38251
       End
       Begin VB.Label lblStep 
@@ -295,6 +295,14 @@ Begin VB.Form frmCustomDivs
       Top             =   2160
       Width           =   1095
    End
+   Begin VB.Image imgProp 
+      Height          =   180
+      Left            =   3840
+      Picture         =   "frmCustDivs.frx":0035
+      Top             =   1920
+      Visible         =   0   'False
+      Width           =   180
+   End
 End
 Attribute VB_Name = "frmCustomDivs"
 Attribute VB_GlobalNameSpace = False
@@ -314,6 +322,7 @@ Private m_BasketDivs As EtsGeneralLib.EtsIndexDivColl
 Private m_dtLastExpity As Date
 Private m_bSortDate As Boolean
 Private m_bSortAmount As Boolean
+Private m_frmIndexDivComp As frmIndexDivComponents
 
 
 
@@ -326,7 +335,7 @@ Private Sub fgDividend_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel A
 End Sub
 
 Private Sub fgDividend_BeforeSort(ByVal Col As Long, Order As Integer)
-    On Error GoTo EX
+    On Error GoTo Ex
     If Col = 2 Or Col = 3 Then
         If m_bSortDate Then
             m_rs.Sort = "[Dividend Date] DESC"
@@ -344,11 +353,42 @@ Private Sub fgDividend_BeforeSort(ByVal Col As Long, Order As Integer)
         End If
         m_bSortAmount = Not m_bSortAmount
     End If
-EX:
+Ex:
 End Sub
 
+Private Sub fgDividend_Click()
+    Dim iRow As Long
+    
+    If fgDividend.Rows < 2 Then Exit Sub
+    
+    For iRow = 0 To fgDividend.Rows - 1
+        fgDividend.Cell(flexcpPicture, iRow, 4) = Nothing
+        fgDividend.Cell(flexcpPictureAlignment, iRow, 4) = flexPicAlignLeftCenter
+    Next iRow
+    
+    fgDividend.Cell(flexcpPicture, fgDividend.Row, 4) = imgProp.Picture
+    fgDividend.Cell(flexcpPictureAlignment, fgDividend.Row, 4) = flexPicAlignLeftCenter
+    
+End Sub
 
-
+Private Sub fgDividend_DblClick()
+On Error GoTo Err
+    Dim dtDivDate As Date
+    If (Not m_BasketDivs Is Nothing) Then
+    
+        If (m_BasketDivs.Count <= 0) Then Exit Sub
+        
+        If (Not m_frmIndexDivComp Is Nothing) Then
+            dtDivDate = CDate(fgDividend.TextMatrix(fgDividend.Row, 2))
+            m_frmIndexDivComp.Init m_iStockID, dtDivDate
+            m_frmIndexDivComp.Show vbModal
+        End If
+        
+    End If
+    Exit Sub
+Err:
+    Exit Sub
+End Sub
 
 Private Sub Form_Load()
     dtpDivDate.Value = CDate(Now)
@@ -372,10 +412,9 @@ Public Property Let BasketDivs(ByRef div As EtsGeneralLib.EtsIndexDivColl)
     Dim i As Long
     Dim DivAmounts() As Double
     Dim DivDates() As Double
-    On Error GoTo EX
+    On Error GoTo Ex
     fgDividend.Redraw = flexRDNone
     Dim dte As Integer
-
     
     If m_BasketDivs.Count > 0 Then
     
@@ -389,11 +428,13 @@ Public Property Let BasketDivs(ByRef div As EtsGeneralLib.EtsIndexDivColl)
       
       Next i
       AllowChange (Not m_bReadOnly)
-  End If
+     
+    End If
+    
   If m_rs.RecordCount > 0 Then m_rs.MoveFirst
 
   SetDataDirty False
-EX:
+Ex:
     fgDividend.Redraw = flexRDBuffered
 End Property
 
@@ -417,22 +458,25 @@ Public Sub Init(iStockID As Long, strSimbol As String, dtLastExpity As Date, bRe
     Caption = "Custom Dividends [for " & m_strSymbol & "]"
     fgDividend.Enabled = True
     Set fgDividend.DataSource = m_rs
-
+    
     fgDividend.ColHidden(0) = True
     fgDividend.ColHidden(1) = True
     fgDividend.ColHidden(3) = True
     fgDividend.ColFormat(4) = "##,###0.##00"
+      
 
     btnAdd.Enabled = Not m_bReadOnly
     btnDelete.Enabled = Not m_bReadOnly
     btnClear.Enabled = Not m_bReadOnly
     btnApply.Enabled = Not m_bReadOnly
-    btnOK.Enabled = Not m_bReadOnly
+    btnOk.Enabled = Not m_bReadOnly
     m_bSortDate = True
     m_bSortAmount = True
     SetDataDirty False
     If m_rs.RecordCount > 0 Then m_rs.MoveFirst
-
+    
+    Set m_frmIndexDivComp = New frmIndexDivComponents
+    
     fgDividend.Redraw = flexRDBuffered
     Exit Sub
 EH:
@@ -700,7 +744,7 @@ Private Sub btnDelete_Click()
     
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub btnOk_Click()
     btnApply_Click
     Unload Me
 End Sub

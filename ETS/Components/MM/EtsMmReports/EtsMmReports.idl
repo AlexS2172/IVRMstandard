@@ -39,6 +39,7 @@ library EtsMmReportsLib
 		ETSGENERAL_PROP_DEF(3,	DOUBLE,		Last)
 		ETSGENERAL_PROP_DEF(4,	DOUBLE,		Close)
 		ETSGENERAL_PROP_DEF(5,	DOUBLE,		NetChange)
+		ETSGENERAL_PROP_DEF(6,	DOUBLE,		TheoClose)
 	};
 
 	[

@@ -449,11 +449,24 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                         Else
                             .TextMatrix(nRow, nCol) = STR_NA
                         End If
+                        If m_Aux.Grp.Und.UseManualActivePrice Then
+                              Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
+                        End If
                     Case QUC_ACTIVEFUTURE
                         If m_Aux.Grp.Und.ActiveFuture Is Nothing Then
                             .TextMatrix(nRow, nCol) = 0
                         Else
                             .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ID
+                        End If
+                    Case QUC_ACTIVEFUTUREPRICE
+                        If ManualEdit Then
+                              Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
+                        Else
+                            If m_Aux.Grp.ContractType <> enCtIndex Or m_Aux.Grp.Und.ActiveFuture Is Nothing Or m_Aux.Grp.Und.ActiveFuture.ActivePrice = BAD_DOUBLE_VALUE Then
+                                .TextMatrix(nRow, nCol) = STR_NA
+                            Else
+                                .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ActivePrice
+                            End If
                         End If
                 End Select
 
@@ -794,6 +807,9 @@ Public Function FutureUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boolean, 
                 Select Case nIdx
                      Case QOF_ACTIVEPRICE
                             .TextMatrix(nRow, nCol) = IIf(aFut.ActivePrice > 0, aFut.ActivePrice, STR_NA)
+                            If aFut.IsUseManualActivePrice Then
+                                Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread.Picture
+                            End If
                      Case QOF_BID
                          .TextMatrix(nRow, nCol) = IIf(aQuote.PriceBid > BAD_DOUBLE_VALUE, aQuote.PriceBid, STR_NA)
                             If bUpdateColors Then
@@ -1812,10 +1828,11 @@ Public Sub RatesUpdate()
 End Sub
 
 Public Sub VolaUpdate()
+
     On Error Resume Next
     If m_bShutDown Or m_Aux.Grp Is Nothing Then Exit Sub
     
-    Dim i&, iExp, aExp As EtsMmQuotesLib.MmQvExpAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
+    Dim i&, iExp, aExp, aExpG As EtsMmQuotesLib.MmQvExpAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
     Dim dAtmVola As Double
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
     Dim aFut2 As EtsMmQuotesLib.MmQvFutAtom
@@ -1834,7 +1851,7 @@ Public Sub VolaUpdate()
                 .ColFormat(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).Format
                 .ColDataType(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).DataType
                 .TextMatrix(0, i + QVC_VOLA_VAL) = Format$(aExp.ExpiryMonth, "MMM,DD YY")
-                dAtmVola = m_Aux.Grp.Und.AtmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                dAtmVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     
                 If dAtmVola > BAD_DOUBLE_VALUE Then
                     .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
@@ -1845,6 +1862,8 @@ Public Sub VolaUpdate()
                 .Cell(flexcpBackColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
                 .Cell(flexcpForeColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
                 i = i + 1
+                
+                aExpG = aExp
             Next
         Else
             i = 0
@@ -1872,7 +1891,7 @@ Public Sub VolaUpdate()
                 .ColFormat(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).Format
                 .ColDataType(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).DataType
                 .TextMatrix(0, i + QVC_VOLA_VAL) = Format$(aExpAll.ExpiryMonth, "MMM,DD YY")
-                dAtmVola = aFut2.AtmVola(aExpAll, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                dAtmVola = aFut2.atmVola(aExpAll, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     
                 If dAtmVola > BAD_DOUBLE_VALUE Then
                     .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
@@ -1890,15 +1909,28 @@ Public Sub VolaUpdate()
         
         
         .TextMatrix(0, i + QVC_VOLA_VAL) = Format$(aExp.ExpiryMonth, "MMM D, YY")
-        
+
         .TextMatrix(0, i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_DATECALC).Caption
         .ColFormat(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_DATECALC).Format
         .ColDataType(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_DATECALC).DataType
-        
+
         .Cell(flexcpBackColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_DATECALC).BackColor <> 0, gdVol.Col(QVC_VOLA_DATECALC).BackColor, RGB(1, 1, 1))
         .Cell(flexcpForeColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_DATECALC).ForeColor <> 0, gdVol.Col(QVC_VOLA_DATECALC).ForeColor, RGB(1, 1, 1))
-        
+
         If Len(.TextMatrix(1, i + QVC_VOLA_VAL)) = 0 Then .TextMatrix(1, i + QVC_VOLA_VAL) = CStr(Now)
+        
+        
+'        '''''''''
+
+        .TextMatrix(0, i + QVC_VOLA_VAL + 1) = gdVol.Col(QVC_VOLA_IS_MANUAL).Caption
+        .ColFormat(i + QVC_VOLA_VAL + 1) = gdVol.Col(QVC_VOLA_IS_MANUAL).Format
+        .ColDataType(i + QVC_VOLA_VAL + 1) = gdVol.Col(QVC_VOLA_IS_MANUAL).DataType
+        
+        If Not m_Aux.Grp.Und Is Nothing Then
+            .TextMatrix(1, i + QVC_VOLA_VAL + 1) = IIf(m_Aux.Grp.Und.IsManualVol = True, "1", "0")
+        End If
+
+'        '''''''''
                 
         Set aExpColl = Nothing
         Set aFut = Nothing
@@ -1913,6 +1945,7 @@ Public Sub VolaUpdate()
 End Sub
 
 Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
+    
     On Error Resume Next
     If m_bShutDown Or m_Aux.Grp Is Nothing Then Exit Sub
     
@@ -1930,7 +1963,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
             i = 0
             For Each aExp In aExpColl
                 .ColData(i + QVC_VOLA_VAL) = aExp
-                 dAtmVola = m_Aux.Grp.Und.AtmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                 dAtmVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     
                 If dAtmVola > BAD_DOUBLE_VALUE Then
                     .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
@@ -1962,7 +1995,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                     Next
                 Next
                 .ColData(i + QVC_VOLA_VAL) = aExpAll
-                 dAtmVola = aFut2.AtmVola(aExpAll, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                 dAtmVola = aFut2.atmVola(aExpAll, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
 
                 If dAtmVola > BAD_DOUBLE_VALUE Then
                     .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
