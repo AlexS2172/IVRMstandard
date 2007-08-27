@@ -1130,7 +1130,19 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 		{
 			undQuoteData.m_dBid   = pUndQuote->m_dPriceBid;
 			undQuoteData.m_dAsk   = pUndQuote->m_dPriceAsk;
-			undQuoteData.m_dPrice = pUndQuote->m_dPriceLast;
+			if (this->m_bUseManualActivePrice)
+			{
+				undQuoteData.m_dPrice = this->m_dActivePrice;
+
+				//pUndQuote->put_PriceLast(this->m_dActivePrice);
+				pUndQuote->SetDirty();
+
+				bIsDirtyUnderlying = true;
+			}
+			else
+			{
+				undQuoteData.m_dPrice = pUndQuote->m_dPriceLast;
+			}
 
 			if(undQuoteData.m_dBid > 0. || undQuoteData.m_dAsk > 0. || undQuoteData.m_dPrice > 0.)
 			{

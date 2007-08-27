@@ -23,6 +23,7 @@ if not exists(select * from DataInfo where dataInfoID = 1 and (keyValue = '3.46.
 		Select cast(keyValue as varchar(25)) as 'DB version', '3.46.228' as  'Version in script' from DataInfo where dataInfoID = 1
 		INSERT INTO #tmpErrors (Error) SELECT -1 BEGIN TRANSACTION
 	END
+GO
 
 --=============================================================================================
 

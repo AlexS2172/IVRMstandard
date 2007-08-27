@@ -172,7 +172,7 @@ Begin VB.Form frmCustomDivs
          _ExtentX        =   2566
          _ExtentY        =   556
          _Version        =   393216
-         Format          =   64159745
+         Format          =   61538305
          CurrentDate     =   38251
       End
       Begin VB.Label lblStep 
@@ -324,7 +324,24 @@ Private m_bSortDate As Boolean
 Private m_bSortAmount As Boolean
 Private m_frmIndexDivComp As frmIndexDivComponents
 
+Private Sub DrawPictures()
+On Error GoTo Err
+    Dim iRow As Long
+    
+    If fgDividend.Rows < 2 Then Exit Sub
+    
+    For iRow = 1 To fgDividend.Rows - 1
+        fgDividend.Cell(flexcpPicture, iRow, 4) = imgProp.Picture
+        fgDividend.Cell(flexcpPictureAlignment, iRow, 4) = flexPicAlignLeftCenter
+    Next iRow
+    Exit Sub
+Err:
+    Debug.Print "Error while drawing pictures"
+End Sub
 
+Private Sub fgDividend_AfterDataRefresh()
+    DrawPictures
+End Sub
 
 Private Sub fgDividend_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     SetDataDirty (True)
@@ -358,17 +375,7 @@ End Sub
 
 Private Sub fgDividend_Click()
     Dim iRow As Long
-    
-    If fgDividend.Rows < 2 Then Exit Sub
-    
-    For iRow = 0 To fgDividend.Rows - 1
-        fgDividend.Cell(flexcpPicture, iRow, 4) = Nothing
-        fgDividend.Cell(flexcpPictureAlignment, iRow, 4) = flexPicAlignLeftCenter
-    Next iRow
-    
-    fgDividend.Cell(flexcpPicture, fgDividend.Row, 4) = imgProp.Picture
-    fgDividend.Cell(flexcpPictureAlignment, fgDividend.Row, 4) = flexPicAlignLeftCenter
-    
+   
 End Sub
 
 Private Sub fgDividend_DblClick()
@@ -428,6 +435,7 @@ Public Property Let BasketDivs(ByRef div As EtsGeneralLib.EtsIndexDivColl)
       
       Next i
       AllowChange (Not m_bReadOnly)
+      DrawPictures
      
     End If
     

@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61341697
+      Format          =   66977793
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -5229,6 +5229,9 @@ Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, By
         If l = QV.Grp.Und.ID Then
             QV.Grp.Und.ActivePrice = price(i)
             QV.Grp.Und.UseManualActivePrice = isManual(i)
+            If QV.Grp.Und.UseManualActivePrice = False Then
+                QV.EtsMain.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
+            End If
          End If
 
         i = i + 1
@@ -5412,6 +5415,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         UpdateActiveFuturesPrice dValue
                                         bNeedRecalc = True
                                         bManualEdit = True
+                                        gDBW.usp_MmManualPrice_Save QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
                                     End If
                             Case QUC_INDEXCALCPRICE
                                 If QV.Grp.Und.ActiveFuture Is Nothing Then
@@ -5419,6 +5423,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     QV.Grp.Und.UseManualActivePrice = True
                                     gDBW.usp_MmManualPrice_Save QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
                                     bNeedRecalc = True
+                                    bManualEdit = True
                                  End If
                             Case QUC_CLOSE
                                 m_AuxOut.UnderlyingUpdateQuoteColors Row, aQuote

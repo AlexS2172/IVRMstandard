@@ -220,6 +220,32 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 		long	lUndCount = static_cast<long>(m_pUnd->m_coll.size());
 		long	lProcessed = 1;
 
+
+		typedef std::set<long>	TradesSet;
+		typedef std::map<long, TradesSet> ContractMap;
+		typedef ContractMap::iterator	ItrCM;
+		typedef TradesSet::iterator		ItrTS;
+
+		ContractMap cmTradesContracts;
+
+		if (pTradesColl)
+		{
+			IMmTradeInfoCollPtr spTrades(pTradesColl);
+			if(spTrades->Count && SUCCEEDED(spTrades->raw_ResetTradesPosition()))
+			{
+				VARIANT_BOOL bIsLast = VARIANT_FALSE;
+				while(!bIsLast)
+				{
+					IMmTradeInfoAtomPtr spTradeAtom = spTrades->TradeAtCurrentPosition;
+					if(spTradeAtom)
+					{
+						cmTradesContracts[spTradeAtom->ContractID].insert(spTradeAtom->TradeID);
+					}
+					spTrades->MoveNextTrade(&bIsLast);
+				}
+			}
+		}
+
 		//prepare xpath string
 		_bstr_t bstrXPath = L"<root>";
 
@@ -305,15 +331,16 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 									bNeedToSaveData	=	true;
 
 									//update all trades CloseTheoPrice
+									ItrCM iter = cmTradesContracts.find(lContractID);
 									if (pTradesColl)
 									{
-										IMmTradeInfoCollPtr spTrades(pTradesColl);
-										if(spTrades->Count && SUCCEEDED(spTrades->raw_ResetTradesPosition()))
+										if (iter!=cmTradesContracts.end())
 										{
-											VARIANT_BOOL bIsLast = VARIANT_FALSE;
-											while(!bIsLast)
+											ItrTS iter_ts_s = iter->second.begin();
+											ItrTS iter_ts_e = iter->second.end();
+											for(;iter_ts_s != iter_ts_e; ++iter_ts_s)
 											{
-												IMmTradeInfoAtomPtr spTradeAtom = spTrades->TradeAtCurrentPosition;
+												IMmTradeInfoAtomPtr spTradeAtom = pTradesColl->GetItem(*iter_ts_s);
 												if(spTradeAtom)
 												{
 													if(spTradeAtom->ContractID == lContractID && spTradeAtom->ContractType == enContractType)
@@ -336,11 +363,9 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 														}
 													}
 												}
-												spTrades->MoveNextTrade(&bIsLast);
 											}
 										}
 									}
-
 								}
 							}
 						}
