@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   66977793
+      Format          =   67567617
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -5688,6 +5688,10 @@ Private Sub fgUnd_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
             Else
                 m_sCurrentOriginalText = Trim$(.Cell(flexcpTextDisplay, Row, Col))
             End If
+            If nKey = QUC_ACTIVEFUTUREPRICE And QV.Grp.Und.ActiveFuture Is Nothing Then
+                Cancel = True
+            End If
+
         End If
     End With
     

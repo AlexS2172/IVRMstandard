@@ -101,19 +101,22 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 				{
 					if(pAtom->m_pPos) 
 					{
-						if (pAtom->m_pPos->m_bUseManualActivePrice) pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue); // set close for position
+						//if (pAtom->m_pPos->m_bUseManualActivePrice) 
+							pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue); // set close for position
 					}
 					else 
 					{
 						if(pAtom->m_Type == RDT_UNDAGG) 
 						{
-							if (pAtom->m_pUnd->m_pPrice->m_bManualActive) pAtom->m_pUnd->m_pPrice->put_Active(dblValue); // set close for underlying aggregation
+							//if (pAtom->m_pUnd->m_pPrice->m_bManualActive) 
+								pAtom->m_pUnd->m_pPrice->put_Active(dblValue); // set close for underlying aggregation
 						}
 						else 
 						{
 							if(pAtom->m_pAgg && CMmRvAggData::enFutAgg == pAtom->m_pAgg->Type_ && pAtom->m_pAgg->pFut_) 
 							{
-								if (pAtom->m_pAgg->pFut_->m_pPrice->m_bManualActive) pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue); // set close for aggregation that have a price
+								//if (pAtom->m_pAgg->pFut_->m_pPrice->m_bManualActive) 
+									pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue); // set close for aggregation that have a price
 							}
 						}
 					}

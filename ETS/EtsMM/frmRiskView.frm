@@ -359,6 +359,12 @@ Begin VB.Form frmRiskView
          Caption         =   "&Event Log"
          Shortcut        =   ^L
       End
+      Begin VB.Menu mnuToolsSeparator3 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuManualPrices 
+         Caption         =   "Manual Prices..."
+      End
    End
    Begin VB.Menu mnuWindow 
       Caption         =   "&Window"
@@ -977,6 +983,23 @@ Private Sub mnuFileVSCalc_Click()
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""File->VSCalc..."" Exit. " & ctlView.GetOptionInfo, Me.Caption
+End Sub
+
+Private Sub mnuManualPrices_Click()
+    Dim frmMPrices As New frmManualPrices
+    Dim i As Integer
+    Dim ctrID() As Long, price() As Double, isManual() As Boolean
+    
+    frmMPrices.Show vbModal, Me
+    
+    If (frmMPrices.ChangedCount > 0) Then
+
+        frmMPrices.GetChanged ctrID, price, isManual
+        
+        ctlView.Refresh
+        'ctlView.UpdateManualPrices ctrID, price, isManual
+        
+    End If
 End Sub
 
 Private Sub mnuUndHideAll_Click()

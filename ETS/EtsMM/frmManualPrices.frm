@@ -52,7 +52,7 @@ Begin VB.Form frmManualPrices
       AllowSelection  =   -1  'True
       AllowBigSelection=   -1  'True
       AllowUserResizing=   0
-      SelectionMode   =   0
+      SelectionMode   =   1
       GridLines       =   1
       GridLinesFixed  =   2
       GridLineWidth   =   1
@@ -311,22 +311,28 @@ End Sub
 
 
 Private Sub Command1_Click()
-    
-    Dim sValue As String, dValue As Long, i As Long
-    
-    i = fgMP.Row
-     
-    sValue = Trim$(fgMP.TextMatrix(fgMP.Row, 0))
-    
-    dValue = Abs(ReadDbl(sValue))
-    
-    If dValue > 0 Then
-    
-        DeleteRecord dValue
         
-        RefreshGridRows
-        
-    End If
+    Dim sValue As String, dValue As Double
+    
+    Dim r&, c&, r1&, c1&, r2&, c2&
+    
+    fgMP.GetSelection r1, c1, r2, c2
+    
+    For r = r1 To r2
+    
+        sValue = Trim$(fgMP.TextMatrix(r, 0))
+    
+        dValue = Abs(ReadDbl(sValue))
+    
+        If dValue > 0 Then
+    
+            DeleteRecord dValue
+    
+        End If
+    
+    Next
+    
+    RefreshGridRows
 
 End Sub
 
