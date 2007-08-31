@@ -23,7 +23,7 @@ if not exists(select * from DataInfo where dataInfoID = 1 and (keyValue = '3.46.
 		Select cast(keyValue as varchar(25)) as 'DB version', '3.46.229' as  'Version in script' from DataInfo where dataInfoID = 1
 		INSERT INTO #tmpErrors (Error) SELECT -1 BEGIN TRANSACTION
 	END
-
+GO
 
 IF EXISTS (SELECT name 
 	   FROM   sysobjects 
@@ -130,7 +130,8 @@ CREATE PROC usp_MmManualPriceForTrade_Get
 AS
 
 SELECT T.TradeID, MP.ContractID, MP.ManualPrice FROM ManualPrice MP
-JOIN Trade T ON T.contractID = MP.contractID
+LEFT JOIN Trade T ON T.contractID = MP.contractID
+--SELECT MP.ContractID, MP.ManualPrice FROM ManualPrice MP
 
 GO
 
@@ -162,6 +163,7 @@ AS
 		    s.divAmtCustom as fDivAmtCustom,
 		
 		    cp.priceClose as fPriceClose,
+    		    cp.priceTheo as fPriceTheoClose,
 
 			null as iTraderID,
 
@@ -209,6 +211,7 @@ AS
 		    s.divAmtCustom as fDivAmtCustom,
 		
 		    cp.priceClose as fPriceClose,
+			    		    cp.priceTheo as fPriceTheoClose,
 
 			tc.traderID as iTraderID,
 
@@ -261,6 +264,7 @@ AS
 			f.futureRootID as iFutureRootID,
 			uc.contractID as iUnderlyingID,
 		   	fcp.priceClose as fPriceClose,
+    		    fcp.priceTheo as fPriceTheoClose,
 			f.maturityDate as dtMaturityDate,
 			f.calcOptionType as tiCalcOptionType,
 			f.isActive as tiIsActive,
@@ -290,6 +294,7 @@ AS
 			f.futureRootID as iFutureRootID,
 			uc.contractID as iUnderlyingID,
 			fcp.priceClose as fPriceClose,
+    		    fcp.priceTheo as fPriceTheoClose,
 			f.maturityDate  as dtMaturityDate,
 			f.calcOptionType as tiCalcOptionType,
 			f.isActive as tiIsActive,
@@ -337,6 +342,7 @@ as
                 f.futureRootID as iFutureRootID,
 		isnull(ff.tiGreeksCalculationType, 1) as tiGreeksCalculationType,
 		cp.priceClose as fPriceClose,
+    		    cp.priceTheo as fPriceTheoClose,
 		isnull(f.dBasis, 0) as dBasis ,
 		f.dActiveFutureRatio as dActiveRatio,
 		isnull(f.bUseInCalc,0) as bUseInCalculation,
@@ -433,10 +439,10 @@ AS
 			and cssp.type = eod_cssp.type
 			and abs(datediff( d, cssp.expiryDate, eod_cssp.expiryDate )) < 2 
 			and cssp.actionID < 3
-			and vsd.IsManualVol != 1
 	where 
 	     eod_cssp.actionID < 3 and
 	     eod_cssp.volatility > -100.0 --IV's mark 'not calculated'
+	and vsd.IsManualVol != 1
 
 
 	if @@error != 0

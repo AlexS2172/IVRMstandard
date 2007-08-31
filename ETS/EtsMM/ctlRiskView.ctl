@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   67043329
+      Format          =   67633153
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -1912,6 +1912,9 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bChangeUnd As Boolean, bChangePos As Boolean
     Dim aTradeColl As MmTradeInfoColl
     Dim aFut As MmRvFutAtom
+    Dim actPriceChg As Boolean
+    
+    actPriceChg = False
        
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
@@ -1937,6 +1940,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 
                 Select Case nKey
                     Case RPC_ACTIVEPRC
+                    
+                    actPriceChg = True
                         'If aPos.IsUseManualActivePrice Then
                             dValue = Abs(ReadDbl(sValue))
                             If Not aPos Is Nothing Then
@@ -1945,6 +1950,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                                             & "OldValue=""" & aPos.Quote.price.Active & """ " _
                                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                                                                                             
+                                                                                                                             
                                     'If aPos.IsUseManualActivePrice Then
                                     
                                         If dValue > 0 Then
@@ -1971,7 +1977,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                 bCalcUnd = True
                                                 
                                             Case Else
-                                                aUndData.price.Active = aPos.Quote.price.Active
+                                                aUndData.price.Active = dValue
+                                                aUndData.price.IsUseManualActive = True
                                                 aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                                 bCalcUnd = True
                                                 
@@ -1982,6 +1989,10 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         End Select
                                         
                                         aPos.IsUseManualActivePrice = True
+                                        aPos.Quote.price.IsUseManualActive = True
+                                        aPos.Quote.price.Active = dValue
+                                        
+                                        'aPos.Und = dValue
                                         
                                         gDBW.usp_MmManualPrice_Save aRowData.Pos.ID, aPos.Quote.price.Active
                                         
@@ -2603,7 +2614,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         'm_AuxClc.UnderlyingsCalc True, True
                         'm_AuxOut.SyntheticPositionsUpdate aUnd
                     'End If
-
+            
                     m_AuxClc.UnderlyingsCalc True, True, False, False
                     'm_AuxClc.UnderlyingsCalcWtdVega
                     RefreshPositions
@@ -2612,6 +2623,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     RefreshPositions
                     m_AuxOut.TotalsUpdate
                 End If
+                
+                If actPriceChg Then Me.Refresh
 
             End If
         End If
@@ -3451,6 +3464,10 @@ Private Sub mnuCtxUseMaualPrice_Click()
             m_AuxClc.UnderlyingsCalc True, True, False, False
 
             RefreshPositions
+                    
+            m_AuxOut.TotalsUpdate
+            
+            Me.Refresh
                     
         End If
         
@@ -7743,7 +7760,7 @@ Private Sub RefreshPositions()
                         If nCol <> -1 And aRowData.Fut.price.IsUseManualActive Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                     ElseIf Not aRowData.Und Is Nothing Then
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
-                        If nCol <> -1 And aRowData.Und.price.IsUseManualActive Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                        If nCol <> -1 And nAggRow = -1 And aRowData.Und.price.IsUseManualActive Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                 End If
                                                   
                 If nAggRow <> -1 Then

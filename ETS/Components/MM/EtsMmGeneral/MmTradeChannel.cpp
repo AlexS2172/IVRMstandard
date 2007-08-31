@@ -61,10 +61,9 @@ STDMETHODIMP CMmTradeChannel::UpdateManualActivePrices()
 					pTradeInfo->Release();
 				}else 
 				{
+					LONG lCtrID = rs[L"ContractID"];
 
 					IEtsContractAtomPtr ctr = this->m_spMain->Contract->GetItem((LONG)rs[L"ContractID"]);
-
-					//ATLASSERT(ctr != NULL);
 
 					if (ctr != NULL)
 					{

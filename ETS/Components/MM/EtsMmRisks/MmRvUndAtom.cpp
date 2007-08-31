@@ -551,6 +551,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 			}
 		}
 		if (!m_pPrice->m_bManualActive) m_pPrice->m_dActivePrice = dUndPriceMid;
+			else dUndPriceMid = m_pPrice->m_dActivePrice;
 
 
 		//DATE dtToday = vt_date::GetCurrentDate(true);
@@ -799,10 +800,13 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 							
 							IEtsPriceProfileAtomPtr spUndPriceProfile = pFut->m_spUndPriceProfile;
 							VARIANT_BOOL futureUsed = VARIANT_FALSE;
+							VARIANT_BOOL vb;
+							DOUBLE dPriceActive = 0.;
 
 							if(spUndPriceProfile != NULL)
 							{
 								DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
+								
 
 								IMmRvPricePtr spFutPrice;
 								_CHK(spFut->get_Price(&spFutPrice));
@@ -810,6 +814,8 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 								_CHK(spFutPrice->get_Bid(&dPriceBid));
 								_CHK(spFutPrice->get_Ask(&dPriceAsk));
 								_CHK(spFutPrice->get_Last(&dPriceLast));
+								_CHK(spFutPrice->get_Active(&dPriceActive));
+								_CHK(spFutPrice->get_IsUseManualActive(&vb));
 
 								_CHK(spFut->GetFuturePrice(dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusMid, &futureUsed, &futurePrice ));
 
@@ -834,8 +840,16 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 							}
 							spFut->put_ReplacePriceStatus(static_cast<EtsReplacePriceStatusEnum>(enFutPriceStatusMid | enFutPriceStatusBid | enFutPriceStatusAsk));
 
-							_CHK(pPos->CalcPnlMtm(bIsPnlLTD, ( futurePrice > 0. && futureUsed ) ? futurePrice  : dFutPriceBid, 
-								( futurePrice > 0. && futureUsed ) ? futurePrice  : dFutPriceAsk, VARIANT_TRUE , dtCalcDate) );
+							if (vb == FALSE)
+							{
+								_CHK(pPos->CalcPnlMtm(bIsPnlLTD, ( futurePrice > 0. && futureUsed ) ? futurePrice  : dFutPriceBid, 
+									( futurePrice > 0. && futureUsed ) ? futurePrice  : dFutPriceAsk, VARIANT_TRUE , dtCalcDate) );
+							}
+							else
+							{
+								_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dPriceActive, dPriceActive, VARIANT_TRUE , dtCalcDate) );							
+							}
+
 							if ( m_enContractType == enCtFutUnd ) 
 							{
 								if(pPos->m_dPnlMtm <= BAD_DOUBLE_VALUE)

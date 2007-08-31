@@ -459,14 +459,13 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                             .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ID
                         End If
                     Case QUC_ACTIVEFUTUREPRICE
-                        If ManualEdit Then
+                        If m_Aux.Grp.Und.ActiveFuture.IsUseManualActivePrice Then
                               Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
+                        End If
+                        If m_Aux.Grp.ContractType <> enCtIndex Or m_Aux.Grp.Und.ActiveFuture Is Nothing Or m_Aux.Grp.Und.ActiveFuture.ActivePrice = BAD_DOUBLE_VALUE Then
+                            .TextMatrix(nRow, nCol) = STR_NA
                         Else
-                            If m_Aux.Grp.ContractType <> enCtIndex Or m_Aux.Grp.Und.ActiveFuture Is Nothing Or m_Aux.Grp.Und.ActiveFuture.ActivePrice = BAD_DOUBLE_VALUE Then
-                                .TextMatrix(nRow, nCol) = STR_NA
-                            Else
-                                .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ActivePrice
-                            End If
+                            .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ActivePrice
                         End If
                 End Select
 

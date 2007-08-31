@@ -48,7 +48,18 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 			spUndPriceProfile = pUnd->m_spUndPriceProfile;
 			spOptPriceProfile = pUnd->m_spOptPriceProfile;
 
+			VARIANT_BOOL vb;
+			
+			pUnd->m_spPrice->get_IsUseManualActive(&vb);
+			
+			if (vb)
+			{
+				pUnd->m_spPrice->get_Active(&dUndMidPrice);
+			}
+
+
 			DOUBLE dUndPrice = dUndMidPrice;
+
 			DOUBLE sUndPriceSave = dUndMidPrice;
 			ISynthRootAtomPtr spSynthRoot;
 
@@ -365,6 +376,13 @@ void CMmRvPosAtom::_CalcOptPositionData(
 
 	DOUBLE dOptPriceBid = spOptPriceProfile->GetOptPriceBidForPnL(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusBid);
 	DOUBLE dOptPriceAsk = spOptPriceProfile->GetOptPriceAskForPnL(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusAsk);
+
+	if (m_pQuote->m_pPrice->m_bManualActive)	
+	{
+		//dOptPriceAsk = dOptPriceBid = this->m_dManualActivePrice;
+		dOptPriceAsk = dOptPriceBid = m_pQuote->m_pPrice->m_dActivePrice;
+	}
+
 	enPriceStatusMid = enRpsNone;
 	DOUBLE dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusMid);
 
@@ -706,7 +724,16 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 		dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, 0., &enPriceStatusMid);
 
 		m_pQuote->m_enReplacePriceStatus = enPriceStatusMid;
-		if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+		//if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+			//else spFutPrice->get_Active(&dFutMidPrice);
+		VARIANT_BOOL vb;
+
+		spFutPrice->get_IsUseManualActive(&vb);
+
+		if (vb)	
+		{
+			spFutPrice->get_Active(&dFutMidPrice);
+		}
 
 		CSafeArrayWrapper<double> saDates;
 		CSafeArrayWrapper<double> saAmounts;

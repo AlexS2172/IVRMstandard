@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   67567617
+      Format          =   69337089
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -5416,6 +5416,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         bNeedRecalc = True
                                         bManualEdit = True
                                         gDBW.usp_MmManualPrice_Save QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
+                
                                     End If
                             Case QUC_INDEXCALCPRICE
                                 If QV.Grp.Und.ActiveFuture Is Nothing Then
@@ -12627,6 +12628,7 @@ Private Sub UpdateActiveFuturesPrice(newActiveFuturePrice As Double)
 
        If Not QV.Grp.Und.ActiveFuture Is Nothing Then
             QV.Grp.Und.ActiveFuture.ActivePrice = newActiveFuturePrice
+            QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = True
         End If
         
 End Sub
