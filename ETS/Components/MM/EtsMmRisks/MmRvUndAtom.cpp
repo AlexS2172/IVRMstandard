@@ -541,6 +541,15 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 				dActiveFutureMid = spUndPriceProfile->GetUndPriceMid(dActiveFutureBid, dActiveFutureAsk,
 					dActiveFutureLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, VARIANT_FALSE);
 
+				VARIANT_BOOL vb;
+
+				spFutPrice->get_IsUseManualActive(&vb);
+
+				if (vb)
+				{
+					spFutPrice->get_Active(&dActiveFutureMid);
+				}
+
 				if ( dActiveFutureMid > 0.)
 				{
 					if(dActiveFutureBasis>BAD_DOUBLE_VALUE)
@@ -550,8 +559,15 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 				}
 			}
 		}
-		if (!m_pPrice->m_bManualActive) m_pPrice->m_dActivePrice = dUndPriceMid;
-			else dUndPriceMid = m_pPrice->m_dActivePrice;
+
+		if (!m_pPrice->m_bManualActive) 
+		{
+			m_pPrice->m_dActivePrice = dUndPriceMid;
+		}
+		else 
+		{
+			dUndPriceMid = m_pPrice->m_dActivePrice;
+		}
 
 
 		//DATE dtToday = vt_date::GetCurrentDate(true);

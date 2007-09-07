@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   67633153
+      Format          =   68485121
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -2794,6 +2794,8 @@ Private Sub fgPos_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     Dim nKey&
+    Dim aRowData As MmRvRowData
+    
     Cancel = True
     If m_bInProc Or m_Aux.RealTime Or m_bDataLoad Or m_bLastQuoteReqNow Or m_bSubscribingNow Then
         If Not IsDblClickHandled And g_Params.ShowMessageUnableToEdit And fgPos.ColKey(Col) = RPC_CLOSE Then
@@ -2813,8 +2815,17 @@ Private Sub fgPos_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
             If Err.Number = 0 Then Cancel = Not m_gdPos.Col(nKey).CanEdit
             
             If Not Cancel Then
+                Set aRowData = m_RiskView.PosRowData(Row)
                 If Not m_RiskView.PosRowData(Row).SynthGreeks Is Nothing Then
                     Cancel = Not (m_RiskView.PosRowData(Row).SynthGreeks.IsTotal And m_RiskView.PosRowData(Row).SynthGreeks.SynthUndID <> USD_ID)
+                End If
+            End If
+            
+            If Not Cancel Then
+                If aRowData.OutlineLevel = 0 Then
+                    If nKey = RPC_ACTIVEPRC And Not aRowData.Und.ActiveFuture Is Nothing Then
+                        Cancel = True
+                    End If
                 End If
             End If
             
@@ -3438,6 +3449,7 @@ Private Sub mnuCtxUseMaualPrice_Click()
                 aPos.IsUseManualActivePrice = isManualPrice
                 ID = aPos.ID
                 price = aPos.Quote.price.Active
+                'If Not isManualPrice Then g_TradeChannel.Trades(ID).manualActivePrice = 0
                 'g_TradeChannel.Trades(ID).manualActivePrice = 0
             ElseIf Not aFut Is Nothing Then
                 aFut.price.IsUseManualActive = isManualPrice
@@ -3446,7 +3458,18 @@ Private Sub mnuCtxUseMaualPrice_Click()
             ElseIf Not aUnd Is Nothing Then
                 aUnd.price.IsUseManualActive = isManualPrice
                 ID = aUnd.ID
+                g_Main.Contract(ID).Und.manualActivePrice = 0
                 price = aUnd.price.Active
+'                If Not isManualPrice Then
+'                       g_Main.Contract(ID).Und.manualActivePrice = 0
+'
+'                       If Not aPos Is Nothing Then
+'                        aPos.Quote.price.Active = 0
+'                        aPos.Quote.price.IsUseManualActive = False
+'                        aPos.IsUseManualActivePrice = False
+'                        End If
+'                End If
+                'g_TradeChannel.TradeChannel.UpdateManualActivePrices
                 'g_TradeChannel.Trades(ID).Und.manualActivePrice = 0
                 'g_TradeChannel.Trades(ID).manualActivePrice = 0
                 'g_TradeChannel.Trades(ID).Fut.manualActivePrice = 0
@@ -3468,6 +3491,8 @@ Private Sub mnuCtxUseMaualPrice_Click()
             m_AuxOut.TotalsUpdate
             
             Me.Refresh
+            
+
                     
         End If
         

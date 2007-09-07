@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   69337089
+      Format          =   70123521
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -1553,6 +1553,10 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
     
     If aContract.Und.manualActivePrice <> 0 Then
         m_Aux.Grp.Und.UseManualActivePrice = True
+        m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
+        g_Main.Contract(m_Aux.Grp.Und.ID).Und.manualActivePrice = 0
+        Else
+        m_Aux.Grp.Und.UseManualActivePrice = False
         m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
     End If
         
@@ -3438,7 +3442,14 @@ Private Sub fgFut_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
                 
                 If Not Cancel Then
                     Cancel = (Not m_Aux.Grp.Und.IsTraderContract) 'And (nKey = QOC_C_VOLA Or nKey = QOC_P_VOLA))
+                 End If
+                 Set aRowData = .RowData(Row)
+                  If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
+                    If m_Aux.Grp.Und.ActiveFuture.ID <> aRowData.Fut.ID Then
+                        Cancel = True
+                    End If
                 End If
+
             End If
             
             If Not Cancel Then
@@ -5466,6 +5477,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             aRowData.UndQuote.ReplacePriceStatus = enPriceStatusMid
                             End If
                             Recalculate False, bManualEdit
+                            Me.Refresh
                         End If
                         
                         Set aQuote = Nothing
@@ -5523,6 +5535,11 @@ Private Sub fgUnd_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boo
         End If
         
     End With
+    
+    If Not QV.Grp.Und.ActiveFuture Is Nothing And nIdx = QUC_INDEXCALCPRICE Then
+        Cancel = True
+    End If
+    
 End Sub
 
 Private Sub fgUnd_BeforeMoveColumn(ByVal Col As Long, Position As Long)
@@ -12592,6 +12609,29 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
     Dim bChanged As Boolean
     bChanged = False
     
+    If iFutureID <> 0 And QV.Grp.Und.UseManualActivePrice Then
+        QV.Grp.Und.UseManualActivePrice = False
+        QV.Grp.Und.ActivePrice = 0
+        g_Main.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
+        gDBW.usp_MmManualPrice_Del QV.Grp.Und.ID
+    End If
+    
+    If iFutureID <> 0 Then
+        For Each aFut In QV.Grp.Und.Fut
+            If aFut.IsUseManualActivePrice And aFut.ID <> iFutureID Then
+                aFut.IsUseManualActivePrice = False
+                aFut.ActivePrice = 0
+                gDBW.usp_MmManualPrice_Del aFut.ID
+            End If
+        Next
+    End If
+    
+'    If iFutureID = 0 And Not QV.Grp.Und.ActiveFuture Is Nothing Then
+'        QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = False
+'        gDBW.usp_MmManualPrice_Del QV.Grp.Und.ActiveFuture.ID
+'    End If
+
+    
     If QV.Grp.Und.ActiveFuture Is Nothing Then
        bChanged = True
     ElseIf iFutureID <> QV.Grp.Und.ActiveFuture.ID Then
@@ -12616,6 +12656,8 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
          End If
        Next
     End If
+    
+
 
 Exit Sub
 Er:

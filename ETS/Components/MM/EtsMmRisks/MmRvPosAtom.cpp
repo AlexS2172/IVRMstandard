@@ -388,7 +388,14 @@ void CMmRvPosAtom::_CalcOptPositionData(
 
 	m_pQuote->m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enPriceStatusMid | enPriceStatusBid | enPriceStatusAsk);
 
-	if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+	if (!this->m_bUseManualActivePrice)	
+	{
+		m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+	}
+	else
+	{
+		dOptPriceMid = dOptPriceBid = dOptPriceAsk = m_pQuote->m_pPrice->m_dActivePrice;
+	}
 
 	// pnl
 	_CalcPnlMtm(bIsPnlLTD, dOptPriceBid, dOptPriceAsk, spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero , dtCalcDate);

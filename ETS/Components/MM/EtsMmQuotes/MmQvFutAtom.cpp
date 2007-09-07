@@ -52,6 +52,11 @@ HRESULT CMmQvFutAtom::rawCalcOptionGreeks(
 
 			LONG nIsAmerican = (m_bIsAmerican ? 1L : 0L);
 
+			if (this->m_bUseManualActivePrice)
+			{
+				pFutPrice->m_dAsk = pFutPrice->m_dBid = pFutPrice->m_dPrice = this->m_dActivePrice;
+			}
+
 			if(pFutPrice->IsValid())
 			{
 				DOUBLE dOptPriceBid = 0., dOptPriceAsk = 0., dOptPriceLast = 0., dOptPriceMid = 0., dOptPriceBidForIv = 0.;				
@@ -1148,6 +1153,7 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 	 m_dActivePrice = BAD_DOUBLE_VALUE;
 	 *bFutureUsed = VARIANT_FALSE;
 	 *pPrice = 0.;
+	 VARIANT_BOOL useManualActivePrice;
 	 try{
 		 _CHK(aUnd->get_ActiveFuture(&activeFuture ));
 		 if (activeFuture) {
@@ -1162,12 +1168,25 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 						 _CHK(activeFutureQuote->get_PriceBid(&activeFuturePriceBid));
 						 _CHK(activeFutureQuote->get_PriceAsk(&activeFuturePriceAsk));
 						 _CHK(activeFutureQuote->get_PriceLast(&activeFuturePriceLast));
+						 
+
+
 						 activeFuturePrice = activeFuturePriceProfile->GetUndPriceMid(	activeFuturePriceBid,
 							 activeFuturePriceAsk,
 							 activeFuturePriceLast,
 							 dTolerance,
 							 enPriceRound,
 							 penPriceStatus, VARIANT_FALSE);
+
+ 						 activeFuture->get_IsUseManualActivePrice(&useManualActivePrice);
+
+						 if (useManualActivePrice)
+						 {
+							activeFuture->get_ActivePrice(&activeFuturePrice);
+
+							//activeFuturePriceBid = activeFuturePriceAsk = activeFuturePriceLast = activeFuturePrice;
+						 }
+
 						 if ( activeFuturePrice > 0){
 							 // we have price of active future
 							 if ( m_dRatio <= 0.){

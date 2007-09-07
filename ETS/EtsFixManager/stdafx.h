@@ -54,8 +54,8 @@
 //#include <Lock.h>
 
 #import "msado25.tlb"		no_namespace named_guids rename("EOF", "AdoEof") rename("BOF", "AdoBof")
-#import "..\tlb\Transport.tlb" no_namespace named_guids rename("SendMessage", "SendTransportMessage")
-#import "..\tlb\EgTpPrx.tlb" no_namespace named_guids
+#import "..\..\EgarTransport\tlb\Transport.tlb" no_namespace named_guids rename("SendMessage", "SendTransportMessage")
+#import "..\..\EgarTransport\tlb\EgTpPrx.tlb" no_namespace named_guids
 #import "..\tlb\MsgStruct.tlb" no_namespace named_guids
 #import "..\tlb\MMW.tlb" no_namespace named_guids
 #import "..\tlb\ETSManager.tlb" rename_namespace("EM") named_guids

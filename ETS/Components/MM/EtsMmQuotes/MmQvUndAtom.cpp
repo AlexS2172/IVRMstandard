@@ -478,16 +478,48 @@ STDMETHODIMP CMmQvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance,
 																										dTolerance,
 																										enPriceRound,
 																										penPriceStatus, VARIANT_FALSE);
-					if ( activeFuturePrice > 0)
+
+					VARIANT_BOOL vb;
+
+					m_spActiveFuture->get_IsUseManualActivePrice(&vb);
+
+					/*
+					if (vb)
 					{
 						double dFutureBasis = BAD_DOUBLE_VALUE;
-						if(m_spActiveFuture)
-							m_spActiveFuture->get_Basis(&dFutureBasis);
+
+						m_spActiveFuture->get_ActivePrice(&activeFuturePrice);
+
+						m_spActiveFuture->get_Basis(&dFutureBasis);
 
 						m_dFuturePrice = *pPrice = activeFuturePrice + (dFutureBasis>BAD_DOUBLE_VALUE?dFutureBasis:0);
 						*bFutureUsed = VARIANT_TRUE;
 						dontUseFuture = false;
+
 					}
+					else
+					{
+					*/
+
+					if (vb) m_spActiveFuture->get_ActivePrice(&activeFuturePrice);
+
+						if ( activeFuturePrice > 0)
+						{
+							double dFutureBasis = BAD_DOUBLE_VALUE;
+							if(m_spActiveFuture)
+								m_spActiveFuture->get_Basis(&dFutureBasis);
+
+							m_dFuturePrice = *pPrice = activeFuturePrice + (dFutureBasis>BAD_DOUBLE_VALUE?dFutureBasis:0);
+							*bFutureUsed = VARIANT_TRUE;
+							dontUseFuture = false;
+						}
+						else
+						{
+							m_dFuturePrice = *pPrice = BAD_DOUBLE_VALUE;
+							*bFutureUsed = VARIANT_TRUE;
+							dontUseFuture = false;						
+						}
+					//}
 				}
 			}
 		}
