@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   64028673
+      Format          =   63897601
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -3267,6 +3267,8 @@ Private Sub fgFut_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     aFut.ActivePrice = CDbl(sValue)
                                     aFut.IsUseManualActivePrice = True
                                     gDBW.usp_MmManualPrice_Save aFut.ID, aFut.ActivePrice
+                                    
+                                    SaveManualActivePrice aFut.ID, aFut.ActivePrice
 
                             Case QOF_CLOSE
                                 If aQuote.IsDirty Then
@@ -5225,7 +5227,7 @@ Private Sub fgOpt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     End If
 End Sub
 
-Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, ByRef isManual() As Boolean)
+Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef Price() As Double, ByRef isManual() As Boolean)
 
     Dim aRowData As MmQvRowData
 
@@ -5238,7 +5240,7 @@ Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, By
     For Each l In ctrID
 
         If l = QV.Grp.Und.ID Then
-            QV.Grp.Und.ActivePrice = price(i)
+            QV.Grp.Und.ActivePrice = Price(i)
             QV.Grp.Und.UseManualActivePrice = isManual(i)
             If QV.Grp.Und.UseManualActivePrice = False Then
                 QV.EtsMain.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
@@ -5427,13 +5429,17 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         bNeedRecalc = True
                                         bManualEdit = True
                                         gDBW.usp_MmManualPrice_Save QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
-                
+                                        
+                                        SaveManualActivePrice QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
                                     End If
                             Case QUC_INDEXCALCPRICE
                                 If QV.Grp.Und.ActiveFuture Is Nothing Then
                                     QV.Grp.Und.ActivePrice = CDbl(sValue)
                                     QV.Grp.Und.UseManualActivePrice = True
                                     gDBW.usp_MmManualPrice_Save QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
+                                    
+                                    SaveManualActivePrice QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
+                                    
                                     bNeedRecalc = True
                                     bManualEdit = True
                                  End If
@@ -12622,6 +12628,9 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
                 aFut.IsUseManualActivePrice = False
                 aFut.ActivePrice = 0
                 gDBW.usp_MmManualPrice_Del aFut.ID
+                
+                SaveManualActivePrice aFut.ID, 0
+                
             End If
         Next
     End If
@@ -12673,5 +12682,22 @@ Private Sub UpdateActiveFuturesPrice(newActiveFuturePrice As Double)
             QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = True
         End If
         
+End Sub
+
+Private Sub SaveManualActivePrice(ID As Long, Price As Double)
+    On Error Resume Next
+    
+    If Not g_ContractAll(ID) Is Nothing Then
+        If Not g_ContractAll(ID).Und Is Nothing Then
+            If g_ContractAll(ID).Und.ActiveFuture Is Nothing Then
+                g_ContractAll(ID).Und.manualActivePrice = Price
+            End If
+        End If
+
+        If Not g_ContractAll(ID).Fut Is Nothing Then
+            g_ContractAll(ID).Fut.manualActivePrice = Price
+        End If
+    End If
+    
 End Sub
 
