@@ -143,7 +143,7 @@ Attribute VB_Exposed = False
 Private Type TManualPrice
     ctrID As Long
     Sym As String
-    price As Double
+    Price As Double
     OrigPrice As Double
     IsRemoved As Boolean
 End Type
@@ -230,7 +230,7 @@ Private Sub AddGridRow(ByVal RowNum As Integer, ByRef mPrice As TManualPrice)
     
     fgMP.TextMatrix(RowNum, 0) = mPrice.ctrID
     fgMP.TextMatrix(RowNum, 1) = mPrice.Sym
-    fgMP.TextMatrix(RowNum, 2) = mPrice.price
+    fgMP.TextMatrix(RowNum, 2) = mPrice.Price
     fgMP.RowHidden(RowNum) = mPrice.IsRemoved
     
 End Sub
@@ -265,7 +265,7 @@ Private Sub LoadRecords()
     
        mprices(i).ctrID = rs!ContractID
        mprices(i).Sym = rs!Symbol
-       mprices(i).price = rs!manualPrice
+       mprices(i).Price = rs!manualPrice
        mprices(i).OrigPrice = rs!manualPrice
        mprices(i).IsRemoved = False
        
@@ -281,13 +281,13 @@ Private Sub LoadRecords()
 
 End Sub
 
-Private Sub SetPriceByContractID(ByVal ctrID As Long, ByVal price As Double)
+Private Sub SetPriceByContractID(ByVal ctrID As Long, ByVal Price As Double)
 
     Dim i As Integer
         
     For i = 1 To fgMP.Rows - 1
         If mprices(i).ctrID = ctrID Then
-            mprices(i).price = price
+            mprices(i).Price = Price
             Exit For
         End If
     Next i
@@ -314,7 +314,7 @@ Private Sub Command1_Click()
         
     Dim sValue As String, dValue As Double
     
-    Dim r&, c&, r1&, c1&, r2&, c2&
+    Dim r&, C&, r1&, c1&, r2&, c2&
     
     fgMP.GetSelection r1, c1, r2, c2
     
@@ -344,7 +344,7 @@ Private Sub Command2_Click()
             
         mprices(i).IsRemoved = False
         
-        mprices(i).price = mprices(i).OrigPrice
+        mprices(i).Price = mprices(i).OrigPrice
         
         AddGridRow i, mprices(i)
             
@@ -365,11 +365,35 @@ Private Sub Command3_Click()
         If mprices(i).IsRemoved Then
                 gDBW.usp_MmManualPrice_Del mprices(i).ctrID
                 ChangedCount = ChangedCount + 1
+                
+                If Not g_ContractAll(mprices(i).ctrID) Is Nothing Then
+                    If Not g_ContractAll(mprices(i).ctrID).Und Is Nothing Then
+                        g_ContractAll(mprices(i).ctrID).Und.manualActivePrice = 0
+                    End If
+                    
+                    If Not g_ContractAll(mprices(i).ctrID).Fut Is Nothing Then
+                        g_ContractAll(mprices(i).ctrID).Fut.manualActivePrice = 0
+                    End If
+                End If
+                
                 isChg = True
             Else
-                If mprices(i).price <> mprices(i).OrigPrice Then
-                    gDBW.usp_MmManualPrice_Save mprices(i).ctrID, mprices(i).price
+                If mprices(i).Price <> mprices(i).OrigPrice Then
+                    gDBW.usp_MmManualPrice_Save mprices(i).ctrID, mprices(i).Price
                     ChangedCount = ChangedCount + 1
+                    
+                    If Not g_ContractAll(mprices(i).ctrID) Is Nothing Then
+                        If Not g_ContractAll(mprices(i).ctrID).Und Is Nothing Then
+                            If g_ContractAll(mprices(i).ctrID).Und.ActiveFuture Is Nothing Then
+                                g_ContractAll(mprices(i).ctrID).Und.manualActivePrice = mprices(i).Price
+                            End If
+                        End If
+                    
+                        If Not g_ContractAll(mprices(i).ctrID).Fut Is Nothing Then
+                            g_ContractAll(mprices(i).ctrID).Fut.manualActivePrice = mprices(i).Price
+                        End If
+                    End If
+                    
                     isChg = True
                 End If
         End If
@@ -382,7 +406,7 @@ Private Sub Command3_Click()
     
             chgIs(ChangedCount) = Not mprices(i).IsRemoved
             chgCtr(ChangedCount) = mprices(i).ctrID
-            chgPrc(ChangedCount) = mprices(i).price
+            chgPrc(ChangedCount) = mprices(i).Price
             
         End If
         
@@ -393,10 +417,10 @@ Private Sub Command3_Click()
 
 End Sub
 
-Public Sub GetChanged(ByRef ctrID() As Long, ByRef price() As Double, ByRef isManual() As Boolean)
+Public Sub GetChanged(ByRef ctrID() As Long, ByRef Price() As Double, ByRef isManual() As Boolean)
 
     ctrID = chgCtr
-    price = chgPrc
+    Price = chgPrc
     isManual = chgIs
     
 End Sub
