@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   70123521
+      Format          =   64028673
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -1554,8 +1554,8 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
     If aContract.Und.manualActivePrice <> 0 Then
         m_Aux.Grp.Und.UseManualActivePrice = True
         m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
-        g_Main.Contract(m_Aux.Grp.Und.ID).Und.manualActivePrice = 0
-        Else
+'        g_Main.Contract(m_Aux.Grp.Und.ID).Und.manualActivePrice = 0
+    Else
         m_Aux.Grp.Und.UseManualActivePrice = False
         m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
     End If
