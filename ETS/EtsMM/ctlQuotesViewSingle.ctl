@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
-Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
+Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1Sizer.ocx"
 Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomct2.ocx"
 Begin VB.UserControl ctlQuotesViewSingle 
    ClientHeight    =   8265
@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   63897601
+      Format          =   63438849
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -3263,12 +3263,17 @@ Private Sub fgFut_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 UpdateBasis aFut, ReadDbl(sValue)
                                 
                             Case QOF_ACTIVEPRICE
-
+                                If Not QV.Grp.Und.ActiveFuture Is Nothing Then
+                                    If (aFut.ID = QV.Grp.Und.ActiveFuture.ID) Then
+                                        aFut.ActivePrice = CDbl(sValue)
+                                        aFut.IsUseManualActivePrice = True
+                                        UpdateFutureManualPrice aFut.ActivePrice, aFut.ID
+                                    End If
+                                Else
                                     aFut.ActivePrice = CDbl(sValue)
                                     aFut.IsUseManualActivePrice = True
-                                    gDBW.usp_MmManualPrice_Save aFut.ID, aFut.ActivePrice
-                                    
-                                    SaveManualActivePrice aFut.ID, aFut.ActivePrice
+                                    UpdateFutureManualPrice aFut.ActivePrice, aFut.ID
+                                End If
 
                             Case QOF_CLOSE
                                 If aQuote.IsDirty Then
@@ -5423,19 +5428,22 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     UpdateActiveFutures CLng(sValue)
                                     bNeedRecalc = True
                             Case QUC_ACTIVEFUTUREPRICE
+                                If Not QV.Grp.Und.ActiveFuture Is Nothing Then
                                     dValue = ReadDbl(sValue)
                                     If dValue <> 0 Then
+                                        
                                         UpdateActiveFuturesPrice dValue
                                         bNeedRecalc = True
                                         bManualEdit = True
                                         gDBW.usp_MmManualPrice_Save QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
-                                        
-                                        SaveManualActivePrice QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
                                     End If
+                                End If
                             Case QUC_INDEXCALCPRICE
                                 If QV.Grp.Und.ActiveFuture Is Nothing Then
+                                
                                     QV.Grp.Und.ActivePrice = CDbl(sValue)
                                     QV.Grp.Und.UseManualActivePrice = True
+                                    
                                     gDBW.usp_MmManualPrice_Save QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
                                     
                                     SaveManualActivePrice QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
@@ -12615,31 +12623,26 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
     Dim bChanged As Boolean
     bChanged = False
     
-    If iFutureID <> 0 And QV.Grp.Und.UseManualActivePrice Then
+    If iFutureID <> 0 Then
         QV.Grp.Und.UseManualActivePrice = False
         QV.Grp.Und.ActivePrice = 0
-        g_Main.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
+        g_ContractAll(QV.Grp.Und.ID).Und.manualActivePrice = 0
         gDBW.usp_MmManualPrice_Del QV.Grp.Und.ID
     End If
-    
+
     If iFutureID <> 0 Then
         For Each aFut In QV.Grp.Und.Fut
             If aFut.IsUseManualActivePrice And aFut.ID <> iFutureID Then
                 aFut.IsUseManualActivePrice = False
                 aFut.ActivePrice = 0
                 gDBW.usp_MmManualPrice_Del aFut.ID
-                
-                SaveManualActivePrice aFut.ID, 0
-                
+
+                SaveManualFuturePrice aFut.ID, 0
+
             End If
         Next
     End If
     
-'    If iFutureID = 0 And Not QV.Grp.Und.ActiveFuture Is Nothing Then
-'        QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = False
-'        gDBW.usp_MmManualPrice_Del QV.Grp.Und.ActiveFuture.ID
-'    End If
-
     
     If QV.Grp.Und.ActiveFuture Is Nothing Then
        bChanged = True
@@ -12676,28 +12679,41 @@ End Sub
 
 Private Sub UpdateActiveFuturesPrice(newActiveFuturePrice As Double)
     
-
-       If Not QV.Grp.Und.ActiveFuture Is Nothing Then
+        If Not QV.Grp.Und.ActiveFuture Is Nothing Then
             QV.Grp.Und.ActiveFuture.ActivePrice = newActiveFuturePrice
             QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = True
+            If (Not g_ContractAll(QV.Grp.Und.ActiveFuture.ID).Fut Is Nothing) Then
+                g_ContractAll(QV.Grp.Und.ActiveFuture.ID).Fut.manualActivePrice = newActiveFuturePrice
+            End If
         End If
         
 End Sub
 
-Private Sub SaveManualActivePrice(ID As Long, Price As Double)
-    On Error Resume Next
+Private Sub UpdateFutureManualPrice(ByVal dPrice As Double, ByVal lFutID As Long)
+    If (Not g_ContractAll(lFutID) Is Nothing) Then
+        If (Not g_ContractAll(lFutID).Fut Is Nothing) Then
+            g_ContractAll(lFutID).Fut.manualActivePrice = dPrice
+            gDBW.usp_MmManualPrice_Save lFutID, dPrice
+        End If
+    End If
+End Sub
+
+Private Sub SaveManualActivePrice(ID As Long, dPrice As Double)
     
     If Not g_ContractAll(ID) Is Nothing Then
         If Not g_ContractAll(ID).Und Is Nothing Then
-            If g_ContractAll(ID).Und.ActiveFuture Is Nothing Then
-                g_ContractAll(ID).Und.manualActivePrice = Price
-            End If
-        End If
-
-        If Not g_ContractAll(ID).Fut Is Nothing Then
-            g_ContractAll(ID).Fut.manualActivePrice = Price
+                g_ContractAll(ID).Und.manualActivePrice = dPrice
         End If
     End If
     
 End Sub
 
+Private Sub SaveManualFuturePrice(ID As Long, dPrice As Double)
+    
+    If Not g_ContractAll(ID) Is Nothing Then
+        If Not g_ContractAll(ID).Fut Is Nothing Then
+                g_ContractAll(ID).Fut.manualActivePrice = dPrice
+        End If
+    End If
+    
+End Sub

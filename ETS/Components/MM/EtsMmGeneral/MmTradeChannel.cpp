@@ -9,7 +9,7 @@
 
 STDMETHODIMP CMmTradeChannel::UpdateManualActivePrices()
 {
-		CMmTradeInfoColl::EnumCollType::iterator itrX    = m_pTrd->m_coll.begin();
+		/*CMmTradeInfoColl::EnumCollType::iterator itrX    = m_pTrd->m_coll.begin();
 		CMmTradeInfoColl::EnumCollType::iterator itrXend = m_pTrd->m_coll.end();
 
 		for(; itrX != itrXend; ++itrX)
@@ -82,7 +82,7 @@ STDMETHODIMP CMmTradeChannel::UpdateManualActivePrices()
 			}
 		}
 
-		rs.Close();
+		rs.Close();*/
 
 		return S_OK;
 }

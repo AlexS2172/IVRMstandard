@@ -48,14 +48,14 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 			spUndPriceProfile = pUnd->m_spUndPriceProfile;
 			spOptPriceProfile = pUnd->m_spOptPriceProfile;
 
-			VARIANT_BOOL vb;
+			/*VARIANT_BOOL vb;
 			
 			pUnd->m_spPrice->get_IsUseManualActive(&vb);
 			
 			if (vb)
 			{
 				pUnd->m_spPrice->get_Active(&dUndMidPrice);
-			}
+			}*/
 
 
 			DOUBLE dUndPrice = dUndMidPrice;
@@ -733,14 +733,13 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 		m_pQuote->m_enReplacePriceStatus = enPriceStatusMid;
 		//if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 			//else spFutPrice->get_Active(&dFutMidPrice);
-		VARIANT_BOOL vb;
-
-		spFutPrice->get_IsUseManualActive(&vb);
-
-		if (vb)	
-		{
-			spFutPrice->get_Active(&dFutMidPrice);
-		}
+		
+		//VARIANT_BOOL bIsManual = VARIANT_FALSE;
+		//spFutPrice->get_IsUseManualActive(&bIsManual);
+		//if (bIsManual == VARIANT_FALSE)	
+		//{
+			spFutPrice->put_Active(dFutMidPrice);
+		//}
 
 		CSafeArrayWrapper<double> saDates;
 		CSafeArrayWrapper<double> saAmounts;

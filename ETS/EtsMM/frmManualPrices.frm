@@ -377,7 +377,7 @@ Private Sub Command3_Click()
                 End If
                 
                 isChg = True
-            Else
+        Else
                 If mprices(i).Price <> mprices(i).OrigPrice Then
                     gDBW.usp_MmManualPrice_Save mprices(i).ctrID, mprices(i).Price
                     ChangedCount = ChangedCount + 1

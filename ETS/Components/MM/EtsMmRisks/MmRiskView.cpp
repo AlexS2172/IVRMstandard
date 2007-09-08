@@ -101,22 +101,87 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 				{
 					if(pAtom->m_pPos) 
 					{
-						//if (pAtom->m_pPos->m_bUseManualActivePrice) 
-							pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue); // set close for position
+						if (pAtom->m_pPos->m_enContractType == enCtStock || pAtom->m_pPos->m_enContractType == enCtOption ||pAtom->m_pPos->m_enContractType == enCtFutOption)
+						{
+							pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue);
+							pAtom->m_pPos->m_pQuote->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+						}
+						else if (pAtom->m_pPos->m_enContractType == enCtFuture)
+						{
+							if (pAtom->m_pUnd && pAtom->m_pPos->m_spFut)
+							{
+								if (pAtom->m_pUnd->m_spActiveFuture)
+								{
+									long	lActiveFutID = 0;
+									pAtom->m_pUnd->m_spActiveFuture->get_ID(&lActiveFutID);
+									
+									long lFutID = 0;
+									pAtom->m_pPos->m_spFut->get_ID(&lFutID);
+
+									if (lFutID == lActiveFutID)
+									{
+										pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue);
+										pAtom->m_pPos->m_pQuote->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+									}
+								}
+								else
+								{
+									pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue);
+									pAtom->m_pPos->m_pQuote->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+								}
+							}
+						}
+						else if (pAtom->m_pPos->m_enContractType == enCtIndex)
+						{
+							if (pAtom->m_pPos->m_spActiveFuture == NULL)
+							{
+								pAtom->m_pPos->m_pQuote->m_pPrice->put_Active(dblValue);
+								pAtom->m_pPos->m_pQuote->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+							}
+						}
 					}
 					else 
 					{
 						if(pAtom->m_Type == RDT_UNDAGG) 
 						{
-							//if (pAtom->m_pUnd->m_pPrice->m_bManualActive) 
-								pAtom->m_pUnd->m_pPrice->put_Active(dblValue); // set close for underlying aggregation
+							if (pAtom->m_pUnd->m_enContractType == enCtStock)
+							{
+								pAtom->m_pUnd->m_pPrice->put_Active(dblValue);
+								pAtom->m_pUnd->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+							}
+							else if (pAtom->m_pUnd->m_enContractType == enCtIndex)
+							{
+								if (pAtom->m_pUnd->m_spActiveFuture == NULL)
+								{
+									pAtom->m_pUnd->m_pPrice->put_Active(dblValue);
+									pAtom->m_pUnd->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+								}
+							}
 						}
 						else 
 						{
 							if(pAtom->m_pAgg && CMmRvAggData::enFutAgg == pAtom->m_pAgg->Type_ && pAtom->m_pAgg->pFut_) 
 							{
-								//if (pAtom->m_pAgg->pFut_->m_pPrice->m_bManualActive) 
-									pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue); // set close for aggregation that have a price
+								if (pAtom->m_pAgg->pFut_->m_spUnd)
+								{
+									IMmRvFutAtomPtr spActivFuture;
+									_CHK(pAtom->m_pAgg->pFut_->m_spUnd->get_ActiveFuture(&spActivFuture));
+
+									if (spActivFuture){
+										long	lActiveFutureID = 0;
+										spActivFuture->get_ID(&lActiveFutureID);
+										if (lActiveFutureID == pAtom->m_pAgg->pFut_->m_nID)
+										{
+											pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue);
+											pAtom->m_pAgg->pFut_->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+										}
+									}
+									else
+									{
+										pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue);
+										pAtom->m_pAgg->pFut_->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
+									}
+								}
 							}
 						}
 					}
@@ -529,12 +594,12 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 		pPosAtom->m_bVisible              = VARIANT_TRUE;   
 
 
-		if (spTradeAtom->ManualActivePrice != 0)
+		/*if (spTradeAtom->ManualActivePrice != 0)
 		{
 			pPosAtom->m_bUseManualActivePrice = TRUE;
 
 			pPosAtom->m_pQuote->m_pPrice->m_dActivePrice = spTradeAtom->ManualActivePrice;
-		}
+		}*/
 
 
 		_bstr_t sKey = _bstr_t(static_cast<long>(pPosAtom->m_enContractType )) + _bstr_t(L"_") + pPosAtom->m_bstrSymbol;
@@ -761,9 +826,9 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 
 						pFutAtom->m_dKEq				= spFutAtom->KEq;
 						pFutAtom->m_bMultOptDltEq		= spFutAtom->MultOptDltEq;
-						if (spFutAtom->ManualActivePrice != 0)
+						if (spFutAtom->ManualActivePrice > 0)
 						{
-							pFutAtom->m_pPrice->m_bManualActive = TRUE;
+							pFutAtom->m_pPrice->m_bManualActive = VARIANT_TRUE;
 							pFutAtom->m_pPrice->m_dActivePrice = spFutAtom->ManualActivePrice;
 						}
 
@@ -1098,9 +1163,9 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 	pUndAtom->m_spUndPriceProfile		= spUnd->UndPriceProfile;
 	pUndAtom->m_spOptPriceProfile		= spUnd->OptPriceProfile;
 	pUndAtom->m_pPrice->m_dPriceClose   = spUnd->PriceClose;
-	if (spUnd->ManualActivePrice != 0)
+	if (spUnd->ManualActivePrice > 0)
 	{
-		pUndAtom->m_pPrice->m_bManualActive = TRUE;
+		pUndAtom->m_pPrice->m_bManualActive = VARIANT_TRUE;
 		pUndAtom->m_pPrice->m_dActivePrice = spUnd->ManualActivePrice;
 	}
 
@@ -1332,6 +1397,17 @@ void CMmRiskView::AddActiveFuture( IUndAtomPtr spUnd, CComObject<CMmRvUndAtom>* 
 
 			valueDouble = spActiveFuture->GetPriceTheoClose();
 			_CHK(spPrice->put_TheoClose(valueDouble));
+
+			valueDouble = spActiveFuture->GetManualActivePrice();
+			_CHK(spPrice->put_Active(valueDouble));
+
+			if (valueDouble > 0.0){
+				_CHK(spPrice->put_IsUseManualActive(VARIANT_TRUE));
+			}
+			else{
+				_CHK(spPrice->put_IsUseManualActive(VARIANT_FALSE));
+			}
+
 
 			CComBSTR	valueBstr;
 			_CHK(spActiveFuture->get_ContractName(&valueBstr));

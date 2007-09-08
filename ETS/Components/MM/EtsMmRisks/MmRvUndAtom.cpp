@@ -507,13 +507,17 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 		EtsReplacePriceStatusEnum enUndPriceStatusBid = enRpsNone;
 		EtsReplacePriceStatusEnum enUndPriceStatusAsk = enRpsNone;
 		DOUBLE dUndPriceMid = 0., dUndPriceBid = 0., dUndPriceAsk = 0.;
-		DOUBLE dActiveFutureMid = 0., dActiveFutureBid = 0., dActiveFutureAsk = 0., dActiveFutureLast = 0.;
-		DOUBLE dActiveFutureBasis = 0.;
+		//DOUBLE dActiveFutureMid = 0., dActiveFutureBid = 0., dActiveFutureAsk = 0., dActiveFutureLast = 0.;
+		//DOUBLE dActiveFutureBasis = 0.;
+		VARIANT_BOOL bFutureUsed = VARIANT_FALSE;
+
+		EtsReplacePriceStatusEnum	enActiveUndPriceStatus = enRpsNone;
+		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enActiveUndPriceStatus ,&bFutureUsed, &dUndPriceMid));
 
 		if(m_spUndPriceProfile != NULL)
 		{
-			dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, VARIANT_FALSE);
+			/*dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
+				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, VARIANT_FALSE);*/
 
 			dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
 				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
@@ -524,7 +528,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 
 		m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enUndPriceStatusMid | enUndPriceStatusBid | enUndPriceStatusAsk);
 
-		if (NULL != m_spActiveFuture )
+		/*if (NULL != m_spActiveFuture )
 		{
 			IEtsPriceProfileAtomPtr spUndPriceProfile;
 
@@ -558,16 +562,16 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 					dUndPriceMid = dActiveFutureMid;
 				}
 			}
-		}
+		}*/
 
-		if (!m_pPrice->m_bManualActive) 
-		{
+		//if (!m_pPrice->m_bManualActive) 
+		//{
 			m_pPrice->m_dActivePrice = dUndPriceMid;
-		}
-		else 
+		//}
+		/*else 
 		{
 			dUndPriceMid = m_pPrice->m_dActivePrice;
-		}
+		}*/
 
 
 		//DATE dtToday = vt_date::GetCurrentDate(true);
@@ -599,8 +603,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 					// options
 					if(enContractType == enCtOption || enContractType == enCtFutOption)
 					{
-						//if(OptQty_ <= BAD_LONG_VALUE) OptQty_ = 0L;
-						//OptQty_ += nPosQty;
 
 						DATE dtExpiry = pPos->m_dtExpiry;
 						DOUBLE dStrike = pPos->m_dStrike;
@@ -653,12 +655,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 								}
 								else
 								{
-									/*if (NULL != m_spActiveFuture )
-									{
-										VARIANT_BOOL bFutPriceReplaced = VARIANT_FALSE;
-										pPos->m_spFut->GetFuturePrice(dUndPriceTolerance,
-											enPriceRoundingRule, &enUndPriceStatusMid, &bFutPriceReplaced, &dUndPriceMid);
-									}*/
 
 									_CHK(pPos->CalcFutOptionGreeks(this, dUndPriceMid,
 										(bCalcTheos ? nMask : GT_NOTHING), bIsPnlLTD, enCalcModel,
@@ -761,27 +757,20 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 					// underlyings
 					else if(enContractType == enCtStock || enContractType == enCtIndex)
 					{
-						//if(UndPos_ <= BAD_LONG_VALUE) UndPos_ = 0L;
-						//UndPos_ += nPosQtyInShares;
 
 						nUndUpdated++;
 						
-						_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dActiveFutureMid > 0 ? dActiveFutureMid : dUndPriceBid, dActiveFutureMid > 0 ? dActiveFutureMid : dUndPriceAsk, VARIANT_TRUE , dtCalcDate));
+						//_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dActiveFutureMid > 0 ? dActiveFutureMid : dUndPriceBid, dActiveFutureMid > 0 ? dActiveFutureMid : dUndPriceAsk, VARIANT_TRUE , dtCalcDate));
+						//achuchev
+						_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dUndPriceMid > 0 ? dUndPriceMid : dUndPriceBid, dUndPriceMid > 0 ? dUndPriceMid : dUndPriceAsk, VARIANT_TRUE , dtCalcDate));
 						
 						if(dUndPriceMid > DBL_EPSILON)
 						{
-							/*if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-							m_dDeltaEq += nPosQtyInShares * dUndPriceMid;*/
-							/*if(pPos->m_dDeltaEq <= BAD_DOUBLE_VALUE) pPos->m_dDeltaEq = 0.;
-							pPos->m_dDeltaEq = nPosQtyInShares * dUndPriceMid;*/
 							pPos->m_dNetExposure = nPosQtyInShares * dUndPriceMid / m_dNetExposureAUM * 100.0;
-
 						}
 						else
 							BadNetDlt$_= VARIANT_TRUE;
 
-/*						if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-						m_dNetDelta += nPosQtyInShares;*/
 						IRvMmQuoteAtomPtr spQuote = pPos->m_spQuote;
 						if( spQuote!=NULL )
 						{
@@ -795,12 +784,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 					// futures
 					else if(enContractType == enCtFuture)
 					{
-						//if(FutQty_ <= BAD_LONG_VALUE) FutQty_ = 0L;
-						//FutQty_ += nPosQty;
-
-						//if(UndPos_ <= BAD_LONG_VALUE) UndPos_ = 0L;
-						//UndPos_ += nPosQtyInShares;
-
 						nFutUpdated++;
 
 						IMmRvFutAtomPtr spFut = pPos->m_spFut;
@@ -839,8 +822,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 									/*dUndPriceMid = */dFutPriceBid = dFutPriceAsk = dFutPriceMid = futurePrice;
 								else
 								{
-									/*if(futurePrice > 0.)
-										dUndPriceMid = futurePrice;*/
 									dFutPriceBid = spUndPriceProfile->GetUndPriceBidForPnL(dPriceBid, dPriceAsk,
 										dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusBid);
 
@@ -916,22 +897,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 						BadPnlMtm_ = VARIANT_TRUE;
 					if ( IsBadValue(pPos->m_dPnlTheo)) 
 						BadPnlTheo_ = VARIANT_TRUE;
-					//if(pPos->m_dPnlMtm > BAD_DOUBLE_VALUE)
-					//{
-					//	if(PnlMTM_ <= BAD_DOUBLE_VALUE) PnlMTM_ = 0.;
-					//	PnlMTM_ += pPos->m_dPnlMtm;
-					//}
-					//else
-					//	BadPnlMtm_ = VARIANT_TRUE;
-
-					//// PnlTheo
-					//if(pPos->m_dPnlTheo > BAD_DOUBLE_VALUE)
-					//{
-					//	if(PnLTheo_<= BAD_DOUBLE_VALUE) PnLTheo_ = 0.;
-					//	PnLTheo_ += pPos->m_dPnlTheo;
-					//}
-					//else
-					//	BadPnlTheo_ = VARIANT_TRUE;
 
 					// aggregate
 					AggregatePosition(pPos, dUndPriceMid, dUndPriceTolerance, enPriceRoundingRule);
@@ -1572,18 +1537,29 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 				dActiveFutureMid = spUndPriceProfile->GetUndPriceMid(dActiveFutureBid, dActiveFutureAsk,
 					dActiveFutureLast, dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE);
 
+				VARIANT_BOOL	bCalcByManual = VARIANT_FALSE;
+				spFutPrice->get_IsUseManualActive(&bCalcByManual);
+				if (bCalcByManual == VARIANT_TRUE)
+				{
+					spFutPrice->get_Active(&dActiveFutureMid);
+				}
+
 				if ( dActiveFutureMid > 0.)
 				{
 					dActiveFutureMid += dActiveFutureBasis;
-					//_CHK(spFutPrice->put_Active(dActiveFutureMid));
 					*pPrice = dActiveFutureMid;
 					dontUseFuture = false;
 					*bFutureUsed = VARIANT_TRUE;
 				}
 			}
 		}
-		if ( dontUseFuture && m_spUndPriceProfile ){
+		if ( dontUseFuture && m_spUndPriceProfile )
+		{
 			*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, m_pPrice->m_dPriceLast, dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE );
+			if (m_pPrice->m_bManualActive == VARIANT_TRUE)
+			{
+				*pPrice = m_pPrice->m_dActivePrice;
+			}
 		}
 	}
 	catch ( _com_error& e ) {
