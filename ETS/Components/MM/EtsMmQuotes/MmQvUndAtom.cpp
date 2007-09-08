@@ -438,17 +438,18 @@ STDMETHODIMP CMmQvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance,
 	IEtsPriceProfileAtomPtr	activeFuturePriceProfile;
 	double						activeFuturePrice = 0.;
 
+	if (!bFutureUsed || !pPrice )		return E_POINTER;
+	*bFutureUsed = VARIANT_FALSE;
+	*pPrice = 0.;
+
 	if (m_bUseManualActivePrice) 
 	{
-		*pPrice = m_bUseManualActivePrice;
+		*pPrice = m_dActivePrice;
 
 		return S_OK;
 	}
 
 	m_dActivePrice = BAD_DOUBLE_VALUE;
-	if (!bFutureUsed || !pPrice )		return E_POINTER;
-	*bFutureUsed = VARIANT_FALSE;
-	*pPrice = 0.;
 	
 	try
 	{
