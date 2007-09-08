@@ -178,8 +178,6 @@ STDMETHODIMP CMmTradeChannel::LoadTrades(LONG lTraderId,
 
 				}
 			}   
-
-			this->UpdateManualActivePrices();
 		}   
 	}
 	catch (_com_error& err)

@@ -48,15 +48,6 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 			spUndPriceProfile = pUnd->m_spUndPriceProfile;
 			spOptPriceProfile = pUnd->m_spOptPriceProfile;
 
-			/*VARIANT_BOOL vb;
-			
-			pUnd->m_spPrice->get_IsUseManualActive(&vb);
-			
-			if (vb)
-			{
-				pUnd->m_spPrice->get_Active(&dUndMidPrice);
-			}*/
-
 
 			DOUBLE dUndPrice = dUndMidPrice;
 
@@ -88,10 +79,15 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 				m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, 
 				bUseTheoVolatility, 0., &enPriceStatusMid);
 
+			if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_TRUE)
+				dOptPriceMid = m_pQuote->m_pPrice->m_dActivePrice;
+			else
+				m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
+
 			m_pQuote->m_enReplacePriceStatus = enPriceStatusMid;
 			if(m_pQuote->IsDirty() || pUnd->m_pPrice->m_bDirty!=VARIANT_FALSE || pUnd->m_pSuPrice->m_bDirty!=VARIANT_FALSE)
 			{
-				if( (nMask != GT_NOTHING  && dUndMidPrice > DBL_EPSILON) /*|| m_pQuote->m_bVolatilityEnginrCalculation != VARIANT_FALSE*/)
+				if( (nMask != GT_NOTHING  && dUndMidPrice > DBL_EPSILON))
 				{
 					GREEKS aGreeks;
 					ZeroMemory(&aGreeks, sizeof(aGreeks));
@@ -212,20 +208,11 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 						if(!bUseTheoVolaNoBid || bUseTheoVolaNoBid && m_pQuote->m_pPrice->m_dPriceBid > DBL_EPSILON) 
 						{
 							bool bCalcInAnyCase =  false ;
-							if ( /*( m_pQuote->m_bVolatilityEnginrCalculation == VARIANT_TRUE ) && */( m_pQuote->m_pPrice->m_dPriceBid > 0 || m_pQuote->m_pPrice->m_dPriceAsk > 0 || m_pQuote->m_pPrice->m_dPriceLast > 0 ) )
+							if (( m_pQuote->m_pPrice->m_dPriceBid > 0 || m_pQuote->m_pPrice->m_dPriceAsk > 0 || m_pQuote->m_pPrice->m_dPriceLast > 0 ) )
 								bCalcInAnyCase = true ;
 
 							if(dOptPriceMid > DBL_EPSILON || bCalcInAnyCase )
 							{
-								/*if ( m_pQuote->m_bVolatilityEnginrCalculation == VARIANT_TRUE )
-								{
-								DOUBLE dLastPr ;
-								IMmRvPricePtr spPrice;
-								spUndData->get_Price(&spPrice);
-								spPrice->get_Last ( &dLastPr ) ;
-								if ( dLastPr > 0 )
-								dUndMidPrice = dLastPr ;
-								}*/
 								LONG nFlag = VF_OK;
 								dVolaCalculated = ::CalcVolatilityMM3(m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
 									nExpiry - nToday, m_enOptType, nIsAmerican, nDivCount,
@@ -261,8 +248,6 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 
 					m_pQuote->m_dVolaCalcPrice = dUndMidPrice ;
 
-					//if ( m_pQuote->m_bVolatilityEnginrCalculation == VARIANT_TRUE )
-					//return S_OK ;
 
 					if(nMask != GT_NOTHING)
 					{
@@ -377,25 +362,15 @@ void CMmRvPosAtom::_CalcOptPositionData(
 	DOUBLE dOptPriceBid = spOptPriceProfile->GetOptPriceBidForPnL(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusBid);
 	DOUBLE dOptPriceAsk = spOptPriceProfile->GetOptPriceAskForPnL(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusAsk);
 
-	if (m_pQuote->m_pPrice->m_bManualActive)	
-	{
-		//dOptPriceAsk = dOptPriceBid = this->m_dManualActivePrice;
-		dOptPriceAsk = dOptPriceBid = m_pQuote->m_pPrice->m_dActivePrice;
-	}
-
 	enPriceStatusMid = enRpsNone;
 	DOUBLE dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusMid);
 
 	m_pQuote->m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enPriceStatusMid | enPriceStatusBid | enPriceStatusAsk);
 
-	if (!this->m_bUseManualActivePrice)	
-	{
-		m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
-	}
+	if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_TRUE)	
+		dOptPriceAsk = dOptPriceBid = dOptPriceMid = m_pQuote->m_pPrice->m_dActivePrice;
 	else
-	{
-		dOptPriceMid = dOptPriceBid = dOptPriceAsk = m_pQuote->m_pPrice->m_dActivePrice;
-	}
+	   m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 
 	// pnl
 	_CalcPnlMtm(bIsPnlLTD, dOptPriceBid, dOptPriceAsk, spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero , dtCalcDate);
@@ -446,7 +421,8 @@ void CMmRvPosAtom::_CalcOptPositionData(
 			ISynthRootCompCollPtr spSRCompColl;
 			
 			//only for display ActivPrice for main SU component as price of SU
-			if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = m_pQuote->m_pSuPrice->m_dPriceLast;
+			if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_FALSE)
+				m_pQuote->m_pPrice->m_dActivePrice = m_pQuote->m_pSuPrice->m_dPriceLast;
 
 			spSRCompColl = spSynthRoot->SynthRootComponents;
 			if(spSRCompColl != NULL)
@@ -604,8 +580,7 @@ void CMmRvPosAtom::_CalcOptPositionData(
 					}
 				}
 			}
-				/*if(dUndMidPrice > DBL_EPSILON)
-								m_dNetGamma = m_dGammaInShares * dUndMidPrice * dUndMidPrice / 100.;*/
+
 		}
 	}
 
@@ -731,15 +706,11 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 		dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, 0., &enPriceStatusMid);
 
 		m_pQuote->m_enReplacePriceStatus = enPriceStatusMid;
-		//if (!this->m_bUseManualActivePrice)	m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
-			//else spFutPrice->get_Active(&dFutMidPrice);
-		
-		//VARIANT_BOOL bIsManual = VARIANT_FALSE;
-		//spFutPrice->get_IsUseManualActive(&bIsManual);
-		//if (bIsManual == VARIANT_FALSE)	
-		//{
-			spFutPrice->put_Active(dFutMidPrice);
-		//}
+
+		if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_TRUE)
+			dOptPriceMid = m_pQuote->m_pPrice->m_dActivePrice;
+		else
+			m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 
 		CSafeArrayWrapper<double> saDates;
 		CSafeArrayWrapper<double> saAmounts;
@@ -757,7 +728,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 			spUnd->get_BasketIndex(&spBasketIndex);
 		}
 
-		if ( /*m_pQuote->m_bVolatilityEnginrCalculation == VARIANT_TRUE ||*/ (nMask != GT_NOTHING && dFutMidPrice > DBL_EPSILON ) )
+		if (  (nMask != GT_NOTHING && dFutMidPrice > DBL_EPSILON ) )
 		{
 			GREEKS aGreeks;
 			memset(&aGreeks, 0, sizeof(aGreeks));
@@ -861,15 +832,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 				{
 					if( dOptPriceMid > DBL_EPSILON)
 					{
-						/*if ( m_pQuote->m_bVolatilityEnginrCalculation == VARIANT_TRUE )
-						{
-							DOUBLE dLastPr ;
-							IMmRvPricePtr spPrice;
-							spUndData->get_Price(&spPrice);
-							spPrice->get_Last( &dLastPr );
-							if ( dLastPr > 0 )
-								dUndMidPrice = dLastPr ;
-						}*/
+
 						LONG nFlag = VF_OK;
 						dVola = ::CalcFutureOptionVolatility(m_dRate, dFutMidPrice, dOptPriceMid, m_dStrike, 
 							nExpiry - nToday, m_enOptType, nIsAmerican, 100L, dSkew, dKurt, nModel, &nFlag);
@@ -976,10 +939,14 @@ void CMmRvPosAtom::_CalcFutPositionData(
 
 	DOUBLE dOptPriceBid = spOptPriceProfile->GetOptPriceBidForPnL(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusBid);
 	DOUBLE dOptPriceAsk = spOptPriceProfile->GetOptPriceAskForPnL(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusAsk);
-
 	DOUBLE dOptPriceMid = spOptPriceProfile->GetOptPriceMid(m_pQuote->m_pPrice->m_dPriceBid, m_pQuote->m_pPrice->m_dPriceAsk, m_pQuote->m_pPrice->m_dPriceLast, enPriceRoundingRule, bUseTheoVolatility, m_pQuote->m_dPriceTheo, &enPriceStatusMid);
 
 	m_pQuote->m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enPriceStatusMid | enPriceStatusBid | enPriceStatusAsk);
+
+	if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_TRUE)	
+		dOptPriceAsk = dOptPriceBid = dOptPriceMid = m_pQuote->m_pPrice->m_dActivePrice;
+	else
+		m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 
 	if ( m_enContractType == enCtFutOption && enUndType == enCtFutUnd && m_spFut ) {
 		CMmRvFutAtom* pFut = static_cast<CMmRvFutAtom*>(m_spFut.GetInterfacePtr() );
@@ -1199,14 +1166,6 @@ void CMmRvPosAtom::_CalcFutPositionData(
 		//							? (dFutMidPrice - m_dStrike > DBL_EPSILON ? dFutMidPrice - m_dStrike : 0.)
 		//							: (m_dStrike - dFutMidPrice > DBL_EPSILON ? m_dStrike - dFutMidPrice : 0.));
 	}
-
-	/*if(m_dNetGamma > BAD_DOUBLE_VALUE)
-	{
-		m_dNetGamma = m_pQuote->m_dGamma * m_nQtyInShares  / 100.;
-		if(dUndMidPrice > DBL_EPSILON)
-			m_dNetGamma = m_pQuote->m_dGamma * m_nQtyInShares  * dUndMidPrice * dUndMidPrice / 100.;
-	}
-*/
 }
 
 /////////////////////////////////////////////////////////////////////////////

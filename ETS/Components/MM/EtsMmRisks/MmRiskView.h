@@ -223,6 +223,8 @@ class ATL_NO_VTABLE CMmRiskView :
 	typedef std::pair<long,long>				type_opositoptions_pair ;
 	typedef type_opositoptions::iterator	type_opositoptionsI ;
 	typedef std::map<_bstr_t, int>			ExpandedRowsMap;
+	typedef std::map<long, double>			ContractPriceMap;
+	typedef ContractPriceMap::iterator		CMPItr;
 
 	type_opositoptions							m_opositoptions ;
 	ExpandedRowsMap								m_mapExpandedRows;
@@ -408,6 +410,7 @@ private:
 
 	_bstr_t                   m_bsConnectionString;
 	EgLib::CDBConnection	  m_Connection;
+	ContractPriceMap		  m_mapManualPrice;
 
 public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvUndAtom*,			Idx,			m_spIdx)

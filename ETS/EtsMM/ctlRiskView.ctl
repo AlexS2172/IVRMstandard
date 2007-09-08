@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   64225281
+      Format          =   20709377
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -606,6 +606,9 @@ Public Function Init() As Boolean
     Set m_AuxOut = New clsAuxRiskViewOut
     Set m_AuxClc = New clsAuxRiskViewCalc
     Set m_RiskView = m_Aux.RiskView
+    
+    m_RiskView.ConnectionString = g_Params.DbConnection
+    
     m_bDateChanged = False
     m_bFirstTime = True
     
@@ -2605,7 +2608,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     m_AuxOut.TotalsUpdate
                 End If
                 
-                If actPriceChg Then Me.Refresh
+                'If actPriceChg Then Me.Refresh
 
             End If
         End If

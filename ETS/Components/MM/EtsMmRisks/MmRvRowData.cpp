@@ -823,10 +823,19 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 		}
 		break;
 	case RPC_CLOSE:
-		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceClose): bForSorting?_variant_t(0):STR_NA;
+		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE? 
+			_variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceClose): 
+			bForSorting?_variant_t(0):STR_NA;
 		break;
 	case RPC_THEO_PRICE_CLOSE:
-		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose): bForSorting?_variant_t(0):STR_NA;
+		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose > BAD_DOUBLE_VALUE? 
+			_variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceTheoClose):
+			bForSorting?_variant_t(0):STR_NA;
+		break;
+	case RPC_ACTIVEPRC:
+			vtRet = m_pPos->m_pQuote->m_pPrice->m_dActivePrice > BAD_DOUBLE_VALUE?
+				_variant_t(m_pPos->m_pQuote->m_pPrice->m_dActivePrice):
+			bForSorting? _variant_t(0.0): STR_NA;
 		break;
 	case RPC_FUT_QTY:
 		GetValue( m_pPos->m_nQty, bForSorting, bNegativeFormatting, vtRet );

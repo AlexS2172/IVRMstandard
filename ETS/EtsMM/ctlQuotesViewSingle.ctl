@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   63438849
+      Format          =   61210625
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -12689,11 +12689,11 @@ Private Sub UpdateActiveFuturesPrice(newActiveFuturePrice As Double)
         
 End Sub
 
-Private Sub UpdateFutureManualPrice(ByVal dPrice As Double, ByVal lFutID As Long)
-    If (Not g_ContractAll(lFutID) Is Nothing) Then
-        If (Not g_ContractAll(lFutID).Fut Is Nothing) Then
-            g_ContractAll(lFutID).Fut.manualActivePrice = dPrice
-            gDBW.usp_MmManualPrice_Save lFutID, dPrice
+Private Sub UpdateFutureManualPrice(ByVal dPrice As Double, ByVal lFutId As Long)
+    If (Not g_ContractAll(lFutId) Is Nothing) Then
+        If (Not g_ContractAll(lFutId).Fut Is Nothing) Then
+            g_ContractAll(lFutId).Fut.manualActivePrice = dPrice
+            gDBW.usp_MmManualPrice_Save lFutId, dPrice
         End If
     End If
 End Sub

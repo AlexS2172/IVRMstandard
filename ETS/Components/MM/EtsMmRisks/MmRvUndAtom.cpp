@@ -564,15 +564,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 			}
 		}*/
 
-		//if (!m_pPrice->m_bManualActive) 
-		//{
-			m_pPrice->m_dActivePrice = dUndPriceMid;
-		//}
-		/*else 
-		{
-			dUndPriceMid = m_pPrice->m_dActivePrice;
-		}*/
-
+		m_pPrice->m_dActivePrice = dUndPriceMid;
 
 		//DATE dtToday = vt_date::GetCurrentDate(true);
 		VARIANT_BOOL bNeedRecalc = VARIANT_FALSE;
