@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   63963137
+      Format          =   66453505
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -5113,7 +5113,12 @@ Private Sub ShowPopup()
             nIdx = fgFut.ColKey(m_nMenuGridCol)
             
             If nIdx = QOF_ACTIVEPRICE Then
-                mnuCtxUseManualPrice.Enabled = True
+                If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
+                    If m_Aux.Grp.Und.ActiveFuture.ID <> aRowData.Fut.ID Then
+                        mnuCtxUseManualPrice.Enabled = False
+                    End If
+                End If
+                
                 mnuCtxUseManualPrice.Checked = aRowData.Fut.IsUseManualActivePrice
             End If
             
@@ -12737,6 +12742,9 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
 
     If iFutureID <> 0 Then
         For Each aFut In QV.Grp.Und.Fut
+        
+            aFut.IsUseManualActivePrice = CBool(g_ContractAll(aFut.ID).Fut.manualActivePrice <> 0)
+        
             If aFut.IsUseManualActivePrice And aFut.ID <> iFutureID Then
                 aFut.IsUseManualActivePrice = False
                 aFut.ActivePrice = 0
