@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61472769
+      Format          =   61341697
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -7761,8 +7761,15 @@ Private Sub RefreshPositions()
                             If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
                         End If
                         If aRowData.Pos.Quote.Price.IsUseManualActive Then
+                            Dim dActive As Double
+                            If (aRowData.Pos.ContractType = enCtFuture) Then
+                                dActive = g_Main.ContractAll(aRowData.Pos.ID).Fut.manualActivePrice
+                            ElseIf (aRowData.Pos.ContractType = enCtIndex Or aRowData.Pos.ContractType = enCtStock) Then
+                                dActive = g_Main.ContractAll(aRowData.Pos.ID).Und.manualActivePrice
+                            End If
+                            
                             nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
-                            If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                            If nCol <> -1 And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                         End If
                                                
                     End If
@@ -7773,10 +7780,12 @@ Private Sub RefreshPositions()
                                 
                 If Not aRowData.Fut Is Nothing Then
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
-                        If nCol <> -1 And aRowData.Fut.Price.IsUseManualActive Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                        dActive = g_Main.ContractAll(aRowData.Fut.ID).Fut.manualActivePrice
+                        If nCol <> -1 And aRowData.Fut.Price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                     ElseIf Not aRowData.Und Is Nothing Then
+                        dActive = g_Main.ContractAll(aRowData.Und.ID).Und.manualActivePrice
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
-                        If nCol <> -1 And nAggRow = -1 And aRowData.Und.Price.IsUseManualActive Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                        If nCol <> -1 And nAggRow = -1 And aRowData.Und.Price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                 End If
                                                   
                 If nAggRow <> -1 Then

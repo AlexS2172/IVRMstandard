@@ -3082,7 +3082,11 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                         If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.Price.NetChange = dNetChange
                         
                         Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                        aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.Price.Bid, aReqUndData.Price.Ask, aReqUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                        If (aReq.Und.Price.IsUseManualActive) Then
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.Price.Active
+                        Else
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.Price.Bid, aReqUndData.Price.Ask, aReqUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                        End If
                     
                         If m_View.Idx.ID = aReq.Und.ID Then
                             Set aReqIdxData = m_View.Idx
