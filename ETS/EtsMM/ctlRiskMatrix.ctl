@@ -2335,8 +2335,8 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
     End If
             
     If bIsStock And Not aUnd Is Nothing Then
-        dPrice = m_Und(aUnd.ID).price.Ask
-        If dPrice <= 0# Then dPrice = m_Und(aUnd.ID).price.Last
+        dPrice = m_Und(aUnd.ID).Price.Ask
+        If dPrice <= 0# Then dPrice = m_Und(aUnd.ID).Price.Last
     End If
 End Sub
 
@@ -2714,7 +2714,11 @@ Private Sub InitResults()
         If m_Scn.Units(RMA_HORZ) = RMUT_ABS And m_Scn.Axis(RMA_HORZ) = RMAT_SPOT Then
 '            dValue = PriceMidEx(m_Und(1).PriceBid, m_Und(1).PriceAsk, m_Und(1).PriceLast)
             Debug.Assert (Not m_Und(1).UndPriceProfile Is Nothing)
-            dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).price.Bid, m_Und(1).price.Ask, m_Und(1).price.Last, dToleranceValue, enRoundingRule)
+            If (m_Und(1).Price.IsUseManualActive) Then
+                dValue = m_Und(1).Price.Active
+            Else
+                dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).Price.Bid, m_Und(1).Price.Ask, m_Und(1).Price.Last, dToleranceValue, enRoundingRule)
+            End If
             
             If dValue > 0# Then
                 dShift = 0
@@ -2741,7 +2745,12 @@ Private Sub InitResults()
         If m_Scn.Units(RMA_VERT) = RMUT_ABS And m_Scn.Axis(RMA_VERT) = RMAT_SPOT Then
 '            dValue = PriceMidEx(m_Und(1).PriceBid, m_Und(1).PriceAsk, m_Und(1).PriceLast)
             Debug.Assert (Not m_Und(1).UndPriceProfile Is Nothing)
-            dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).price.Bid, m_Und(1).price.Ask, m_Und(1).price.Last, dToleranceValue, enRoundingRule)
+            
+            If (m_Und(1).Price.IsUseManualActive) Then
+                dValue = m_Und(1).Price.Active
+            Else
+                dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).Price.Bid, m_Und(1).Price.Ask, m_Und(1).Price.Last, dToleranceValue, enRoundingRule)
+            End If
             
             If dValue > 0# Then
                 dShift = 0
@@ -3070,9 +3079,9 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
         Dim aUnd As MmRvUndAtom
         Set aUnd = m_Und(sRootComp.UndID)
         
-        dCompUndSpot = aUnd.price.Last
-        dUndCompBid = aUnd.price.Bid
-        dUndCompAsk = aUnd.price.Ask
+        dCompUndSpot = aUnd.Price.Last
+        dUndCompBid = aUnd.Price.Bid
+        dUndCompAsk = aUnd.Price.Ask
         ShiftSpot aUnd.Beta, enUnits, dShift, bCorrelatedShift, dCompUndSpot, dUndCompBid, dUndCompAsk
         
         If Not bBadSpotValue And dCompUndSpot > 0# Then
@@ -3219,10 +3228,10 @@ Private Function CalcTheoPnLCommonExercItmDailyPrevDate(ByRef aPos As EtsMmRisks
         
     'SUD-0909
     Dim dPriceClose As Double
-    dPriceClose = aPos.Quote.price.Close
+    dPriceClose = aPos.Quote.Price.Close
     If (Not g_Main Is Nothing) Then
-        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.price.TheoClose > 0#) Then
-            dPriceClose = aPos.Quote.price.TheoClose
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.Price.TheoClose
         End If
     End If
     
@@ -3349,10 +3358,10 @@ Private Function CalcTheoPnLCommonExercOtm(ByRef aPos As EtsMmRisksLib.MmRvPosAt
     
     'SUD-0909
     Dim dPriceClose As Double
-    dPriceClose = aPos.Quote.price.Close
+    dPriceClose = aPos.Quote.Price.Close
     If (Not g_Main Is Nothing) Then
-        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.price.TheoClose > 0#) Then
-            dPriceClose = aPos.Quote.price.TheoClose
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.Price.TheoClose
         End If
     End If
     
@@ -3708,7 +3717,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
 '                dTmp = PriceMidEx(aSynthUnd.PriceBid, aSynthUnd.PriceAsk, aSynthUnd.PriceLast, g_Params.UseLastPriceForCalcs)
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
-                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.price.Bid, aSynthUnd.price.Ask, aSynthUnd.price.Last, dToleranceValue, enRoundingRule)
+                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.Price.Bid, aSynthUnd.Price.Ask, aSynthUnd.Price.Last, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
                     aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp
@@ -3736,7 +3745,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
 '                dTmp = PriceMidEx(aSynthUnd.PriceBid, aSynthUnd.PriceAsk, aSynthUnd.PriceLast, g_Params.UseLastPriceForCalcs)
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
-                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.price.Bid, aSynthUnd.price.Ask, aSynthUnd.price.Last, dToleranceValue, enRoundingRule)
+                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.Price.Bid, aSynthUnd.Price.Ask, aSynthUnd.Price.Last, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
                     aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dTmp / 100#
@@ -3834,8 +3843,8 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     If g_Params.UseTheoVolatility Then
         dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
     Else
-        If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > DBL_EPSILON Then
-            dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+        If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.Price.Bid > DBL_EPSILON Then
+            dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
@@ -3865,9 +3874,6 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
         Dim RetCount As Long
         RetCount = 0
         If aPos.ContractType = enCtOption Then
-'            If aUnd.price.IsUseManualActive Then
-'                dUndSpot = aUnd.price.Active
-'            End If
             RetCount = CalcGreeksMM2(aPos.Rate, dYield, dUndSpot, aPos.Strike, dVola, aPos.Expiry - dtToday, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
         ElseIf aPos.ContractType = enCtFutOption Then
@@ -3926,10 +3932,10 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     
     
     dVola = 0#
-    If Not g_Params.UseTheoVolatility And (Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > 0#) Then
+    If Not g_Params.UseTheoVolatility And (Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.Price.Bid > 0#) Then
 '        dOptSpot = PriceMidEx(aPos.PriceBid, aPos.PriceAsk, aPos.PriceLast, g_Params.UseLastPriceForCalcs)
         Debug.Assert (Not aUnd.OptPriceProfile Is Nothing)
-        dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+        dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
     
         If dOptSpot > 0# Then
             nFlag = VF_OK
@@ -3979,41 +3985,45 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
     
     If aUnd.ActiveFuture Is Nothing Or aUnd.ContractType <> enCtIndex Then
         Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
-        dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
+        If (aUnd.Price.IsUseManualActive) Then
+            dUndSpotBase = aUnd.Price.Active
+        Else
+            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        End If
+        dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
             g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-        dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
-            g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-        dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
+        dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
             g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     Else
         Debug.Assert (Not aUnd.ActiveFuture.UndPriceProfile Is Nothing)
         
-        dUndSpotBase = aUnd.ActiveFuture.price.Last
-        dUndBidBase = aUnd.ActiveFuture.price.Bid
-        dUndAskBase = aUnd.ActiveFuture.price.Ask
-        dUndSpotBase = aUnd.ActiveFuture.UndPriceProfile.GetUndPriceMid(dUndBidBase, dUndAskBase, dUndSpotBase, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        dUndSpotBase = aUnd.ActiveFuture.Price.Last
+        dUndBidBase = aUnd.ActiveFuture.Price.Bid
+        dUndAskBase = aUnd.ActiveFuture.Price.Ask
+        
+        If (aUnd.ActiveFuture.Price.IsUseManualActive) Then
+            dUndSpotBase = aUnd.ActiveFuture.Price.Active
+        Else
+            dUndSpotBase = aUnd.ActiveFuture.UndPriceProfile.GetUndPriceMid(dUndBidBase, dUndAskBase, dUndSpotBase, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        End If
+
         If dUndSpotBase > 0# Then
             dActiveFutPrice = dUndSpotBase
             dUndSpotBase = dUndSpotBase + aUnd.ActiveFuture.bAsIs
-            aUnd.ActiveFuture.price = dUndSpotBase
+            aUnd.ActiveFuture.Price = dUndSpotBase
             dUndAskBase = dUndSpotBase
             dUndBidBase = dUndSpotBase
         Else
             Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
-            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
+            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
+            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
+            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
 
         End If
-    End If
-    
-    If aUnd.price.IsUseManualActive Then
-        
-        dUndSpotBase = aUnd.price.Active: dUndBidBase = aUnd.price.Active: dUndAskBase = aUnd.price.Active
-        
     End If
     
     dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
@@ -4058,8 +4068,8 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             dFutPrice = aPos.Fut.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
                             If (aUnd.ContractType = enCtFutUnd) Then
                                 dUndSpot = dFutPrice: dUndSpotBase = dFutPrice
-                                dUndBid = aPos.Fut.price.Bid: dUndBidBase = aPos.Fut.price.Bid
-                                dUndAsk = aPos.Fut.price.Ask: dUndAskBase = aPos.Fut.price.Ask
+                                dUndBid = aPos.Fut.Price.Bid: dUndBidBase = aPos.Fut.Price.Bid
+                                dUndAsk = aPos.Fut.Price.Ask: dUndAskBase = aPos.Fut.Price.Ask
                             End If
                            'If m_Scn.Axis(RMA_VERT) = RMAT_SPOT Then
                            '     ShiftSpot aUnd.Beta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
@@ -4319,9 +4329,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             If Not aReq.IndexOnly Then
                 If Not aReq.Pos Is Nothing Then
                     If Params.Type = enSTK Or Params.Type = enIDX Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.price.Last = dPriceLast
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.Price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.Price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.Price.Last = dPriceLast
                     'If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
                     'If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
                     'If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
@@ -4335,9 +4345,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                         End If
                     
                         If Not aFut Is Nothing Then
-                            If dPriceBid > BAD_DOUBLE_VALUE Then aFut.price.Bid = dPriceBid
-                            If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.price.Ask = dPriceAsk
-                            If dPriceLast > BAD_DOUBLE_VALUE Then aFut.price.Last = dPriceLast
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aFut.Price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.Price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aFut.Price.Last = dPriceLast
                             Set aFut = Nothing
                         End If
                     End If
@@ -4351,9 +4361,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                     If m_bGroupRequest Then m_nLastQuoteGroupReqDone = m_nLastQuoteGroupReqDone + 1
                     
                     If Params.Type <> enFUT Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.price.Last = dPriceLast
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.Price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.Price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.Price.Last = dPriceLast
 
                     
                         If aReq.Und.LotSize <= 0 Then
@@ -4362,21 +4372,25 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 
 '                       aReq.Und.VolaSrv.UnderlyingPrice = PriceMidEx(aReq.Und.PriceBid, aReq.Und.PriceBid, aReq.Und.PriceLast)
                         Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                        aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReq.Und.price.Bid, aReq.Und.price.Bid, aReq.Und.price.Last, _
-                        g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                        If (aReq.Und.Price.IsUseManualActive) Then
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.Price.Active
+                        Else
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReq.Und.Price.Bid, aReq.Und.Price.Bid, aReq.Und.Price.Last, _
+                                                            g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                        End If
                 
                         If m_Idx.ID = aReq.Und.ID Then
-                           If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.price.Bid = dPriceBid
-                           If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.price.Ask = dPriceAsk
-                           If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.price.Last = dPriceLast
+                           If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.Price.Bid = dPriceBid
+                           If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.Price.Ask = dPriceAsk
+                           If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.Price.Last = dPriceLast
                         End If
                     End If
                     If Params.Type = enFUT Then
                         For Each aUnd In m_Und
                             If Not aUnd.ActiveFuture Is Nothing And aUnd.ActiveFuture.Symbol = Params.Symbol Then
-                                aUnd.ActiveFuture.price.Ask = dPriceAsk
-                                aUnd.ActiveFuture.price.Bid = dPriceBid
-                                aUnd.ActiveFuture.price.Last = dPriceLast
+                                aUnd.ActiveFuture.Price.Ask = dPriceAsk
+                                aUnd.ActiveFuture.Price.Bid = dPriceBid
+                                aUnd.ActiveFuture.Price.Last = dPriceLast
                             End If
                         Next
                     End If
@@ -4386,9 +4400,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 If m_Idx.ID = aReq.Und.ID Then
                     If m_bGroupRequest Then m_nLastQuoteGroupReqDone = m_nLastQuoteGroupReqDone + 1
                     
-                    If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.price.Last = dPriceLast
+                    If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.Price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.Price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.Price.Last = dPriceLast
                 End If
             End If
         
@@ -4652,10 +4666,10 @@ Private Function IndexLoad() As Boolean
                 aReq.IndexOnly = True
                 Set aReq = Nothing
             Else
-                m_Idx.price.Bid = aReq.Und.price.Bid
-                m_Idx.price.Ask = aReq.Und.price.Ask
-                m_Idx.price.Last = aReq.Und.price.Last
-                m_Idx.price.NetChange = aReq.Und.price.NetChange
+                m_Idx.Price.Bid = aReq.Und.Price.Bid
+                m_Idx.Price.Ask = aReq.Und.Price.Ask
+                m_Idx.Price.Last = aReq.Und.Price.Last
+                m_Idx.Price.NetChange = aReq.Und.Price.NetChange
             End If
             
             Set m_Idx.UndPriceProfile = aGIdx.UndPriceProfile
