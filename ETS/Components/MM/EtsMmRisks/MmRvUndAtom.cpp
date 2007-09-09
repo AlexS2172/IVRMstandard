@@ -1536,6 +1536,11 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 					spFutPrice->get_Active(&dActiveFutureMid);
 				}
 
+				VARIANT_BOOL	bIsDirty = VARIANT_FALSE;
+				spFutPrice->get_IsDirty(&bIsDirty);
+				if (bIsDirty == VARIANT_TRUE)
+					m_pPrice->m_bDirty = VARIANT_TRUE;
+
 				if ( dActiveFutureMid > 0.)
 				{
 					dActiveFutureMid += dActiveFutureBasis;
