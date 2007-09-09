@@ -507,9 +507,11 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 	try
 	{
 
+		CComBSTR	bsConnectionString;
+		m_spEtsMain->get_DatabaseString(&bsConnectionString);
 
 		if(!m_Connection.IsOpened())
-			m_Connection.Open(m_bsConnectionString, 10, 120, 300, 300);
+			m_Connection.Open((BSTR)bsConnectionString, 10, 120, 300, 300);
 
 		//save all data to db
 		if(m_Connection.IsOpened())
