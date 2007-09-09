@@ -513,6 +513,8 @@ STDMETHODIMP CMmQvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance,
 							m_dFuturePrice = *pPrice = activeFuturePrice + (dFutureBasis>BAD_DOUBLE_VALUE?dFutureBasis:0);
 							*bFutureUsed = VARIANT_TRUE;
 							dontUseFuture = false;
+
+							m_spActiveFuture->put_ActivePrice(activeFuturePrice);
 						}
 						else
 						{
