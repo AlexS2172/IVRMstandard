@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
-Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1Sizer.ocx"
+Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
 Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomct2.ocx"
 Begin VB.UserControl ctlQuotesViewSingle 
    ClientHeight    =   8265
@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61210625
+      Format          =   63963137
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -878,6 +878,12 @@ Begin VB.UserControl ctlQuotesViewSingle
       Begin VB.Menu mnuCtxShowMarketDepthView 
          Caption         =   "Show Market Depth View"
          Shortcut        =   ^X
+      End
+      Begin VB.Menu mnuCtxSeparator10 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuCtxUseManualPrice 
+         Caption         =   "Use Manual Price"
       End
    End
 End
@@ -4942,6 +4948,7 @@ Private Sub ShowPopup()
     Dim bEnableCustomDivs As Boolean
     Dim sValExpiryMonth$
     Dim enColum As EtsMmQuotesLib.MmQvOptColumnEnum
+    Dim nIdx As Integer
     
     If m_nMenuGridCol < 0 Or m_nMenuGridRow < 0 Then Exit Sub
 
@@ -4977,6 +4984,9 @@ Private Sub ShowPopup()
     mnuCtxCopy.Enabled = Not m_bInProc
     mnuCtxTradeExercise.Enabled = False
     mnuCtxTradeExpiry.Enabled = False
+    
+    mnuCtxUseManualPrice.Enabled = False
+    mnuCtxUseManualPrice.Checked = False
     
     mnuCtxOrderNewStock.Visible = g_Params.OrdersVisible
     mnuCtxOrderNewOption.Visible = g_Params.OrdersVisible
@@ -5060,6 +5070,26 @@ Private Sub ShowPopup()
             mnuCtxViewSpread.Enabled = mnuCtxClearSpread.Enabled
             mnuCtxAddToSpread.Enabled = (m_Aux.Grp.ContractType <> enCtFutUnd And m_Aux.Grp.ID <> 0 And m_nMenuGridRow > 0 And m_nMenuGridCol < m_nMenuGridCols _
                 And (IsUndSpreadColumn(m_nMenuGridCol - 1)) And bEnabled)
+                
+
+            nIdx = fgUnd.ColKey(m_nMenuGridCol)
+            
+            If nIdx = QUC_INDEXCALCPRICE Then
+                mnuCtxUseManualPrice.Enabled = QV.Grp.Und.ActiveFuture Is Nothing And _
+                                               Not (m_Aux.RealTime Or m_bSubscribingNow)
+                                               
+                mnuCtxUseManualPrice.Checked = m_Aux.Grp.Und.UseManualActivePrice
+            End If
+            
+            If nIdx = QUC_ACTIVEFUTUREPRICE Then
+                mnuCtxUseManualPrice.Enabled = Not QV.Grp.Und.ActiveFuture Is Nothing And _
+                                               Not (m_Aux.RealTime Or m_bSubscribingNow)
+                                                               
+                If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
+                    mnuCtxUseManualPrice.Checked = m_Aux.Grp.Und.ActiveFuture.IsUseManualActivePrice
+                End If
+            End If
+                
             
             PopupMenu mnuCtx, , , , mnuCtxTradeNew
         
@@ -5079,6 +5109,13 @@ Private Sub ShowPopup()
             mnuCtxClearSpread.Enabled = (m_Aux.Grp.Spread.Count > 0)
             mnuCtxViewSpread.Enabled = mnuCtxClearSpread.Enabled
             mnuCtxAddToSpread.Enabled = (m_Aux.Grp.ID <> 0 And m_nMenuGridRow > 0 And m_nMenuGridCol < m_nMenuGridCols) And IsFutSpreadColumn(m_nMenuGridCol - 1)
+            
+            nIdx = fgFut.ColKey(m_nMenuGridCol)
+            
+            If nIdx = QOF_ACTIVEPRICE Then
+                mnuCtxUseManualPrice.Enabled = True
+                mnuCtxUseManualPrice.Checked = aRowData.Fut.IsUseManualActivePrice
+            End If
             
             PopupMenu mnuCtx, , , , mnuCtxTradeNew
         Case GT_QUOTES_OPTIONS
@@ -5232,7 +5269,7 @@ Private Sub fgOpt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     End If
 End Sub
 
-Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef Price() As Double, ByRef isManual() As Boolean)
+Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, ByRef isManual() As Boolean)
 
     Dim aRowData As MmQvRowData
 
@@ -5245,7 +5282,7 @@ Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef Price() As Double, By
     For Each l In ctrID
 
         If l = QV.Grp.Und.ID Then
-            QV.Grp.Und.ActivePrice = Price(i)
+            QV.Grp.Und.ActivePrice = price(i)
             QV.Grp.Und.UseManualActivePrice = isManual(i)
             If QV.Grp.Und.UseManualActivePrice = False Then
                 QV.EtsMain.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
@@ -6735,6 +6772,74 @@ Ex:
 End Function
 
 
+
+Private Sub mnuCtxUseManualPrice_Click()
+    On Error Resume Next
+    
+    Select Case m_enMenuGrid
+        Case GT_QUOTES_UNDERLYING
+            
+            Dim nIdx As Integer
+            nIdx = fgUnd.ColKey(m_nMenuGridCol)
+            
+            If nIdx = QUC_INDEXCALCPRICE Then
+            
+                If mnuCtxUseManualPrice.Checked Then
+                    QV.Grp.Und.ActivePrice = 0
+                    QV.Grp.Und.UseManualActivePrice = False
+                    
+                    SaveManualActivePrice QV.Grp.Und.ID, 0
+                    gDBW.usp_MmManualPrice_Del QV.Grp.Und.ID
+                Else
+                    QV.Grp.Und.UseManualActivePrice = True
+                    
+                    SaveManualActivePrice QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
+                    gDBW.usp_MmManualPrice_Save QV.Grp.Und.ID, QV.Grp.Und.ActivePrice
+                End If
+                
+            End If
+            
+            If nIdx = QUC_ACTIVEFUTUREPRICE Then
+
+                If mnuCtxUseManualPrice.Checked Then
+                    QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = False
+                    QV.Grp.Und.ActiveFuture.ActivePrice = 0
+                
+                    SaveManualFuturePrice QV.Grp.Und.ActiveFuture.ID, 0
+                    gDBW.usp_MmManualPrice_Del QV.Grp.Und.ActiveFuture.ID
+                Else
+                    UpdateActiveFuturesPrice QV.Grp.Und.ActiveFuture.ActivePrice
+                
+                    SaveManualFuturePrice QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
+                    gDBW.usp_MmManualPrice_Save QV.Grp.Und.ActiveFuture.ID, QV.Grp.Und.ActiveFuture.ActivePrice
+                End If
+
+            End If
+        
+        Case GT_QUOTES_FUTURES
+            
+            Dim aRowData As MmQvRowData
+            Set aRowData = fgFut.RowData(m_nMenuGridRow)
+            
+            If mnuCtxUseManualPrice.Checked Then
+                aRowData.Fut.IsUseManualActivePrice = False
+                aRowData.Fut.ActivePrice = 0
+                
+                SaveManualFuturePrice aRowData.Fut.ID, 0
+                gDBW.usp_MmManualPrice_Del aRowData.Fut.ID
+            Else
+                UpdateFutureManualPrice aRowData.Fut.ActivePrice, aRowData.Fut.ID
+                
+                SaveManualFuturePrice aRowData.Fut.ID, aRowData.Fut.ActivePrice
+                gDBW.usp_MmManualPrice_Save aRowData.Fut.ID, aRowData.Fut.ActivePrice
+            End If
+    
+    End Select
+        
+    Recalculate False, True
+'    Me.Refresh
+    
+End Sub
 
 Private Sub mnuCtxVolaFitToImpAll_Click()
     On Error Resume Next

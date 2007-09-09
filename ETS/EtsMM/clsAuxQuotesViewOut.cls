@@ -443,6 +443,8 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
 '
 '                        If m_Aux.Grp.ContractType = enCtIndex Or m_Aux.Grp.ContractType = enCtStock Then _
 '                            CalcPrice = m_Aux.Grp.Und.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, dummy1, boolFuture)
+
+                        Set .Cell(flexcpPicture, nRow, nCol) = Nothing
                         
                         If m_Aux.Grp.ContractType = enCtIndex Or m_Aux.Grp.ContractType = enCtStock Then
                             .TextMatrix(nRow, nCol) = IIf(m_Aux.Grp.Und.ActivePrice > 0, m_Aux.Grp.Und.ActivePrice, STR_NA)
@@ -459,6 +461,8 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                             .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ID
                         End If
                     Case QUC_ACTIVEFUTUREPRICE
+                        Set .Cell(flexcpPicture, nRow, nCol) = Nothing
+                    
                         If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
                             If m_Aux.Grp.Und.ActiveFuture.IsUseManualActivePrice Then
                                   Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
@@ -807,6 +811,8 @@ Public Function FutureUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boolean, 
                 
                 Select Case nIdx
                      Case QOF_ACTIVEPRICE
+                            Set .Cell(flexcpPicture, nRow, nCol) = Nothing
+                            
                             .TextMatrix(nRow, nCol) = IIf(aFut.ActivePrice > 0, aFut.ActivePrice, STR_NA)
                             If aFut.IsUseManualActivePrice Then
                                 Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread.Picture
