@@ -1185,7 +1185,7 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 				EtsReplacePriceStatusEnum enAskPriceStatus = enRpsNone;
 				enMidPriceStatus = enRpsNone;
 
-				DOUBLE dSpotPrice = m_spUndPriceProfile->GetUndPriceMid(undQuoteData.m_dBid, undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, ManualEdit);
+				DOUBLE dSpotPrice = m_bUseManualActivePrice ? m_dActivePrice : m_spUndPriceProfile->GetUndPriceMid(undQuoteData.m_dBid, undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, ManualEdit);
 
 				DOUBLE dSpotBidOld = undQuoteData.m_dBid;
 
