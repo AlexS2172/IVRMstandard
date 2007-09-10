@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   64094209
+      Format          =   63700993
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -6844,8 +6844,7 @@ Private Sub mnuCtxUseManualPrice_Click()
     
     End Select
         
-    Recalculate False, True
-'    Me.Refresh
+    Recalculate False, True, True
     
 End Sub
 
