@@ -1187,7 +1187,7 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 							//activeFuturePriceBid = activeFuturePriceAsk = activeFuturePriceLast = activeFuturePrice;
 						 }
 
-						 if ( activeFuturePrice > 0){
+						 //if ( activeFuturePrice > 0){
 							 // we have price of active future
 							 if ( m_dRatio <= 0.){
 								 double dRatio = 1.;
@@ -1205,7 +1205,7 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 								 *pPrice = activeFuturePrice * m_dRatio;
 							 dontUseFuture = false;
 							 *bFutureUsed = VARIANT_TRUE;
-						 }
+						 //}
 					 }
 				 }
 			 }
