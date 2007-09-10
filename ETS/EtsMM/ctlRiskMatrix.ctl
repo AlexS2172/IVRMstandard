@@ -3987,14 +3987,17 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
         Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
         If (aUnd.Price.IsUseManualActive) Then
             dUndSpotBase = aUnd.Price.Active
+            dUndBidBase = dUndSpotBase
+            dUndAskBase = dUndSpotBase
         Else
             dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
         End If
-        dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-            g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-        dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-            g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        
     Else
         Debug.Assert (Not aUnd.ActiveFuture.UndPriceProfile Is Nothing)
         
@@ -4016,13 +4019,15 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
             dUndBidBase = dUndSpotBase
         Else
             Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
-            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-
+'            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+'                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+'            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+'                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+'            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+'                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            dUndSpotBase = 0#
+            dUndAskBase = dUndSpotBase
+            dUndBidBase = dUndSpotBase
         End If
     End If
     

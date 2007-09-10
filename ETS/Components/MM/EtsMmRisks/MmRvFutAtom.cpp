@@ -104,9 +104,9 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 		if( useThis && m_spUndPriceProfile)
 		{
 			if (m_pPrice->m_bManualActive == VARIANT_FALSE){
-				*pPrice = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, 
+				*pPrice = 0.0;/*m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, 
 																m_pPrice->m_dPriceLast, dTolerance,
-																enPriceRound, penPriceStatus, VARIANT_FALSE );
+																enPriceRound, penPriceStatus, VARIANT_FALSE );*/
 				m_pPrice->m_dActivePrice = *pPrice;
 			}
 			else{
@@ -117,7 +117,6 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 	catch (_com_error& e) {
 		hr = Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), __uuidof(IMmRvFutAtom), e.Error());
 	}
-	//if (!m_pPrice->m_bManualActive) m_pPrice->m_dActivePrice = *pPrice;
 	return hr;
 }
 

@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61341697
+      Format          =   61865985
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -7682,7 +7682,7 @@ Private Sub RefreshPositions()
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom
     Dim enP As EtsGeneralLib.EtsReplacePriceStatusEnum
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
-    
+    Dim dActive As Double
     
     m_bTradeActionrefreshPositions = False
     If m_bShutDown Then Exit Sub
@@ -7738,6 +7738,7 @@ Private Sub RefreshPositions()
             fgPos.Cell(flexcpFontBold, i, 1, i, fgPos.Cols - 1) = False
         End If
         
+        dActive = 0
         ' set outlining level and draw bad price marks
         If Not aRowData Is Nothing Then
             fgPos.RowOutlineLevel(i) = aRowData.OutlineLevel
@@ -7761,13 +7762,13 @@ Private Sub RefreshPositions()
                             If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
                         End If
                         If aRowData.Pos.Quote.Price.IsUseManualActive Then
-                            Dim dActive As Double
                             If (aRowData.Pos.ContractType = enCtFuture) Then
                                 dActive = g_Main.ContractAll(aRowData.Pos.ID).Fut.manualActivePrice
                             ElseIf (aRowData.Pos.ContractType = enCtIndex Or aRowData.Pos.ContractType = enCtStock) Then
                                 dActive = g_Main.ContractAll(aRowData.Pos.ID).Und.manualActivePrice
+                            Else
+                                dActive = aRowData.Pos.Quote.Price.Active
                             End If
-                            
                             nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
                             If nCol <> -1 And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                         End If

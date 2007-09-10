@@ -519,11 +519,22 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 			/*dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
 				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, VARIANT_FALSE);*/
 
-			dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
+			if (m_pPrice->m_bManualActive == VARIANT_FALSE && m_spActiveFuture == NULL)
+			{
+				dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
+					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
 
-			dUndPriceAsk = m_spUndPriceProfile->GetUndPriceAskForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
+				dUndPriceAsk = m_spUndPriceProfile->GetUndPriceAskForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
+					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
+			}
+			else
+			{
+				if (dUndPriceMid <= 0.0)
+					dUndPriceBid = dUndPriceAsk	= DBL_EPSILON;
+				else
+					dUndPriceBid = dUndPriceAsk	= dUndPriceMid;
+			}
+
 		}
 
 		m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enUndPriceStatusMid | enUndPriceStatusBid | enUndPriceStatusAsk);
@@ -1532,9 +1543,7 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 				VARIANT_BOOL	bCalcByManual = VARIANT_FALSE;
 				spFutPrice->get_IsUseManualActive(&bCalcByManual);
 				if (bCalcByManual == VARIANT_TRUE)
-				{
 					spFutPrice->get_Active(&dActiveFutureMid);
-				}
 
 				VARIANT_BOOL	bIsDirty = VARIANT_FALSE;
 				spFutPrice->get_IsDirty(&bIsDirty);
@@ -1552,11 +1561,13 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 		}
 		if ( dontUseFuture && m_spUndPriceProfile )
 		{
-			*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, m_pPrice->m_dPriceLast, dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE );
 			if (m_pPrice->m_bManualActive == VARIANT_TRUE)
-			{
 				*pPrice = m_pPrice->m_dActivePrice;
-			}
+			else if (m_spActiveFuture)
+				*pPrice = 0.0;
+			else
+				*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, m_pPrice->m_dPriceLast, dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE );
+
 		}
 	}
 	catch ( _com_error& e ) {
