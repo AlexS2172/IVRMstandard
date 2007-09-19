@@ -362,18 +362,19 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 								
 								if (enContractType == enCtStock)
 								{
-									//is this ETF?
 									/*if (pUnd->m_spActiveFuture == NULL)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
-									else*/
-										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
+									else
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;*/
+										dTheoClosePrice = pUnd->m_pPrice->m_dActivePrice;
 								}
 								else if (enContractType == enCtIndex)
 								{
 									/*if (pUnd->m_spActiveFuture == NULL)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
-									else*/
-										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
+									else
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;*/
+										dTheoClosePrice = pUnd->m_pPrice->m_dActivePrice;
 								}
 								else if (enContractType == enCtFuture)
 								{
