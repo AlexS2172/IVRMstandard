@@ -1097,6 +1097,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\UnderlyingUpdate.cpp"
+				>
+			</File>
+			<File
 				RelativePath="VMESurface.cpp"
 				>
 				<FileConfiguration
@@ -1252,6 +1256,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\UnderlyingUpdate.h"
+				>
+			</File>
+			<File
 				RelativePath="VMESurface.h"
 				>
 			</File>
@@ -1305,10 +1313,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\UnderlyingUpdate.rgs"
+				>
+			</File>
+			<File
 				RelativePath="VMESurface.rgs"
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\UseLibs.txt"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

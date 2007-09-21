@@ -145,6 +145,25 @@ STDMETHODIMP CEtsIndexDivColl::GetDividends( LONG nToday,  LONG nExpiry,  LONG n
 
 STDMETHODIMP CEtsIndexDivColl::GetNearest( LONG nToday,  LONG nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
 {
+	HRESULT hr = S_OK;
+	try
+	{
+		IEtsDivCollPtr spTmpDivColl = GetCachedDividends(nToday, nExpiry);
+		if(spTmpDivColl!=NULL)
+			spTmpDivColl->GetNearest(nToday, nExpiry, pdDivAmount, pdDivDate);
+
+	}
+	catch (_com_error& e) 
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsIndexDivAtom, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error( _T("Unhanded exception handled at GetNearest"), IID_IEtsIndexDivAtom, E_FAIL);
+	}
+	return hr;
+
+
 	return E_NOTIMPL;
 }
 

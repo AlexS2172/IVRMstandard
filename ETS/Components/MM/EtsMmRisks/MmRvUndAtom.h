@@ -75,6 +75,12 @@ struct __MmRvUndAtom
 	LONG							m_nPrimaryExchangeID;
 	_bstr_t							m_bstrPrimaryExchangeCode;
 
+	IMmRvUndAtomPtr					m_spHeadComponent;
+	DOUBLE							m_dCoeff;
+	VARIANT_BOOL					m_bPriceByHead;
+	VARIANT_BOOL					m_bIsHead;
+	//IMmRvUndAtomPtr					m_spHeadCompAgg;
+
 	void Clear(bool bErase, bool bClearPrice)
 	{
 
@@ -144,6 +150,11 @@ struct __MmRvUndAtom
 		m_enReplacePriceStatus = enRpsNone;
 		m_spDividend = NULL;
 		m_spActiveFuture = NULL;
+
+		m_spHeadComponent = NULL;
+		m_bIsHead	=	VARIANT_FALSE;
+		m_bPriceByHead = VARIANT_FALSE;
+		m_dCoeff = 1.0;
 		
 		ClearAggregatedValues();
 	}
@@ -411,6 +422,11 @@ public:
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, NetExposure,		NetExposure_)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadNetExposure,		BadNetExposure_)
 		IMPLEMENT_SIMPLE_PROPERTY(LONG, PrimaryExchangeID, m_nPrimaryExchangeID)
+
+		IMPLEMENT_OBJECT_PROPERTY(IMmRvUndAtom*, HeadComponent, m_spHeadComponent)
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsHead,  m_bIsHead)
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, PriceByHead,  m_bPriceByHead)
+		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Coeff,  m_dCoeff)
 
 		STDMETHODIMP put_PrimaryExchangeCode(BSTR NewVal){
 			ObjectLock lock(this);

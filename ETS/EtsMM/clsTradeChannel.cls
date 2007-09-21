@@ -77,6 +77,7 @@ Public Sub InitMessaging()
         Set aPubManager = MmwMsgManager
         aPubManager.RegPublisher enMtTradeUpdate, Nothing
         aPubManager.RegPublisher enMtPriceUpdate, Nothing
+        aPubManager.RegPublisher enMtUnderlyingUpdate, Nothing
         Set aPubManager = Nothing
     End If
         
@@ -275,6 +276,7 @@ Public Sub Start()
     MmwMsgManager.SubTradeUpdate
     MmwMsgManager.SubBroadcastMessage
     MmwMsgManager.SubPriceUpdate
+    MmwMsgManager.SubUnderlyingUpdate
     
     Exit Sub
 EH:
@@ -294,6 +296,7 @@ Private Sub Class_Terminate()
     Set aPubManager = MmwMsgManager
     aPubManager.UnregPublisher enMtTradeUpdate, Nothing
     aPubManager.UnregPublisher enMtPriceUpdate, Nothing
+    aPubManager.UnregPublisher enMtUnderlyingUpdate, Nothing
     Set aPubManager = Nothing
     
     Set MmwMsgManager = Nothing
@@ -333,7 +336,7 @@ Public Property Get TrdByTraderAndContract() As MmTradeByUndColl
     Set TrdByTraderAndContract = m_TrdByTraderAndContract
 End Property
 
-Public Sub PriceCloseForPub(ByVal ContractType As Long, ByVal ContractID As Long, ByVal UndID As Long, ByVal PriceClose As Double)
+Public Sub PriceCloseForPub(ByVal ContractType As Long, ByVal ContractID As Long, ByVal UndID As Long, ByVal PriceClose As Double, ByVal PriceTheoclose As Double)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceCloseForPub Enter", "TradeChannel"
@@ -354,6 +357,7 @@ Public Sub PriceCloseForPub(ByVal ContractType As Long, ByVal ContractID As Long
     
     aPrcUpdate.UndID = UndID
     aPrcUpdate.PriceClose = PriceClose
+    aPrcUpdate.TheoPriceClose = PriceTheoclose
     
     aPubManager.PubPriceUpdate aPrcUpdate
             
@@ -412,7 +416,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
             aDst.IsCall = aSrc.Opt.OptType
             aDst.Strike = aSrc.Opt.Strike
             aDst.PriceClose = aSrc.Opt.PriceClose
-            aDst.PriceTheoClose = aSrc.Opt.PriceTheoClose
+            aDst.PriceTheoclose = aSrc.Opt.PriceTheoclose
             
             aDst.SpotReference = aSrc.SpotReference
             aDst.TradedIV = aSrc.TradedIV
@@ -423,7 +427,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
             aDst.FutRootID = aSrc.FutRoot.ID
             
             aDst.PriceClose = aSrc.Fut.PriceClose
-            aDst.PriceTheoClose = aSrc.Fut.PriceTheoClose
+            aDst.PriceTheoclose = aSrc.Fut.PriceTheoclose
         
         Case enCtFutOption
             aDst.FutID = aSrc.Fut.ID
@@ -433,7 +437,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
             aDst.IsCall = aSrc.FutOpt.OptType
             aDst.Strike = aSrc.FutOpt.Strike
             aDst.PriceClose = aSrc.FutOpt.PriceClose
-            aDst.PriceTheoClose = aSrc.FutOpt.PriceTheoClose
+            aDst.PriceTheoclose = aSrc.FutOpt.PriceTheoclose
            
             aDst.SpotReference = aSrc.SpotReference
             aDst.TradedIV = aSrc.TradedIV
@@ -497,7 +501,7 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
                 aDst.Opt.Expiry = aSrc.Expiry
                 aDst.Opt.Strike = Round(aSrc.Strike, STRIKE_DECIMALS_COUNT)
                 aDst.Opt.PriceClose = aSrc.PriceClose
-                aDst.Opt.PriceTheoClose = aSrc.PriceTheoClose
+                aDst.Opt.PriceTheoclose = aSrc.PriceTheoclose
                 
                 aDst.SpotReference = aSrc.SpotReference
                 aDst.TradedIV = aSrc.TradedIV
@@ -520,7 +524,7 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
                         aDst.FutOpt.Expiry = aSrc.Expiry
                         aDst.FutOpt.Strike = Round(aSrc.Strike, STRIKE_DECIMALS_COUNT)
                         aDst.FutOpt.PriceClose = aSrc.PriceClose
-                        aDst.FutOpt.PriceTheoClose = aSrc.PriceTheoClose
+                        aDst.FutOpt.PriceTheoclose = aSrc.PriceTheoclose
                         
                         aDst.SpotReference = aSrc.SpotReference
                         aDst.TradedIV = aSrc.TradedIV
@@ -1310,7 +1314,10 @@ Private Sub MmwMsgManager_OnPriceUpdate(ByVal Data As MSGSTRUCTLib.IPriceUpdate)
             Set aTrdColl = m_TrdByUnd(Data.UndID)
             If Not aTrdColl Is Nothing Then
                 For Each aTrd In aTrdColl
-                    If aTrd.ContractID = Data.ContractID Then aTrd.Opt.PriceClose = Data.PriceClose
+                    If aTrd.ContractID = Data.ContractID Then
+                        aTrd.Opt.PriceClose = Data.PriceClose
+                        aTrd.Opt.PriceTheoclose = Data.TheoPriceClose
+                    End If
                     Set aTrd = Nothing
                 Next
             End If
@@ -1319,14 +1326,20 @@ Private Sub MmwMsgManager_OnPriceUpdate(ByVal Data As MSGSTRUCTLib.IPriceUpdate)
             Set aTrdColl = m_TrdByFut(Data.ContractID)
             If Not aTrdColl Is Nothing Then
                 For Each aTrd In aTrdColl
-                    If aTrd.ContractID = Data.ContractID Then aTrd.Fut.PriceClose = Data.PriceClose
+                    If aTrd.ContractID = Data.ContractID Then
+                        aTrd.Fut.PriceClose = Data.PriceClose
+                        aTrd.Fut.PriceTheoclose = Data.TheoPriceClose
+                    End If
                     Set aTrd = Nothing
                 Next
             End If
             
         Case Else
             Set aUnd = g_Underlying(Data.UndID)
-            If Not aUnd Is Nothing Then aUnd.PriceClose = Data.PriceClose
+            If Not aUnd Is Nothing Then
+                aUnd.PriceClose = Data.PriceClose
+                aUnd.PriceTheoclose = Data.TheoPriceClose
+            End If
             
     End Select
     
@@ -1769,7 +1782,7 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                                         Position = 42
                                         aTrd.Opt.PriceClose = ReadDbl(rs!fPriceClose)
                                         Position = 43
-                                        aTrd.Opt.PriceTheoClose = ReadDbl(rs!fPriceTheoClose)
+                                        aTrd.Opt.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
                                         Position = 44
                                         aTrd.Opt.Series = ReadStr(rs!vcContractName)
                                         Position = 45
@@ -1832,7 +1845,7 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                                     Position = 70
                                     aTrd.FutOpt.PriceClose = ReadDbl(rs!fPriceClose)
                                     Position = 71
-                                    aTrd.FutOpt.PriceTheoClose = ReadDbl(rs!fPriceTheoClose)
+                                    aTrd.FutOpt.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
                                     Position = 72
                                     aTrd.FutOpt.Series = ReadStr(rs!vcContractName)
                                     Position = 73
@@ -3127,3 +3140,35 @@ End Sub
 'End Sub
 '
 '
+Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderlyingUpdate)
+    On Error Resume Next
+    Dim aUnd As EtsGeneralLib.UndAtom
+    Dim bIsUpdated As Boolean
+    
+    If Data Is Nothing Then Exit Sub
+    
+    bIsUpdated = CBool(Data.UpdStatus And enUndAggregationUpdate)
+    If bIsUpdated Then
+        Set aUnd = g_UnderlyingAll(Data.UndID)
+        If Not aUnd Is Nothing Then
+            aUnd.Coeff = Data.Coeff
+            aUnd.PriceByHead = Data.UseHead
+            
+            ' TODO: event to screens
+        End If
+    End If
+    
+    'aUnd.PriceTheoClose
+    
+End Sub
+
+Public Sub PubUnderlyingUpdate(ByRef Data As MSGSTRUCTLib.IUnderlyingUpdate)
+    On Error Resume Next
+    Dim aPubManager As MMWLib.IPubManager
+    
+    Set aPubManager = MmwMsgManager
+    aPubManager.PubUnderlyingUpdate Data
+    
+    Set aPubManager = Nothing
+    
+End Sub

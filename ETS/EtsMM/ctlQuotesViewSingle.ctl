@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   63700993
+      Format          =   63963137
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -1590,6 +1590,7 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
         Set m_Aux.Grp.Und.BasketIndex = Nothing
         Set m_Aux.Grp.Und.Dividend = Nothing
         
+        
         Set aIdx = g_Index(m_Aux.Grp.Und.ID)
         If Not aIdx Is Nothing Then
             If aIdx.IsBasket Then
@@ -1597,6 +1598,27 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
             End If
             Set aIdx = Nothing
         End If
+        
+        
+        Set m_Aux.Grp.Und.Dividend = aContract.Und.Dividend
+        
+        Select Case aContract.Und.Dividend.DivType
+            Case enDivCustomStream:
+                ' TODO:
+                LoadCustomDivs
+                
+            Case enDivStockBasket:
+                ' TODO:
+'                Set m_Aux.Grp.Und.Dividend.CustomDivs = m_Aux.Grp.Und.BasketIndex.BasketDivs
+                m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket
+                
+            Case enDivIndexYield:
+                m_Aux.Grp.Und.Dividend.DivAmt = m_Aux.Grp.Und.Yield
+                
+        End Select
+        
+        
+        
     End If
     
     m_Aux.Grp.Und.Quote.Clear
@@ -3304,7 +3326,7 @@ Private Sub fgFut_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                             End If
                                             
                                             If SavePriceClose(enCtFuture, aFut.ID, aFut.Quote(0).PriceClose) Then
-                                                TradeChannel.PriceCloseForPub enCtFuture, aFut.ID, aFut.UndID, aFut.Quote(0).PriceClose
+                                                TradeChannel.PriceCloseForPub enCtFuture, aFut.ID, aFut.UndID, aFut.Quote(0).PriceClose, BAD_DOUBLE_VALUE
                                             End If
                                             
                                             If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
@@ -4108,7 +4130,7 @@ End Sub
 
 Private Sub SaveDividendsInfo()
     On Error GoTo EH
-    If m_Aux.Grp.ID = 0 Or m_Aux.Grp.ContractType <> enCtStock Then Exit Sub
+    If m_Aux.Grp.ID = 0 Or (m_Aux.Grp.ContractType <> enCtStock And m_Aux.Grp.ContractType <> enCtIndex) Then Exit Sub
     Dim aGUnd As EtsGeneralLib.UndAtom
     Dim aUnd As EtsMmQuotesLib.MmQvUndAtom
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
@@ -4142,10 +4164,27 @@ Private Sub SaveDividendsInfo()
                     End If
                     
                     If .DivType = enDivCustomStream Then
-                        gDBW.usp_Stock_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
-                                        2, Null, Null, Null, Null, Null, _
-                                        Null, Null, Null, Null, Null, 0, Null, Null
+                        If m_Aux.Grp.ContractType = enCtStock Then
+                            gDBW.usp_Stock_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
+                                            2, Null, Null, Null, Null, Null, _
+                                            Null, Null, Null, Null, Null, 0, Null, Null
+                        Else
+                            gDBW.usp_Index_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
+                                            Null, Null, Null, Null, Null, 0, _
+                                            Null, Null, Null, 2
+                        End If
+                    End If
                     
+                    If .DivType = enDivStockBasket Then
+                        gDBW.usp_Index_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
+                                        Null, Null, Null, Null, Null, 0, _
+                                        Null, Null, Null, 3
+                    End If
+                    
+                    If .DivType = enDivIndexYield Then
+                        gDBW.usp_Index_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
+                                        Null, Null, Null, Null, Null, 0, _
+                                        Null, Null, Null, 4
                     End If
                     
                   
@@ -4285,7 +4324,7 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     m_AuxOut.ProfilesUpdate
                 
                 Case QDC_DIV
-                    If m_Aux.Grp.ContractType = enCtStock Then
+'                    If m_Aux.Grp.ContractType = enCtStock Then
                         lValue = CLng(sValue)
                         enDivType = m_Aux.Grp.Und.Dividend.DivType
                         Set aDiv = m_Aux.Grp.Und.Dividend
@@ -4317,13 +4356,25 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 LoadCustomDivs
                             End If
                             
+                            If m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket Then
+                                ' TODO: check
+                                Set m_Aux.Grp.Und.Dividend.CustomDivs = m_Aux.Grp.Und.BasketIndex.BasketDivs
+'                            Else
+'                                Set m_Aux.Grp.Und.Dividend.CustomDivs = Nothing
+'                                Set m_Aux.Grp.Und.Dividend = Nothing
+                            End If
+                            
+                            If m_Aux.Grp.Und.Dividend.DivType = enDivIndexYield Then
+                                m_Aux.Grp.Und.Dividend.DivAmt = m_Aux.Grp.Und.Yield
+                            End If
+                            
                             SaveDividendsInfo
                             bNeedRecalc = True
                             bForceRecalc = True
                         End If
                         
                         
-                    End If
+'                    End If
                     m_AuxOut.DivsUpdate
                     mnuCtxCustomDividend.Enabled = m_Aux.Grp.ID <> 0
                     
@@ -4999,9 +5050,9 @@ Private Sub ShowPopup()
     mnuCtxTntCardNew.Enabled = Not m_bInProc
     bEnableCustomDivs = False
     
-    
+    ' TODO:
     If Not m_Aux.Grp.Und.Dividend Is Nothing Then
-        mnuCtxCustomDividend.Enabled = IIf(m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream, True, False)
+        mnuCtxCustomDividend.Enabled = IIf(m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream Or enDivStockBasket, True, False)
     ElseIf m_Aux.Grp.Und.UndType = enCtIndex And Not m_Aux.Grp.Und.BasketIndex Is Nothing Then
         mnuCtxCustomDividend.Enabled = True
     Else
@@ -5276,7 +5327,7 @@ Private Sub fgOpt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     End If
 End Sub
 
-Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, ByRef isManual() As Boolean)
+Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef Price() As Double, ByRef isManual() As Boolean)
 
     Dim aRowData As MmQvRowData
 
@@ -5289,7 +5340,7 @@ Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, By
     For Each l In ctrID
 
         If l = QV.Grp.Und.ID Then
-            QV.Grp.Und.ActivePrice = price(i)
+            QV.Grp.Und.ActivePrice = Price(i)
             QV.Grp.Und.UseManualActivePrice = isManual(i)
             If QV.Grp.Und.UseManualActivePrice = False Then
                 QV.EtsMain.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
@@ -5515,7 +5566,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     '''''''''''''''''''''''''''''''''''''''''''''''''''''''
                                     If Not aRowData.Und Is Nothing Then
                                         If SavePriceClose(aRowData.Und.UndType, aRowData.Und.ID, aRowData.UndQuote.PriceClose) Then
-                                            TradeChannel.PriceCloseForPub aRowData.Und.UndType, 0, aRowData.Und.ID, aRowData.UndQuote.PriceClose
+                                            TradeChannel.PriceCloseForPub aRowData.Und.UndType, 0, aRowData.Und.ID, aRowData.UndQuote.PriceClose, BAD_DOUBLE_VALUE
                                         End If
                                     End If
                                     '''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -5524,6 +5575,31 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     End If
                                     '''''''''''''''''''''''''''''''''''''''''''''''''''''''
                                 End If
+                            Case QUC_COEFF
+                                Dim aGlUnd As EtsGeneralLib.UndAtom
+                                Set aGlUnd = g_UnderlyingAll(m_Aux.Grp.Und.ID)
+                            
+                                If Not aGlUnd Is Nothing Then
+                                    If Not aGlUnd.IsHead And Not aGlUnd.HeadComponent Is Nothing Then
+                                        dValue = .ValueMatrix(Row, Col)
+                                        If aGlUnd.Coeff <> dValue And dValue > 0 Then
+                                            aGlUnd.Coeff = dValue
+                                            gDBW.usp_AssetGroupElement_Save aGlUnd.HeadComponent.ID, aGlUnd.ID, IIf(aGlUnd.PriceByHead, 1, 0), aGlUnd.Coeff
+                                            
+                                            Dim Data As MSGSTRUCTLib.UnderlyingUpdate
+                                            Set Data = New MSGSTRUCTLib.UnderlyingUpdate
+                                            
+                                            Data.UpdStatus = enUndAggregationUpdate
+                                            Data.UndID = aGlUnd.ID
+                                            Data.Coeff = aGlUnd.Coeff
+                                            Data.UseHead = aGlUnd.PriceByHead
+                                            
+                                            g_TradeChannel.PubUnderlyingUpdate Data
+                                            
+                                        End If
+                                    End If
+                                End If
+                            
                         End Select
                         
                         If bNeedRecalc Then
@@ -5766,6 +5842,19 @@ Private Sub fgUnd_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
             End If
             If nKey = QUC_ACTIVEFUTUREPRICE And QV.Grp.Und.ActiveFuture Is Nothing Then
                 Cancel = True
+            End If
+            
+            If nKey = QUC_COEFF Then
+                Dim aGlUnd As EtsGeneralLib.UndAtom
+                Set aGlUnd = g_UnderlyingAll(m_Aux.Grp.Und.ID)
+                
+                Cancel = True
+                            
+                If Not aGlUnd Is Nothing Then
+                    If Not aGlUnd.IsHead And Not aGlUnd.HeadComponent Is Nothing Then
+                        Cancel = False
+                    End If
+                End If
             End If
 
         End If
@@ -6109,8 +6198,8 @@ Private Sub mnuCtxCustomDividend_Click()
             expDate = aExp.Expiry
         Next
 
-        m_frmCustDivs.Init m_Aux.Grp.Und.ID, m_Aux.Grp.Und.Symbol, expDate, m_Aux.Grp.Und.UndType <> enCtStock
-        m_frmCustDivs.BasketDivs = m_Aux.Grp.Und.BasketIndex.BasketDivs
+        m_frmCustDivs.Init m_Aux.Grp.Und.ID, m_Aux.Grp.Und.Symbol, expDate, m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket, m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream
+        m_frmCustDivs.BasketDivs = IIf(m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket, m_Aux.Grp.Und.BasketIndex.BasketDivs, Nothing)
         m_frmCustDivs.Show vbModal, Me
         If m_frmCustDivs.GotData Then
         
@@ -9944,7 +10033,7 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
     Set aUnd = m_Aux.Grp.Und
     If Not aUnd Is Nothing Then
         If aPrcData.ContractType = enCtStock Or aPrcData.ContractType = enCtIndex Then
-            If aUnd.Quote(0).PriceClose <> aPrcData.PriceClose Then
+            If aUnd.Quote(0).PriceClose <> aPrcData.PriceClose And aUnd.ID = aPrcData.UndID Then
                 aUnd.Quote(0).PriceClose = aPrcData.PriceClose
                 bChange = True
             End If
@@ -12458,8 +12547,8 @@ Private Function LoadCustomDivs() As Boolean
         expDate = aExp.Expiry
     Next
         
-    m_frmCustDivs.Init m_Aux.Grp.Und.ID, m_Aux.Grp.Und.Symbol, expDate, m_Aux.Grp.Und.UndType <> enCtStock
-    m_frmCustDivs.BasketDivs = m_Aux.Grp.Und.BasketIndex.BasketDivs
+    m_frmCustDivs.Init m_Aux.Grp.Und.ID, m_Aux.Grp.Und.Symbol, expDate, m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket, m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream
+    m_frmCustDivs.BasketDivs = IIf(m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket, m_Aux.Grp.Und.BasketIndex.BasketDivs, Nothing)
             
     If m_frmCustDivs.UpdateCollection Then
         Set m_Aux.Grp.Und.Dividend.CustomDivs = m_frmCustDivs.CustomDividend

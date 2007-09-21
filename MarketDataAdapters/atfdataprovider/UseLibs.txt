@@ -1,0 +1,3 @@
+C:\IvRM\IvRm_2.70\MarketDataAdapters\atfdataprovider
+
+PriceProviders.dll

@@ -102,6 +102,18 @@ library MSGSTRUCTLib
 
 	typedef 
 	[
+		uuid(6B14532A-4817-4413-BCEB-7E46BE0E0B05),
+		v1_enum,
+	]
+	enum 
+	{
+		enUndNoChanges				= 0x00,
+		enUndAggregationUpdate		= 0x01
+	}
+	UNDERLYING_UPDATE_STATUS;
+
+	typedef 
+	[
 		uuid(4A604B3C-28C7-48a7-A414-D6F2FFEE9B7A),
 		v1_enum,
 	]
@@ -382,6 +394,33 @@ library MSGSTRUCTLib
 		MSGSTRUCT_PROP_DEF(2, long,		UndID)
 		MSGSTRUCT_PROP_DEF(3, long,		ContractID)
 		MSGSTRUCT_PROP_DEF(4, double,	PriceClose)
+		MSGSTRUCT_PROP_DEF(5, double,	TheoPriceClose)
+	};
+
+	[
+		object,
+		uuid(E44D46C2-9287-4397-A99E-C5CC72884FED),
+		dual,
+		nonextensible,
+		helpstring("IUnderlyingUpdate Interface"),
+		pointer_default(unique)
+	]
+	interface IUnderlyingUpdate : IDispatch{
+		MSGSTRUCT_PROP_DEF(1,	long,			UndID)
+
+		// aggregation
+		MSGSTRUCT_PROP_DEF(2,	double,			Coeff)
+		MSGSTRUCT_PROP_DEF(3,	VARIANT_BOOL,	UseHead)
+
+
+		// updated fields
+		MSGSTRUCT_PROP_DEF(90,	UNDERLYING_UPDATE_STATUS,	UpdStatus)
+		
+		// TODO: send updated data structure
+
+		/*MSGSTRUCT_PROP_DEF(30,	VARIANT_BOOL,	IsPriceTheoUpdated)
+		MSGSTRUCT_PROP_DEF(31,	VARIANT_BOOL,	IsAggregationUpdated)
+		MSGSTRUCT_PROP_DEF(32,	VARIANT_BOOL,	IsDivsUpdated)*/
 	};
 
 	[
@@ -671,5 +710,14 @@ library MSGSTRUCTLib
 	coclass FlexOption
 	{
 		[default] interface IFlexOption;
+	};
+	[
+		uuid(13960A69-9021-46D0-87D4-383C98C2D011),
+		helpstring("UnderlyingUpdate Class")
+	]
+	coclass UnderlyingUpdate
+	{
+		[default]	interface IUnderlyingUpdate;
+					interface INetPacking;
 	};
 };

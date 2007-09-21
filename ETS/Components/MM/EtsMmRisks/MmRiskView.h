@@ -329,7 +329,7 @@ END_CONNECTION_POINT_MAP()
 
 private:
 	void DecreaseOutline( CRowsData::reverse_iterator& begin, CRowsData::reverse_iterator& end);
-	IMmRvUndAtomPtr _AddNewUnderlying(IMmTradeInfoAtomPtr spTradeAtom, IMmRvReqColl* pRequestColl = NULL);
+	IMmRvUndAtomPtr _AddNewUnderlying(IUndAtomPtr spEtsUndAtom/*IMmTradeInfoAtomPtr spTradeAtom*/, IMmRvReqColl* pRequestColl = NULL);
 
 	void AddActiveFuture( IUndAtomPtr spUnd, CComObject<CMmRvUndAtom>* pUndAtom, IMmRvReqColl* pRequestColl = NULL );
 
@@ -502,7 +502,7 @@ public:
 		HRESULT hr = S_OK;
 		try
 		{
-			*ppRet = _AddNewUnderlying(spTradeAtom, pRequests).Detach();
+			*ppRet = _AddNewUnderlying(spTradeAtom->Und, pRequests).Detach();
 		}
 		catch (_com_error &err)
 		{

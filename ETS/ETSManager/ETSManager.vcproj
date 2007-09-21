@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="ETSManager"
-	ProjectGUID="{82218F49-FF5D-42AF-AC04-76468EC4591E}"
+	ProjectGUID="{5839078E-D296-4475-B330-6A9409F31E6F}"
 	RootNamespace="ETSManager"
 	SccProjectName="SAK"
 	SccLocalPath="."
@@ -797,6 +797,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\UseLibs.txt"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

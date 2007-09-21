@@ -103,8 +103,11 @@ public:
 	STDMETHOD(get_IsAggregation)(VARIANT_BOOL* pRetVal)
 	{
 		if ( !pRetVal) return E_POINTER;
-		if (m_Type == RDT_UNDAGG && m_nLevel > 0 ) 
-			*pRetVal = VARIANT_FALSE;
+		if (m_Type == RDT_UNDAGG && m_nLevel > 0) 
+			if (m_pUnd->m_bIsHead==VARIANT_TRUE||m_pUnd->m_spHeadComponent!=NULL)
+				*pRetVal = VARIANT_TRUE;
+			else
+				*pRetVal = VARIANT_FALSE;
 		else
 			*pRetVal =  m_pAgg ? VARIANT_TRUE  : VARIANT_FALSE;
 		return S_OK;

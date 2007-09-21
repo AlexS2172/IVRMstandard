@@ -31,6 +31,17 @@ STDMETHODIMP CEtsIndexDivAtom::IsValidDivs(EtsDivTypeEnum enDivType, VARIANT_BOO
 	{
 		*pVal = TRUE;
 	}
+
+	if(enDivType == enDivStockBasket)
+	{
+		*pVal = TRUE;
+	}
+
+	if(enDivType == enDivIndexYield)
+	{
+		*pVal = m_dDivAmt >= 0.;
+	}
+	
 	return S_OK;
 }
 
@@ -176,7 +187,7 @@ STDMETHODIMP CEtsIndexDivAtom::GetNearest( LONG nToday,  LONG nExpiry,  DOUBLE* 
 
 	try
 	{
-		if (m_enDivType == enDivCustomStream)
+		if (m_enDivType == enDivCustomStream || m_enDivType == enDivStockBasket)
 		{
 			m_spCustomDivs->GetNearest(nToday, nExpiry, pdDivAmount, pdDivDate);
 		}
@@ -210,6 +221,7 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividendCount( LONG nToday,  LONG nExpiry,  LO
 		{
 			switch(m_enDivType)
 			{
+			case enDivStockBasket:
 			case enDivCustomStream:
 				if (m_spCustomDivs != NULL)
 					m_spCustomDivs->GetDividendCount(  nToday,  nExpiry,  pnCount);

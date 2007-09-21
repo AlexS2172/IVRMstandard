@@ -883,6 +883,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\UseLibs.txt"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

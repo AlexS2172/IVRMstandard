@@ -552,11 +552,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MmTradeView.rgs"
+				RelativePath=".\MmTradeUpdateColl.rgs"
 				>
 			</File>
 			<File
-				RelativePath=".\MmTradeUpdateColl.rgs"
+				RelativePath=".\MmTradeView.rgs"
 				>
 			</File>
 		</Filter>
@@ -587,6 +587,10 @@
 		</Filter>
 		<File
 			RelativePath="ReadMe.txt"
+			>
+		</File>
+		<File
+			RelativePath=".\UseLibs.txt"
 			>
 		</File>
 	</Files>

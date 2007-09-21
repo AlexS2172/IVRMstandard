@@ -1,0 +1,10 @@
+C:\IvRM\IvRm_2.70\ETS\VolatilitySources
+
+MMW.dll
+VME.dll
+ETSAdapter.dll
+MsgStruct.dll
+VMStructures.dll
+progid:VMMessaging.VMTransport
+VADBLayout.dll
+VMCurve.dll

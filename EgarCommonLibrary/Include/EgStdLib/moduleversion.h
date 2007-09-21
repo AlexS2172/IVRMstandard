@@ -1,7 +1,7 @@
 #ifndef __EGSTDLIB_MODULE_VERSION_H__
 #define __EGSTDLIB_MODULE_VERSION_H__
 
-#include <EgStdLib\EgStdLibCommon.h>
+#include <_EgStdLib\EgStdLibCommon.h>
 
 namespace EgStd
 {

@@ -67,6 +67,11 @@ struct __UndAtom
 	DOUBLE m_dManualActivePrice;
 	VARIANT_BOOL		m_fIsManualVol;
 
+	IUndAtomPtr			m_spHeadComponent;
+	DOUBLE				m_dCoeff;
+	VARIANT_BOOL		m_bPriceByHead;
+	VARIANT_BOOL		m_bIsHead;
+
 
 	__UndAtom()
 		: m_nID(0L), m_enUndType(enCtStock), m_bIsAmerican(VARIANT_FALSE),
@@ -75,11 +80,11 @@ struct __UndAtom
 		m_dSkew(0.), m_dKurt(0.),m_bHaveSyntheticRoots(VARIANT_FALSE),
 		m_bHaveOptions(VARIANT_FALSE), m_bIsActive(VARIANT_FALSE),
 		m_bIsBasketIndex(VARIANT_FALSE), m_nVolume10Day(0), m_nVolume5Expiration(0),
-		m_dUndPosForRates(0.), m_bHaveFutures(VARIANT_FALSE), m_nTotalQtyInShares(BAD_LONG_VALUE)
-		, m_enDivType(enDivMarket), m_dSOQ(0.), m_bIsHedgeSymbol(VARIANT_FALSE), m_nPrimaryExchangeID(0),
+		m_dUndPosForRates(0.), m_bHaveFutures(VARIANT_FALSE), m_nTotalQtyInShares(BAD_LONG_VALUE),
+		m_enDivType(enDivMarket), m_dSOQ(0.), m_bIsHedgeSymbol(VARIANT_FALSE), m_nPrimaryExchangeID(0),
 		m_dManualActivePrice(0), m_fIsManualVol(FALSE),
-		m_dPriceTheoClose(BAD_DOUBLE_VALUE)
-
+		m_dPriceTheoClose(BAD_DOUBLE_VALUE),
+		m_dCoeff(1.0), m_bPriceByHead(VARIANT_FALSE), m_bIsHead(VARIANT_FALSE)
 	{
 	}
 };
@@ -148,6 +153,7 @@ public:
 		m_spRoots = NULL;
 		m_spFutRoots = NULL;
 		m_spActiveFuture = NULL;
+		m_spHeadComponent = NULL;
 	}
 
 public:
@@ -197,6 +203,11 @@ public:
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsHedgeSymbol, m_bIsHedgeSymbol)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualActivePrice, m_dManualActivePrice)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsManualVol, m_fIsManualVol)
+
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, PriceByHead,	m_bPriceByHead)
+		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,		Coeff,			m_dCoeff)
+		IMPLEMENT_OBJECT_PROPERTY(IUndAtom*,	HeadComponent,	m_spHeadComponent)
+		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsHead,			m_bIsHead)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(UndAtom), CUndAtom)

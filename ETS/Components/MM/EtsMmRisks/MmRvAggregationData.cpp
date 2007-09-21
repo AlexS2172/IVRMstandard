@@ -19,6 +19,58 @@ void accumulate_if_not_bad( double& sumValue, const double addValue){
 		sumValue += addValue;
 	}
 }
+
+void accumulate_if_not_bad( double& sumValue, const double addValue, const double K){
+	if ( !IsBadValue(addValue)) {
+		if (IsBadValue(sumValue)) 
+			sumValue = 0.;
+		sumValue += K * addValue;
+	}
+}
+
+void accumulate_if_not_bad( LONG& sumValue, const LONG addValue, const double K){
+	double tmpAdd = static_cast<double>(addValue);
+	if ( !IsBadValue(addValue)) {
+		if (IsBadValue(sumValue)) 
+			sumValue = 0;
+		sumValue += static_cast<LONG>(K * tmpAdd );
+	}
+}
+
+void CMmRvAggData::AddAggregatedValues(const CMmRvRowData* pRow)
+{
+	if (pRow->m_pUnd->m_spHeadComponent || pRow->m_pUnd->m_bIsHead)
+	{
+		double	dCoeff = 1.0;
+		if (pRow->m_pUnd->m_spHeadComponent || pRow->m_pUnd->m_bIsHead == VARIANT_TRUE) 
+			dCoeff = pRow->m_pUnd->m_dCoeff;
+
+		accumulate_if_not_bad( UndPos_,			pRow->m_pAgg->UndPos_,	dCoeff );
+		accumulate_if_not_bad( OptQty_,			pRow->m_pAgg->OptQty_,	1.0 );
+		accumulate_if_not_bad( FutQty_,			pRow->m_pAgg->FutQty_,	1.0 );
+
+		accumulate_if_not_bad( OptDlt_,			pRow->m_pAgg->OptDlt_,	dCoeff );
+		accumulate_if_not_bad( OptDlt$_,		pRow->m_pAgg->OptDlt$_, dCoeff );
+		accumulate_if_not_bad( Gma1P_,			pRow->m_pAgg->Gma1P_,	dCoeff * dCoeff );
+		accumulate_if_not_bad( Gma1$_,			pRow->m_pAgg->Gma1$_,	dCoeff * dCoeff );
+		accumulate_if_not_bad( Vga$_,			pRow->m_pAgg->Vga$_,	1.0 );
+		accumulate_if_not_bad( Tht$_,			pRow->m_pAgg->Tht$_,	1.0 );
+		accumulate_if_not_bad( WtdVga$_,		pRow->m_pAgg->WtdVga$_, 1.0 );
+		accumulate_if_not_bad( Rho$_,			pRow->m_pAgg->Rho$_,	1.0 );
+		accumulate_if_not_bad( ThtDlt_,			pRow->m_pAgg->ThtDlt_,	dCoeff );
+		accumulate_if_not_bad( ThtGma_,			pRow->m_pAgg->ThtGma_,	dCoeff * dCoeff );
+		accumulate_if_not_bad( VgaDlt_,			pRow->m_pAgg->VgaDlt_,	dCoeff );
+		accumulate_if_not_bad( VgaGma_,			pRow->m_pAgg->VgaGma_,	dCoeff * dCoeff );
+		accumulate_if_not_bad( NetDlt_,			pRow->m_pAgg->NetDlt_,	1.0 );
+		accumulate_if_not_bad( NetDlt$_,		pRow->m_pAgg->NetDlt$_, 1.0 );
+		accumulate_if_not_bad( BetaWtdDelta$_,	pRow->m_pAgg->BetaWtdDelta$_, 1.0 );
+		accumulate_if_not_bad( NetGma$_,		pRow->m_pAgg->NetGma$_, dCoeff * dCoeff );
+
+		accumulate_if_not_bad( PnlEdge_,		pRow->m_pAgg->PnlEdge_, 1.0 );
+		accumulate_if_not_bad( PnlMTM_,			pRow->m_pAgg->PnlMTM_,	1.0 );
+		accumulate_if_not_bad( PnLTheo_,		pRow->m_pAgg->PnLTheo_, 1.0 );
+	}	
+}
 void CMmRvAggData::CalcNetDeltas(EtsContractTypeEnum underlyingContractType)
 {
 
@@ -133,6 +185,9 @@ void CMmRvAggData::CalcNetDeltas(EtsContractTypeEnum underlyingContractType)
 
 bool CMmRvAggData::IsAggregationRowVisible( const CMmRvAggData* pAgg) 
 {
+	if (pAgg->m_bIsHeadAggregation == VARIANT_TRUE)
+		return true;
+
 	if( find_if(pAgg->Positions_.begin(),pAgg->Positions_.end(), bind( &CMmRvPosAtom::IsVisible, _1) ) != pAgg->Positions_.end() )
 		return true;
 	CMmRvAggData::Aggregations::const_iterator itrCurAgg = pAgg->Aggregations_.begin();

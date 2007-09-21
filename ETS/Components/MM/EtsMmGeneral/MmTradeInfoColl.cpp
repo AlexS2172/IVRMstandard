@@ -266,7 +266,23 @@ STDMETHODIMP CMmTradeInfoColl::get_FilterTrades(IEtsFilterData* pFilter,
 					else	//load all trades/positions
 					{
 						pTradeInfoAtom->get_UndID(&lUndId);
-						if(lFilterUndID != lUndId)		continue;
+						if(lFilterUndID != lUndId)
+						{
+							IUndAtomPtr spUnd;
+							hr = pTradeInfoAtom->get_Und(&spUnd);
+							if(!spUnd || FAILED(hr)) continue;
+
+							IUndAtomPtr spHeadUnd;
+							hr = spUnd->get_HeadComponent(&spHeadUnd);
+							if(!spHeadUnd || FAILED(hr)) continue;
+
+							LONG	lHeadComponentID = 0;
+							hr = spHeadUnd->get_ID(&lHeadComponentID);
+							if(FAILED(hr)) continue;
+
+							if (lHeadComponentID != lFilterUndID)
+								continue;
+						}
 					}
 				}
 				if( lFilterGroupID > 0 )

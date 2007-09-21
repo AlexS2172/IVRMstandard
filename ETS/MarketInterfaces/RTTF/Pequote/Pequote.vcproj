@@ -564,7 +564,8 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\ETSXMLParams\Helper\XMLParamsHelper.cpp">
+				RelativePath="..\..\..\ETSXMLParams\Helper\XMLParamsHelper.cpp"
+				>
 			</File>
 		</Filter>
 		<Filter
@@ -632,7 +633,8 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\ETSXMLParams\Helper\XMLParamsHelper.h">
+				RelativePath="..\..\..\ETSXMLParams\Helper\XMLParamsHelper.h"
+				>
 			</File>
 		</Filter>
 		<Filter

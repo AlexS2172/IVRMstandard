@@ -362,25 +362,23 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 								
 								if (enContractType == enCtStock)
 								{
-									/*if (pUnd->m_spActiveFuture == NULL)
+									if (pUnd->m_spHeadComponent == NULL)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
 									else
-										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;*/
-										dTheoClosePrice = pUnd->m_pPrice->m_dActivePrice;
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
 								}
 								else if (enContractType == enCtIndex)
 								{
-									/*if (pUnd->m_spActiveFuture == NULL)
+									if (pUnd->m_spActiveFuture == NULL && pUnd->m_spHeadComponent == NULL)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
 									else
-										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;*/
-										dTheoClosePrice = pUnd->m_pPrice->m_dActivePrice;
+										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
 								}
 								else if (enContractType == enCtFuture)
 								{
-									/*if (pUnd->m_spActiveFuture == NULL)
+									if (pUnd->m_spActiveFuture == NULL)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
-									else*/
+									else
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
 								}
 								else if (enContractType == enCtFutOption)
@@ -393,9 +391,9 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 								}
 								else if (enContractType == enCtFutUnd)
 								{
-									/*if (pUnd->m_spActiveFuture == NULL)
+									if (pUnd->m_spActiveFuture == NULL)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
-									else*/
+									else
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
 								}
 								
@@ -561,7 +559,7 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 
 					IMmRvUndAtomPtr spUndAtom = m_pUnd->GetUnderlying(lUndID);
 					if(spUndAtom == NULL)
-						spUndAtom = _AddNewUnderlying(spTradeAtom);
+						spUndAtom = _AddNewUnderlying(spTradeAtom->Und);
 
 					CMmRvUndAtom* pUndAtom = dynamic_cast<CMmRvUndAtom*>(spUndAtom.GetInterfacePtr());
 					IMmRvPosAtomPtr spPosAtom = pUndAtom->m_pPos->GetPosition(lContractId);
@@ -1180,12 +1178,12 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
     return spPosAtom;
 }
 
- IMmRvUndAtomPtr CMmRiskView::_AddNewUnderlying(IMmTradeInfoAtomPtr spTradeAtom, IMmRvReqColl* pRequestColl)
+ IMmRvUndAtomPtr CMmRiskView::_AddNewUnderlying(IUndAtomPtr spEtsUndAtom /*IMmTradeInfoAtomPtr spTradeAtom*/, IMmRvReqColl* pRequestColl)
 {
 	CComObject<CMmRvUndAtom>* pUndAtom   = NULL;
-	IUndAtomPtr              spUnd       = spTradeAtom->Und;
+	IUndAtomPtr              spUnd       = spEtsUndAtom;//spTradeAtom->Und;
 	IExchAtomPtr			 spUndExch;
-	long                     nUndId      = spTradeAtom->UndID;
+	long                     nUndId      = spUnd->ID;//spTradeAtom->UndID;
 	_bstr_t					 bsUndSymbol = spUnd->Symbol;
 
 	IMmRvUndAtomPtr          spUndAtom = m_pUnd->AddNew(nUndId, bsUndSymbol, &pUndAtom);
@@ -1216,6 +1214,18 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 	pUndAtom->m_spUndPriceProfile		= spUnd->UndPriceProfile;
 	pUndAtom->m_spOptPriceProfile		= spUnd->OptPriceProfile;
 	pUndAtom->m_pPrice->m_dPriceClose   = spUnd->PriceClose;
+
+	pUndAtom->m_dCoeff					= spUnd->Coeff;
+	pUndAtom->m_bIsHead					= spUnd->IsHead;
+	pUndAtom->m_bPriceByHead			= spUnd->PriceByHead;
+
+	if (spUnd->HeadComponent)
+	{
+		pUndAtom->m_spHeadComponent = m_pUnd->GetUnderlying(spUnd->HeadComponent->ID);
+		if(pUndAtom->m_spHeadComponent == NULL)
+			pUndAtom->m_spHeadComponent = _AddNewUnderlying(spUnd->HeadComponent, pRequestColl);
+	}
+
 	if (spUnd->ManualActivePrice > 0)
 	{
 		pUndAtom->m_pPrice->m_bManualActive = VARIANT_TRUE;
@@ -1341,7 +1351,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 	//}
 	m_lUndCount++;
 
-	if ( pUndAtom->m_enContractType == enCtIndex || pUndAtom->m_enContractType == enCtFutUnd)
+	if ( (pUndAtom->m_enContractType == enCtIndex || pUndAtom->m_enContractType == enCtFutUnd) && pUndAtom->m_spHeadComponent == NULL)
 		AddActiveFuture(spUnd, pUndAtom);
 
 	return spUndAtom;
@@ -2214,12 +2224,12 @@ HRESULT CMmRiskView::InitPositionSynthetics(CMmRvUndAtom* pUndAtom, CMmRvPosAtom
 	}
 return hr;
 }
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, SAFEARRAY** arrAggregationCols, DOUBLE dUndPriceToleranceValue, EtsPriceRoundingRuleEnum enPriceRoundingRule)
 {
 	if (!m_pUnd) return S_OK;
 	{
-	CRowsData undRows;
+	CRowsData undRows, undGroupedRows;
 	CMmRvUndColl::EnumCollType::iterator it = m_pUnd->m_coll.begin();
 	CMmRvUndColl::EnumCollType::iterator itEnd = m_pUnd->m_coll.end();
 
@@ -2235,7 +2245,11 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 			pRow->m_spUnd.Attach(pUndAtom, TRUE);
 			pRow->m_pUnd = pUndAtom;
 			pRow->m_pAgg.reset( static_cast<CMmRvAggData*>(pUndAtom), null_deleter());
-			pRow->m_nLevel = 0;
+			if (pRow->m_pUnd->m_spHeadComponent || pRow->m_pUnd->m_bIsHead)
+				pRow->m_nLevel = 1;
+			else
+				pRow->m_nLevel = 0;
+
 			undRows.insert(undRows.end(), spRowData);
 		}
 	}
@@ -2243,20 +2257,180 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 	// sort underlying according to sort column
 	std::sort( undRows.begin(), undRows.end(), CRiskViewFieldSort(m_SortColumn, m_SortOrder));
 
-	// create rows
+	// group by asset group
+	long	lID, lRowCounter  = 0;
 	CRowsData::iterator itrCurUnd = undRows.begin();
 	CRowsData::iterator itrLastUnd = undRows.end();
+	std::set<long> vInserted;
+	std::set<long> vHeadInserted;
+
+	for (; itrCurUnd != itrLastUnd; ++itrCurUnd) 
+	{
+		CMmRvRowData* pRow = static_cast<CMmRvRowData*>((*itrCurUnd).GetInterfacePtr());
+		if (pRow && pRow->m_pUnd)
+		{
+			if (pRow->m_pUnd->m_bIsHead)
+				lID = pRow->m_pUnd->m_nID;
+			else if (pRow->m_pUnd->m_spHeadComponent)
+				pRow->m_pUnd->m_spHeadComponent->get_ID(&lID);
+			else
+				lID = -1;
+
+			if (lID	> 0)
+			{
+				CRowsData::iterator itrCurHead = itrCurUnd;
+
+				for (; itrCurHead != itrLastUnd; ++itrCurHead)
+				{
+					CMmRvRowData* pCurRow = static_cast<CMmRvRowData*>((*itrCurHead).GetInterfacePtr());
+
+					if (pCurRow && pCurRow->m_pUnd)
+					{
+						long	lCurUndID = pCurRow->m_pUnd->m_nID;
+						if (lCurUndID == lID && vInserted.find(lCurUndID) == vInserted.end())
+						{	
+							if (vHeadInserted.find(lID) == vHeadInserted.end())
+							{
+								CComObject<CMmRvRowData>* pRow = NULL;
+								CComObject<CMmRvUndAtom>* pUndAtom = NULL;
+								if(SUCCEEDED(CComObject<CMmRvRowData>::CreateInstance(&pRow)) && SUCCEEDED(CComObject<CMmRvUndAtom>::CreateInstance(&pUndAtom)))
+								{
+									IMmRvUndAtomPtr spUndAtom;
+									spUndAtom.Attach(pUndAtom, TRUE);
+
+									IMmRvRowDataPtr spRowData;
+									spRowData.Attach(pRow, TRUE);
+
+									pRow->m_Type = RDT_UNDAGG;
+									pRow->m_spUnd.Attach(pUndAtom, TRUE);
+									pRow->m_pUnd = pUndAtom;
+									pRow->m_pAgg.reset( static_cast<CMmRvAggData*>(pUndAtom), null_deleter());
+
+									CComBSTR	sSymbol;
+									pCurRow->m_pUnd->get_Symbol(&sSymbol);
+									EtsContractTypeEnum	enCtType;
+									pCurRow->m_pUnd->get_ContractType(&enCtType);
+
+									IMmRvPricePtr pPrice;
+									pCurRow->m_pUnd->get_Price(&pPrice);
+									pPrice->get_Bid(&pUndAtom->m_pPrice->m_dPriceBid);
+									pPrice->get_Ask(&pUndAtom->m_pPrice->m_dPriceAsk);
+									pPrice->get_Last(&pUndAtom->m_pPrice->m_dPriceLast);
+									pPrice->get_Active(&pUndAtom->m_pPrice->m_dActivePrice);
+									pPrice->get_TheoClose(&pUndAtom->m_pPrice->m_dPriceTheoClose);
+									pPrice->get_Close(&pUndAtom->m_pPrice->m_dPriceClose);
+
+									pRow->m_spUnd->put_Symbol(sSymbol);
+									pRow->m_pUnd->Name_ = pRow->m_pUnd->m_bstrSymbol;
+									pRow->m_pUnd->m_nID = lID;
+									pRow->m_pUnd->m_enContractType = enCtType;
+									pRow->m_pAgg->m_bIsHeadAggregation = VARIANT_TRUE;
+
+									vHeadInserted.insert(lID);
+									undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, spRowData);
+									++lRowCounter;
+								}
+							}
+							vInserted.insert(lCurUndID);
+							undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, (*itrCurHead));
+							++lRowCounter;
+						}
+						else if	(pCurRow->m_pUnd->m_spHeadComponent)
+						{
+							long	lHeadCompID = 0;
+							pCurRow->m_pUnd->m_spHeadComponent->get_ID(&lHeadCompID);
+							if (lHeadCompID == lID && vInserted.find(lCurUndID) == vInserted.end())
+							{
+								if (vHeadInserted.find(lID) == vHeadInserted.end())
+								{
+									CComObject<CMmRvRowData>* pRow = NULL;
+									CComObject<CMmRvUndAtom>* pUndAtom = NULL;
+									if(SUCCEEDED(CComObject<CMmRvRowData>::CreateInstance(&pRow)) && SUCCEEDED(CComObject<CMmRvUndAtom>::CreateInstance(&pUndAtom)))
+									{
+										IMmRvUndAtomPtr spUndAtom;
+										spUndAtom.Attach(pUndAtom, TRUE);
+
+										IMmRvRowDataPtr spRowData;
+										spRowData.Attach(pRow, TRUE);
+										pRow->m_Type = RDT_UNDAGG;
+										pRow->m_spUnd.Attach(pUndAtom, TRUE);
+										pRow->m_pUnd = pUndAtom;
+										pRow->m_pAgg.reset( static_cast<CMmRvAggData*>(pUndAtom), null_deleter());
+										pRow->m_nLevel = 0;
+
+										CComBSTR	sSymbol;
+										pCurRow->m_pUnd->m_spHeadComponent->get_Symbol(&sSymbol);
+										EtsContractTypeEnum	enCtType;
+										pCurRow->m_pUnd->m_spHeadComponent->get_ContractType(&enCtType);
+
+										IMmRvPricePtr pPrice;
+										pCurRow->m_pUnd->m_spHeadComponent->get_Price(&pPrice);
+										pPrice->get_Bid(&pUndAtom->m_pPrice->m_dPriceBid);
+										pPrice->get_Ask(&pUndAtom->m_pPrice->m_dPriceAsk);
+										pPrice->get_Last(&pUndAtom->m_pPrice->m_dPriceLast);
+										pPrice->get_Active(&pUndAtom->m_pPrice->m_dActivePrice);
+										pPrice->get_TheoClose(&pUndAtom->m_pPrice->m_dPriceTheoClose);
+										pPrice->get_Close(&pUndAtom->m_pPrice->m_dPriceClose);
+
+
+
+
+										pRow->m_spUnd->put_Symbol(sSymbol);
+										pRow->m_pUnd->Name_ = pRow->m_pUnd->m_bstrSymbol;
+										pRow->m_pUnd->m_nID = lID;
+										pRow->m_pUnd->m_enContractType = enCtType;
+										pRow->m_pAgg->m_bIsHeadAggregation = VARIANT_TRUE;
+
+										vHeadInserted.insert(lID);
+										undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, spRowData);
+										++lRowCounter;
+									}
+								}
+
+								vInserted.insert(lCurUndID);
+								undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, (*itrCurHead));
+								++lRowCounter;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, (*itrCurUnd));
+				++lRowCounter;
+			}
+		}
+	}
+	undRows.clear();
+
+
+	// create rows
+	itrCurUnd = undGroupedRows.begin();
+	itrLastUnd = undGroupedRows.end();
 	
+	long nLevel = 0;
 	m_Rows.clear();
 	m_nOptPositions = 0;
 	m_nUndPositions = 0;
+
+	CMmRvAggData::MmRvAggDataPtr pHeadAgg;
+
 	for (; itrCurUnd != itrLastUnd; ++itrCurUnd) {
 		CMmRvRowData* pRow = static_cast<CMmRvRowData*>((*itrCurUnd).GetInterfacePtr());
 		if (!pRow || !pRow->m_pUnd) continue;
 		pRow->m_pUnd->VisiblePositions(true);
-		pRow->m_pUnd->CreateRows( pRow->m_pUnd, lExpiryFilter, 0, &CRiskViewFieldSort(m_SortColumn, m_SortOrder), m_Rows, m_nOptPositions, m_nUndPositions, m_pUnd);
-	}
 
+		if (pRow->m_pUnd->m_spHeadComponent || pRow->m_pUnd->m_bIsHead)	nLevel = 1;
+		else nLevel = 0;
+
+		pRow->m_pUnd->CreateRows( pRow->m_pUnd, lExpiryFilter, nLevel, &CRiskViewFieldSort(m_SortColumn, m_SortOrder), m_Rows, m_nOptPositions, m_nUndPositions, m_pUnd);
+
+		if (pRow->m_pAgg->m_bIsHeadAggregation == VARIANT_TRUE)	pHeadAgg = pRow->m_pAgg;
+
+		if (pRow->m_pUnd->m_bIsHead == VARIANT_TRUE || pRow->m_pUnd->m_spHeadComponent)
+			pHeadAgg->AddAggregatedValues(pRow);
+	}
 	return S_OK;
 	}
 //	HRESULT hr = S_OK;

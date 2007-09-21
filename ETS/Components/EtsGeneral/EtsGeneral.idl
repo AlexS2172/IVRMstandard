@@ -56,7 +56,9 @@ library EtsGeneralLib
 	{
 		[helpstring("Market Dividend")]					enDivMarket				= 0,
 		[helpstring("Custom Periodical Dividend")]		enDivCustomPeriodical	= 1,
-		[helpstring("Custom Stream Dividend")]			enDivCustomStream		= 2
+		[helpstring("Custom Stream Dividend")]			enDivCustomStream		= 2,
+		[helpstring("Stock Basket Dividend")]			enDivStockBasket		= 3,
+		[helpstring("Yield Dividend")]					enDivIndexYield			= 4
 	} EtsDivTypeEnum;
 
 		/////////////////////////////////////////////////////////////////////////////
@@ -1126,6 +1128,12 @@ library EtsGeneralLib
 		ETSGENERAL_PROP_DEF(43,			DOUBLE,						ManualActivePrice)
 		ETSGENERAL_PROP_DEF(44,			DOUBLE,						PriceTheoClose)
 		ETSGENERAL_PROP_DEF(45,			VARIANT_BOOL,				IsManualVol)
+
+		ETSGENERAL_PROPPUTREF_DEF(46,	IUndAtom*,					HeadComponent)
+		ETSGENERAL_PROP_DEF(47,			DOUBLE,						Coeff)
+		ETSGENERAL_PROP_DEF(48,			VARIANT_BOOL,				PriceByHead)
+		ETSGENERAL_PROP_DEF(49,			VARIANT_BOOL,				IsHead)
+
 
 	};
 	/////////////////////////////////////////////////////////////////////////////

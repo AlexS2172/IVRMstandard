@@ -393,6 +393,10 @@
 			RelativePath=".\ReadMe.txt"
 			>
 		</File>
+		<File
+			RelativePath=".\UseLibs.txt"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

@@ -237,6 +237,7 @@ public:
 	STDMETHOD(LoadTraderGroup)();
 	STDMETHOD(LoadTrader)(LONG lTraderID);
 	STDMETHOD(LoadUnderlying)(LONG lTraderID);
+	STDMETHOD(LoadAssetGroup)();
 
 	IMPLEMENT_BSTRT_PROPERTY(DatabaseString, m_bstrDatabaseString)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IEtsTraderColl*,			Trader,			m_spTraderColl);

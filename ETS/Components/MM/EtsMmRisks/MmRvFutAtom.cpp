@@ -50,9 +50,8 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 
 	try
 	{
-		bool	useThis = true;
-
-		if ( spActiveFuture )	{
+		if ( spActiveFuture )	
+		{
 			double priceBid, priceAsk, priceLast;
 			double	activeFutureClosePrice = 0., activeFutureCurrentPrice = 0.;
 
@@ -67,20 +66,17 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 			VARIANT_BOOL	bCalcByManual = VARIANT_FALSE;
 			spPrice->get_IsUseManualActive(&bCalcByManual);
 
-			if (bCalcByManual == VARIANT_TRUE){
+			if (bCalcByManual == VARIANT_TRUE)
 				spPrice->get_Active(&activeFutureCurrentPrice);
-			}
-			else{
-				activeFutureCurrentPrice = spActiveFuturePriceProfile->GetUndPriceMid(priceBid, priceAsk, priceLast, dTolerance, 
-																					  enPriceRound, NULL,  VARIANT_FALSE );
-			}
-
+			else
+				activeFutureCurrentPrice = spActiveFuturePriceProfile->GetUndPriceMid(	priceBid, priceAsk,	priceLast, dTolerance, 
+																						enPriceRound, NULL,  VARIANT_FALSE );
 
 			if (activeFutureCurrentPrice > 0)
 			{
-
 				// we have price of active future
-				if ( m_dRatio <= 0.){
+				if ( m_dRatio <= 0.)
+				{
 					_CHK(spPrice->get_Close(&activeFutureClosePrice));
 					// we have no ratio, try to compute it on the fly
 					if ( m_pPrice && m_pPrice->m_dPriceClose > 0. && activeFutureClosePrice > 0)
@@ -93,24 +89,23 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 				}
 				else
 					*pPrice = activeFutureCurrentPrice * m_dRatio;
-				useThis = false;
 
 				m_pPrice->m_dActivePrice = *pPrice;
 				*bFutureUsed = VARIANT_TRUE;
 			}
-		}
-		// if we were unable to compute future price based on price of active future
-		// do it using this future quote 
-		if( useThis && m_spUndPriceProfile)
-		{
-			if (m_pPrice->m_bManualActive == VARIANT_FALSE )
+			else  //no active future price (market and manual) return 0.0
 			{
-				if (spActiveFuture == NULL)
-					*pPrice = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, 
-																m_pPrice->m_dPriceLast, dTolerance,
-																enPriceRound, penPriceStatus, VARIANT_FALSE );
-				else
-					*pPrice	=	0.0;
+				*pPrice = 0.;
+				m_pPrice->m_dActivePrice = *pPrice;
+				*bFutureUsed = VARIANT_FALSE;
+			}
+		}
+		else if (m_spUndPriceProfile)
+		{
+			if (m_pPrice->m_bManualActive == VARIANT_FALSE)
+			{
+				*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, m_pPrice->m_dPriceLast,
+																dTolerance,	enPriceRound, penPriceStatus, VARIANT_FALSE );
 
 				m_pPrice->m_dActivePrice = *pPrice;
 			}
@@ -124,12 +119,3 @@ STDMETHODIMP CMmRvFutAtom::GetFuturePrice( DOUBLE dTolerance, EtsPriceRoundingRu
 	}
 	return hr;
 }
-
-//// MmRvFutAtom.cpp : Implementation of CMmRvFutAtom
-//
-//#include "stdafx.h"
-//#include "MmRvFutAtom.h"
-//
-//
-//// CMmRvFutAtom
-//

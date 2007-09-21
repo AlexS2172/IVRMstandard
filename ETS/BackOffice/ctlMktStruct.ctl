@@ -13,6 +13,25 @@ Begin VB.UserControl ctlMktStruct
    ClientWidth     =   12270
    ScaleHeight     =   7365
    ScaleWidth      =   12270
+   Begin ElladaFlatControls.FlatButton cmdAsset 
+      Height          =   300
+      Left            =   10080
+      TabIndex        =   82
+      Top             =   1680
+      Width           =   1215
+      _ExtentX        =   2143
+      _ExtentY        =   529
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "Arial"
+         Size            =   8.25
+         Charset         =   204
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Caption         =   "Asset"
+   End
    Begin VB.PictureBox picLeft 
       Align           =   3  'Align Left
       Appearance      =   0  'Flat
@@ -1887,6 +1906,11 @@ Private Sub chkIsActive_Click()
         m_OldContract = m_Contract
         SetContractButtonsState
     End If
+End Sub
+
+Private Sub cmdAsset_Click()
+    On Error Resume Next
+    If ContractCanProceed Then frmAssetGroupEditor.Execute m_Contract.ID, m_Contract.Symbol
 End Sub
 
 Private Sub DeleteButton_Click()

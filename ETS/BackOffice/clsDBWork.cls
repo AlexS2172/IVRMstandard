@@ -2525,10 +2525,10 @@ End Function
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
 Public Function usp_BoFutureRoot_Get( _
-    Optional ByVal nIndexID As Long _
+    Optional ByVal nIndexId As Long _
 ) As ADODB.Recordset
     Set usp_BoFutureRoot_Get = Execute(True, "usp_BoFutureRoot_Get" _
-        , nIndexID _
+        , nIndexId _
         )
 End Function
 
@@ -3053,4 +3053,16 @@ Public Function usp_IndexDefinition_LoadFromIV(Optional ByVal iIndexSymbol As Va
     , "usp_IndexDefinition_LoadFromIV" _
     , DBWrite(iIndexSymbol) _
     )
+End Function
+Public Function usp_UnderlyingsForAssetGroup_Get() As ADODB.Recordset
+    Set usp_UnderlyingsForAssetGroup_Get = Execute(True, "usp_UnderlyingsForAssetGroup_Get")
+End Function
+Public Function usp_GroupAsset_Get(iHeadID As Variant) As ADODB.Recordset
+    Set usp_GroupAsset_Get = Execute(True, "usp_GroupAsset_Get", iHeadID)
+End Function
+Public Function usp_GroupAsset_Del(iHeadID As Variant) As ADODB.Recordset
+    Set usp_GroupAsset_Del = Execute(True, "usp_GroupAsset_Del", iHeadID)
+End Function
+Public Function usp_AssetGroup_Save(vcXML As Variant) As ADODB.Recordset
+    Set usp_AssetGroup_Save = Execute(True, "usp_AssetGroup_Save", vcXML)
 End Function

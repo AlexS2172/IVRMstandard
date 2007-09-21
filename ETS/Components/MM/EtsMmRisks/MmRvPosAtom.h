@@ -19,7 +19,7 @@ class CMmRvAggData;
 struct __MmRvPosAtom
 {
 	// aggregations
-	CMmRvAggData*	AggregationsPtr_[3];		// pointers to aggregations where this position resides (underlying, future, expiry )
+	CMmRvAggData*	AggregationsPtr_[4];		// pointers to aggregations where this position resides (underlying, future, expiry )
 														// this is a REALLY WEAK pointers, so its doesn't matter of reference counter
 
 	// main info

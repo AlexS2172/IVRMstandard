@@ -12,6 +12,7 @@
 #define IDR_PRICEUPDATE                 138
 #define IDR_ACTIVEFUTURESCHANGE         139
 #define IDR_FLEXOPTION                  140
+#define IDR_UNDERLYINGUPDATE            141
 #define IDR_DYNAMICMESSAGE              202
 #define IDR_BROADCASTMESSAGE            204
 #define IDR_ORDER                       216
@@ -24,6 +25,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        224
 #define _APS_NEXT_COMMAND_VALUE         32768
 #define _APS_NEXT_CONTROL_VALUE         201
-#define _APS_NEXT_SYMED_VALUE           141
+#define _APS_NEXT_SYMED_VALUE           142
 #endif
 #endif

@@ -198,6 +198,32 @@ public:
 		return varResult.scode;
 
 	}
+	HRESULT Fire_OnUnderlyingUpdate(IUnderlyingUpdate* Data)
+	{
+		CComVariant varResult;
+		T* pT = static_cast<T*>(this);
+		int nConnectionIndex;
+		CComVariant* pvars = new CComVariant[1];
+		int nConnections = m_vec.GetSize();
+
+		for (nConnectionIndex = 0; nConnectionIndex < nConnections; nConnectionIndex++)
+		{
+			pT->Lock();
+			CComPtr<IUnknown> sp = m_vec.GetAt(nConnectionIndex);
+			pT->Unlock();
+			IDispatch* pDispatch = reinterpret_cast<IDispatch*>(sp.p);
+			if (pDispatch != NULL)
+			{
+				VariantClear(&varResult);
+				pvars[0] = Data;
+				DISPPARAMS disp = { pvars, NULL, 1, 0 };
+				pDispatch->Invoke(DISPID_OnUnderlyingUpdate, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &disp, &varResult, NULL, NULL);
+			}
+		}
+		delete[] pvars;
+		return varResult.scode;
+
+	}
 	// events 
 	HRESULT Fire_OnLogon(BSTR bsRouterName)
 	{

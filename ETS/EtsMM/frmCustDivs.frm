@@ -172,7 +172,7 @@ Begin VB.Form frmCustomDivs
          _ExtentX        =   2566
          _ExtentY        =   556
          _Version        =   393216
-         Format          =   61538305
+         Format          =   63504385
          CurrentDate     =   38251
       End
       Begin VB.Label lblStep 
@@ -448,7 +448,7 @@ End Property
 
 
 
-Public Sub Init(iStockID As Long, strSimbol As String, dtLastExpity As Date, bReadOnly As Boolean)
+Public Sub Init(iStockID As Long, strSimbol As String, dtLastExpity As Date, bReadOnly As Boolean, bLoadForIndex As Boolean)
     Err.Clear
     On Error GoTo EH
     
@@ -458,7 +458,7 @@ Public Sub Init(iStockID As Long, strSimbol As String, dtLastExpity As Date, bRe
     m_dtLastExpity = dtLastExpity
     fgDividend.Redraw = flexRDNone
 
-    Set m_rs = gDBW.usp_MmEtsCustomDividend_Get(iStockID)
+    Set m_rs = gDBW.usp_MmEtsCustomDividend_Get(iStockID, bLoadForIndex)
     
     m_iStockID = iStockID
     m_strSymbol = strSimbol
@@ -477,7 +477,7 @@ Public Sub Init(iStockID As Long, strSimbol As String, dtLastExpity As Date, bRe
     btnDelete.Enabled = Not m_bReadOnly
     btnClear.Enabled = Not m_bReadOnly
     btnApply.Enabled = Not m_bReadOnly
-    btnOk.Enabled = Not m_bReadOnly
+    btnOK.Enabled = Not m_bReadOnly
     m_bSortDate = True
     m_bSortAmount = True
     SetDataDirty False

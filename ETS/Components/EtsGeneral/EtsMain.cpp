@@ -949,6 +949,18 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 								pObject->m_dYield = rs[L"fYield"];
 								pObject->m_bIsBasketIndex = ((bool)rs[L"tiIsBasket"])?VARIANT_TRUE:VARIANT_FALSE;
 
+								CComObject<CEtsIndexDivAtom>* pDivAtom = NULL;
+								CComObject<CEtsIndexDivAtom>::CreateInstance(&pDivAtom);
+								IEtsIndexDivAtomPtr spDivAtom;
+								if(pDivAtom)
+								{
+									spDivAtom.Attach(pDivAtom, TRUE);
+
+									pDivAtom->m_enDivType		= static_cast<EtsDivTypeEnum>((long)rs[L"tiIsDivCustom"]);
+
+									pObject->m_spDividend		= spDivAtom;
+								}
+
 								if(pObject->m_spUndPriceProfile == NULL)
 									pObject->m_spUndPriceProfile = m_spDefIdxPriceProfile;
 								
@@ -990,6 +1002,7 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 				}
 			}
 		}
+		LoadAssetGroup();
 	}
 	catch(_com_error& e )
 	{
@@ -999,6 +1012,73 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 	catch(...)
 	{
 		return Error(_T("Unknown Error in CEtsMain::LoadUnderlying "), IID_IEtsMain, E_FAIL);
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CEtsMain::LoadAssetGroup()
+{
+	try
+	{
+
+		_bstr_t bsStatus("Loading Asset Group data...");
+
+		InitializeDB();
+		Fire_Progress(bsStatus,-1);
+		CStoredProc<> db(m_DbConnection, L"usp_AllGroupAssets_Get");
+
+		CClientRecordset rs;
+		rs.Open(db);
+		long lTotalCount = rs.GetRecordCount();
+		long lLoaded = 0;
+		long lLastPerc = -1;
+
+		if(lTotalCount)
+		{
+			for(rs.MoveFirst(); !rs.IsEOF(); ++rs, ++lLoaded)
+			{
+				long	lHeadID			= rs[L"iHeadID"];
+				long	lElementID		= rs[L"iElementID"];
+				bool	bPriceByHead	= rs[L"bPriceByHead"];
+				double	dCoeff			= rs[L"fCoeff"];
+
+
+				IUndAtomPtr spHead;
+				m_pUnderlyingAll->get_Item(lHeadID, &spHead);
+				if(spHead)
+				{
+					spHead->put_IsHead( VARIANT_TRUE );
+					spHead->put_Coeff( 1.0 );
+
+					IUndAtomPtr spElement;
+					m_pUnderlyingAll->get_Item(lElementID, &spElement);
+
+					if(spElement)
+					{
+						spElement->put_PriceByHead(bPriceByHead ? VARIANT_TRUE : VARIANT_FALSE);
+						spElement->put_Coeff(dCoeff);
+						spElement->putref_HeadComponent(spHead);
+					}
+
+				}
+
+				long lPerc = static_cast<long>( 100.* double(lLoaded)/ double(lTotalCount));
+				if(lPerc != lLastPerc)
+				{
+					lLastPerc = lPerc;
+					Fire_Progress(bsStatus, lLastPerc);
+				}
+			}
+		}
+	}
+	catch(_com_error& e )
+	{
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsMain, e.Error());
+
+	}
+	catch(...)
+	{
+		return Error(_T("Unknown Error in CEtsMain::LoadAssetGroup "), IID_IEtsMain, E_FAIL);
 	}
 	return S_OK;
 }

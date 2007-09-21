@@ -151,6 +151,10 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 					_CHK(pUnd->GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &dummy ,&futureUsed, &dUndMidPrice) );
 				}
 
+				//asset group component computation coefficient
+				DOUBLE	dCoeff = 1.0;
+				if (pUnd->m_bIsHead == VARIANT_TRUE || pUnd->m_spHeadComponent)
+					dCoeff	=	pUnd->m_dCoeff;
 
 				// PnlMtm
 				if(pUnd->PnlMTM_ > BAD_DOUBLE_VALUE)
@@ -226,7 +230,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->NetGma$_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dNetGammaEq <= BAD_DOUBLE_VALUE) m_dNetGammaEq = 0.;
-					m_dNetGammaEq += pUnd->NetGma$_;
+					m_dNetGammaEq += pUnd->NetGma$_ * dCoeff * dCoeff;
 				}
 				if(VARIANT_FALSE != pUnd->BadNetGma$_) m_bBadNetGammaEq = VARIANT_TRUE;
 
@@ -243,7 +247,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				{
 					if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
 
-					m_dOptDelta += pUnd->OptDlt$_;
+					m_dOptDelta += pUnd->OptDlt$_ * dCoeff;
 				}
 				if(VARIANT_FALSE != pUnd->BadOptDelta_) m_bBadOptDelta = VARIANT_TRUE;
 
@@ -270,7 +274,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->Gma1$_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dNetGamma <= BAD_DOUBLE_VALUE) m_dNetGamma = 0.;
-					m_dNetGamma += pUnd->Gma1$_;
+					m_dNetGamma += pUnd->Gma1$_ * dCoeff * dCoeff;
 				}
 				if(VARIANT_FALSE != pUnd->BadGma1$_) m_bBadNetGamma = VARIANT_TRUE;
 

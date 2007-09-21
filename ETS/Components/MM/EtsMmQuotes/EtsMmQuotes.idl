@@ -70,8 +70,10 @@ library EtsMmQuotesLib
 		[helpstring("QUC_ACTIVEFUTURE")]	QUC_ACTIVEFUTURE	= 29,
 		[helpstring("QUC_ACTIVEFUTUREPRICE")] QUC_ACTIVEFUTUREPRICE = 30,
 		[helpstring("QUC_BASIS")]			QUC_BASIS			= 31,
+		[helpstring("QUC_HEAD_COMP")]		QUC_HEAD_COMP		= 32,
+		[helpstring("QUC_COEFF")]			QUC_COEFF			= 33,
 
-		[helpstring("QUC_COLUMN_COUNT")]	QUC_COLUMN_COUNT = 32,
+		[helpstring("QUC_COLUMN_COUNT")]	QUC_COLUMN_COUNT = 34,
 		[helpstring("QUC_LAST_COLUMN")]	QUC_LAST_COLUMN	 = QUC_COLUMN_COUNT - 1
 	} MmQvUndColumnEnum;
 //-----------------------------------------------------------------------------------

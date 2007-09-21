@@ -144,6 +144,7 @@ Class=clsClosePriceAtom; clsClosePriceAtom.cls
 Class=clsClosePriceColl; clsClosePriceColl.cls
 Form=frmMktStrImport.frm
 Form=frmEndOfDay.frm
+Form=frmAssetGroupEditor.frm
 IconForm="frmMain"
 Startup="Sub Main"
 HelpFile=""

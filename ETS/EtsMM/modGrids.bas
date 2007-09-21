@@ -530,6 +530,9 @@ Public Enum UnderlyinsListColumnEnum
     NLC_FUT_MATURITY
     NLC_SOQ
     NLC_HEDGE_SYMBOL
+    NLC_HEAD_COMP
+    NLC_COEFF
+    NLC_USE_HEAD
    
     NLC_COLUMN_COUNT
     NLC_LAST_COLUMN = NLC_COLUMN_COUNT - 1
@@ -1046,6 +1049,9 @@ Private Sub InitQuotesGrids()
         .Col(QUC_ACTIVEFUTURE).Init "Active Fut", "Active Future", "", flexDTString, True, True, True, True
         .Col(QUC_ACTIVEFUTUREPRICE).Init "Fut Prc", "Active Future Price", "#,##0.00", flexDTDouble, True, True, True, True
         .Col(QUC_BASIS).Init "Basis", "Basis", "#,##0.00", flexDTDouble, True, True, True, True
+        
+        .Col(QUC_HEAD_COMP).Init "Head comp", "Head component", "", flexDTString, False, True, False, True
+        .Col(QUC_COEFF).Init "Coeff", "Coefficient", "#,##0.00", flexDTDouble, True, True, False, True
     
         .Col(QUC_BID).ForeColorAlt1 = &H8000&
         .Col(QUC_BID).ForeColorAlt2 = &HC0&
@@ -2282,6 +2288,9 @@ Private Sub InitUnderlyingsGrids()
         .Col(NLC_FUT_MATURITY).Init "FutMat", "Futures Maturity Date", "MM/DD/YYYY", flexDTDate, False, True, False, True
         .Col(NLC_SOQ).Init "SOQ", "Start Opening Quotation", "#,##0.00", flexDTDouble, True, True, True, True
         .Col(NLC_HEDGE_SYMBOL).Init "Hedge", "Hedge Symbol", "", flexDTBoolean, True, True, True, True
+        .Col(NLC_HEAD_COMP).Init "Head comp", "Head component", "", flexDTString, False, True, False, True
+        .Col(NLC_COEFF).Init "Coeff", "Coefficient", "#,##0.00", flexDTDouble, True, True, False, True
+        .Col(NLC_USE_HEAD).Init "Use Head", "Use Head component for pricing", "", flexDTBoolean, True, True, False, True
     End With
 End Sub
 

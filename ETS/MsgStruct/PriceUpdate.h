@@ -21,12 +21,14 @@ struct __PriceUpdateData
 		FIELD_ENTRY(m_nUndID)
 		FIELD_ENTRY(m_nContractID)
 		FIELD_ENTRY(m_dPriceClose)
+		FIELD_ENTRY(m_dTheoPriceClose)
 	END_PACKING
 
 	LongF			m_nContractType;
 	LongF			m_nUndID;
 	LongF			m_nContractID;
 	DoubleF			m_dPriceClose;
+	DoubleF			m_dTheoPriceClose;
 };
 
 // CPriceUpdate
@@ -81,6 +83,7 @@ public:
 	IMPLEMENT_LONG_PROP(UndID, m_nUndID)
 	IMPLEMENT_LONG_PROP(ContractID, m_nContractID)
 	IMPLEMENT_DOUBLE_PROP(PriceClose, m_dPriceClose)
+	IMPLEMENT_DOUBLE_PROP(TheoPriceClose, m_dPriceClose)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(PriceUpdate), CPriceUpdate)

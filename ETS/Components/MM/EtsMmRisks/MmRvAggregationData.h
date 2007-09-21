@@ -9,6 +9,7 @@
 class CMmRvPosColl;
 class CMmRvUndColl;
 class CMmRvUndAtom;
+class CMmRvRowData;
 class CRiskViewFieldSort;
 
 _COM_SMARTPTR_TYPEDEF(IMmRvUndColl, IID_IMmRvUndColl); 
@@ -38,7 +39,7 @@ public:
 	_bstr_t				internalName_;						// used as key in map
 	Positions			Positions_;
 	Aggregations		Aggregations_;
-	AggregationType	Type_;
+	AggregationType		Type_;
 	CMmRvUndAtom*		pUnd_;
 	CMmRvFutAtom*		pFut_;
 
@@ -62,6 +63,7 @@ public:
 							BadOptDelta_, BadNetDlt$_, BadOptDlt$_, BadTmVal_, BadTmValInShares_, BadNetExposure_;
 	
 	VARIANT_BOOL		m_bIsSyntheticAggregation;	// this left for compatibility - not really used now
+	VARIANT_BOOL		m_bIsHeadAggregation;
 
 	CMmRvAggData( AggregationType Type, const _bstr_t& Name = _bstr_t(L"") ) : 
 		Name_(Name)
@@ -95,7 +97,7 @@ public:
 		,BadNetExposure_(VARIANT_FALSE)
 		,NetExposureSort_(BAD_DOUBLE_VALUE)
 		,NetExposureLong_(BAD_DOUBLE_VALUE)
-
+		,m_bIsHeadAggregation(VARIANT_FALSE)
 	{}
 	void ClearAggregatedValues(){
 		UndPos_= FutQty_= OptQty_ = BAD_LONG_VALUE;
@@ -110,10 +112,11 @@ public:
 
 
 		BadBetaWtdDelta$_=BadRho$_=BadTmValInShares_=BadTmVal_=BadTht$_= BadThtDlt_=BadThtGma_=BadVga$_= BadWtdVga$_= BadVgaGma_= BadVgaDlt_=BadGma1$_= BadGma1P_= BadNetGma$_= BadNetGma_=BadNetDlt$_ = 
-		BadOptDlt$_ = BadPnlMtm_ = BadPnlTheo_ = BadNetDelta_ = BadOptDelta_ = VARIANT_FALSE;
+		BadOptDlt$_ = BadPnlMtm_ = BadPnlTheo_ = BadNetDelta_ = BadOptDelta_ = m_bIsHeadAggregation = VARIANT_FALSE;
 		std::for_each( Aggregations_.begin(), Aggregations_.end(), boost::bind(&CMmRvAggData::ClearAggregatedValues, _1) );
 	}
 	void CalcNetDeltas(EtsContractTypeEnum underlyingContractType);
+	void AddAggregatedValues( const CMmRvRowData* pRow);
 	void CreateRows(CMmRvUndAtom* pUndAtom, long lExpiryFilter, unsigned outlineLevel,
 							const CRiskViewFieldSort *, std::vector<IMmRvRowDataPtr>& posRows,long& nOptPositions,
 							long& nUndPositions,CComObject<CMmRvUndColl>* pUndColl );

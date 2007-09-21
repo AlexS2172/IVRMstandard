@@ -149,6 +149,7 @@ void CMsgManager::FinalRelease()
 const wstring CMsgManager::m_subjMtVola(L"V");
 const wstring CMsgManager::m_subjMtTradeUpdate(L"Trade");
 const wstring CMsgManager::m_subjMtPriceUpdate(L"Price");
+const wstring CMsgManager::m_subjMtUnderlyingUpdate(L"Underlying");
 const wstring CMsgManager::m_subjMtBroadcastMessage(L"BRMSG");
 const wstring CMsgManager::m_subjMtRequestNewOrder(L"ORDN");
 const wstring CMsgManager::m_subjMtAlterOrder(L"ORDR");
@@ -186,6 +187,10 @@ _bstr_t CMsgManager::GenerateSubject(MESSAGE_TYPE Type, ISymbolObject* pSymbolOb
 
 		case enMtPriceUpdate:
 			RetVal += m_subjMtPriceUpdate.c_str();
+			return RetVal;
+
+		case enMtUnderlyingUpdate:
+			RetVal += m_subjMtUnderlyingUpdate.c_str();
 			return RetVal;
 
 		case enMtBroadcastMessage:
@@ -288,6 +293,11 @@ bool CMsgManager::DecodeSubject(BSTR Subject, MESSAGE_TYPE& Type, ISymbolObject*
 	else if (sSubject == m_subjMtPriceUpdate)		
 	{
 		Type = enMtPriceUpdate;
+		return true;
+	}
+	else if (sSubject == m_subjMtUnderlyingUpdate)		
+	{
+		Type = enMtUnderlyingUpdate;
 		return true;
 	}
 	else if (sSubject == m_subjMtRequestNewOrder)		
@@ -402,6 +412,7 @@ HRESULT	CMsgManager::SendMessageToTransport(BSTR Subject, MESSAGE_TYPE enType, I
 		case enMtVola:
 		case enMtTradeUpdate:
 		case enMtPriceUpdate:
+		case enMtUnderlyingUpdate:
 			{
 				enMsgProp = enMpGuarantee;
 			}
@@ -549,6 +560,25 @@ HRESULT __stdcall CMsgManager::OnMessage(BSTR Subject, BSTR Message)
 					return S_OK;
 
 				Fire_OnPriceUpdate(spPriceUpdateMessage);
+
+				return S_OK;
+			}
+
+		case enMtUnderlyingUpdate:
+			{
+				IUnderlyingUpdatePtr		spUnderlyingUpdateMessage;
+				if (FAILED(spUnderlyingUpdateMessage.CreateInstance(__uuidof(UnderlyingUpdate))))
+					return S_OK;
+
+				spUnPacker = spUnderlyingUpdateMessage;
+
+				if (spUnPacker == NULL)
+					return S_OK;
+
+				if (FAILED(spUnPacker->Unpack(Message)))
+					return S_OK;
+
+				Fire_OnUnderlyingUpdate(spUnderlyingUpdateMessage);
 
 				return S_OK;
 			}
@@ -749,6 +779,16 @@ STDMETHODIMP CMsgManager::UnsubPriceUpdate()
 	return Unsubscribe(enMtPriceUpdate, NULL);
 }
 
+STDMETHODIMP CMsgManager::SubUnderlyingUpdate()
+{
+	return Subscribe(enMtUnderlyingUpdate, NULL);
+}
+
+STDMETHODIMP CMsgManager::UnsubUnderlyingUpdate()
+{
+	return Unsubscribe(enMtUnderlyingUpdate, NULL);
+}
+
 STDMETHODIMP CMsgManager::SubExecutionReport()
 {
 	return Subscribe(enMtExecutionReport, NULL);
@@ -772,6 +812,21 @@ STDMETHODIMP CMsgManager::PubPriceUpdate(IPriceUpdate* Data, long* Result)
 	INetPackingPtr Packer = Data;
 
 	return SendMessageToTransport(bstrSubject, enMtPriceUpdate, Packer, *Result);
+}
+
+STDMETHODIMP CMsgManager::PubUnderlyingUpdate(IUnderlyingUpdate* Data, long* Result)
+{
+	if (Data == NULL)
+		return E_INVALIDARG;
+
+	_bstr_t bstrSubject = GenerateSubject(enMtUnderlyingUpdate, NULL);
+
+	if (!bstrSubject.length())
+		return Error(ERR_INVALID_SUBJECT, IID_ISubManager, E_FAIL);
+
+	INetPackingPtr Packer = Data;
+
+	return SendMessageToTransport(bstrSubject, enMtUnderlyingUpdate, Packer, *Result);
 }
 
 REQUEST_METHODS_IMPL_EX(DynamicMessage)

@@ -503,12 +503,12 @@ Public Function usp_Index_Save(ByVal iIndexID As Variant, ByVal vcSymbol As Vari
                                 ByVal tiCalcModelType As Variant, ByVal iExpCalendarID As Variant, ByVal tiIsBasket As Variant, _
                                 ByVal tiIsActive As Variant, ByVal fSkew As Variant, ByVal fKurt As Variant, ByVal bIsHedgeSymbol As Variant, ByVal tiCheckExistance As Byte, _
                                 ByVal SOQ As Variant, _
-                                ByVal iUndPriceProfileID As Variant, ByVal iOptPriceProfileID As Variant) As Long
+                                ByVal iUndPriceProfileID As Variant, ByVal iOptPriceProfileID As Variant, Optional ByVal tiIsDivCustom As Variant = Null) As Long
     
     usp_Index_Save = Execute(False, "usp_Index_Save", _
                                 iIndexID, vcSymbol, vcContractName, _
                                 fYield, bIsHTB, tiCalcOptionType, tiCalcModelType, iExpCalendarID, _
-                                tiIsBasket, tiIsActive, fSkew, fKurt, tiCheckExistance, SOQ, iUndPriceProfileID, iOptPriceProfileID, bIsHedgeSymbol)
+                                tiIsBasket, tiIsActive, fSkew, fKurt, tiCheckExistance, SOQ, iUndPriceProfileID, iOptPriceProfileID, bIsHedgeSymbol, Null, tiIsDivCustom)
 End Function
 
 Public Function usp_MmFuture_Save(ByVal iFutureID&, _
@@ -1802,8 +1802,8 @@ End Function
 Public Function usp_MmCustomDividend_Get(Optional ByVal iUndID As Long = 0) As ADODB.Recordset
     Set usp_MmCustomDividend_Get = ExecuteLBO(True, "usp_MmCustomDividend_Get", IIf(iUndID <> 0, iUndID, Null))
 End Function
-Public Function usp_MmEtsCustomDividend_Get(Optional ByVal iUndID As Long = 0) As ADODB.Recordset
-    Set usp_MmEtsCustomDividend_Get = ExecuteLBO(True, "usp_MmEtsCustomDividend_Get", IIf(iUndID <> 0, iUndID, Null))
+Public Function usp_MmEtsCustomDividend_Get(Optional ByVal iUndID As Long = 0, Optional ByVal tiIsLoadForIndex As Variant = Null) As ADODB.Recordset
+    Set usp_MmEtsCustomDividend_Get = ExecuteLBO(True, "usp_MmEtsCustomDividend_Get", IIf(iUndID <> 0, iUndID, Null), tiIsLoadForIndex)
 End Function
 
 Private Function ExecuteLBO(ByVal bReturnRST As Boolean, ByVal sCommandText As String, ParamArray arrParams() As Variant) As Variant
@@ -1954,3 +1954,7 @@ Public Function usp_MmManualPrice_Get() As ADODB.Recordset
     Set usp_MmManualPrice_Get = Execute(True, "usp_MmManualPrice_Get")
 End Function
 
+Public Function usp_AssetGroupElement_Save(ByVal iHeadId As Long, ByVal iElementID As Long, ByVal bUseHead As Long, ByVal fCoeff As Double) As Long
+On Error Resume Next
+    usp_AssetGroupElement_Save = Execute(False, "usp_AssetGroupElement_Save", iHeadId, iElementID, bUseHead, fCoeff)
+End Function

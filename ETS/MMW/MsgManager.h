@@ -205,6 +205,7 @@ public:
 	STDMETHOD(PubVola)(ISymbolObject* Symbol, IVMESurface* Data, long* Result);
 	STDMETHOD(PubTradeUpdate)(ITradeUpdate* Data, long* Result);
 	STDMETHOD(PubPriceUpdate)(IPriceUpdate* Data, long* Result);
+	STDMETHOD(PubUnderlyingUpdate)(IUnderlyingUpdate* Data, long* Result);
 	STDMETHOD(get_IsLogoned)(/*[out, retval]*/ VARIANT_BOOL *pVal);
 
 // ISubManager
@@ -217,6 +218,8 @@ public:
 	STDMETHOD(UnsubVola)(ISymbolObject* pSymbolObject);
 	STDMETHOD(SubPriceUpdate)();
 	STDMETHOD(UnsubPriceUpdate)();
+	STDMETHOD(SubUnderlyingUpdate)();
+	STDMETHOD(UnsubUnderlyingUpdate)();
 	STDMETHOD(SubExecutionReport)();
 	STDMETHOD(UnsubExecutionReport)();
 	
@@ -266,6 +269,7 @@ private:
 	static const wstring m_subjMtVola;
 	static const wstring m_subjMtTradeUpdate;
 	static const wstring m_subjMtPriceUpdate;
+	static const wstring m_subjMtUnderlyingUpdate;
 	static const wstring m_subjMtBroadcastMessage;
 	static const wstring m_subjMtRequestNewOrder;
 	static const wstring m_subjMtAlterOrder;

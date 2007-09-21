@@ -60,6 +60,7 @@ library MMWLib
 		DISPID_PubExpiryCalendar,
 		DISPID_PubExpiryInCalendar,
 		DISPID_PubPriceUpdate,
+		DISPID_PubUnderlyingUpdate,
 
 	    // ISubManager
 	    DISPID_SubQuote,
@@ -131,6 +132,8 @@ library MMWLib
 		DISPID_UnsubExpiryInCalendar,
 		DISPID_SubPriceUpdate,
 		DISPID_UnsubPriceUpdate,
+		DISPID_SubUnderlyingUpdate,
+		DISPID_UnsubUnderlyingUpdate,
 
 	    // _IOnMessages
 	    DISPID_OnQuote,
@@ -167,6 +170,7 @@ library MMWLib
 		DISPID_OnExpiryCalendar,
 		DISPID_OnExpiryInCalendar,
 		DISPID_OnPriceUpdate,
+		DISPID_OnUnderlyingUpdate,
 
 		DISPID_OnLogon,
 		DISPID_OnLogoff,
@@ -342,7 +346,8 @@ library MMWLib
 		enMtFixGatewayStatus			= 47,
 		enMtPriceUpdate					= 48,
 		enMtActiveFuturesChange         = 49,
-		enMtFlexOption					= 50
+		enMtFlexOption					= 50,
+		enMtUnderlyingUpdate			= 51
 	}
 	MESSAGE_TYPE;
 
@@ -401,6 +406,9 @@ library MMWLib
 
 		[id(DISPID_PubPriceUpdate), helpstring("method PubPriceUpdate")]
 		HRESULT PubPriceUpdate([in] IPriceUpdate* Data, [out, retval] long* Result);
+
+		[id(DISPID_PubUnderlyingUpdate), helpstring("method PubUnderlyingUpdate")]
+		HRESULT PubUnderlyingUpdate([in] IUnderlyingUpdate* Data, [out, retval] long* Result);
 
 		[id(DISPID_PubActiveFuturesChange), helpstring("method PubActiveFuturesChange")]
 		HRESULT PubActiveFuturesChange([in] IActiveFuturesChange* Data, [out, retval] long* Result);
@@ -463,6 +471,11 @@ library MMWLib
 		HRESULT SubPriceUpdate();
 		[id(DISPID_UnsubPriceUpdate), helpstring("method UnsubPriceUpdate")]
 		HRESULT UnsubPriceUpdate();
+
+		[id(DISPID_SubUnderlyingUpdate), helpstring("method SubUnderlyingUpdate")]
+		HRESULT SubUnderlyingUpdate();
+		[id(DISPID_UnsubUnderlyingUpdate), helpstring("method UnsubUnderlyingUpdate")]
+		HRESULT UnsubUnderlyingUpdate();
 
 		[id(DISPID_SubExecutionReport), helpstring("method SubExecutionReport")]
 		HRESULT SubExecutionReport();
@@ -536,6 +549,9 @@ library MMWLib
 
 		[id(DISPID_OnPriceUpdate), helpstring("method OnPriceUpdate")]
 		HRESULT OnPriceUpdate([in] IPriceUpdate* Data);
+
+		[id(DISPID_OnUnderlyingUpdate), helpstring("method OnUnderlyingUpdate")]
+		HRESULT OnUnderlyingUpdate([in] IUnderlyingUpdate* Data);
 
 		[id(DISPID_OnActiveFuturesChange), helpstring("method OnActiveFuturesChange")]
 		HRESULT OnActiveFuturesChange([in] IActiveFuturesChange* Data);

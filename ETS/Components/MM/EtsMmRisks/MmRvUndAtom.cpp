@@ -26,17 +26,6 @@ const WCHAR* CMmRvUndAtom::bsMonth[12] ={
 	L"Dec"
 };
 
-/*
-DATE GetDateWitOutDayOfMonth( DATE dtExpiration)
-{
-	SYSTEMTIME st ;//= _dtExparation ;
-	::VariantTimeToSystemTime ( dtExpiration, &st);
-	st.wDay = 1 ;
-	SystemTimeToVariantTime ( &st , &dtExpiration) ;
-	return dtExpiration ;
-}*/
-
-
 void __MmRvUndAtom::AddPosToAggregations( MmRvPosAtomPtr& pPos){
 	CComBSTR						bstrFutName;
 	_bstr_t						aggName, intName;
@@ -486,8 +475,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 	{
 		IMmRvUndCollPtr spUndColl(aUndColl);
 
-		//IUnknownPtr spUnk;
-		//_variant_t varItem;
 		ULONG nFetched = 0L;
 		LONG nOptUpdated = 0L, nUndUpdated = 0L, nFutUpdated = 0L;
 
@@ -498,7 +485,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 		if(bUpdateVola)
 			bCalcGreeks = VARIANT_TRUE;
 
-		//__MmRvUndAtom::ClearValues();
 		ClearAggregatedValues();
 		if(bClearSynthGreeks)
 			_ClearSynthGreeks();
@@ -507,8 +493,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 		EtsReplacePriceStatusEnum enUndPriceStatusBid = enRpsNone;
 		EtsReplacePriceStatusEnum enUndPriceStatusAsk = enRpsNone;
 		DOUBLE dUndPriceMid = 0., dUndPriceBid = 0., dUndPriceAsk = 0.;
-		//DOUBLE dActiveFutureMid = 0., dActiveFutureBid = 0., dActiveFutureAsk = 0., dActiveFutureLast = 0.;
-		//DOUBLE dActiveFutureBasis = 0.;
 		VARIANT_BOOL bFutureUsed = VARIANT_FALSE;
 
 		EtsReplacePriceStatusEnum	enActiveUndPriceStatus = enRpsNone;
@@ -516,9 +500,6 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 
 		if(m_spUndPriceProfile != NULL)
 		{
-			/*dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-				m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, VARIANT_FALSE);*/
-
 			if (m_pPrice->m_bManualActive == VARIANT_FALSE && m_spActiveFuture == NULL)
 			{
 				dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
@@ -529,55 +510,18 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 			}
 			else
 			{
+				//active future have no market price and manual price
 				if (dUndPriceMid <= 0.0)
 					dUndPriceBid = dUndPriceAsk	= DBL_EPSILON;
 				else
 					dUndPriceBid = dUndPriceAsk	= dUndPriceMid;
 			}
-
 		}
+		//set this underlying active price
+		m_pPrice->m_dActivePrice = dUndPriceMid;
 
 		m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enUndPriceStatusMid | enUndPriceStatusBid | enUndPriceStatusAsk);
 
-		/*if (NULL != m_spActiveFuture )
-		{
-			IEtsPriceProfileAtomPtr spUndPriceProfile;
-
-			m_spActiveFuture->get_UndPriceProfile(&spUndPriceProfile);
-			if ( NULL != spUndPriceProfile)
-			{
-				IMmRvPricePtr spFutPrice;
-				_CHK(m_spActiveFuture->get_Price(&spFutPrice));
-
-				_CHK(m_spActiveFuture->get_Basis(&dActiveFutureBasis));
-				_CHK(spFutPrice->get_Bid(&dActiveFutureBid) );
-				_CHK(spFutPrice->get_Ask(&dActiveFutureAsk) );
-				_CHK(spFutPrice->get_Last(&dActiveFutureLast) );
-				dActiveFutureMid = spUndPriceProfile->GetUndPriceMid(dActiveFutureBid, dActiveFutureAsk,
-					dActiveFutureLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, VARIANT_FALSE);
-
-				VARIANT_BOOL vb;
-
-				spFutPrice->get_IsUseManualActive(&vb);
-
-				if (vb)
-				{
-					spFutPrice->get_Active(&dActiveFutureMid);
-				}
-
-				if ( dActiveFutureMid > 0.)
-				{
-					if(dActiveFutureBasis>BAD_DOUBLE_VALUE)
-						dActiveFutureMid += dActiveFutureBasis;
-					//spFutPrice->put_Active(dActiveFutureMid);
-					dUndPriceMid = dActiveFutureMid;
-				}
-			}
-		}*/
-
-		m_pPrice->m_dActivePrice = dUndPriceMid;
-
-		//DATE dtToday = vt_date::GetCurrentDate(true);
 		VARIANT_BOOL bNeedRecalc = VARIANT_FALSE;
 		VARIANT_BOOL bPosCalcGreeks = VARIANT_FALSE;
 		VARIANT_BOOL bCalcTheos = VARIANT_FALSE;
@@ -1518,8 +1462,7 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 		*pPrice = 0;
 		*bFutureUsed = VARIANT_FALSE;
 
-		bool dontUseFuture = true;
-		if ( m_spActiveFuture )	
+		if ( m_spActiveFuture && (m_bIsHead || m_spHeadComponent == NULL))	
 		{
 			// this underlying - is index with active future 
 			DOUBLE dActiveFutureMid = 0., dActiveFutureBid = 0., dActiveFutureAsk = 0., dActiveFutureLast = 0.;
@@ -1537,16 +1480,19 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 				_CHK(spFutPrice->get_Ask(&dActiveFutureAsk) );
 				_CHK(spFutPrice->get_Last(&dActiveFutureLast) );
 
+				//get active future price
 				dActiveFutureMid = spUndPriceProfile->GetUndPriceMid(dActiveFutureBid, dActiveFutureAsk,
 					dActiveFutureLast, dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE);
 
+				//overwrite active future price if it is manual
 				VARIANT_BOOL	bCalcByManual = VARIANT_FALSE;
 				spFutPrice->get_IsUseManualActive(&bCalcByManual);
-				if (bCalcByManual == VARIANT_TRUE)
+				if (bCalcByManual == VARIANT_TRUE) 
 					spFutPrice->get_Active(&dActiveFutureMid);
 
+				//set this future driven underlying price dirty, because of active future price changed
 				VARIANT_BOOL	bIsDirty = VARIANT_FALSE;
-				spFutPrice->get_IsDirty(&bIsDirty);
+				spFutPrice->get_IsDirty(&bIsDirty); 
 				if (bIsDirty == VARIANT_TRUE)
 					m_pPrice->m_bDirty = VARIANT_TRUE;
 
@@ -1554,21 +1500,38 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 				{
 					dActiveFutureMid += dActiveFutureBasis;
 					*pPrice = dActiveFutureMid;
-					dontUseFuture = false;
 					*bFutureUsed = VARIANT_TRUE;
+				}
+				else   //if we have no active future market price return 0.0
+				{
+					*pPrice = 0.0;
+					*bFutureUsed = VARIANT_FALSE;
 				}
 			}
 		}
-		if ( dontUseFuture && m_spUndPriceProfile )
+		else if (m_spHeadComponent && m_bPriceByHead == VARIANT_TRUE)
 		{
+			//is this underlying is driven by his asset head component
+			m_spHeadComponent->GetUnderlyingPrice(dTolerance, enPriceRound, penPriceStatus, bFutureUsed, pPrice);
+			if (*pPrice > .0 && m_dCoeff > .0)	
+			{
+				*pPrice *= m_dCoeff;
+				m_pPrice->m_bDirty	=	VARIANT_TRUE;
+			}
+		}
+		else if ( m_spUndPriceProfile )
+		{
+			//asset group head component without driver (active future) or simple Underlying
 			if (m_pPrice->m_bManualActive == VARIANT_TRUE)
 				*pPrice = m_pPrice->m_dActivePrice;
-			else if (m_spActiveFuture)
-				*pPrice = 0.0;
 			else
-				*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, m_pPrice->m_dPriceLast, dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE );
-
+				*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, 
+																m_pPrice->m_dPriceAsk,
+																m_pPrice->m_dPriceLast,
+																dTolerance, enPriceRound, penPriceStatus, VARIANT_FALSE );
+			m_pPrice->m_bDirty	=	VARIANT_TRUE;
 		}
+	
 	}
 	catch ( _com_error& e ) {
 		hr = Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), __uuidof(IMmRvUndAtom), e.Error());

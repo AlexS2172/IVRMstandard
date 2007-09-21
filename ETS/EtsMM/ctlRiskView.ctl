@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61865985
+      Format          =   63963137
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -1662,6 +1662,19 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     Case RFC_SYMBOL, RFC_GROUPS To RFC_STRATEGY
                         StoreRecentFilters
                         m_Aux.Filter(Col) = nValue
+                        If (Col = RFC_SYMBOL) Then
+                            If (Not g_UnderlyingAll(nValue) Is Nothing) Then
+                                If (g_UnderlyingAll(nValue).IsHead) Then
+                                    m_Aux.Filter(Col) = g_UnderlyingAll(nValue).ID
+                                Else
+                                    If (Not g_UnderlyingAll(nValue).HeadComponent Is Nothing) Then
+                                        m_Aux.Filter(Col) = g_UnderlyingAll(nValue).HeadComponent.ID
+                                    Else
+                                        m_Aux.Filter(Col) = nValue
+                                    End If
+                                End If
+                            End If
+                        End If
                         .AutoSize 0, .Cols - 1, , 100
                         tmrShow.Enabled = True
                     Case RFC_TRADES
@@ -2298,8 +2311,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     If Not aTradeColl Is Nothing Then
                                         For Each aTrd In aTradeColl
                                             If aTrd.ContractID = aPos.ID Then
-                                                If aTrd.Opt.PriceTheoClose <> aPos.Quote.Price.TheoClose Then bChangePos = True
-                                                aTrd.Opt.PriceTheoClose = aPos.Quote.Price.TheoClose
+                                                If aTrd.Opt.PriceTheoclose <> aPos.Quote.Price.TheoClose Then bChangePos = True
+                                                aTrd.Opt.PriceTheoclose = aPos.Quote.Price.TheoClose
                                             End If
                                             Set aTrd = Nothing
                                         Next
@@ -2310,8 +2323,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     If Not aTradeColl Is Nothing Then
                                         For Each aTrd In aTradeColl
                                             If aTrd.ContractID = aPos.ID Then
-                                                If aTrd.FutOpt.PriceTheoClose <> aPos.Quote.Price.TheoClose Then bChangePos = True
-                                                aTrd.FutOpt.PriceTheoClose = aPos.Quote.Price.TheoClose
+                                                If aTrd.FutOpt.PriceTheoclose <> aPos.Quote.Price.TheoClose Then bChangePos = True
+                                                aTrd.FutOpt.PriceTheoclose = aPos.Quote.Price.TheoClose
                                             End If
                                             Set aTrd = Nothing
                                         Next
@@ -2321,7 +2334,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 Case enCtFuture
                                     aPos.Fut.Price.TheoClose = dValue
                                     For Each aTrd In TradeChannel.TradesByFut(aPos.Fut.ID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Fut.PriceTheoClose = aPos.Fut.Price.TheoClose
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Fut.PriceTheoclose = aPos.Fut.Price.TheoClose
                                         Set aTrd = Nothing
                                         bChangePos = True
                                     Next
@@ -2352,12 +2365,12 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 If Not aPos Is Nothing Then
                                     aPos.Quote.Price.TheoClose = aUnd.Price.TheoClose
                                     For Each aTrd In TradeChannel.TradesByUnd(aPos.UndID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceTheoClose = aPos.Quote.Price.TheoClose
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceTheoclose = aPos.Quote.Price.TheoClose
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
                                 End If
-                                g_ContractAll(aUnd.ID).Und.PriceTheoClose = dValue
+                                g_ContractAll(aUnd.ID).Und.PriceTheoclose = dValue
 
                                 If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.TheoClose = aUnd.Price.TheoClose
                               Else
@@ -2365,11 +2378,11 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     bChangeUnd = True
                                     bCalcUnd = True
                                     For Each aTrd In TradeChannel.TradesByFut(aFut.ID)
-                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceTheoClose = aFut.Price.TheoClose
+                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceTheoclose = aFut.Price.TheoClose
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
-                                    g_ContractAll(aFut.ID).Fut.PriceTheoClose = dValue
+                                    g_ContractAll(aFut.ID).Fut.PriceTheoclose = dValue
                                     
                               End If
 '                        Else
@@ -2539,7 +2552,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 If bChangeUnd Or bChangePos Then
                     If bChangeUnd Then
                         g_Underlying(aUnd.ID).PriceClose = aUnd.Price.Close
-                        g_Underlying(aUnd.ID).PriceTheoClose = aUnd.Price.TheoClose
+                        g_Underlying(aUnd.ID).PriceTheoclose = aUnd.Price.TheoClose
                     End If
                     
                     
@@ -2556,7 +2569,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     dwUndID = aPos.UndID
                                     dwPosID = aPos.ID
                                 End If
-                                TradeChannel.PriceCloseForPub aPos.ContractType, dwPosID, dwUndID, aPos.Quote.Price.Close
+                                TradeChannel.PriceCloseForPub aPos.ContractType, dwPosID, dwUndID, aPos.Quote.Price.Close, aPos.Quote.Price.TheoClose
                                 bCalcPos = True
                                 bPricePub = True
                             End If
@@ -2564,13 +2577,13 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     Else
                         If Not aFut Is Nothing Then
                             If SavePriceClose(enCtFuture, aFut.ID, aFut.Price.Close, aFut.Price.TheoClose) Then
-                                TradeChannel.PriceCloseForPub enCtFuture, aFut.ID, aFut.UndID, aFut.Price.Close
+                                TradeChannel.PriceCloseForPub enCtFuture, aFut.ID, aFut.UndID, aFut.Price.Close, aFut.Price.TheoClose
                                 bPricePub = True
                                 bCalcPos = True
                             End If
                         ElseIf Not aUnd Is Nothing Then
                             If SavePriceClose(aUnd.ContractType, aUnd.ID, aUnd.Price.Close, aUnd.Price.TheoClose) Then
-                                TradeChannel.PriceCloseForPub aUnd.ContractType, 0, aUnd.ID, aUnd.Price.Close
+                                TradeChannel.PriceCloseForPub aUnd.ContractType, 0, aUnd.ID, aUnd.Price.Close, aUnd.Price.TheoClose
                                 bPricePub = True
                                 bCalcPos = True
                             End If
@@ -5321,7 +5334,7 @@ Private Function IndexLoad() As Boolean
                                         m_Aux.Idx.ActiveFuture.FutRootID = aUndActive.ActiveFuture.FutRootID
                                         m_Aux.Idx.ActiveFuture.Maturity = aUndActive.ActiveFuture.MaturityDate
                                         m_Aux.Idx.ActiveFuture.Price.Close = aUndActive.ActiveFuture.PriceClose
-                                        m_Aux.Idx.ActiveFuture.Price.TheoClose = aUndActive.ActiveFuture.PriceTheoClose
+                                        m_Aux.Idx.ActiveFuture.Price.TheoClose = aUndActive.ActiveFuture.PriceTheoclose
                                         If Not aUndActive.FutRoots(m_Aux.Idx.ActiveFuture.FutRootID) Is Nothing Then
                                             m_Aux.Idx.ActiveFuture.FutRootSymbol = aUndActive.FutRoots(m_Aux.Idx.ActiveFuture.FutRootID).Symbol
                                             m_Aux.Idx.ActiveFuture.FutLotSize = aUndActive.FutRoots(m_Aux.Idx.ActiveFuture.FutRootID).FutLotSize
@@ -6699,12 +6712,14 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
     If Not aUnd Is Nothing Then
         If aPrcData.ContractType = enCtIndex Or aPrcData.ContractType = enCtStock Then _
             aUnd.Price.Close = aPrcData.PriceClose
-        
+            aUnd.Price.TheoClose = aPrcData.TheoPriceClose
+
         If m_Aux.RealTime Then Exit Sub
         
         Set aPos = aUnd.Pos(aPrcData.ContractID)
         If Not aPos Is Nothing Then
             aPos.Quote.Price.Close = aPrcData.PriceClose
+            aPos.Quote.Price.TheoClose = aPrcData.TheoPriceClose
             m_AuxClc.ClearPosQty aPos
             
             For Each aTrd In TradeChannel.Trades.FilterTrades(m_Aux.FilterData, g_UnderlyingGroup, False) 'FilterTrades(m_Aux.Grp.ID, m_Aux.Grp.GroupType, m_Aux.Filter(RFC_TYPE), g_UnderlyingGroup, False)
@@ -7677,6 +7692,7 @@ Private Sub RecalculateGreeck()
 End Sub
 
 Private Sub RefreshPositions()
+On Error GoTo ErrEx
     Dim i&, aRowData As EtsMmRisksLib.MmRvRowData
     Dim nCol&, nAggRow&
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom
@@ -7989,6 +8005,9 @@ Private Sub RefreshPositions()
     
     fgPos.Refresh
     SetLastRowSelected
+    Exit Sub
+ErrEx:
+    Debug.Print "Error"
 End Sub
 
 

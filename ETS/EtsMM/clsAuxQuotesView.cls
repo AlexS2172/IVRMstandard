@@ -585,10 +585,11 @@ Public Sub AdjustDivsAndRatesVisible()
     On Error Resume Next
     Dim nCols&, i&, bValidDivs As Boolean
     
+    
     With fgDiv
         m_GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
         
-        If DividendsVisible And (Grp.ID = 0 Or Grp.ID <> 0 And Grp.ContractType = enCtStock) _
+        If DividendsVisible And (Grp.ID = 0 Or Grp.ID <> 0 And (Grp.ContractType = enCtStock Or Grp.ContractType = enCtIndex)) _
             Or RatesVisible Or CalcModelVisible Then
             
             If Grp.Und.ID <> 0 Then
@@ -613,7 +614,7 @@ Public Sub AdjustDivsAndRatesVisible()
                     
                 ElseIf i < QDC_RATE Then
                     .ColHidden(i) = Not (DividendsVisible _
-                            And (Grp.ID = 0 Or Grp.ID <> 0 And Grp.ContractType = enCtStock) _
+                            And (Grp.ID = 0 Or Grp.ID <> 0 And (Grp.ContractType = enCtStock Or Grp.ContractType = enCtIndex)) _
                             And (i <= QDC_FREQ Or i > QDC_FREQ And bValidDivs))
                 Else
                     .ColHidden(i) = Not RatesVisible

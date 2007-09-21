@@ -1092,7 +1092,12 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
                             .Cell(flexcpChecked, nRow, nCol) = flexNoCheckbox
                             .TextMatrix(nRow, nCol) = " "
                         End If
-                       
+                    Case NLC_HEAD_COMP
+                        .TextMatrix(nRow, nCol) = IIf(aUnd.InAsset, aUnd.HeadComp, "")
+                    Case NLC_COEFF
+                        .TextMatrix(nRow, nCol) = IIf(aUnd.InAsset, aUnd.Coeff, "")
+                    Case NLC_USE_HEAD
+                        .TextMatrix(nRow, nCol) = IIf(aUnd.InAsset, aUnd.UseHead, "")
 
                 End Select
                 
@@ -1809,7 +1814,8 @@ Private Sub fgUnd_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boo
                         Else
                             Cancel = True
                         End If
-
+                    Case NLC_COEFF, NLC_USE_HEAD
+                        Cancel = aUnd.IsHead Or Not aUnd.InAsset
 
                         
                 End Select
@@ -2072,6 +2078,18 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             If aUnd.IsHTB <> bValue Then
                                 aUnd.IsHTB = bValue
                             End If
+                        End If
+                        
+                    Case NLC_COEFF
+                        dValue = .ValueMatrix(Row, Col)
+                        If aUnd.Coeff <> dValue And dValue > 0 Then
+                            aUnd.Coeff = dValue
+                        End If
+                        
+                    Case NLC_USE_HEAD
+                        bValue = CBool(sValue)
+                        If aUnd.UseHead <> bValue Then
+                            aUnd.UseHead = bValue
                         End If
                         
                 End Select
@@ -3409,8 +3427,8 @@ Private Sub mnuCtxCustomDividend_Click()
                         On Error GoTo EH
                         
                           
-                        m_frmCustDivs.Init aGUnd.ID, aGUnd.Symbol, Now + 365 * 5, aGUnd.UndType <> enCtStock
-                        If aGUnd.IsBasketIndex Then
+                        m_frmCustDivs.Init aGUnd.ID, aGUnd.Symbol, Now + 365 * 5, aGUnd.Dividend.DivType = enDivStockBasket, aGUnd.Dividend.DivType = enDivCustomStream
+                        If aGUnd.IsBasketIndex And aGUnd.Dividend.DivType = enDivStockBasket Then
                             m_frmCustDivs.BasketDivs = g_BasketIndex(aGUnd.ID).BasketDivs
                         End If
                         m_frmCustDivs.Show vbModal, Me

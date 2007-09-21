@@ -36,6 +36,12 @@ Public IsHTB As Boolean
 Public SOQ As Double
 Public IsHedgeSymbol As Boolean
 
+Public InAsset  As Boolean
+Public IsHead   As Boolean
+Public HeadComp As String
+Public Coeff    As Double
+Public UseHead  As Boolean
+
 Public IsDirty As Boolean
 
 Public HaveFutures As Boolean
@@ -77,6 +83,14 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         IsBasket = m_Und.IsBasketIndex
         
         SOQ = m_Und.SOQ
+        
+        IsHead = m_Und.IsHead
+        InAsset = IsHead Or (Not m_Und.HeadComponent Is Nothing)
+        If Not m_Und.HeadComponent Is Nothing Then
+            HeadComp = m_Und.HeadComponent.Symbol
+        End If
+        Coeff = m_Und.Coeff
+        UseHead = m_Und.PriceByHead Or m_Und.IsHead
 
         HaveSynthRoots = m_Und.HaveSyntheticRoots
         HaveOptions = m_Und.HaveOptions
@@ -106,6 +120,17 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         FutRootSymbol = m_FutRoot.Symbol
         FutUndSymbol = m_Und.Symbol
         FutMaturity = m_Fut.MaturityDate
+        
+        InAsset = IsHead = False
+        If Not m_Und Is Nothing Then
+            IsHead = m_Und.IsHead
+            InAsset = IsHead Or (Not m_Und.HeadComponent Is Nothing)
+            If Not m_Und.HeadComponent Is Nothing Then
+                HeadComp = m_Und.HeadComponent.Symbol
+            End If
+            Coeff = m_Und.Coeff
+            UseHead = m_Und.PriceByHead Or m_Und.IsHead
+        End If
         
         Init = True
     End If
@@ -309,6 +334,7 @@ Public Sub AdjustDirty()
         If IsHTB <> m_Und.IsHTB Then Exit Sub
         If IsActive <> m_Und.IsActive Then Exit Sub
         If SOQ <> m_Und.SOQ Then Exit Sub
+        
     Else
         If ID <> m_Fut.ID Then Exit Sub
         If ContractName <> Trim$(m_Fut.ContractName) Then Exit Sub
@@ -318,6 +344,11 @@ Public Sub AdjustDirty()
         If OptPriceProfile.ID <> m_Fut.OptPriceProfile.ID Then Exit Sub
     
         If IsActive <> m_Fut.IsActive Then Exit Sub
+    End If
+    
+    If InAsset And Not IsHead Then
+        If Coeff <> m_Und.Coeff Then Exit Sub
+        If UseHead <> m_Und.PriceByHead Then Exit Sub
     End If
 
     IsDirty = False
@@ -354,6 +385,10 @@ Public Sub SaveChanges()
         Set m_Fut.OptPriceProfile = OptPriceProfile
     
         m_Fut.IsActive = IsActive
+    End If
+    
+    If InAsset And Not IsHead Then
+        SaveAsset
     End If
 
     IsDirty = False
@@ -422,5 +457,31 @@ Private Sub SaveHedgeSymbol()
         
     m_Und.IsHedgeSymbol = IsHedgeSymbol
 
+End Sub
+
+Private Sub SaveAsset()
+    On Error Resume Next
+    
+    If Not m_Und Is Nothing Then
+        If Not m_Und.HeadComponent Is Nothing Then
+    
+            m_Und.Coeff = Coeff
+            m_Und.PriceByHead = UseHead
+            
+            gDBW.usp_AssetGroupElement_Save m_Und.HeadComponent.ID, m_Und.ID, IIf(m_Und.PriceByHead, 1, 0), m_Und.Coeff
+            
+            Dim Data As MSGSTRUCTLib.UnderlyingUpdate
+            Set Data = New MSGSTRUCTLib.UnderlyingUpdate
+            
+            Data.UpdStatus = enUndAggregationUpdate
+            Data.UndID = m_Und.ID
+            Data.Coeff = m_Und.Coeff
+            Data.UseHead = m_Und.PriceByHead
+            
+            g_TradeChannel.PubUnderlyingUpdate Data
+            
+        End If
+    End If
+    
 End Sub
 

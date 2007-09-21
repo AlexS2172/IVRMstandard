@@ -1404,6 +1404,11 @@ library EtsMmRisksLib
 
 		[id(183), helpstring("method ClearRatios")]
 		HRESULT ClearRatios();
+
+		ETSGENERAL_PROPPUTREF_DEF(184,		IMmRvUndAtom*,				HeadComponent)
+		ETSGENERAL_PROP_DEF(185,			DOUBLE,						Coeff)
+		ETSGENERAL_PROP_DEF(186,			VARIANT_BOOL,				IsHead)
+		ETSGENERAL_PROP_DEF(187,			VARIANT_BOOL,				PriceByHead)
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

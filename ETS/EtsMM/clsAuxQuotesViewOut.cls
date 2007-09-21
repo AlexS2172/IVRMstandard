@@ -473,6 +473,32 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                         Else
                             .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ActivePrice
                         End If
+                    Case QUC_HEAD_COMP
+                        Dim aGlUnd As EtsGeneralLib.UndAtom
+                        Set aGlUnd = g_UnderlyingAll(m_Aux.Grp.Und.ID)
+                        
+                        .TextMatrix(nRow, nCol) = STR_NA
+                        
+                        If Not aGlUnd Is Nothing Then
+                            If aGlUnd.IsHead Or aGlUnd.HeadComponent Is Nothing Then
+                                .TextMatrix(nRow, nCol) = aGlUnd.Symbol
+                            Else
+                                If Not aGlUnd.HeadComponent Is Nothing Then
+                                    .TextMatrix(nRow, nCol) = aGlUnd.HeadComponent.Symbol
+                                End If
+                            End If
+                        End If
+                        
+                    Case QUC_COEFF
+'                        Dim aGlUnd As EtsGeneralLib.UndAtom
+                        Set aGlUnd = g_UnderlyingAll(m_Aux.Grp.Und.ID)
+                        
+                        .TextMatrix(nRow, nCol) = STR_NA
+                        
+                        If Not aGlUnd Is Nothing Then
+                            .TextMatrix(nRow, nCol) = aGlUnd.Coeff
+                        End If
+                        
                 End Select
 
                 i = i + 1
@@ -1694,8 +1720,24 @@ Public Sub DivsUpdate()
     
         Set aDiv = m_Aux.Grp.Und.Dividend
         
-        If aDiv Is Nothing Then
+        '   SUD-109
+        If m_Aux.Grp.ContractType = enCtIndex Then
+            If Not m_Aux.Grp.Und.BasketIndex Is Nothing Then
+                .ColComboList(QDC_DIV) = "#3;Stock Basket Div|#2;Custom Stream"
+                .TextMatrix(1, QDC_DIV) = "3"
+            Else
+                .ColComboList(QDC_DIV) = "#4;Yield %|#2;Custom Stream"
+                .TextMatrix(1, QDC_DIV) = "4"
+            End If
+        Else
+            .ColComboList(QDC_DIV) = "#0;Market|#1;Custom Periodical|#2;Custom Stream"
             .TextMatrix(1, QDC_DIV) = "0"
+        End If
+        '   SUD-109
+        
+        
+        If aDiv Is Nothing Then
+'            .TextMatrix(1, QDC_DIV) = "0"
         Else
             Select Case aDiv.DivType
                 Case enDivCustomPeriodical
@@ -1716,6 +1758,22 @@ Public Sub DivsUpdate()
                     nDivFreq = 0
                     dDivAmt = dAmount(0)
                     dtDivDate = dDate(0)
+                    
+                Case enDivStockBasket
+                    .TextMatrix(1, QDC_DIV) = "3"
+'                    aDiv.GetNearest CLng(Date), 0, dAmount(0), dDate(0)
+                    ' TODO:
+                    m_Aux.Grp.Und.BasketIndex.BasketDivs.GetNearest CLng(Date), CDate("01/01/2999"), dAmount(0), dDate(0)
+                    nDivFreq = 0
+                    dDivAmt = dAmount(0)
+                    dtDivDate = dDate(0)
+                
+                Case enDivIndexYield
+                    .TextMatrix(1, QDC_DIV) = "4"
+                    nDivFreq = 0
+                    dDivAmt = aDiv.DivAmt
+                    dtDivDate = 0
+                    
             End Select
         End If
     
@@ -1723,7 +1781,7 @@ Public Sub DivsUpdate()
         .TextMatrix(1, QDC_DATE) = Format$(dtDivDate, gdDiv.Col(QDC_DATE).Format)
         .TextMatrix(1, QDC_AMT) = IIf(dDivAmt > BAD_DOUBLE_VALUE, dDivAmt, "")
         
-        If m_Aux.DividendsVisible And (m_Aux.Grp.ContractType = enCtStock) Then
+        If m_Aux.DividendsVisible And (m_Aux.Grp.ContractType = enCtStock Or enCtIndex) Then
             If aDiv.DivType = enDivCustomStream Then
                 If dtDivDate = 0 Then
                     .ColHidden(QDC_DATE) = True
@@ -1768,6 +1826,34 @@ Public Sub DivsUpdate()
                     gdDiv.Col(QDC_AMT).CanEdit = False
                     gdDiv.Col(QDC_FREQ).CanEdit = False
             End If
+            
+            
+            If aDiv.DivType = enDivStockBasket Then
+                If dtDivDate = 0 Then
+                    .ColHidden(QDC_DATE) = True
+                    .ColHidden(QDC_AMT) = True
+                    .ColHidden(QDC_FREQ) = False
+                Else
+                    .ColHidden(QDC_DATE) = False
+                    .ColHidden(QDC_AMT) = False
+                    .ColHidden(QDC_FREQ) = True
+                End If
+                    gdDiv.Col(QDC_DATE).CanEdit = False
+                    gdDiv.Col(QDC_AMT).CanEdit = False
+                    gdDiv.Col(QDC_FREQ).CanEdit = False
+            End If
+            
+            If aDiv.DivType = enDivIndexYield Then
+                    .ColHidden(QDC_DATE) = True
+                    .ColHidden(QDC_AMT) = False
+                    .ColHidden(QDC_FREQ) = True
+                
+                    gdDiv.Col(QDC_DATE).CanEdit = False
+                    gdDiv.Col(QDC_AMT).CanEdit = False
+                    gdDiv.Col(QDC_FREQ).CanEdit = False
+            End If
+            
+            
         End If
 
         .AutoSize 0, .Cols - 1

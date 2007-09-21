@@ -903,7 +903,7 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 		GetValue( m_pPos->m_dNetExposure, bForSorting, bNegativeFormatting, lRound, vtRet);
 		break;
 	case RPC_OPT_DELTA_USD:
-		GetValue( m_pPos->m_dDeltaEq , bForSorting, bNegativeFormatting, lRound, vtRet);
+		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
 	case RPC_THEO_PRICE_VALUE:
 		if ( m_pSynthGreeks == NULL )
