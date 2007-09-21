@@ -1,5 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\Components\EtsGeneral
-
-VolatilitySources.dll
-MsgStruct.dll
-VADBLayout.dll

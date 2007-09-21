@@ -1,5 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\MarketInterfaces\RTTF\FirstOptions\FirstOptionsConnector
-
-ETSManager.dll
-msgstruct.dll
-mmw.dll

@@ -1,5 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\MarketInterfaces\RTTF\Sage\Utils\TradesUploader
-
-ETSManager.dll
-MsgStruct.dll
-mmw.dll

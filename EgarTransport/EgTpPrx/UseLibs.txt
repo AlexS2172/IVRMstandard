@@ -1,3 +1,0 @@
-C:\IvRM\IvRm_2.70\EgarTransport\EgTpPrx
-
-Transport.dll

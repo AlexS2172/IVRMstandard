@@ -1,7 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\FixGateway
-
-ETSManager.dll
-ETSXMLParams.dll
-fixproviders.dll
-mmw.dll
-msgstruct.dll

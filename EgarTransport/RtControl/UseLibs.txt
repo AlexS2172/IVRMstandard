@@ -1,4 +1,0 @@
-C:\IvRM\IvRm_2.70\EgarTransport\RtControl
-
-EgTpPrx.dll
-Transport.dll

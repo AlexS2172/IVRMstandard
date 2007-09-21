@@ -1,4 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\Components\MM\EtsMmGreeks
-
-ETSPerfObjects.dll
-EtsGeneral.dll

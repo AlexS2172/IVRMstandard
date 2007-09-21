@@ -1,5 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\Components\MM\EtsMmIndexHedge
-
-PriceProviders.dll
-EtsGeneral.dll
-ETSPerfObjects.dll

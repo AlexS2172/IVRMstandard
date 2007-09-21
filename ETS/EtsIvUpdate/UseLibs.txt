@@ -1,4 +1,0 @@
-C:\IvRM\IvRm_2.70\ETS\EtsIvUpdate
-
-MsgStruct.dll
-MMW.dll
