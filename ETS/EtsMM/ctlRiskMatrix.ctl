@@ -3890,9 +3890,6 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
             aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
             If nDivCount > 0 Then
                 aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
-            Else
-                Erase dDivDte
-                Erase dDivAmts
             End If
             Set aDiv = Nothing
         End If
