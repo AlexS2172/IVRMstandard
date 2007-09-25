@@ -765,6 +765,13 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 													spGUAtom->get_ContractName(&bsContractName);
 													pSynthUnd->m_bstrSymbolName.Attach(bsContractName);
 
+													double dManulPrice = BAD_DOUBLE_VALUE;
+													spGUAtom->get_ManualActivePrice(&dManulPrice);
+													pSynthUnd->m_dActivePrice = dManulPrice;
+
+													VARIANT_BOOL bIsManual = dManulPrice > 0 ? VARIANT_TRUE : VARIANT_FALSE;
+													pSynthUnd->m_bUseManualActivePrice = bIsManual;
+
 													pSynthUnd->m_spUndPriceProfile = spGUAtom->UndPriceProfile;
 													pSynthUnd->m_spOptPriceProfile = spGUAtom->OptPriceProfile;
 

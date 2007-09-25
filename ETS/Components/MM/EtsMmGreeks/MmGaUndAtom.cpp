@@ -624,52 +624,118 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 			if(VARIANT_FALSE == bIsSynth && dUndPriceMid > 0.)
 			{
 
-				if(m_enUndType == enCtStock)
+				EtsDivTypeEnum enDivType = enDivCustomStream;
+				IEtsIndexDivAtomPtr spDiv = m_spDividend;
+				if(spDiv)
+					spDiv->get_DivType(&enDivType);
+
+				switch(enDivType)
 				{
-					if (m_spDividend != NULL)
-						nDivCount = 0;
-					m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
-					if (nDivCount< 0)
-						nDivCount = 0;
-
-					if (nDivCount> 0)
+				case enDivMarket:
+				case enDivCustomPeriodical:
+				case enDivCustomStream:
 					{
-						LPSAFEARRAY psaDates = NULL;
-						LPSAFEARRAY psaAmounts = NULL;
+						if (m_spDividend != NULL)
+							nDivCount = 0;
+						m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
+						if (nDivCount< 0)
+							nDivCount = 0;
 
-						m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
-
-						saDates.Attach(psaDates);
-						saAmounts.Attach(psaAmounts); 
-					}
-				}
-				else
-				{
-					VARIANT_BOOL bIsBasket = VARIANT_FALSE;
-					if(m_spBasketIndex != NULL)
-					{
-						nDivCount = 0;
-						IEtsIndexDivCollPtr spDivColl = NULL;
-						m_spBasketIndex->get_BasketDivs(&spDivColl);
-						_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
-
-						if(bIsBasket && spDivColl != NULL)
+						if (nDivCount> 0)
 						{
-							spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
-							if(nDivCount > 0L)
+							LPSAFEARRAY psaDates = NULL;
+							LPSAFEARRAY psaAmounts = NULL;
+
+							m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+
+							saDates.Attach(psaDates);
+							saAmounts.Attach(psaAmounts); 
+						}
+
+					}
+					break;
+				case enDivStockBasket:
+					{
+						VARIANT_BOOL bIsBasket = VARIANT_FALSE;
+						if(m_spBasketIndex != NULL)
+						{
+							nDivCount = 0;
+							IEtsIndexDivCollPtr spDivColl = NULL;
+							m_spBasketIndex->get_BasketDivs(&spDivColl);
+							_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
+
+							if(bIsBasket && spDivColl != NULL)
 							{
-								LPSAFEARRAY psaDates = NULL;
-								LPSAFEARRAY psaAmounts = NULL;
-								spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+								spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+								if(nDivCount > 0L)
+								{
+									LPSAFEARRAY psaDates = NULL;
+									LPSAFEARRAY psaAmounts = NULL;
+									spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
-								saDates.Attach(psaDates);
-								saAmounts.Attach(psaAmounts);
+									saDates.Attach(psaDates);
+									saAmounts.Attach(psaAmounts);
 
+								}
 							}
 						}
 					}
-					dYield = bIsBasket!=VARIANT_FALSE? 0.0: m_dYield;
+					break;
+				case enDivIndexYield:
+					{
+						dYield = m_dYield;
+					}
+					break;	
 				}
+
+
+
+				//if(m_enUndType == enCtStock)
+				//{
+				//	if (m_spDividend != NULL)
+				//		nDivCount = 0;
+				//	m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
+				//	if (nDivCount< 0)
+				//		nDivCount = 0;
+
+				//	if (nDivCount> 0)
+				//	{
+				//		LPSAFEARRAY psaDates = NULL;
+				//		LPSAFEARRAY psaAmounts = NULL;
+
+				//		m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+
+				//		saDates.Attach(psaDates);
+				//		saAmounts.Attach(psaAmounts); 
+				//	}
+				//}
+				//else
+				//{
+				//	VARIANT_BOOL bIsBasket = VARIANT_FALSE;
+				//	if(m_spBasketIndex != NULL)
+				//	{
+				//		nDivCount = 0;
+				//		IEtsIndexDivCollPtr spDivColl = NULL;
+				//		m_spBasketIndex->get_BasketDivs(&spDivColl);
+				//		_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
+
+				//		if(bIsBasket && spDivColl != NULL)
+				//		{
+				//			spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+				//			if(nDivCount > 0L)
+				//			{
+				//				LPSAFEARRAY psaDates = NULL;
+				//				LPSAFEARRAY psaAmounts = NULL;
+				//				spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+
+				//				saDates.Attach(psaDates);
+				//				saAmounts.Attach(psaAmounts);
+
+				//			}
+				//		}
+				//	}
+				//	dYield = bIsBasket!=VARIANT_FALSE? 0.0: m_dYield;
+				//}
 
 				if(nDivCount < 0)
 					nDivCount = 0;

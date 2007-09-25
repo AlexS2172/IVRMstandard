@@ -625,6 +625,10 @@ library EtsMmGeneralLib
   		[id(22), helpstring("UpdateManualActivePrices")]		
 		HRESULT UpdateManualActivePrices();
 
+		[id(23), helpstring("method UpdatePriceInfo")]
+		HRESULT UpdatePriceInfo([in] LONG lTraderId,
+								[in] IEtsMain* pMain);
+
 
 	};
 

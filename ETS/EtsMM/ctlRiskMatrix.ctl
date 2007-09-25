@@ -1958,7 +1958,23 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
             nValue = .ComboData
             Select Case Col
                 Case MFC_SYMBOL, MFC_GROUPS To MFC_STRATEGY
-                    m_aFilter.Data(Col) = nValue
+                    If (Col = RFC_SYMBOL) Then
+                            If (Not g_UnderlyingAll(nValue) Is Nothing) Then
+                                If (g_UnderlyingAll(nValue).IsHead) Then
+                                    m_aFilter.Data(Col) = g_UnderlyingAll(nValue).ID
+                                    .TextMatrix(Row, Col) = g_UnderlyingAll(nValue).Symbol
+                                Else
+                                    If (Not g_UnderlyingAll(nValue).HeadComponent Is Nothing) Then
+                                        m_aFilter.Data(Col) = g_UnderlyingAll(nValue).HeadComponent.ID
+                                        .TextMatrix(Row, Col) = g_UnderlyingAll(nValue).HeadComponent.Symbol
+                                    Else
+                                        m_aFilter.Data(Col) = nValue
+                                    End If
+                                End If
+                            End If
+                    Else
+                        m_aFilter.Data(Col) = nValue
+                    End If
                     .AutoSize 0, .Cols - 1, , 100
                     tmrShow.Enabled = True
                 
@@ -2584,7 +2600,7 @@ Private Function PositionsLoad() As Boolean
     pbProgress.Max = 100
     pbProgress.Visible = True
   
-    Set mmTradesColl = g_TradeChannel.Trades.FilterTrades(m_aFilter, g_UnderlyingGroup, False, True)
+    Set mmTradesColl = g_TradeChannel.Trades.FilterTrades(m_aFilter, g_UnderlyingGroup, False)
     m_Grp.ID = mmTradesColl.Count
     
     Set m_View.EtsMain = g_Main
@@ -2825,10 +2841,20 @@ Private Sub CalcMatrix()
     If bCorrelatedShift Then
         For Each aUnd In m_Und
             If Not aUnd.HasSynthetic Then
-                If IsBadDouble(aUnd.Beta) Or aUnd.Beta = 0# Then
-                    bCorrelatedShift = False
-                    Set aUnd = Nothing
-                    Exit For
+                If (aUnd.IsHead Or aUnd.HeadComponent Is Nothing) And aUnd.ID <> 0 Then
+                    If (IsBadDouble(aUnd.Beta) Or aUnd.Beta = 0#) Then
+                        bCorrelatedShift = False
+                        Set aUnd = Nothing
+                        Exit For
+                    End If
+                Else
+                    If (Not aUnd.HeadComponent Is Nothing And aUnd.ID <> 0) Then
+                        If (IsBadDouble(aUnd.HeadComponent.Beta) Or aUnd.HeadComponent.Beta = 0#) Then
+                            bCorrelatedShift = False
+                            Set aUnd = Nothing
+                            Exit For
+                        End If
+                    End If
                 End If
             Else
                 For Each aPos In aUnd.Pos
@@ -3006,7 +3032,7 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     aUnd.UseMidRates = bUseMidRates
     
     For Each aPos In aUnd.Pos
-        If aPos.ContractType = enCtOption Then
+        If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
             If bUseMidRates Then
                 If Not aUnd.IsHTB Then
                     aPos.Rate = GetNeutralRate(Date, aPos.Expiry)
@@ -3027,25 +3053,30 @@ End Sub
 
 Private Sub ShiftSpot(ByVal dBeta#, ByVal enUnits As RmUnitTypeEnum, _
                     ByVal dShift#, ByVal bCorrelatedShift As Boolean, _
-                    ByRef dUndSpot#, ByRef dUndBid#, ByRef dUndAsk#)
+                    ByRef dUndSpot#, ByRef dUndBid#, ByRef dUndAsk#, _
+                    ByVal dUndDriverPrice#, ByVal dWeight#)
     On Error Resume Next
     Dim dBetaFactor#
+    Dim dShiftDelta#
     
     If enUnits = RMUT_PERC Then
         If Not bCorrelatedShift Or dBeta = 0# Or dBeta = 1# Or IsBadDouble(dBeta) Then
-            dUndSpot = dUndSpot * (1 + dShift)
-            If dUndBid > 0# Then dUndBid = dUndBid * (1 + dShift)
-            If dUndAsk > 0# Then dUndAsk = dUndAsk * (1 + dShift)
+            dShiftDelta = dUndDriverPrice * dShift * dWeight
+            dUndSpot = dUndSpot + dShiftDelta
+            If dUndBid > 0# Then dUndBid = dUndBid + dShiftDelta
+            If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
         Else
             dBetaFactor = (1 + dShift)
+            
             If dBetaFactor > 0# Then
-                dBetaFactor = Exp(Log(dBetaFactor) * dBeta)
+                dShiftDelta = dUndDriverPrice * (Exp(Log(dBetaFactor) * dBeta) - 1#) * dWeight
             Else
-                dBetaFactor = 1#
+                dShiftDelta = 0#
             End If
-            dUndSpot = dUndSpot * dBetaFactor
-            If dUndBid > 0# Then dUndBid = dUndBid * dBetaFactor
-            If dUndAsk > 0# Then dUndAsk = dUndAsk * dBetaFactor
+            
+            dUndSpot = dUndSpot + dShiftDelta
+            If dUndBid > 0# Then dUndBid = dUndBid + dShiftDelta
+            If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
         End If
     Else
         dUndSpot = dUndSpot + dShift
@@ -3060,8 +3091,13 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
                           ByVal bCorrelatedShift As Boolean, _
                           ByRef dUndSpot#, _
                           ByRef dUndBid#, _
-                          ByRef dUndAsk#)
+                          ByRef dUndAsk#, _
+                          ByVal dDriverPrice#, _
+                          ByVal dMainBetta#, _
+                          ByVal dGroupCompWeight#)
+                          
     On Error Resume Next
+    
     Dim dBetaFactor#
     Dim bBadAskValue As Boolean: bBadAskValue = False
     Dim bBadBidValue As Boolean: bBadBidValue = False
@@ -3079,10 +3115,19 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
         Dim aUnd As MmRvUndAtom
         Set aUnd = m_Und(sRootComp.UndID)
         
-        dCompUndSpot = aUnd.Price.Last
-        dUndCompBid = aUnd.Price.Bid
-        dUndCompAsk = aUnd.Price.Ask
-        ShiftSpot aUnd.Beta, enUnits, dShift, bCorrelatedShift, dCompUndSpot, dUndCompBid, dUndCompAsk
+        If (Not aUnd.Price.IsUseManualActive) Then
+            dCompUndSpot = aUnd.Price.Last
+            dUndCompBid = aUnd.Price.Bid
+            dUndCompAsk = aUnd.Price.Ask
+        Else
+            dCompUndSpot = aUnd.Price.Active: dUndCompAsk = aUnd.Price.Active: dUndCompBid = aUnd.Price.Active
+        End If
+        
+        If (aUnd.HeadComponent Is Nothing) Then
+            dDriverPrice = aUnd.UndPriceProfile.GetUndPriceMid(dUndCompBid, dUndCompAsk, dCompUndSpot, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        End If
+            
+        ShiftSpot dMainBetta, enUnits, dShift, bCorrelatedShift, dCompUndSpot, dUndCompBid, dUndCompAsk, dDriverPrice, dGroupCompWeight
         
         If Not bBadSpotValue And dCompUndSpot > 0# Then
             dUndSpot = dUndSpot + dCompUndSpot * sRootComp.Weight
@@ -3593,6 +3638,7 @@ End Sub
 
 Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aGreeks As GreeksData, ByRef aRes As EtsMmRisksLib.MmRvMatrixCalcResultType, ByVal dUndSpot#)
     On Error Resume Next
+    Dim dCoeff#
     
     If (aGreeks.nMask And GM_DELTA) = GM_DELTA And Not IsBadDouble(aGreeks.dDelta) Then
         If aRes.Delta <= BAD_DOUBLE_VALUE Then aRes.Delta = 0#
@@ -3620,20 +3666,25 @@ Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef a
         If aRes.NetGamma <= BAD_DOUBLE_VALUE Then aRes.NetGamma = 0#
         If aRes.GammaPerc <= BAD_DOUBLE_VALUE Then aRes.GammaPerc = 0#
         
+        dCoeff = 1#
+        If (Not m_Und(aPos.UndID) Is Nothing) Then
+            dCoeff = m_Und(aPos.UndID).Coeff
+        End If
+        
         If (Not aPos.Fut Is Nothing) Then
             If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
-                aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.Qty * dUndSpot * dUndSpot / 100# * aPos.Fut.KEq
-                aRes.NetGamma = aRes.NetGamma + aGreeks.dGamma * aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)
-                aRes.GammaPerc = aRes.GammaPerc + aGreeks.dGamma * aPos.Qty * dUndSpot / 100# * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)
+                aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.Qty * dUndSpot * dUndSpot / 100# * aPos.Fut.KEq) * dCoeff * dCoeff
+                aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)) * dCoeff * dCoeff
+                aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.Qty * dUndSpot / 100# * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)) * dCoeff * dCoeff
             Else
-                aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#
-                aRes.NetGamma = aRes.NetGamma + aGreeks.dGamma * aPos.QtyInShares
-                aRes.GammaPerc = aRes.GammaPerc + aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#
+                aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#) * dCoeff * dCoeff
+                aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares) * dCoeff * dCoeff
+                aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#) * dCoeff * dCoeff
             End If
         Else
-            aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#
-            aRes.NetGamma = aRes.NetGamma + aGreeks.dGamma * aPos.QtyInShares
-            aRes.GammaPerc = aRes.GammaPerc + aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#
+            aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#) * dCoeff * dCoeff
+            aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares) * dCoeff * dCoeff
+            aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#) * dCoeff * dCoeff
         End If
     Else
         aRes.BadGamma = True
@@ -3704,9 +3755,15 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
     On Error Resume Next
     Dim dTmp#, aSynthRootComp As EtsGeneralLib.SynthRootCompAtom, aSynthUnd As EtsMmRisksLib.MmRvUndAtom
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
+    Dim dUndLast#, dUndAsk#, dUndBid#, dCoeff#
     
+    dCoeff = 1#
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
+    
+    If (Not m_Und(aPos.UndID) Is Nothing) Then
+            dCoeff = m_Und(aPos.UndID).Coeff
+    End If
     
     If (aGreeks.nMask And GM_DELTA) = GM_DELTA And Not IsBadDouble(aGreeks.dDelta) Then
         If aRes.Delta <= BAD_DOUBLE_VALUE Then aRes.Delta = 0#
@@ -3715,9 +3772,17 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
         For Each aSynthRootComp In aSynthRoot.SynthRootComponents
             Set aSynthUnd = m_Und(aSynthRootComp.UndID)
             If Not aSynthUnd Is Nothing Then
-'                dTmp = PriceMidEx(aSynthUnd.PriceBid, aSynthUnd.PriceAsk, aSynthUnd.PriceLast, g_Params.UseLastPriceForCalcs)
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
-                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.Price.Bid, aSynthUnd.Price.Ask, aSynthUnd.Price.Last, dToleranceValue, enRoundingRule)
+                
+                If (Not aSynthUnd.Price.IsUseManualActive) Then
+                    dUndLast = aSynthUnd.Price.Last
+                    dUndBid = aSynthUnd.Price.Bid
+                    dUndAsk = aSynthUnd.Price.Ask
+                Else
+                    dUndLast = aSynthUnd.Price.Active: dUndAsk = aSynthUnd.Price.Active: dUndBid = aSynthUnd.Price.Active
+                End If
+                
+                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
                     aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp
@@ -3743,22 +3808,30 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
         For Each aSynthRootComp In aSynthRoot.SynthRootComponents
             Set aSynthUnd = m_Und(aSynthRootComp.UndID)
             If Not aSynthUnd Is Nothing Then
-'                dTmp = PriceMidEx(aSynthUnd.PriceBid, aSynthUnd.PriceAsk, aSynthUnd.PriceLast, g_Params.UseLastPriceForCalcs)
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
-                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.Price.Bid, aSynthUnd.Price.Ask, aSynthUnd.Price.Last, dToleranceValue, enRoundingRule)
+                
+                If (Not aSynthUnd.Price.IsUseManualActive) Then
+                    dUndLast = aSynthUnd.Price.Last
+                    dUndBid = aSynthUnd.Price.Bid
+                    dUndAsk = aSynthUnd.Price.Ask
+                Else
+                    dUndLast = aSynthUnd.Price.Active: dUndAsk = aSynthUnd.Price.Active: dUndBid = aSynthUnd.Price.Active
+                End If
+                
+                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
-                    aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dTmp / 100#
-                    aRes.GammaPerc = aRes.GammaPerc + aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp / 100#
+                    aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dTmp / 100#) * dCoeff * dCoeff
+                    aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp / 100#) * dCoeff * dCoeff
                 End If
-                aRes.NetGamma = aRes.NetGamma + aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight
+                aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight) * dCoeff * dCoeff
             End If
         Next
     
         If aSynthRoot.CashValue > 0# Then
-            aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#
-            aRes.NetGamma = aRes.NetGamma + aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue
-            aRes.GammaPerc = aRes.GammaPerc + aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#
+            aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#) * dCoeff * dCoeff
+            aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue) * dCoeff * dCoeff
+            aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#) * dCoeff * dCoeff
         End If
     Else
         aRes.BadGamma = True
@@ -3795,7 +3868,7 @@ End Sub
 Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByVal dtToday As Date, _
                                 ByRef aRes As EtsMmRisksLib.MmRvMatrixCalcResultType, ByRef aGreeks As GreeksData, _
                                 ByRef dUndSpot#, ByRef dUndSpotBase#, ByVal nModel As EtsGeneralLib.EtsCalcModelTypeEnum, _
-                                Optional ByVal dFutPrice As Double = 0) As Boolean
+                                Optional ByVal dFutSpot As Double = 0) As Boolean
     On Error Resume Next
     Dim nDivCount&, nBaskDivCount&, dYield#, dVola#, dOptSpot#, nIsAmerican&, nIsAmericanFut&
     Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
@@ -3817,6 +3890,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
             aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
             If nDivCount > 0 Then
                 aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+            Else
+                Erase dDivDte
+                Erase dDivAmts
             End If
             Set aDiv = Nothing
         End If
@@ -3844,16 +3920,20 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
         dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
     Else
         If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.Price.Bid > DBL_EPSILON Then
+            
             dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+            If (aPos.Quote.Price.IsUseManualActive) Then
+                dOptSpot = aPos.Quote.Price.Active
+            End If
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
                 If aPos.ContractType = enCtOption Then
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, dUndSpotBase, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, dUndSpot, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 ElseIf aPos.ContractType = enCtFutOption Then
-                    dVola = CalcFutureOptionVolatility(aPos.Rate, dUndSpotBase, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+                    dVola = CalcFutureOptionVolatility(aPos.Rate, dFutSpot, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
                                         aPos.OptType, nIsAmerican, 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 End If
                 
@@ -3878,12 +3958,12 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
         ElseIf aPos.ContractType = enCtFutOption Then
             nIsAmericanFut = IIf(aPos.Fut.IsAmerican, 1, 0)
-            Debug.Assert (dFutPrice > 0)
+            Debug.Assert (dFutSpot >= 0)
             If aUnd.ContractType = enCtFutUnd Then
-                RetCount = CalcFutureOptionGreeks2(aPos.Rate, dFutPrice, False, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+                RetCount = CalcFutureOptionGreeks2(aPos.Rate, dFutSpot, False, aPos.Strike, dVola, aPos.Expiry - dtToday, _
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
             Else
-                RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutPrice, True, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+                RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutSpot, True, aPos.Strike, dVola, aPos.Expiry - dtToday, _
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, RetCount, _
                             dDivAmts(0), dDivDte(0), aGreeks)
             End If
@@ -3967,100 +4047,155 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     Erase dDivAmts
 End Function
 
+Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, ByVal dDriverPrice#, ByVal dWeight#, ByVal bCorrelatedShift As Boolean, _
+                        ByRef dUndSpot#, ByRef dUndBid#, ByRef dUndAsk#, _
+                        ByRef dFutSpot#, ByRef dFutBid#, ByRef dFutAsk#, _
+                        ByRef dtToday As Date)
+
+            Select Case m_Scn.Axis(RMA_HORZ)
+                Case RMAT_SPOT
+                    If dUndSpot > 0# Then
+                        ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dDriverPrice, dWeight
+                    End If
+                    If dFutSpot > 0# Then
+                        ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight
+                    End If
+                Case RMAT_TIME
+                    dtToday = DateAdd("d", m_Res(nX, nY).ShiftX, Date)
+            End Select
+            
+            Select Case m_Scn.Axis(RMA_VERT)
+                Case RMAT_SPOT
+                    If dUndSpot > 0# Then
+                        ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dDriverPrice, dWeight
+                    End If
+                    If dFutSpot > 0# Then
+                        ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight
+                    End If
+                Case RMAT_TIME
+                    dtToday = DateAdd("d", m_Res(nX, nY).ShiftY, Date)
+            End Select
+End Sub
+
+Private Sub GetBasePrices(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef dUndSpotBase#, ByRef dUndBidBase#, ByRef dUndAskBase#, ByRef dDriverPrice#, _
+                            ByRef dGroupCompWeight#, ByRef dMainBetta#, ByVal bCorrelatedShift As Boolean)
+
+On Error GoTo Exception
+
+    Dim enReplaceStatus As EtsReplacePriceStatusEnum
+    Dim bFutPriceReplaced As Boolean
+    'Calc base price's of current underlying
+    dUndSpotBase = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+    If (aUnd.IsHead) Then
+        If (bFutPriceReplaced Or aUnd.Price.IsUseManualActive) Then
+            dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
+        Else
+            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        End If
+    ElseIf (Not aUnd.HeadComponent Is Nothing And aUnd.PriceByHead) Then
+        dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
+    Else
+        If (aUnd.Price.IsUseManualActive) Then
+            dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
+        Else
+            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                    g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+                    g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        End If
+    End If
+    'Get main driver price
+    If (Not bCorrelatedShift) Then
+        If (aUnd.IsHead) Then
+            If (Not aUnd.ActiveFuture Is Nothing) Then
+                dDriverPrice = aUnd.ActiveFuture.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+            Else
+                dDriverPrice = dUndSpotBase
+            End If
+        ElseIf (Not aUnd.HeadComponent Is Nothing And aUnd.PriceByHead) Then
+            If (Not aUnd.HeadComponent.ActiveFuture Is Nothing) Then
+                dDriverPrice = aUnd.HeadComponent.ActiveFuture.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+            Else
+                dDriverPrice = aUnd.HeadComponent.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+            End If
+        Else
+            dDriverPrice = dUndSpotBase
+        End If
+    Else
+        If (Not aUnd.HeadComponent Is Nothing) Then
+            dDriverPrice = aUnd.HeadComponent.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+        Else
+            dDriverPrice = dUndSpotBase
+        End If
+    End If
+    'Get asset group component weight
+    dGroupCompWeight = 1#
+    If (Not aUnd.HeadComponent Is Nothing) Then
+        dGroupCompWeight = aUnd.Coeff
+    End If
+    'Get Main Betta for calc
+    dMainBetta = aUnd.Beta
+    If (Not aUnd.HeadComponent Is Nothing) Then
+        dMainBetta = aUnd.HeadComponent.Beta
+    End If
+    Exit Sub
+    
+Exception:
+    Debug.Print "Erorr while trying to get Base prices"
+End Sub
+
+Private Sub GetFutureBasePrices(ByRef aFut As EtsMmRisksLib.MmRvFutAtom, ByRef dFutSpot#, ByRef dFutBid#, ByRef dFutAsk#)
+On Error GoTo Exception
+
+    Dim enReplaceStatus As EtsReplacePriceStatusEnum
+    Dim bFutPriceReplaced As Boolean
+    
+    dFutSpot = aFut.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+                            
+    If (bFutPriceReplaced Or aFut.Price.IsUseManualActive) Then
+        dFutBid = dFutSpot: dFutAsk = dFutSpot
+    Else
+        dFutBid = aFut.UndPriceProfile.GetUndPriceBidForPnL(aFut.Price.Bid, aFut.Price.Ask, aFut.Price.Last, g_Params.UndPriceToleranceValue, enReplaceStatus)
+        dFutAsk = aFut.UndPriceProfile.GetUndPriceAskForPnL(aFut.Price.Bid, aFut.Price.Ask, aFut.Price.Last, g_Params.UndPriceToleranceValue, enReplaceStatus)
+    End If
+    
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to GetFutureBasePrice"
+End Sub
+
 Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX As Long, ByVal nLastY As Long, ByVal nGreeksMask As Long, _
                         ByVal bCorrelatedShift As Boolean, ByVal nModel As EtsGeneralLib.EtsCalcModelTypeEnum)
     On Error Resume Next
-    Dim dtToday As Date, nX&, nY&, aPos As EtsMmRisksLib.MmRvPosAtom
-    Dim aGreeks As GreeksData, dUndSpotBase#, dUndSpot#, dUndBidBase#, dUndBid#, dUndAskBase#, dUndAsk#, dFutPrice#
+    Dim dtToday As Date, nX&, nY&, aPos As EtsMmRisksLib.MmRvPosAtom, aFut As EtsMmRisksLib.MmRvFutAtom
+    Dim aGreeks As GreeksData, dUndSpotBase#, dUndSpot#, dUndBidBase#, dUndBid#, dUndAskBase#, dUndAsk#
     Dim dSynthUndSpotBase#, dSynthUndSpot#, dSynthUndBidBase#, dSynthUndBid#
     Dim dSynthUndAskBase#, dSynthUndAsk#, dSynthUndLastBase#, nSynthOptRootID&
     Dim aSynthRoot As EtsGeneralLib.SynthRootAtom
     Dim dActiveFutPrice As Double
     Dim enReplaceStatus As EtsReplacePriceStatusEnum
     Dim bFutPriceReplaced As Boolean
-    Dim dUndBidSave#, dUndAskSave#, dUndSave#
+    Dim dUndBidSave#, dUndAskSave#, dUndSave#, dDriverPrice#, dGroupCompWeight#, dMainBetta#
+    Dim dFutSpot#, dFutBid#, dFutAsk#
     
 
     nSynthOptRootID = BAD_LONG_VALUE
     
-    If aUnd.ActiveFuture Is Nothing Or aUnd.ContractType <> enCtIndex Then
-        Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
-        If (aUnd.Price.IsUseManualActive) Then
-            dUndSpotBase = aUnd.Price.Active
-            dUndBidBase = dUndSpotBase
-            dUndAskBase = dUndSpotBase
-        Else
-            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-        End If
-        
-    Else
-        Debug.Assert (Not aUnd.ActiveFuture.UndPriceProfile Is Nothing)
-        
-        dUndSpotBase = aUnd.ActiveFuture.Price.Last
-        dUndBidBase = aUnd.ActiveFuture.Price.Bid
-        dUndAskBase = aUnd.ActiveFuture.Price.Ask
-        
-        If (aUnd.ActiveFuture.Price.IsUseManualActive) Then
-            dUndSpotBase = aUnd.ActiveFuture.Price.Active
-        Else
-            dUndSpotBase = aUnd.ActiveFuture.UndPriceProfile.GetUndPriceMid(dUndBidBase, dUndAskBase, dUndSpotBase, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-        End If
-
-        If dUndSpotBase > 0# Then
-            dActiveFutPrice = dUndSpotBase
-            dUndSpotBase = dUndSpotBase + aUnd.ActiveFuture.bAsIs
-            aUnd.ActiveFuture.Price = dUndSpotBase
-            dUndAskBase = dUndSpotBase
-            dUndBidBase = dUndSpotBase
-        Else
-            Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
-'            dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-'                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-'            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-'                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-'            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
-'                g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndSpotBase = 0#
-            dUndAskBase = dUndSpotBase
-            dUndBidBase = dUndSpotBase
-        End If
-    End If
+    GetBasePrices aUnd, dUndSpotBase, dUndBidBase, dUndAskBase, dDriverPrice, dGroupCompWeight, dMainBetta, bCorrelatedShift
+    'Next Calc all greeks
+    '-------------------------------------------------------------------------------------------------------------------'
     
-    dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
+        dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
 
-'    If dUndSpotBase > 0# Or aUnd.HasSynthetic Then
         dtToday = Date
     
         For nX = 0 To nLastX
             nY = 0
-            
-            Select Case m_Scn.Axis(RMA_HORZ)
-                Case RMAT_SPOT
-                    If dUndSpotBase > 0# Then
-                        dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
-                        ShiftSpot aUnd.Beta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
-                    End If
-                    
-                Case RMAT_TIME
-                    dtToday = DateAdd("d", m_Res(nX, nY).ShiftX, Date)
-            End Select
-            
+                       
             For nY = 0 To nLastY
-                Select Case m_Scn.Axis(RMA_VERT)
-                    Case RMAT_SPOT
-                        If dUndSpotBase > 0# Then
-                            dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
-                            ShiftSpot aUnd.Beta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
-                        End If
-                        
-                    Case RMAT_TIME
-                        dtToday = DateAdd("d", m_Res(nX, nY).ShiftY, Date)
-                End Select
                 
                 dUndBidSave = dUndBid
                 dUndAskSave = dUndAsk
@@ -4069,23 +4204,18 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                 For Each aPos In aUnd.Pos
 
                     If CheckPosFilter(aPos) Then
-                        If (aPos.ContractType = enCtFuture Or aPos.ContractType = enCtFutOption) And Not aPos.Fut Is Nothing Then 'And Not aUnd.ActiveFuture Is Nothing Then
-                            dFutPrice = aPos.Fut.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
-                            If (aUnd.ContractType = enCtFutUnd) Then
-                                dUndSpot = dFutPrice: dUndSpotBase = dFutPrice
-                                dUndBid = aPos.Fut.Price.Bid: dUndBidBase = aPos.Fut.Price.Bid
-                                dUndAsk = aPos.Fut.Price.Ask: dUndAskBase = aPos.Fut.Price.Ask
-                            End If
-                           'If m_Scn.Axis(RMA_VERT) = RMAT_SPOT Then
-                           '     ShiftSpot aUnd.Beta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
-                           'ElseIf m_Scn.Axis(RMA_HORZ) = RMAT_SPOT Then
-                           '     ShiftSpot aUnd.Beta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
-                           'End If
+                        
+                        If ((aPos.ContractType = enCtFuture Or aPos.ContractType = enCtFutOption) And Not aPos.Fut Is Nothing) Then
+                            GetFutureBasePrices aPos.Fut, dFutSpot, dFutBid, dFutAsk
                         Else
-                             dUndSpot = dUndSave: dUndBid = dUndBidSave: dUndAsk = dUndAskSave
+                            dFutSpot = 0#: dFutBid = 0#: dFutAsk = 0#
                         End If
                         
+                        dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
+                        GetShifts nX, nY, dMainBetta, dDriverPrice, dGroupCompWeight, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dFutSpot, dFutBid, dFutAsk, dtToday
+                        
                         If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
+                            
                             If dUndSpot > 0# Or aUnd.HasSynthetic Then
                                     If Not aPos.IsSynthetic Then
                                         
@@ -4099,7 +4229,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                             ClearGreeks aGreeks
 
                                             aGreeks.nMask = nGreeksMask
-                                            If CalcGreeksCommon(aUnd, aPos, dtToday, m_Res(nX, nY), aGreeks, dUndSpot, dUndSpotBase, nModel, dFutPrice) Then
+                                            If CalcGreeksCommon(aUnd, aPos, dtToday, m_Res(nX, nY), aGreeks, dUndSpot, dUndSpotBase, nModel, dFutSpot) Then
                                             
                                                 CalcTheoPnLCommon aPos, aGreeks, m_Res(nX, nY), dtToday
                                                 CalcPosTotalsCommon aPos, aGreeks, m_Res(nX, nY), dUndSpot
@@ -4113,72 +4243,78 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                                 CalcTheoPnLCommonExerc aPos, m_Res(nX, nY), dUndSpot, dUndBid, dUndAsk
                                             
                                         End If
+                                    
                                     Else ' synthetic position
                                     
                                         If nSynthOptRootID <> aPos.OptionRootID Then
-                                            
+
                                             If Not aUnd.SynthRoots Is Nothing Then Set aSynthRoot = aUnd.SynthRoots(aPos.OptionRootID)
-                                            
+
                                             aUnd.GetSyntheticUnderlyingPrice m_Und, aUnd.SynthRoots(aPos.OptionRootID), dSynthUndBidBase, dSynthUndAskBase, dSynthUndLastBase
+                                            
                                             dSynthUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(dSynthUndBidBase, dSynthUndAskBase, dSynthUndLastBase, _
                                                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                                                
                                             dSynthUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(dSynthUndBidBase, dSynthUndAskBase, dSynthUndLastBase, _
                                                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                                                
                                             dSynthUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(dSynthUndBidBase, dSynthUndAskBase, dSynthUndLastBase, _
                                                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-                                            
+
                                             dSynthUndSpot = dSynthUndSpotBase: dSynthUndBid = dSynthUndBidBase: dSynthUndAsk = dSynthUndAskBase
-                                            
+
                                             nSynthOptRootID = aPos.OptionRootID
                                         End If
-                                        
+
                                         If aSynthRoot Is Nothing Then
                                             SetResultsBadStatus m_Res(nX, nY)
                                             GoTo NextPos
                                         End If
-                                        
+
                                         If m_Scn.Axis(RMA_HORZ) = RMAT_SPOT Then
                                             dSynthUndSpot = dSynthUndSpotBase: dSynthUndBid = dSynthUndBidBase: dSynthUndAsk = dSynthUndAskBase
                                             ShiftSyntSpot aUnd.SynthRoots(aPos.OptionRootID), m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, _
-                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk
-                                            
+                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk, dDriverPrice, dMainBetta, dGroupCompWeight
+
                                         ElseIf m_Scn.Axis(RMA_VERT) = RMAT_SPOT Then
                                             dSynthUndSpot = dSynthUndSpotBase: dSynthUndBid = dSynthUndBidBase: dSynthUndAsk = dSynthUndAskBase
                                             ShiftSyntSpot aUnd.SynthRoots(aPos.OptionRootID), m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, _
-                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk
+                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk, dDriverPrice, dMainBetta, dGroupCompWeight
                                         End If
-                                        
+
                                         If dSynthUndSpot <= 0# Then
                                             SetResultsBadStatus m_Res(nX, nY)
                                             GoTo NextPos
                                         End If
-                                                                                                            
-                                            If aPos.Expiry >= dtToday Then
-                                            
+
+                                        If aPos.Expiry >= dtToday Then
+
                                             aGreeks.nMask = nGreeksMask
                                             If CalcGreeksSynth(aUnd, aPos, dtToday, m_Res(nX, nY), aGreeks, aSynthRoot, dSynthUndSpot, dSynthUndSpotBase, nModel) Then
-                                            
+
                                                 CalcTheoPnLCommon aPos, aGreeks, m_Res(nX, nY), dtToday
                                                 CalcPosTotalsSynth aPos, aGreeks, m_Res(nX, nY), aSynthRoot, dSynthUndSpot, dSynthUndSpotBase
-                                                
+
                                             Else
                                                 SetResultsBadStatus m_Res(nX, nY)
                                             End If
                                         Else
                                             If g_Params.MatrixExerciseOptions Then
-                                                
+
                                                 CalcTheoPnLCommonExerc aPos, m_Res(nX, nY), dUndSpot, dUndBid, dUndAsk
-                                                    
+
                                             End If
                                         End If
-                                    End If
+                                End If
                             End If
-                        Else
                             
-                            CalcUndPnL aPos, m_Res(nX, nY), dtToday, dUndSpot, dUndBid, dUndAsk
-                            
+                        ElseIf (aPos.ContractType = enCtFuture) Then
+                        
+                            CalcUndPnL aPos, m_Res(nX, nY), dtToday, dFutSpot, dFutBid, dFutAsk
+
                             If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
                             If m_Res(nX, nY).NetDelta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).NetDelta = 0#
+                            
                             If (Not aPos.Fut Is Nothing) Then
                                 If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
                                     m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.Qty * dUndSpot * aPos.Fut.KEq
@@ -4187,10 +4323,17 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                     m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot
                                     m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares
                                 End If
-                            Else
-                                m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot
-                                m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares
                             End If
+                            
+                        Else
+                        
+                            CalcUndPnL aPos, m_Res(nX, nY), dtToday, dUndSpot, dUndBid, dUndAsk
+                            
+                            If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
+                            If m_Res(nX, nY).NetDelta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).NetDelta = 0#
+                            
+                            m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot
+                            m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares
                         End If
 NextPos:
                             DoEvents
@@ -4200,15 +4343,6 @@ NextPos:
                 IncProgress pbProgress
             Next
         Next
-        
-'    Else
-'        pbProgress.Value = pbProgress.Value + m_Scn.Points(RMA_HORZ) * m_Scn.Points(RMA_VERT)
-'        For nX = 0 To nLastX
-'            For nY = 0 To nLastY
-'                SetResultsBadStatus m_Res(nX, nY)
-'            Next
-'        Next
-'    End If
 End Sub
 
 Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNumberEnum, ByVal Description As String, ByVal ReqType As PRICEPROVIDERSLib.RequestsTypeEnum, ByVal Request As Variant)
@@ -4290,8 +4424,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
     If Not m_bLastQuoteReqNow Then Exit Sub
     
     Dim sKey$, aReq As EtsMmRisksLib.MmRvReqAtom, dPriceBid#, dPriceAsk#, dPriceLast#, nLotSize&
-    Dim aFut As EtsMmRisksLib.MmRvFutAtom
-    Dim aUnd As EtsMmRisksLib.MmRvUndAtom
+    Dim aReqFutData As EtsMmRisksLib.MmRvFutAtom
+    Dim aReqUndData As EtsMmRisksLib.MmRvUndAtom
+    Dim aReqIdxData As EtsMmRisksLib.MmRvUndAtom
     Dim bFinished As Boolean
     bFinished = False
     
@@ -4319,7 +4454,6 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             dPriceBid = Results.BidPrice
             dPriceAsk = Results.AskPrice
             dPriceLast = Results.LastPrice
-'            dPriceClose = Results.ClosePrice
             
             If Results.LotSize > 0 Then
                 nLotSize = Results.LotSize
@@ -4332,82 +4466,61 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             End If
             
             If Not aReq.IndexOnly Then
+            
                 If Not aReq.Pos Is Nothing Then
-                    If Params.Type = enSTK Or Params.Type = enIDX Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.Price.Last = dPriceLast
-                    'If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
-                    'If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
-                    'If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
-
-                    ElseIf Params.Type = enFUT Then
-                    
-                        If Not aReq.Pos Is Nothing Then
-                            Set aFut = aReq.Pos.Fut
-                        ElseIf Not aReq.Fut Is Nothing Then
-                            Set aFut = aReq.Fut
-                        End If
-                    
-                        If Not aFut Is Nothing Then
-                            If dPriceBid > BAD_DOUBLE_VALUE Then aFut.Price.Bid = dPriceBid
-                            If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.Price.Ask = dPriceAsk
-                            If dPriceLast > BAD_DOUBLE_VALUE Then aFut.Price.Last = dPriceLast
-                            Set aFut = Nothing
-                        End If
-                    End If
-                    
-                    If aReq.Pos.Quote.LotSize <= 0 Then
-                        aReq.Pos.Quote.LotSize = nLotSize
-                    End If
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
                 End If
                 
                 If Params.Type <> enOPT Then
-                    If m_bGroupRequest Then m_nLastQuoteGroupReqDone = m_nLastQuoteGroupReqDone + 1
+                    Set aReqUndData = aReq.Und
                     
-                    If Params.Type <> enFUT Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.Price.Last = dPriceLast
-
-                    
-                        If aReq.Und.LotSize <= 0 Then
-                           aReq.Und.LotSize = nLotSize
-                        End If
-                
-'                       aReq.Und.VolaSrv.UnderlyingPrice = PriceMidEx(aReq.Und.PriceBid, aReq.Und.PriceBid, aReq.Und.PriceLast)
+                    If Params.Type = enSTK Or Params.Type = enIDX Then
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.Price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.Price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.Price.Last = dPriceLast
+                        
                         Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                        If (aReq.Und.Price.IsUseManualActive) Then
-                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.Price.Active
+                        If (aReqUndData.Price.IsUseManualActive) Then
+                            aReqUndData.VolaSrv.UnderlyingPrice = aReqUndData.Price.Active
                         Else
-                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReq.Und.Price.Bid, aReq.Und.Price.Bid, aReq.Und.Price.Last, _
-                                                            g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                            aReqUndData.VolaSrv.UnderlyingPrice = aReqUndData.UndPriceProfile.GetUndPriceMid(aReqUndData.Price.Bid, aReqUndData.Price.Ask, aReqUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
                         End If
-                
+                    
                         If m_Idx.ID = aReq.Und.ID Then
-                           If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.Price.Bid = dPriceBid
-                           If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.Price.Ask = dPriceAsk
-                           If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.Price.Last = dPriceLast
+                            Set aReqIdxData = m_Idx
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
                         End If
-                    End If
-                    If Params.Type = enFUT Then
-                        For Each aUnd In m_Und
-                            If Not aUnd.ActiveFuture Is Nothing And aUnd.ActiveFuture.Symbol = Params.Symbol Then
-                                aUnd.ActiveFuture.Price.Ask = dPriceAsk
-                                aUnd.ActiveFuture.Price.Bid = dPriceBid
-                                aUnd.ActiveFuture.Price.Last = dPriceLast
-                            End If
-                        Next
+                        
+                    ElseIf Params.Type = enFUT Then
+                    
+                        If Not aReq.Pos Is Nothing Then
+                            Set aReqFutData = aReq.Pos.Fut
+                        ElseIf Not aReq.Fut Is Nothing Then
+                            Set aReqFutData = aReq.Fut
+                        End If
+                    
+                        If Not aReqFutData Is Nothing Then
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqFutData.Price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqFutData.Price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqFutData.Price.Last = dPriceLast
+    
+                            Set aReqFutData = Nothing
+                        End If
                     End If
                 End If
             Else
                 Debug.Assert m_Idx.ID = aReq.Und.ID
                 If m_Idx.ID = aReq.Und.ID Then
-                    If m_bGroupRequest Then m_nLastQuoteGroupReqDone = m_nLastQuoteGroupReqDone + 1
                     
-                    If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.Price.Last = dPriceLast
+                    Set aReqIdxData = m_Idx
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
+                    
                 End If
             End If
         

@@ -108,7 +108,9 @@ library MSGSTRUCTLib
 	enum 
 	{
 		enUndNoChanges				= 0x00,
-		enUndAggregationUpdate		= 0x01
+		enUndAggregationUpdate		= 0x01,
+		enUndDividendUpdate			= 0x02,
+		enUndAllTheoCloseUpdate		= 0x04
 	}
 	UNDERLYING_UPDATE_STATUS;
 
@@ -412,15 +414,19 @@ library MSGSTRUCTLib
 		MSGSTRUCT_PROP_DEF(2,	double,			Coeff)
 		MSGSTRUCT_PROP_DEF(3,	VARIANT_BOOL,	UseHead)
 
+		// dividends
+		MSGSTRUCT_PROP_DEF(4,	double,			DivAmt)
+		MSGSTRUCT_PROP_DEF(5,	double,			DivAmtCust)
+		MSGSTRUCT_PROP_DEF(6,	DATE,			DivDate)
+		MSGSTRUCT_PROP_DEF(7,	DATE,			DivDateCust)
+		MSGSTRUCT_PROP_DEF(8,	double,			DivFreq)
+		MSGSTRUCT_PROP_DEF(9,	double,			DivFreqCust)
+		MSGSTRUCT_PROP_DEF(10,	long,			DivType)
 
 		// updated fields
 		MSGSTRUCT_PROP_DEF(90,	UNDERLYING_UPDATE_STATUS,	UpdStatus)
 		
 		// TODO: send updated data structure
-
-		/*MSGSTRUCT_PROP_DEF(30,	VARIANT_BOOL,	IsPriceTheoUpdated)
-		MSGSTRUCT_PROP_DEF(31,	VARIANT_BOOL,	IsAggregationUpdated)
-		MSGSTRUCT_PROP_DEF(32,	VARIANT_BOOL,	IsDivsUpdated)*/
 	};
 
 	[

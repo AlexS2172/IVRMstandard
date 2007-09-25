@@ -1,7 +1,7 @@
 VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Object = "{0D452EE1-E08F-101A-852E-02608C4D0BB4}#2.0#0"; "FM20.DLL"
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
 Begin VB.Form frmEndOfDay 
    BorderStyle     =   3  'Fixed Dialog
@@ -3972,20 +3972,20 @@ Private Function LoadDividentImport(ByVal Buffer As String, ByRef vCount As Long
     Dim dDivAmount As Double
     
     
-    j = 0
-    Set rsIndexList = gDBW.usp_BoContractsSymbol_Get(GINT_INDEXES)
-    ReDim mIdxSymArr(rsIndexList.RecordCount)
-    With rsIndexList
-        If .RecordCount > 0 Then
-            .MoveFirst
-            Do While Not .EOF
-                sKey = gCmn.ReadStr(.Fields("vcSymbol"))
-                mIdxSymArr(j) = sKey
-                j = j + 1
-                .MoveNext
-            Loop
-        End If
-    End With
+'    j = 0
+'    Set rsIndexList = gDBW.usp_BoContractsSymbol_Get(GINT_INDEXES)
+'    ReDim mIdxSymArr(rsIndexList.RecordCount)
+'    With rsIndexList
+'        If .RecordCount > 0 Then
+'            .MoveFirst
+'            Do While Not .EOF
+'                sKey = gCmn.ReadStr(.Fields("vcSymbol"))
+'                mIdxSymArr(j) = sKey
+'                j = j + 1
+'                .MoveNext
+'            Loop
+'        End If
+'    End With
 
     LoadDividentImport = ""
     strXML = "<Dividents>"
@@ -4023,12 +4023,12 @@ Private Function LoadDividentImport(ByVal Buffer As String, ByRef vCount As Long
             GoTo Skip
         End If
     
-        For j = 0 To rsIndexList.RecordCount
-            If mIdxSymArr(j) = UCase(Trim(Items(0))) Then
-                LogMsg "Symbol " & Trim(Items(0)) & " set as Index in ETS! It was Skipped!"
-            GoTo Skip
-            End If
-        Next
+'        For j = 0 To rsIndexList.RecordCount
+'            If mIdxSymArr(j) = UCase(Trim(Items(0))) Then
+'                LogMsg "Symbol " & Trim(Items(0)) & " set as Index in ETS! It was Skipped!"
+'            GoTo Skip
+'            End If
+'        Next
         
         On Error GoTo ParseError
         

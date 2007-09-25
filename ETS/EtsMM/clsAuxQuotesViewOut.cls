@@ -447,39 +447,39 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                         Set .Cell(flexcpPicture, nRow, nCol) = Nothing
                         
                         If m_Aux.Grp.ContractType = enCtIndex Or m_Aux.Grp.ContractType = enCtStock Then
-                            .TextMatrix(nRow, nCol) = IIf(m_Aux.Grp.Und.ActivePrice > 0, m_Aux.Grp.Und.ActivePrice, STR_NA)
+                            .TextMatrix(nRow, nCol) = IIf(aUnd.ActivePrice > 0, aUnd.ActivePrice, STR_NA)
                         Else
                             .TextMatrix(nRow, nCol) = STR_NA
                         End If
-                        If m_Aux.Grp.Und.UseManualActivePrice Then
+                        If aUnd.UseManualActivePrice Then
                               Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
                         End If
                     Case QUC_ACTIVEFUTURE
-                        If m_Aux.Grp.Und.ActiveFuture Is Nothing Then
+                        If aUnd.ActiveFuture Is Nothing Then
                             .TextMatrix(nRow, nCol) = 0
                         Else
-                            .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ID
+                            .TextMatrix(nRow, nCol) = aUnd.ActiveFuture.ID
                         End If
                     Case QUC_ACTIVEFUTUREPRICE
                         Set .Cell(flexcpPicture, nRow, nCol) = Nothing
                     
-                        If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
-                            If m_Aux.Grp.Und.ActiveFuture.IsUseManualActivePrice Then
+                        If Not aUnd.ActiveFuture Is Nothing Then
+                            If aUnd.ActiveFuture.IsUseManualActivePrice Then
                                   Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
                             End If
                         End If
-                        If m_Aux.Grp.ContractType <> enCtIndex Or m_Aux.Grp.Und.ActiveFuture Is Nothing Or m_Aux.Grp.Und.ActiveFuture.ActivePrice = BAD_DOUBLE_VALUE Then
+                        If m_Aux.Grp.ContractType <> enCtIndex Or aUnd.ActiveFuture Is Nothing Or aUnd.ActiveFuture.ActivePrice = BAD_DOUBLE_VALUE Then
                             .TextMatrix(nRow, nCol) = STR_NA
                         Else
-                            .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.ActiveFuture.ActivePrice
+                            .TextMatrix(nRow, nCol) = aUnd.ActiveFuture.ActivePrice
                         End If
                     Case QUC_HEAD_COMP
                         Dim aGlUnd As EtsGeneralLib.UndAtom
-                        Set aGlUnd = g_UnderlyingAll(m_Aux.Grp.Und.ID)
+                        Set aGlUnd = g_UnderlyingAll(aUnd.ID)
                         
                         .TextMatrix(nRow, nCol) = STR_NA
                         
-                        If Not aGlUnd Is Nothing Then
+                        If Not aGlUnd Is Nothing And m_Aux.Grp.ID = aUnd.ID Then
                             If aGlUnd.IsHead Or aGlUnd.HeadComponent Is Nothing Then
                                 .TextMatrix(nRow, nCol) = aGlUnd.Symbol
                             Else
@@ -491,11 +491,11 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                         
                     Case QUC_COEFF
 '                        Dim aGlUnd As EtsGeneralLib.UndAtom
-                        Set aGlUnd = g_UnderlyingAll(m_Aux.Grp.Und.ID)
+                        Set aGlUnd = g_UnderlyingAll(aUnd.ID)
                         
                         .TextMatrix(nRow, nCol) = STR_NA
                         
-                        If Not aGlUnd Is Nothing Then
+                        If Not aGlUnd Is Nothing And m_Aux.Grp.ID = aUnd.ID Then
                             .TextMatrix(nRow, nCol) = aGlUnd.Coeff
                         End If
                         

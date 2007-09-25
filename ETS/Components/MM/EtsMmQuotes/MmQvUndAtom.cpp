@@ -962,7 +962,13 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 					//_CHK(spQuotes->get_Item(0L, &spQuote)); // get default exchange quote
 					_CHK(spQuotes->get_Item(lPrimaryExchangeID, &spQuote)); // get default exchange quote
 
+					VARIANT_BOOL bIsManual = false;
+					double dManulPrice = BAD_DOUBLE_VALUE;
+					_CHK(spSynthUnd->get_UseManualActivePrice(&bIsManual));
+					_CHK(spSynthUnd->get_ActivePrice(&dManulPrice));
+
 					_CHK(spQuote->get_PriceBid(&dPriceBid));
+					dPriceBid = bIsManual ? dManulPrice : dPriceBid;
 					if(!bBadSpotBid && dPriceBid > 0.)
 						dSpotBid += dPriceBid * dWeight;
 					else
@@ -972,6 +978,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 					}
 
 					_CHK(spQuote->get_PriceAsk(&dPriceAsk));
+					dPriceAsk = bIsManual ? dManulPrice : dPriceAsk;
 					if(!bBadSpotAsk && dPriceAsk > 0.)
 						dSpotAsk += dPriceAsk * dWeight;
 					else
@@ -981,6 +988,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 					}
 
 					_CHK(spQuote->get_PriceLast(&dPriceLast));
+					dPriceLast = bIsManual ? dManulPrice : dPriceLast;
 					if(!bBadSpotLast && dPriceLast > 0.)
 						dSpotLast += dPriceLast * dWeight;
 					else
@@ -1004,6 +1012,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 				//_CHK(m_spQuote->get_Item(0L, &spQuote)); // get default exchange quote
 
 				_CHK(spQuote->get_PriceBid(&dPriceBid));
+				dPriceBid = m_bUseManualActivePrice ? m_dActivePrice : dPriceBid;
 				if(!bBadSpotBid && dPriceBid > 0.)
 					dSpotBid += dPriceBid * dWeight;
 				else
@@ -1013,6 +1022,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 				}
 
 				_CHK(spQuote->get_PriceAsk(&dPriceAsk));
+				dPriceAsk = m_bUseManualActivePrice ? m_dActivePrice : dPriceAsk;
 				if(!bBadSpotAsk && dPriceAsk > 0.)
 					dSpotAsk += dPriceAsk * dWeight;
 				else
@@ -1022,6 +1032,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 				}
 
 				_CHK(spQuote->get_PriceLast(&dPriceLast));
+				dPriceLast = m_bUseManualActivePrice ? m_dActivePrice : dPriceLast;
 				if(!bBadSpotLast && dPriceLast > 0.)
 					dSpotLast += dPriceLast * dWeight;
 				else

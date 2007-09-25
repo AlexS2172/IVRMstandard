@@ -146,6 +146,9 @@ public:
 
 		STDMETHOD(UpdateManualActivePrices)();
 
+		STDMETHOD(UpdatePriceInfo)(LONG lTraderId,
+			IEtsMain* pMain);
+
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmTradeChannel), CMmTradeChannel)

@@ -1,13 +1,13 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ETSManager", "ETSManager\ETSManager.vcproj", "{82218F49-FF5D-42AF-AC04-76468EC4591E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ETSManager", "ETSManager\ETSManager.vcproj", "{5839078E-D296-4475-B330-6A9409F31E6F}"
 	ProjectSection(ProjectDependencies) = postProject
 		{56675C68-4493-4C5E-AED4-9510F4AE42C9} = {56675C68-4493-4C5E-AED4-9510F4AE42C9}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VADBLayout", "VADBLayout\VADBLayout.vcproj", "{E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VME", "VME\VME.vcproj", "{B04BBDBA-BAB9-419A-8D8D-034D9AE0F947}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VME", "Vme\VME.vcproj", "{B04BBDBA-BAB9-419A-8D8D-034D9AE0F947}"
 	ProjectSection(ProjectDependencies) = postProject
 		{E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4} = {E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4}
 	EndProjectSection
@@ -45,7 +45,7 @@ Global
 		SccProjectUniqueName2 = VADBLayout\\VADBLayout.vcproj
 		SccLocalPath2 = VADBLayout
 		CanCheckoutShared = false
-		SccProjectUniqueName3 = VME\\VME.vcproj
+		SccProjectUniqueName3 = Vme\\VME.vcproj
 		SccLocalPath3 = VME
 		CanCheckoutShared = false
 		SccProjectUniqueName4 = ETSLogsManager\\ETSLogsManager.vcproj
@@ -79,10 +79,10 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{82218F49-FF5D-42AF-AC04-76468EC4591E}.Debug|Win32.ActiveCfg = Debug|Win32
-		{82218F49-FF5D-42AF-AC04-76468EC4591E}.Debug|Win32.Build.0 = Debug|Win32
-		{82218F49-FF5D-42AF-AC04-76468EC4591E}.Release|Win32.ActiveCfg = Release|Win32
-		{82218F49-FF5D-42AF-AC04-76468EC4591E}.Release|Win32.Build.0 = Release|Win32
+		{5839078E-D296-4475-B330-6A9409F31E6F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5839078E-D296-4475-B330-6A9409F31E6F}.Debug|Win32.Build.0 = Debug|Win32
+		{5839078E-D296-4475-B330-6A9409F31E6F}.Release|Win32.ActiveCfg = Release|Win32
+		{5839078E-D296-4475-B330-6A9409F31E6F}.Release|Win32.Build.0 = Release|Win32
 		{E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4}.Debug|Win32.ActiveCfg = Debug|Win32
 		{E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4}.Debug|Win32.Build.0 = Debug|Win32
 		{E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4}.Release|Win32.ActiveCfg = Release|Win32

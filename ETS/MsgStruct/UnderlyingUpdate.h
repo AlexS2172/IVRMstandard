@@ -21,12 +21,29 @@ struct __UnderlyingUpdateData
 		FIELD_ENTRY(m_nUndID)
 		FIELD_ENTRY(m_dCoeff)
 		FIELD_ENTRY(m_bUseHead)
+
+		FIELD_ENTRY(m_dDivAmt)
+		FIELD_ENTRY(m_dDivAmtCust)
+		FIELD_ENTRY(m_dtDivDate)
+		FIELD_ENTRY(m_dtDivDateCust)
+		FIELD_ENTRY(m_dDivFreq)
+		FIELD_ENTRY(m_dDivFreqCust)
+		FIELD_ENTRY(m_nDivType)
+
 		FIELD_ENTRY(m_enUpdStatus)
 	END_PACKING
 
 	LongF			m_nUndID;
 	DoubleF			m_dCoeff;
 	BoolF			m_bUseHead;
+
+	DoubleF			m_dDivAmt;
+	DoubleF			m_dDivAmtCust;
+	DateF			m_dtDivDate;
+	DateF			m_dtDivDateCust;
+	DoubleF			m_dDivFreq;
+	DoubleF			m_dDivFreqCust;
+	LongF			m_nDivType;
 
 
 	TStaticField<UNDERLYING_UPDATE_STATUS>		m_enUpdStatus;
@@ -83,6 +100,14 @@ public:
 	IMPLEMENT_LONG_PROP		(UndID,					m_nUndID)
 	IMPLEMENT_DOUBLE_PROP	(Coeff,					m_dCoeff)
 	IMPLEMENT_BOOL_PROP		(UseHead,				m_bUseHead)
+
+	IMPLEMENT_DOUBLE_PROP	(DivAmt,				m_dDivAmt)
+	IMPLEMENT_DOUBLE_PROP	(DivAmtCust,			m_dDivAmtCust)
+	IMPLEMENT_DATE_PROP		(DivDate,				m_dtDivDate)
+	IMPLEMENT_DATE_PROP		(DivDateCust,			m_dtDivDateCust)
+	IMPLEMENT_DOUBLE_PROP	(DivFreq,				m_dDivFreq)
+	IMPLEMENT_DOUBLE_PROP	(DivFreqCust,			m_dDivFreqCust)
+	IMPLEMENT_LONG_PROP		(DivType,				m_nDivType)
 
 	
 	IMPLEMENT_SIMPLE_PROP(UNDERLYING_UPDATE_STATUS, UpdStatus, m_enUpdStatus)

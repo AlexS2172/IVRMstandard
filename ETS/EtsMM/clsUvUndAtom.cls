@@ -59,18 +59,23 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
     Set m_Fut = aContract.Fut
     Set m_FutRoot = aContract.FutRoot
     
+    
     If aContract.ContractType = enCtIndex Or aContract.ContractType = enCtStock Or aContract.ContractType = enCtFutUnd And Not m_Und Is Nothing Then
         ID = m_Und.ID
         Symbol = m_Und.Symbol
         ContractName = Trim$(m_Und.ContractName)
         UndType = m_Und.UndType
     
-        If UndType = enCtStock Then
+'        If UndType = enCtStock Then
             Set Dividend = m_Und.Dividend.Clone
             If Not Dividend Is Nothing Then
                 CorrectDivs
             End If
-        Else
+'        Else
+'            Yield = m_Und.Yield
+'        End If
+
+        If UndType = enCtIndex Then
             Yield = m_Und.Yield
         End If
     
@@ -86,8 +91,12 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         
         IsHead = m_Und.IsHead
         InAsset = IsHead Or (Not m_Und.HeadComponent Is Nothing)
-        If Not m_Und.HeadComponent Is Nothing Then
-            HeadComp = m_Und.HeadComponent.Symbol
+        If IsHead Then
+            HeadComp = m_Und.Symbol
+        Else
+            If Not m_Und.HeadComponent Is Nothing Then
+                HeadComp = m_Und.HeadComponent.Symbol
+            End If
         End If
         Coeff = m_Und.Coeff
         UseHead = m_Und.PriceByHead Or m_Und.IsHead
@@ -121,16 +130,17 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         FutUndSymbol = m_Und.Symbol
         FutMaturity = m_Fut.MaturityDate
         
-        InAsset = IsHead = False
-        If Not m_Und Is Nothing Then
-            IsHead = m_Und.IsHead
-            InAsset = IsHead Or (Not m_Und.HeadComponent Is Nothing)
-            If Not m_Und.HeadComponent Is Nothing Then
-                HeadComp = m_Und.HeadComponent.Symbol
-            End If
-            Coeff = m_Und.Coeff
-            UseHead = m_Und.PriceByHead Or m_Und.IsHead
-        End If
+        InAsset = False
+        IsHead = False
+'        If Not m_Und Is Nothing Then
+'            IsHead = m_Und.IsHead
+'            InAsset = IsHead Or (Not m_Und.HeadComponent Is Nothing)
+'            If Not m_Und.HeadComponent Is Nothing Then
+'                HeadComp = m_Und.HeadComponent.Symbol
+'            End If
+'            Coeff = m_Und.Coeff
+'            UseHead = m_Und.PriceByHead Or m_Und.IsHead
+'        End If
         
         Init = True
     End If
@@ -229,7 +239,7 @@ Public Property Get UseCustDivsName() As String
     
     enType = Dividend.DivType
     
-    If UndType = enCtStock Then
+    If UndType = enCtStock Or enCtIndex Then
         Select Case enType
             Case enDivMarket
                 UseCustDivsName = "Market"
@@ -237,6 +247,10 @@ Public Property Get UseCustDivsName() As String
                 UseCustDivsName = "Custom Periodical"
             Case enDivCustomStream
                 UseCustDivsName = "Custom Stream"
+            Case enDivStockBasket
+                UseCustDivsName = "Stock Basket"
+            Case enDivIndexYield
+                UseCustDivsName = "Index Yield"
            Case Else
                 UseCustDivsName = ""
         End Select
@@ -302,7 +316,7 @@ Public Function IsValidDivs() As Boolean
                      And aDiv.DivDateCust > 0
      End If
     
-     If enType = enDivCustomStream Then
+     If enType = enDivCustomStream Or enDivStockBasket Or enDivIndexYield Then
          IsValidDivs = True
      End If
 
@@ -318,10 +332,11 @@ Public Sub AdjustDirty()
     
         If UndType <> enCtStock Then
             If Yield <> m_Und.Yield Then Exit Sub
-        Else
+        End If
+'        Else
             If Dividend.DivType <> m_Und.Dividend.DivType Then Exit Sub
             If Dividend.DivType = enDivCustomPeriodical And (Dividend.DivFreq <> m_Und.Dividend.DivFreq Or Dividend.DivAmt <> m_Und.Dividend.DivAmt) Then Exit Sub
-        End If
+'        End If
     
         If IsAmerican <> m_Und.IsAmerican Then Exit Sub
         If UndPriceProfile.ID <> m_Und.UndPriceProfile.ID Then Exit Sub
@@ -375,6 +390,23 @@ Public Sub SaveChanges()
         m_Und.IsActive = IsActive
         m_Und.IsHTB = IsHTB
         m_Und.SOQ = SOQ
+        
+        Dim aData As MSGSTRUCTLib.UnderlyingUpdate
+        Set aData = New MSGSTRUCTLib.UnderlyingUpdate
+        
+        aData.DivAmt = m_Und.Dividend.DivAmt
+        aData.DivAmtCust = m_Und.Dividend.DivAmtCust
+        aData.DivDate = m_Und.Dividend.DivDate
+        aData.DivDateCust = m_Und.Dividend.DivDateCust
+        aData.DivFreq = m_Und.Dividend.DivFreq
+        aData.DivFreqCust = m_Und.Dividend.DivFreqCust
+        aData.DivType = m_Und.Dividend.DivType
+        
+        aData.UndID = m_Und.ID
+        aData.UpdStatus = enUndDividendUpdate
+        
+        g_TradeChannel.PubUnderlyingUpdate aData
+        
         
         SaveHedgeSymbol
     Else

@@ -7,6 +7,97 @@
 
 // CMmTradeChannel
 
+
+STDMETHODIMP CMmTradeChannel::UpdatePriceInfo(LONG lTraderId, IEtsMain* pMain)
+{
+	HRESULT hr = S_OK;
+
+	try
+	{
+		__CHECK_POINTER(pMain);
+
+		IEtsProcessDelayPtr spDelay;
+		_CHK(spDelay.CreateInstance(CLSID_EtsProcessDelay), _T("Fail to create delay object."));
+		spDelay->Frequency = 10;
+		spDelay->Duration = 1;
+		
+		if(!m_Connection.IsOpened())
+			m_Connection.Open(m_bstrDatabase, 10, 120, 300, 300);
+
+		// update trade collection
+		CStoredProc<CClientRecordset> rsTrade(m_Connection, L"usp_MmTradeByTrader_PriceInfo_Get");
+		if(lTraderId)
+			rsTrade << lTraderId;
+		rsTrade.Open();
+
+		if(rsTrade.GetRecordCount()) 
+		{
+			for(rsTrade.MoveFirst(); !rsTrade.IsEOF(); ++rsTrade) 
+			{
+				long nTradeID = rsTrade[L"iTradeID"];
+				double dPriceTheoClose = rsTrade[L"fPriceTheoClose"];
+
+				IMmTradeInfoAtomPtr spTradeInfo;
+				_CHK(m_pTrd->get_Item(nTradeID, &spTradeInfo), _T("Unable to get trade."));
+				CMmTradeInfoAtom*  pTradeInfo = static_cast<CMmTradeInfoAtom*>(spTradeInfo.GetInterfacePtr());
+				
+				if(pTradeInfo)
+				{
+					if(pTradeInfo->m_spOpt)
+						pTradeInfo->m_spOpt->PriceTheoClose = dPriceTheoClose;
+
+					if(pTradeInfo->m_spFutOpt)
+						pTradeInfo->m_spFutOpt->PriceTheoClose = dPriceTheoClose;
+				}
+
+				spDelay->Sleep();
+			}
+		}
+		rsTrade.Close();
+
+
+		// update underlying collection
+		IUndCollPtr spUndColl = m_spMain->UnderlyingAll;
+
+		CStoredProc<CClientRecordset> rsUnd(m_Connection, L"usp_MmUnderlying_PriceInfo_Get");
+		if(lTraderId)
+			rsUnd << lTraderId;
+		rsUnd.Open();
+
+		if(rsUnd.GetRecordCount() && spUndColl) 
+		{
+			for(rsUnd.MoveFirst(); !rsUnd.IsEOF(); ++rsUnd) 
+			{
+				long nUndID = rsUnd[L"iContractID"];
+				double dPriceTheoClose = rsUnd[L"fPriceTheoClose"];
+
+				IUndAtomPtr			spUnd;
+				_CHK(spUndColl->get_Item(nUndID, &spUnd), _T("Unable to get Underlying"));
+				if(spUnd)
+					spUnd->PriceTheoClose = dPriceTheoClose;
+
+				spDelay->Sleep();
+			}
+		}
+		rsUnd.Close();
+
+
+	}
+	catch (_com_error& err)
+	{
+		hr = Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(err), __uuidof(IMmTradeChannel), err.Error());
+
+	}
+	catch(...)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		hr = Error(_T("Fail to load Trades"), __uuidof(IMmTradeChannel), FAILED(hr)?hr:E_FAIL);
+	}
+
+	return hr;
+}
+
+
 STDMETHODIMP CMmTradeChannel::UpdateManualActivePrices()
 {
 		/*CMmTradeInfoColl::EnumCollType::iterator itrX    = m_pTrd->m_coll.begin();

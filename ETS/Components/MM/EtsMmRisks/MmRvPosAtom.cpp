@@ -263,7 +263,7 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 					}
 
 					// calc vola
-					if(bUseTheoVolatility == VARIANT_TRUE /*&& ( m_pQuote->m_bVolatilityEnginrCalculation == VARIANT_FALSE )*/ )//after request to PP
+					if(bUseTheoVolatility == VARIANT_TRUE )
 						dVolaCalculated = m_pQuote->m_dVola;
 					else
 					{
@@ -304,9 +304,10 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 					}
 
 					memset ( strlog , 0 , sizeof(strlog) ) ;
-					sprintf_s ( strlog , sizeof(strlog) , "Rate %f , Yield %f , Price %f , dOptPriceMid %f , dStrike %f , days %i , OptType %i , IsAmerican %i, DivCount %i, Steps  %i , Skew %f , Kurt %f , Model %i " , m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
-						nExpiry - nToday, m_enOptType, nIsAmerican, nDivCount,
-						/*saAmounts.GetPlainData(), saDates.GetPlainData(), */100L, dSkew, dKurt, nModel) ;
+					sprintf_s ( strlog , sizeof(strlog) ,  "Rate %f , Yield %f , Price %f , dOptPriceMid %f , dStrike %f , days %i , OptType %i , IsAmerican %i, DivCount %i, Steps  %i , Skew %f , Kurt %f , Model %i " ,
+															m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
+															nExpiry - nToday, m_enOptType, nIsAmerican, nDivCount, 100L, dSkew, dKurt, nModel) ;
+
 					m_pQuote->m_bsVolaCalculatedParametrs  = _bstr_t( strlog ) ;
 
 					m_pQuote->m_dVolaCalcPrice = dUndMidPrice ;
@@ -440,7 +441,7 @@ void CMmRvPosAtom::_CalcOptPositionData(
 	_CalcPnlTheo(bIsPnlLTD, dtCalcDate);
 
 	//AUM
-	DOUBLE dAUM		=	BAD_DOUBLE_VALUE;
+	DOUBLE	dAUM		=	BAD_DOUBLE_VALUE;
 	IMmRvUndAtomPtr spMainUnd;
 	_CHK(spUndColl->get_Item(nUndID, &spMainUnd));
 	CMmRvUndAtom *pMainUnd = static_cast<CMmRvUndAtom*>(spMainUnd.GetInterfacePtr());
@@ -1388,9 +1389,9 @@ void CMmRvPosAtom::_CalcPnlTheo(VARIANT_BOOL bIsPnlLTD,DATE _dtCalculationDate)
 	_dtCalculationDate  = (DWORD)_dtCalculationDate ;
 	m_dPnlTheo = BAD_DOUBLE_VALUE;
 
-	if(m_pQuote->m_dPriceTheo >= 0/*DBL_EPSILON*/)
+	if(m_pQuote->m_dPriceTheo >= 0./*DBL_EPSILON*/)
 	{
-		if(bIsPnlLTD || dtCurr != _dtCalculationDate )
+		if(bIsPnlLTD /*|| dtCurr != _dtCalculationDate*/ )
 		{
 			if(m_nQtyLTDBuy > BAD_LONG_VALUE)
 			{

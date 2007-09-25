@@ -455,6 +455,28 @@ Private Sub fgMP_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
 End Sub
 
 
+Private Sub fgMP_Click()
+    
+    Dim IsCtrlPressed As Boolean
+    
+    Dim r As Integer
+    
+    r = fgMP.MouseRow
+    
+    If r <> -1 Then
+    
+    IsCtrlPressed = ((GetKeyState(VK_CONTROL) And &H80000000) <> 0)
+    
+    If IsCtrlPressed Then
+      
+      fgMP.IsSelected(r) = Not fgMP.IsSelected(r)
+        
+    End If
+    
+    End If
+
+End Sub
+
 Private Sub Form_Load()
     ChangedCount = 0
     InitGrid

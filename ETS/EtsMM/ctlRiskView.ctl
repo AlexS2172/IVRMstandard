@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   63963137
+      Format          =   61341697
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -863,7 +863,15 @@ Public Sub ShowData(Optional ByVal nType As Long = TYPE_UNDERLYING, Optional ByV
     If m_bShutDown Then Exit Sub
     Select Case nType
         Case TYPE_UNDERLYING
-            m_Aux.Filter(RFC_SYMBOL) = nValue
+            If (Not g_Main.ContractAll(nValue) Is Nothing) Then
+                If (Not g_Main.ContractAll(nValue).Und Is Nothing) Then
+                    If (Not g_Main.ContractAll(nValue).Und.HeadComponent Is Nothing) Then
+                        m_Aux.Filter(RFC_SYMBOL) = g_Main.ContractAll(nValue).Und.HeadComponent.ID
+                    End If
+                End If
+            Else
+                m_Aux.Filter(RFC_SYMBOL) = nValue
+            End If
         Case TYPE_GROUP
             m_Aux.Filter(RFC_GROUPS) = nValue
         Case TYPE_TRADER
@@ -2060,21 +2068,28 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     End If
                             Else
                                 Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
-                                    If dValue > 0 Then
-                                        aUnd.Price.Active = dValue
-                                        aUnd.Price.IsDirty = True
+                                If dValue > 0 Then
+                                    aUnd.Price.Active = dValue
+                                    aUnd.Price.IsDirty = True
+                                    If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
+                                        If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
+                                                g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
+                                                gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
+                                                aUnd.VolaSrv.UnderlyingPrice = dValue  'aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                                aUnd.Price.IsDirty = True
+                                        End If
                                     End If
-                                    aUnd.VolaSrv.UnderlyingPrice = dValue 'aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
-                                    bCalcSynthUnd = True
+                                End If
+                                bCalcSynthUnd = True
                                     
-                                    If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
-                                        nUndRow = .FindRow(CStr(aUnd.ID) & "_" & CStr(aUnd.ID), 1, RPC_KEY, , True)
-                                        bCalcUnd = True
-                                    End If
+                                If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
+                                    nUndRow = .FindRow(CStr(aUnd.ID) & "_" & CStr(aUnd.ID), 1, RPC_KEY, , True)
+                                    bCalcUnd = True
+                                End If
                                     
-                                    Set aPos = aUnd.Pos(aUnd.ID)
-                                    If Not aPos Is Nothing Then aPos.Quote.Price.Active = aUndData.Price.Active
-                                    If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Active = aUndData.Price.Active
+                                Set aPos = aUnd.Pos(aUnd.ID)
+                                If Not aPos Is Nothing Then aPos.Quote.Price.Active = aUndData.Price.Active
+                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Active = aUndData.Price.Active
 
                             End If
 
@@ -3013,6 +3028,11 @@ If Not g_PerformanceLog Is Nothing Then _
         m_RiskView.ConnectionString = g_Params.DbConnection
         m_RiskView.SaveTheoPricesAsClose TradeChannel.Trades
         Refresh
+        
+        Dim aData As MSGSTRUCTLib.UnderlyingUpdate
+        Set aData = New MSGSTRUCTLib.UnderlyingUpdate
+        aData.UpdStatus = enUndAllTheoCloseUpdate
+        g_TradeChannel.PubUnderlyingUpdate aData
     End If
     Exit Sub
     
@@ -6713,7 +6733,7 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
         If aPrcData.ContractType = enCtIndex Or aPrcData.ContractType = enCtStock Then _
             aUnd.Price.Close = aPrcData.PriceClose
             aUnd.Price.TheoClose = aPrcData.TheoPriceClose
-
+        
         If m_Aux.RealTime Then Exit Sub
         
         Set aPos = aUnd.Pos(aPrcData.ContractID)
@@ -7790,6 +7810,14 @@ On Error GoTo ErrEx
                         End If
                                                
                     End If
+                Else
+                    If (Not aRowData.SynthGreeks Is Nothing) Then
+                        If (Not g_Main.ContractAll(aRowData.Und.ID) Is Nothing) Then
+                                dActive = g_Main.ContractAll(aRowData.Und.ID).Und.manualActivePrice
+                        End If
+                        nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
+                        If nCol <> -1 And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                    End If
                 End If
 
             Else ' Is Aggregation
@@ -7802,7 +7830,7 @@ On Error GoTo ErrEx
                     ElseIf Not aRowData.Und Is Nothing Then
                         dActive = g_Main.ContractAll(aRowData.Und.ID).Und.manualActivePrice
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
-                        If nCol <> -1 And nAggRow = -1 And aRowData.Und.Price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                        If nCol <> -1 And (nAggRow = -1 Or nAggRow = 1) And aRowData.Und.Price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                 End If
                                                   
                 If nAggRow <> -1 Then

@@ -69,6 +69,51 @@ void CMmRvAggData::AddAggregatedValues(const CMmRvRowData* pRow)
 		accumulate_if_not_bad( PnlEdge_,		pRow->m_pAgg->PnlEdge_, 1.0 );
 		accumulate_if_not_bad( PnlMTM_,			pRow->m_pAgg->PnlMTM_,	1.0 );
 		accumulate_if_not_bad( PnLTheo_,		pRow->m_pAgg->PnLTheo_, 1.0 );
+
+
+		//-------------------------------------------------------------------------------//
+		if(pRow->m_pUnd->m_spSynthGreeks != NULL)
+		{
+			IMmRvSynthGreeksAtomPtr spUndSynthGreeks;
+			LONG nSynthUndID = 0L;
+			DOUBLE dSelfValue	= BAD_DOUBLE_VALUE;
+			DOUBLE dUndValue	= BAD_DOUBLE_VALUE;
+
+			IUnknownPtr spUnk;
+			_variant_t varItem;
+			ULONG nFetched = 0L;
+			HRESULT hr;
+
+			_CHK(pRow->m_pUnd->m_spSynthGreeks->get__NewEnum(&spUnk));
+			IEnumVARIANTPtr spUndSynthGreekEnum(spUnk);
+			_CHK(spUndSynthGreekEnum->Reset());
+			while((hr = spUndSynthGreekEnum->Next(1L, &varItem, &nFetched)) == S_OK)
+			{
+				ATLASSERT(varItem.vt == VT_DISPATCH);
+				spUndSynthGreeks = varItem;
+				if(spUndSynthGreeks != NULL)
+				{
+					_CHK(spUndSynthGreeks->get_NetDelta(&dUndValue));
+					accumulate_if_not_bad(NetDlt_, dUndValue, 1.0);
+
+					_CHK(spUndSynthGreeks->get_DeltaInMoney(&dUndValue));
+					accumulate_if_not_bad(NetDlt$_, dUndValue, 1.0);
+					accumulate_if_not_bad(OptDlt$_, dUndValue, dCoeff);
+
+					_CHK(spUndSynthGreeks->get_DeltaInShares(&dUndValue));
+					accumulate_if_not_bad(OptDlt_, dUndValue, dCoeff);
+
+					_CHK(spUndSynthGreeks->get_GammaInShares(&dUndValue));
+					accumulate_if_not_bad(Gma1$_, dUndValue, dCoeff * dCoeff);
+
+					_CHK(spUndSynthGreeks->get_GammaInSharesPerc(&dUndValue));
+					accumulate_if_not_bad(Gma1P_, dUndValue, dCoeff * dCoeff);
+
+					_CHK(spUndSynthGreeks->get_NetGamma(&dUndValue));
+					accumulate_if_not_bad(NetGma$_, dUndValue, dCoeff * dCoeff);
+				}
+			}
+		}
 	}	
 }
 void CMmRvAggData::CalcNetDeltas(EtsContractTypeEnum underlyingContractType)

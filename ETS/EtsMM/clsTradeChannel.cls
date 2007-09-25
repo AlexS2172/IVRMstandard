@@ -3158,7 +3158,40 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
         End If
     End If
     
-    'aUnd.PriceTheoClose
+    
+    bIsUpdated = CBool(Data.UpdStatus And enUndDividendUpdate)
+    If bIsUpdated Then
+        Set aUnd = g_UnderlyingAll(Data.UndID)
+        If Not aUnd Is Nothing Then
+        
+            If aUnd.Dividend Is Nothing Then
+                Set aUnd.Dividend = New EtsGeneralLib.EtsDivAtom
+            End If
+            
+            aUnd.Dividend.DivAmt = Data.DivAmt
+            aUnd.Dividend.DivAmtCust = Data.DivAmtCust
+            aUnd.Dividend.DivDate = Data.DivDate
+            aUnd.Dividend.DivDateCust = Data.DivDateCust
+            aUnd.Dividend.DivFreq = Data.DivFreq
+            aUnd.Dividend.DivFreqCust = Data.DivFreqCust
+            aUnd.Dividend.DivType = Data.DivType
+            
+            If aUnd.Dividend.DivType = enDivCustomPeriodical Then
+                LoadCustomDivs aUnd
+            End If
+            
+            If aUnd.Dividend.DivType = enDivIndexYield Then
+                aUnd.Yield = aUnd.Dividend.DivAmt
+            End If
+            
+        End If
+    End If
+    
+    
+    bIsUpdated = CBool(Data.UpdStatus And enUndAllTheoCloseUpdate)
+    If bIsUpdated Then
+        m_TradeChannel.UpdatePriceInfo g_CurTraderID, g_Main
+    End If
     
 End Sub
 
@@ -3172,3 +3205,26 @@ Public Sub PubUnderlyingUpdate(ByRef Data As MSGSTRUCTLib.IUnderlyingUpdate)
     Set aPubManager = Nothing
     
 End Sub
+
+Private Function LoadCustomDivs(ByRef aUnd As EtsGeneralLib.UndAtom) As Boolean
+    On Error Resume Next
+    Dim expDate As Date
+    Dim frmCustDivs As frmCustomDivs
+    
+    LoadCustomDivs = False
+    
+    expDate = Now + 365 * 5
+    
+    Set frmCustDivs = New frmCustomDivs
+        
+    frmCustDivs.Init aUnd.ID, aUnd.Symbol, expDate, aUnd.Dividend.DivType = enDivStockBasket, aUnd.Dividend.DivType = enDivCustomStream
+    frmCustDivs.BasketDivs = IIf(aUnd.Dividend.DivType = enDivStockBasket, aUnd.BasketIndex.BasketDivs, Nothing)
+            
+    If frmCustDivs.UpdateCollection Then
+        Set aUnd.Dividend.CustomDivs = frmCustDivs.CustomDividend
+        LoadCustomDivs = True
+    End If
+    
+    Set frmCustDivs = Nothing
+    
+End Function

@@ -410,8 +410,14 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 					IMmRvPricePtr spPrice;
 					_CHK(spSynthUndData->get_Price(&spPrice));
 
+					VARIANT_BOOL	bUseManualPrice = VARIANT_FALSE;
+					_CHK(spPrice->get_IsUseManualActive(&bUseManualPrice));
 
-					_CHK(spPrice->get_Bid(&dPrice));
+					if (bUseManualPrice == VARIANT_TRUE)
+						_CHK(spPrice->get_Active(&dPrice));
+					else
+						_CHK(spPrice->get_Bid(&dPrice));
+
 					if(!bBadSpotBid && dPrice > DBL_EPSILON)
 						*pdSynthBid += dPrice * dWeight;
 					else
@@ -420,7 +426,11 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 						*pdSynthBid = BAD_DOUBLE_VALUE;
 					}
 
-					_CHK(spPrice->get_Ask(&dPrice));
+					if (bUseManualPrice == VARIANT_TRUE)
+						_CHK(spPrice->get_Active(&dPrice));
+					else
+						_CHK(spPrice->get_Ask(&dPrice));
+
 					if(!bBadSpotAsk && dPrice > DBL_EPSILON)
 						*pdSynthAsk += dPrice * dWeight;
 					else
@@ -429,7 +439,11 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 						*pdSynthAsk = BAD_DOUBLE_VALUE;
 					}
 
-					_CHK(spPrice->get_Last(&dPrice));
+					if (bUseManualPrice == VARIANT_TRUE)
+						_CHK(spPrice->get_Active(&dPrice));
+					else
+						_CHK(spPrice->get_Last(&dPrice));
+
 					if(!bBadSpotLast && dPrice > DBL_EPSILON)
 						*pdSynthLast += dPrice * dWeight;
 					else
@@ -554,7 +568,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 						DATE dtExpiry = pPos->m_dtExpiry;
 						DOUBLE dStrike = pPos->m_dStrike;
 
-						if(dtExpiry > dtCalcDate )
+						if(dtExpiry >= dtCalcDate )
 						{
 							bPosCalcGreeks = pPos->m_bCalcGreeks;
 
@@ -628,7 +642,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 							if(nMask != GT_NOTHING)
 							{
 								if(nMask & GT_THEOPRICE)
-									pPos->m_pQuote->m_dPriceTheo = 0;
+									pPos->m_pQuote->m_dPriceTheo = BAD_DOUBLE_VALUE;
 
 								if((nMask & GT_DELTA))
 								{

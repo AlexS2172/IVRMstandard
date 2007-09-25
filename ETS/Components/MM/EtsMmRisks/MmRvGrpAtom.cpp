@@ -396,10 +396,17 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 	DOUBLE	dTotalSynthNetExpLong	=	BAD_DOUBLE_VALUE;
 	DOUBLE	dTotalSynthNetExpShort	=	BAD_DOUBLE_VALUE;
 	DOUBLE	dAUM	=	BAD_DOUBLE_VALUE;
+	DOUBLE	dCoeff	=	1.0;
 
 	CMmRvUndAtom *pMainUnd = static_cast<CMmRvUndAtom*>(spUnd.GetInterfacePtr());
+	
+	if (pMainUnd)
+	{
+		dAUM	=	pMainUnd->GetNetExposureAUM();
 
-	dAUM	=	pMainUnd->GetNetExposureAUM();
+		if (pMainUnd->m_spHeadComponent) 
+			dCoeff = pMainUnd->m_dCoeff; //asset group component coeff
+	}
 
  	if (pMainUnd->NetDlt$_ != BAD_DOUBLE_VALUE && dAUM != 0.0 && dAUM > BAD_DOUBLE_VALUE)
  	{
@@ -451,16 +458,30 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 
 					if(spUndPriceProfile != NULL)
 					{
-						DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
+						/*DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
 						IMmRvPricePtr spPrice;
+						VARIANT_BOOL	bUseManualActive = VARIANT_FALSE;
+
 						spSynthUndData->get_Price(&spPrice);
 
 						_CHK(spPrice->get_Bid(&dPriceBid));
 						_CHK(spPrice->get_Ask(&dPriceAsk));
 						_CHK(spPrice->get_Last(&dPriceLast));
 
-						dSynthUndMidPrice = spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk,
-							dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, VARIANT_FALSE);
+						_CHK(spPrice->get_IsUseManualActive(&bUseManualActive));
+						if (bUseManualActive == VARIANT_FALSE)
+							dSynthUndMidPrice = spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk,
+								dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, VARIANT_FALSE);
+						else
+							_CHK(spPrice->get_Active(&dSynthUndMidPrice));*/
+						enPriceStatusMid = enRpsNone;
+						VARIANT_BOOL	bFutureUsed = VARIANT_FALSE;
+						_CHK(spSynthUnd->GetUnderlyingPrice(dUndPriceTolerance,
+														enPriceRoundingRule,
+														&enPriceStatusMid,
+														&bFutureUsed,
+														&dSynthUndMidPrice));
+
 					}
 					_CHK(spSynthUnd->put_ReplacePriceStatus(enPriceStatusMid));
 
@@ -476,7 +497,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 							m_dDeltaEq += dUndValue * dSynthUndMidPrice;
 
 							if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
-							m_dOptDelta += dUndValue * dSynthUndMidPrice;
+							m_dOptDelta += dUndValue * dSynthUndMidPrice * dCoeff;
 
 							DOUBLE dDeltaInMoney = dUndValue * dSynthUndMidPrice;
 							_CHK(spUndSynthGreeks->put_DeltaInMoney(dDeltaInMoney));
@@ -553,7 +574,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 					if(dUndValue > BAD_DOUBLE_VALUE && dSynthUndMidPrice > DBL_EPSILON)
 					{
 						if(m_dGammaEq <= BAD_DOUBLE_VALUE) m_dGammaEq = 0.;
-						m_dGammaEq += dUndValue * dSynthUndMidPrice;
+						m_dGammaEq += dUndValue * dSynthUndMidPrice * dCoeff * dCoeff;
 					}
 					else
 						m_bBadGammaEq = VARIANT_TRUE;
@@ -563,7 +584,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 					if(dUndValue > BAD_DOUBLE_VALUE)
 					{
 						if(m_dNetGamma <= BAD_DOUBLE_VALUE) m_dNetGamma = 0.;
-						m_dNetGamma += dUndValue;
+						m_dNetGamma += dUndValue * dCoeff * dCoeff;
 					}
 					else
 						m_bBadNetGamma = VARIANT_TRUE;
@@ -573,7 +594,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 					if(dUndValue > BAD_DOUBLE_VALUE)
 					{
 						if(m_dNetGammaEq <= BAD_DOUBLE_VALUE) m_dNetGammaEq = 0.;
-						m_dNetGammaEq += dUndValue;
+						m_dNetGammaEq += dUndValue * dCoeff * dCoeff;
 					}
 					else
 						m_bBadNetGammaEq = VARIANT_TRUE;
