@@ -474,29 +474,23 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                             .TextMatrix(nRow, nCol) = aUnd.ActiveFuture.ActivePrice
                         End If
                     Case QUC_HEAD_COMP
-                        Dim aGlUnd As EtsGeneralLib.UndAtom
-                        Set aGlUnd = g_UnderlyingAll(aUnd.ID)
-                        
                         .TextMatrix(nRow, nCol) = STR_NA
                         
-                        If Not aGlUnd Is Nothing And m_Aux.Grp.ID = aUnd.ID Then
-                            If aGlUnd.IsHead Or aGlUnd.HeadComponent Is Nothing Then
-                                .TextMatrix(nRow, nCol) = aGlUnd.Symbol
+                        If m_Aux.Grp.ID = aUnd.ID Then
+                            If m_Aux.Grp.Und.IsHead Or m_Aux.Grp.Und.HeadComponent Is Nothing Then
+                                .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.Symbol
                             Else
-                                If Not aGlUnd.HeadComponent Is Nothing Then
-                                    .TextMatrix(nRow, nCol) = aGlUnd.HeadComponent.Symbol
+                                If Not m_Aux.Grp.Und.HeadComponent Is Nothing Then
+                                    .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.HeadComponent.Symbol
                                 End If
                             End If
                         End If
                         
                     Case QUC_COEFF
-'                        Dim aGlUnd As EtsGeneralLib.UndAtom
-                        Set aGlUnd = g_UnderlyingAll(aUnd.ID)
-                        
                         .TextMatrix(nRow, nCol) = STR_NA
                         
-                        If Not aGlUnd Is Nothing And m_Aux.Grp.ID = aUnd.ID Then
-                            .TextMatrix(nRow, nCol) = aGlUnd.Coeff
+                        If m_Aux.Grp.ID = aUnd.ID Then
+                            .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.Coeff
                         End If
                         
                 End Select

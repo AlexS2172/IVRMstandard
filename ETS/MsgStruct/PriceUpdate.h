@@ -83,7 +83,7 @@ public:
 	IMPLEMENT_LONG_PROP(UndID, m_nUndID)
 	IMPLEMENT_LONG_PROP(ContractID, m_nContractID)
 	IMPLEMENT_DOUBLE_PROP(PriceClose, m_dPriceClose)
-	IMPLEMENT_DOUBLE_PROP(TheoPriceClose, m_dPriceClose)
+	IMPLEMENT_DOUBLE_PROP(TheoPriceClose, m_dTheoPriceClose)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(PriceUpdate), CPriceUpdate)

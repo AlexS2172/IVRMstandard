@@ -191,28 +191,22 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 							{
 								if (pAtom->m_pAgg->pFut_->m_spUnd)
 								{
-									VARIANT_BOOL	bPriceByHead = VARIANT_FALSE;
-									pAtom->m_pAgg->pFut_->m_spUnd->get_PriceByHead(&bPriceByHead);
+									IMmRvFutAtomPtr spActivFuture;
+									_CHK(pAtom->m_pAgg->pFut_->m_spUnd->get_ActiveFuture(&spActivFuture));
 
-									if (bPriceByHead == VARIANT_FALSE)
-									{
-										IMmRvFutAtomPtr spActivFuture;
-										_CHK(pAtom->m_pAgg->pFut_->m_spUnd->get_ActiveFuture(&spActivFuture));
-
-										if (spActivFuture){
-											long	lActiveFutureID = 0;
-											spActivFuture->get_ID(&lActiveFutureID);
-											if (lActiveFutureID == pAtom->m_pAgg->pFut_->m_nID)
-											{
-												pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue);
-												pAtom->m_pAgg->pFut_->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
-											}
-										}
-										else
+									if (spActivFuture){
+										long	lActiveFutureID = 0;
+										spActivFuture->get_ID(&lActiveFutureID);
+										if (lActiveFutureID == pAtom->m_pAgg->pFut_->m_nID)
 										{
 											pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue);
 											pAtom->m_pAgg->pFut_->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
 										}
+									}
+									else
+									{
+										pAtom->m_pAgg->pFut_->m_pPrice->put_Active(dblValue);
+										pAtom->m_pAgg->pFut_->m_pPrice->put_IsUseManualActive(VARIANT_TRUE);
 									}
 								}
 							}
@@ -1201,9 +1195,9 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
  IMmRvUndAtomPtr CMmRiskView::_AddNewUnderlying(IUndAtomPtr spEtsUndAtom /*IMmTradeInfoAtomPtr spTradeAtom*/, IMmRvReqColl* pRequestColl)
 {
 	CComObject<CMmRvUndAtom>* pUndAtom   = NULL;
-	IUndAtomPtr              spUnd       = spEtsUndAtom;//spTradeAtom->Und;
+	IUndAtomPtr              spUnd       = spEtsUndAtom;
 	IExchAtomPtr			 spUndExch;
-	long                     nUndId      = spUnd->ID;//spTradeAtom->UndID;
+	long                     nUndId      = spUnd->ID;
 	_bstr_t					 bsUndSymbol = spUnd->Symbol;
 
 	IMmRvUndAtomPtr          spUndAtom = m_pUnd->AddNew(nUndId, bsUndSymbol, &pUndAtom);
@@ -1371,7 +1365,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 	//}
 	m_lUndCount++;
 
-	if ( (pUndAtom->m_enContractType == enCtIndex || pUndAtom->m_enContractType == enCtFutUnd) && pUndAtom->m_spHeadComponent == NULL)
+	if ( (pUndAtom->m_enContractType == enCtIndex || pUndAtom->m_enContractType == enCtFutUnd))
 		AddActiveFuture(spUnd, pUndAtom);
 
 	return spUndAtom;
@@ -2343,7 +2337,7 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 									EtsContractTypeEnum	enCtType;
 									pCurRow->m_pUnd->get_ContractType(&enCtType);
 
-									_CHK(pCurRow->m_pUnd->m_spHeadComponent->get_ActiveFuture(&pRow->m_pUnd->m_spActiveFuture));
+									_CHK(pCurRow->m_pUnd->get_ActiveFuture(&pRow->m_pUnd->m_spActiveFuture));
 
 									IMmRvPricePtr pPrice;
 									pCurRow->m_pUnd->get_Price(&pPrice);
@@ -2353,6 +2347,7 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 									pPrice->get_Active(&pUndAtom->m_pPrice->m_dActivePrice);
 									pPrice->get_TheoClose(&pUndAtom->m_pPrice->m_dPriceTheoClose);
 									pPrice->get_Close(&pUndAtom->m_pPrice->m_dPriceClose);
+									pPrice->get_IsUseManualActive(&pUndAtom->m_pPrice->m_bManualActive);
 
 									pRow->m_spUnd->put_Symbol(sSymbol);
 									pRow->m_pUnd->Name_ = pRow->m_pUnd->m_bstrSymbol;
@@ -2407,8 +2402,7 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 										pPrice->get_Active(&pUndAtom->m_pPrice->m_dActivePrice);
 										pPrice->get_TheoClose(&pUndAtom->m_pPrice->m_dPriceTheoClose);
 										pPrice->get_Close(&pUndAtom->m_pPrice->m_dPriceClose);
-
-
+										pPrice->get_IsUseManualActive(&pUndAtom->m_pPrice->m_bManualActive);
 
 
 										pRow->m_spUnd->put_Symbol(sSymbol);

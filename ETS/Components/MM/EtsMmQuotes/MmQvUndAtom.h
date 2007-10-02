@@ -66,8 +66,14 @@ struct __MmQvUndAtom
 
 	IMmQvFutAtomPtr				m_spActiveFuture;
 	LONG						m_nPrimaryExchangeID;
-	VARIANT_BOOL					m_bUseManualActivePrice;
-	VARIANT_BOOL			m_fIsManualVol;
+	VARIANT_BOOL				m_bUseManualActivePrice;
+	VARIANT_BOOL				m_fIsManualVol;
+
+	VARIANT_BOOL				m_bIsHead;
+	VARIANT_BOOL				m_bPriceByHead;
+	IMmQvUndAtomPtr				m_spHeadComponent;
+	DOUBLE						m_dCoeff;
+
 
 
 	__MmQvUndAtom()
@@ -101,7 +107,10 @@ struct __MmQvUndAtom
 		, m_dActivePrice(BAD_DOUBLE_VALUE)
 		, m_nPrimaryExchangeID(0)
 		, m_bUseManualActivePrice(VARIANT_FALSE)
-		, m_fIsManualVol(FALSE)
+		, m_fIsManualVol(VARIANT_FALSE)
+		, m_bPriceByHead(VARIANT_FALSE)
+		, m_bIsHead(VARIANT_FALSE)
+		, m_dCoeff(1.0)
 	{
 	}
 };
@@ -433,6 +442,7 @@ public:
 		m_spOptPriceProfile = NULL;
 		m_spFut = NULL;
 		m_spActiveFuture = NULL;
+		m_spHeadComponent = NULL;
 
 		m_pUnkMarshaler.Release();
 		
@@ -532,6 +542,11 @@ public:
 
 
 	IMPLEMENT_OBJECT_PROPERTY(IMmQvFutAtom*, ActiveFuture, m_spActiveFuture)
+
+	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsHead, m_bIsHead)
+	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, PriceByHead, m_bPriceByHead)
+	IMPLEMENT_OBJECT_PROPERTY(IMmQvUndAtom*, HeadComponent, m_spHeadComponent)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Coeff, m_dCoeff)
 
 	
 	STDMETHOD(CalcOptionGreeks)(IMmQvOptAtom* aOpt, IMmQvQuoteAtom* aQuote, IMmQvExpAtom* aExp, 

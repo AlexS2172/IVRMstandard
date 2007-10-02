@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   22675457
+      Format          =   20578305
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -1552,6 +1552,10 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
     m_Aux.Grp.Und.Kurt = aContract.Und.Kurt
     m_Aux.Grp.Und.IsManualVol = aContract.Und.IsManualVol
     
+    m_Aux.Grp.Und.IsHead = aContract.Und.IsHead
+    m_Aux.Grp.Und.PriceByHead = aContract.Und.PriceByHead
+    m_Aux.Grp.Und.Coeff = aContract.Und.Coeff
+    
     Set m_Aux.Grp.Und.UndPriceProfile = aContract.Und.UndPriceProfile
     Set m_Aux.Grp.Und.OptPriceProfile = aContract.Und.OptPriceProfile
     
@@ -1560,7 +1564,6 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
     If aContract.Und.manualActivePrice <> 0 Then
         m_Aux.Grp.Und.UseManualActivePrice = True
         m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
-'        g_Main.Contract(m_Aux.Grp.Und.ID).Und.manualActivePrice = 0
     Else
         m_Aux.Grp.Und.UseManualActivePrice = False
         m_Aux.Grp.Und.ActivePrice = aContract.Und.manualActivePrice
@@ -1645,27 +1648,6 @@ Private Sub InitContracts(ByRef aContract As EtsGeneralLib.EtsContractAtom)
             End If
             
         End If
-        
-        'fokiny
-        'Set m_Aux.Grp.Und.UndPriceProfile = aContract.Und.UndPriceProfile
-        'Set m_Aux.Grp.Und.OptPriceProfile = aContract.Und.OptPriceProfile
-        
-'        For Each aFut In m_Aux.Grp.Und.Fut
-'            aFut.ID = aContract.Fut.ID
-'            aFut.Symbol = aContract.Fut.Symbol
-'            aFut.ContractName = aContract.Fut.ContractName
-'            aFut.FutRootID = aContract.FutRoot.ID
-'            aFut.ExpCalendarID = aContract.Fut.ExpCalendarID
-'            Set aFut.UndPriceProfile = aContract.Fut.UndPriceProfile
-'            Set aFut.OptPriceProfile = aContract.Fut.OptPriceProfile
-'            aFut.MaturityDate = aContract.Fut.MaturityDate
-'            aFut.MaturityMonth = DateSerial(Year(aContract.Fut.MaturityDate), Month(aContract.Fut.MaturityDate), 1)
-'            aFut.IsAmerican = aContract.Fut.IsAmerican
-'
-'            aFut.Quote.Clear
-'            aFut.Exp.Clear
-'        Next
-
     End If
         
 End Sub
@@ -5587,8 +5569,15 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             
                                 If Not aGlUnd Is Nothing Then
                                     If Not aGlUnd.IsHead And Not aGlUnd.HeadComponent Is Nothing Then
-                                        dValue = .ValueMatrix(Row, Col)
+                                        dValue = Abs(.ValueMatrix(Row, Col))
                                         If aGlUnd.Coeff <> dValue And dValue > 0 Then
+                                            .TextMatrix(Row, Col) = dValue
+                                            
+                                            If (Not aRowData.Und Is Nothing) Then
+                                                aRowData.Und.Coeff = dValue
+                                                bNeedRecalc = True
+                                            End If
+                                            
                                             aGlUnd.Coeff = dValue
                                             gDBW.usp_AssetGroupElement_Save aGlUnd.HeadComponent.ID, aGlUnd.ID, IIf(aGlUnd.PriceByHead, 1, 0), aGlUnd.Coeff
                                             
@@ -5617,7 +5606,6 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             aRowData.UndQuote.ReplacePriceStatus = enPriceStatusMid
                             End If
                             Recalculate False, bManualEdit
-                            Me.Refresh
                         End If
                         
                         Set aQuote = Nothing
@@ -5852,7 +5840,12 @@ Private Sub fgUnd_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
             Else
                 m_sCurrentOriginalText = Trim$(.Cell(flexcpTextDisplay, Row, Col))
             End If
+            
             If nKey = QUC_ACTIVEFUTUREPRICE And QV.Grp.Und.ActiveFuture Is Nothing Then
+                Cancel = True
+            End If
+            
+            If (nKey = QUC_INDEXCALCPRICE And QV.Grp.Und.ActiveFuture Is Nothing And QV.Grp.Und.PriceByHead = True) Then
                 Cancel = True
             End If
 
@@ -8413,44 +8406,34 @@ If m_Aux.Grp.Und.Fut.Count = 0 Then Exit Sub
     
     fgFut.Rows = 1
         For Each aFut In m_Aux.Grp.Und.Fut
-
             For Each aExch In aFut.FutExch
-
                 Set aRowData = New MmQvRowData
                 Set aRowData.Exch = aExch
                 Set aRowData.Fut = aFut
                 Set aRowData.FutQuote = aFut.Quote(aExch.ID)
                 Set aRowData.FutRoot = m_Aux.Grp.FutRootColl(aFut.FutRootID)
-                                           
-
+                                               
                 If Not aRowData.FutQuote Is Nothing Then
                     fgFut.AddItem ""
                     nRow = fgFut.Rows - 1
-
+    
                     fgFut.RowData(nRow) = aRowData
-
+   
                     If Not aRowData.FutQuote Is Nothing Then
                         sKey = aRowData.Fut.Symbol
                         If aExch.ID <> 0 Then
                             sKey = sKey & "." & aExch.Code
                         End If
                         fgFut.TextMatrix(nRow, QOF_KEY) = sKey
-
+   
                         m_AuxOut.FutureUpdateQuote nRow, True, False, True
                         IncProgress pbProgress
                     End If
-                    
+                        
                     bHidden = IIf(m_Aux.Grp.IsStockOrIndex, True, Not aRowData.Fut.Visible) 'Not aRowData.Exch.Visible
-
-'                    If bHidden Then
-'                        If Not aRowData.Fut Is Nothing Then
-'                            bHidden = Not (aRowData.Exch.ID = aFut.PosExchID And aRowData.Fut.Qty > BAD_LONG_VALUE)
-'                        End If
-'                    End If
-
+    
                     fgFut.RowHidden(nRow) = bHidden
                 End If
-
                 Set aRowData = Nothing
             Next
         Next
@@ -8943,7 +8926,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
     If Len(Params.Exchange) > 0 Then
         sKey = sKey & "." & Params.Exchange
     End If
-      
+           
     Set aReq = m_Aux.QuoteReqsAll(sKey)
     If Not aReq Is Nothing Then
         If aReq.Visible Then
@@ -9306,7 +9289,6 @@ Private Sub CalculateUnderlyingOptions(ByVal bRecalcAll As Boolean, Optional aSy
         nCalcSleepAmt = g_Params.CalcSleepAmt
     End If
     
-   ' sDate = CDate(dtCalculationDate.Value) 'fgVol.TextMatrix(1, QVC_VOLA_VAL + m_Aux.Grp.ExpAll.Count)
     If Len(dtCalculationDate.Value) Then
            sDate = Format(CDate(dtCalculationDate.Value), "Short Date")
            lDayShift = IIf(m_Aux.RealTime, 0, (CDate(sDate) - Date))
@@ -10036,6 +10018,42 @@ Private Sub tmrTradesProcessing_Timer()
     Else
         tmrRealTime.Enabled = True
     End If
+End Sub
+
+Private Sub TradeChannel_AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
+    On Error GoTo Exception
+        If (m_bShutDown) Then Exit Sub
+        Dim bChange As Boolean
+        Dim aUnd As EtsMmQuotesLib.MmQvUndAtom
+    
+        bChange = False
+        
+        If (aUndData.UpdStatus And enUndAggregationUpdate) Then
+            Set aUnd = m_Aux.Grp.Und
+            If (Not aUnd Is Nothing) Then
+            
+                'chech for modifications
+                If (aUnd.ID = aUndData.UndID) Then
+                    If (aUndData.UseHead <> aUnd.PriceByHead) Then
+                        bChange = True
+                        aUnd.PriceByHead = aUndData.UseHead
+                    End If
+                    If (aUndData.Coeff <> aUnd.Coeff) Then
+                        bChange = True
+                        aUnd.Coeff = aUndData.Coeff
+                    End If
+                End If
+                
+                'recalculate all data
+                If bChange Then
+                    If m_Aux.RealTime = False Then Recalculate True
+                End If
+                
+            End If
+        End If
+    Exit Sub
+Exception:
+    Debug.Print "Error while try to update Asset configuration"
 End Sub
 
 Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)

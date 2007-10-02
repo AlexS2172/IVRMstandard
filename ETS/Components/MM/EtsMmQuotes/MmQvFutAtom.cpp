@@ -52,11 +52,6 @@ HRESULT CMmQvFutAtom::rawCalcOptionGreeks(
 
 			LONG nIsAmerican = (m_bIsAmerican ? 1L : 0L);
 
-			if (this->m_bUseManualActivePrice)
-			{
-				pFutPrice->m_dAsk = pFutPrice->m_dBid = pFutPrice->m_dPrice = this->m_dActivePrice;
-			}
-
 			if(pFutPrice->IsValid())
 			{
 				DOUBLE dOptPriceBid = 0., dOptPriceAsk = 0., dOptPriceLast = 0., dOptPriceMid = 0., dOptPriceBidForIv = 0.;				
@@ -1125,71 +1120,69 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 											 VARIANT_BOOL *bFutureUsed, 
 											 DOUBLE	*pPrice)
 {
-	HRESULT hr = S_OK;
-	 CComBSTR						activeFutureSymbol;
-	 bool							dontUseFuture = true;
+	 HRESULT hr = S_OK;
+	 CComBSTR					activeFutureSymbol;
+	 bool						dontUseFuture = true;
 	 IEtsPriceProfileAtomPtr	activeFuturePriceProfile;
 	 double						activeFuturePrice = 0.;
 	 IMmQvFutAtomPtr			activeFuture;
 	 IMmQvQuoteCollPtr			futureQuoteColl;
 	 IMmQvQuoteAtomPtr			futureQuote;
+
 	 double						activeFuturePriceBid = 0., activeFuturePriceAsk = 0.,
-		 activeFuturePriceLast = 0.,activeFutureClosePrice = 0.,
-		 activeFutureCurrentPrice = 0., futureClosePrice = 0.,
-		 futurePriceBid = 0., futurePriceAsk = 0.,
-		 futurePriceLast = 0.;
+								activeFuturePriceLast = 0.,activeFutureClosePrice = 0.,
+								activeFutureCurrentPrice = 0., futureClosePrice = 0.,
+								futurePriceBid = 0., futurePriceAsk = 0.,
+								futurePriceLast = 0.;
+
 	 IMmQvQuoteCollPtr			activeFutureQuoteColl;
 	 IMmQvQuoteAtomPtr			activeFutureQuote;
 
 	 if (!bFutureUsed || !pPrice || !aUnd)		return E_POINTER;
 
-	 if (this->m_bUseManualActivePrice)
-	 {
-		 *pPrice = this->m_dActivePrice;
-
-		 return S_OK;
-	 }
-
-	 m_dActivePrice = BAD_DOUBLE_VALUE;
 	 *bFutureUsed = VARIANT_FALSE;
 	 *pPrice = 0.;
-	 VARIANT_BOOL useManualActivePrice;
+	 VARIANT_BOOL	bUseManualPrice = VARIANT_FALSE;
+
 	 try{
+
+		 //use market price or price () of active future
 		 _CHK(aUnd->get_ActiveFuture(&activeFuture ));
-		 if (activeFuture) {
+		 if (activeFuture) 
+		 {
 			 _CHK(activeFuture->get_Symbol(&activeFutureSymbol));
-			 if (activeFutureSymbol.Length() ){
+			 if (activeFutureSymbol.Length() )
+			 {
 				 _CHK(activeFuture->get_UndPriceProfile(&activeFuturePriceProfile));
-				 if (activeFuturePriceProfile)	{
+				 if (activeFuturePriceProfile)	
+				 {
 					 // we have active future - try to get it price
 					 _CHK( activeFuture->get_Quote(&activeFutureQuoteColl) ); 
 					 _CHK( activeFutureQuoteColl->get_Item(0L, &activeFutureQuote) );
-					 if( activeFutureQuote ){
+					 if( activeFutureQuote )
+					 {
+
 						 _CHK(activeFutureQuote->get_PriceBid(&activeFuturePriceBid));
 						 _CHK(activeFutureQuote->get_PriceAsk(&activeFuturePriceAsk));
 						 _CHK(activeFutureQuote->get_PriceLast(&activeFuturePriceLast));
-						 
-
 
 						 activeFuturePrice = activeFuturePriceProfile->GetUndPriceMid(	activeFuturePriceBid,
-							 activeFuturePriceAsk,
-							 activeFuturePriceLast,
-							 dTolerance,
-							 enPriceRound,
-							 penPriceStatus, VARIANT_FALSE);
+																						activeFuturePriceAsk,
+																						activeFuturePriceLast,
+																						dTolerance,
+																						enPriceRound,
+																						penPriceStatus, VARIANT_FALSE);
 
- 						 activeFuture->get_IsUseManualActivePrice(&useManualActivePrice);
+						 activeFuture->get_IsUseManualActivePrice(&bUseManualPrice);
 
-						 if (useManualActivePrice)
-						 {
+						 if ( bUseManualPrice )
 							activeFuture->get_ActivePrice(&activeFuturePrice);
 
-							//activeFuturePriceBid = activeFuturePriceAsk = activeFuturePriceLast = activeFuturePrice;
-						 }
-
-						 //if ( activeFuturePrice > 0){
+						 if ( activeFuturePrice > 0)
+						 {
 							 // we have price of active future
-							 if ( m_dRatio <= 0.){
+							 if ( m_dRatio <= 0.)
+							 {
 								 double dRatio = 1.;
 								 // we have no ratio, try to compute it on the fly
 								 _CHK( m_spQuote->get_Item(0L, &futureQuote) );
@@ -1199,19 +1192,25 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 									 dRatio = futureClosePrice / activeFutureClosePrice;
 								 else
 									 dRatio = 1.;	// couldn't compute ratio
+						
 								 *pPrice = activeFuturePrice * dRatio;
 							 }
 							 else
 								 *pPrice = activeFuturePrice * m_dRatio;
-							 dontUseFuture = false;
-							 *bFutureUsed = VARIANT_TRUE;
-						 //}
+						 }
+						 dontUseFuture = false;
+						 *bFutureUsed = VARIANT_TRUE;
 					 }
 				 }
 			 }
 		 }
-		 // if couldn't compute future price using active future, use quote for
-		 // this future
+		 else if ( m_bUseManualActivePrice )
+		 {
+			 *pPrice		=	m_dActivePrice;
+			 dontUseFuture	=	false;
+			 *bFutureUsed	=	VARIANT_TRUE;
+		 }
+		 // use quote for this future  if no manual and active price
 		 if (dontUseFuture){
 			 ATLASSERT ( m_spQuote ) ;
 			 _CHK( m_spQuote->get_Item(0L, &futureQuote) );
@@ -1227,6 +1226,7 @@ STDMETHODIMP CMmQvFutAtom::GetFuturePrice(	IMmQvUndAtom* aUnd,DOUBLE dTolerance,
 					 penPriceStatus, VARIANT_FALSE);
 			 }
 		 }
+		 //set active price
 		 if(SUCCEEDED(hr) && *pPrice > 0)
 			 m_dActivePrice = *pPrice;
 

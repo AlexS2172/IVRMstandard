@@ -3,30 +3,44 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgDebugUtil", "EgDebugUtil\EgDebugUtil.vcproj", "{9994278C-180F-4D33-B7CC-F39E3CB73CF9}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgStdLib", "EgStdLib\EgStdLib.vcproj", "{731A4A22-C008-4A19-BB22-7CF233C66EFE}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgTcpDriver", "EgTcpDriver\egtcpdriver.vcproj", "{5576E136-1045-4A66-A95B-EE2E72F96853}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{271FC236-2A74-449F-A067-C81E1286F1DB}"
-	ProjectSection(SolutionItems) = preProject
-		UseLibs.txt = UseLibs.txt
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgHttp", "EgHttp\eghttp.vcproj", "{48DD7667-1914-42F1-A5AE-9A300BE448D5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5576E136-1045-4A66-A95B-EE2E72F96853} = {5576E136-1045-4A66-A95B-EE2E72F96853}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OptionCalc", "OptionCalc\optioncalc.vcproj", "{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0} = {6C229602-124D-4FAA-B36C-7FC5FF1948D0}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OptionPriceModels", "OptionPriceModels\optionpricemodels.vcproj", "{6C229602-124D-4FAA-B36C-7FC5FF1948D0}"
 EndProject
 Global
 	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 3
+		SccNumberOfProjects = 5
 		SccProjectUniqueName0 = EgDebugUtil\\EgDebugUtil.vcproj
 		SccProjectName0 = \u0022$/EgCommon/EgDebugUtil\u0022,\u0020TAZCAAAA
 		SccLocalPath0 = EgDebugUtil
 		SccProvider0 = MSSCCI:ClearCase
-		SccProjectUniqueName1 = EgStdLib\\EgStdLib.vcproj
-		SccProjectName1 = \u0022$/EgCommon/EgStdLib\u0022,\u0020MUKAAAAA
-		SccLocalPath1 = EgStdLib
+		SccProjectUniqueName1 = EgTcpDriver\\egtcpdriver.vcproj
+		SccProjectName1 = \u0022$/EgCommon/EgTcpDriver\u0022,\u0020KNDAAAAA
+		SccLocalPath1 = EgTcpDriver
 		SccProvider1 = MSSCCI:ClearCase
-		SccProjectUniqueName2 = EgTcpDriver\\egtcpdriver.vcproj
-		SccProjectName2 = \u0022$/EgCommon/EgTcpDriver\u0022,\u0020KNDAAAAA
-		SccLocalPath2 = EgTcpDriver
+		SccProjectUniqueName2 = EgHttp\\eghttp.vcproj
+		SccProjectName2 = \u0022$/EgCommon\u0022,\u0020HNDAAAAA
+		SccLocalPath2 = .
 		SccProvider2 = MSSCCI:ClearCase
+		SccProjectFilePathRelativizedFromConnection2 = EgHttp\\
+		SccProjectUniqueName3 = OptionCalc\\optioncalc.vcproj
+		SccProjectName3 = \u0022$/EgCommon/OptionCalc\u0022,\u0020BIIBAAAA
+		SccLocalPath3 = OptionCalc
+		SccProvider3 = MSSCCI:ClearCase
+		SccProjectUniqueName4 = OptionPriceModels\\optionpricemodels.vcproj
+		SccProjectName4 = \u0022$/EgCommon/OptionPriceModels\u0022,\u0020GYDAAAAA
+		SccLocalPath4 = OptionPriceModels
+		SccProvider4 = MSSCCI:ClearCase
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,14 +57,6 @@ Global
 		{9994278C-180F-4D33-B7CC-F39E3CB73CF9}.Unicode Debug|Win32.Build.0 = Debug|Win32
 		{9994278C-180F-4D33-B7CC-F39E3CB73CF9}.Unicode Release|Win32.ActiveCfg = Release|Win32
 		{9994278C-180F-4D33-B7CC-F39E3CB73CF9}.Unicode Release|Win32.Build.0 = Release|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Debug|Win32.ActiveCfg = Debug|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Debug|Win32.Build.0 = Debug|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Release|Win32.ActiveCfg = Release|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Release|Win32.Build.0 = Release|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Unicode Debug|Win32.ActiveCfg = Debug|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Unicode Debug|Win32.Build.0 = Debug|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Unicode Release|Win32.ActiveCfg = Release|Win32
-		{731A4A22-C008-4A19-BB22-7CF233C66EFE}.Unicode Release|Win32.Build.0 = Release|Win32
 		{5576E136-1045-4A66-A95B-EE2E72F96853}.Debug|Win32.ActiveCfg = Debug|Win32
 		{5576E136-1045-4A66-A95B-EE2E72F96853}.Debug|Win32.Build.0 = Debug|Win32
 		{5576E136-1045-4A66-A95B-EE2E72F96853}.Release|Win32.ActiveCfg = Release|Win32
@@ -59,6 +65,30 @@ Global
 		{5576E136-1045-4A66-A95B-EE2E72F96853}.Unicode Debug|Win32.Build.0 = Unicode Debug|Win32
 		{5576E136-1045-4A66-A95B-EE2E72F96853}.Unicode Release|Win32.ActiveCfg = Unicode Release|Win32
 		{5576E136-1045-4A66-A95B-EE2E72F96853}.Unicode Release|Win32.Build.0 = Unicode Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Debug|Win32.Build.0 = Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Release|Win32.ActiveCfg = Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Release|Win32.Build.0 = Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Debug|Win32.ActiveCfg = Unicode Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Debug|Win32.Build.0 = Unicode Debug|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Release|Win32.ActiveCfg = Unicode Release|Win32
+		{48DD7667-1914-42F1-A5AE-9A300BE448D5}.Unicode Release|Win32.Build.0 = Unicode Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Debug|Win32.Build.0 = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Release|Win32.ActiveCfg = Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Release|Win32.Build.0 = Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Debug|Win32.ActiveCfg = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Debug|Win32.Build.0 = Debug|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Release|Win32.ActiveCfg = Release|Win32
+		{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}.Unicode Release|Win32.Build.0 = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Debug|Win32.Build.0 = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Release|Win32.ActiveCfg = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Release|Win32.Build.0 = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Debug|Win32.ActiveCfg = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Debug|Win32.Build.0 = Debug|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Release|Win32.ActiveCfg = Release|Win32
+		{6C229602-124D-4FAA-B36C-7FC5FF1948D0}.Unicode Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

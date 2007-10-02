@@ -816,6 +816,10 @@ library EtsMmQuotesLib
 								   [out]		VARIANT_BOOL *bFutureUsed, 
 								   [out,retval]	DOUBLE	*pPrice);
 
+		ETSGENERAL_PROPPUTREF_DEF(102,	IMmQvUndAtom*,	HeadComponent)
+		ETSGENERAL_PROP_DEF(103,		VARIANT_BOOL,	IsHead)
+		ETSGENERAL_PROP_DEF(104,		VARIANT_BOOL,	PriceByHead)
+		ETSGENERAL_PROP_DEF(105,		DOUBLE,			Coeff)
 
 
 	};							

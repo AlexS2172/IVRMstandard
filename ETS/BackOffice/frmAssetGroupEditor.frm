@@ -354,12 +354,12 @@ Err:
 End Function
 
 Private Sub AddToAssetGroup()
-    If (fgComponents.Row <= 1 Or fgComponents.Rows <= 1) Then Exit Sub
+    If (fgComponents.Row < 1 Or fgComponents.Rows <= 1) Then Exit Sub
     If (fgComponents.ValueMatrix(fgComponents.Row, CC_INUSE) = False And fgComponents.ValueMatrix(fgComponents.Row, CC_ID) <> m_nAssetID) Then
         fgComponents.TextMatrix(fgComponents.Row, CC_INUSE) = True
         fgAsset.AddItem fgComponents.TextMatrix(fgComponents.Row, CC_SYMBOL)
         m_AssetRC = m_AssetRC + 1
-        fgAsset.TextMatrix(m_AssetRC, AC_COEFFICIENT) = 0.1
+        fgAsset.TextMatrix(m_AssetRC, AC_COEFFICIENT) = 1#
         fgAsset.TextMatrix(m_AssetRC, AC_USEHEAD) = True
         fgAsset.TextMatrix(m_AssetRC, AC_ID) = fgComponents.ValueMatrix(fgComponents.Row, CC_ID)
     End If
@@ -412,7 +412,15 @@ Err:
     Debug.Print "Error while trying to save data..."
 End Sub
 
-Private Sub fgAsset_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub fgAsset_AfterEdit(ByVal Row As Long, ByVal Col As Long)
+    If (Col = AC_COEFFICIENT) Then
+        If (fgAsset.ValueMatrix(Row, Col) < 0) Then
+            fgAsset.TextMatrix(Row, Col) = Abs(fgAsset.ValueMatrix(Row, Col))
+        End If
+    End If
+End Sub
+
+Private Sub fgAsset_MouseDown(Button As Integer, Shift As Integer, X As Single, y As Single)
     If (fgAsset.Rows <= 1) Then Exit Sub
     If (fgAsset.MouseRow <= 1) Then Exit Sub
     If (fgAsset.MouseCol = AC_USEHEAD Or fgAsset.MouseCol = AC_COEFFICIENT) And (fgAsset.ValueMatrix(fgAsset.MouseRow, AC_ISHEAD) = False) Then

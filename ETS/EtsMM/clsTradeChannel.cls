@@ -18,6 +18,7 @@ Option Explicit
 Public Event TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
 Public Event PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
 Public Event PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
+Public Event AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
 
 Private WithEvents MmwMsgManager As MMWLib.MsgManager
 Attribute MmwMsgManager.VB_VarHelpID = -1
@@ -3154,7 +3155,7 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
             aUnd.Coeff = Data.Coeff
             aUnd.PriceByHead = Data.UseHead
             
-            ' TODO: event to screens
+            RaiseEvent AssetUpdate(Data)
         End If
     End If
     

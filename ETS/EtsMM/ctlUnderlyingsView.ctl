@@ -2095,8 +2095,9 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         End If
                         
                     Case NLC_COEFF
-                        dValue = .ValueMatrix(Row, Col)
+                        dValue = Abs(.ValueMatrix(Row, Col))
                         If aUnd.Coeff <> dValue And dValue > 0 Then
+                            .TextMatrix(Row, Col) = dValue
                             aUnd.Coeff = dValue
                         End If
                         

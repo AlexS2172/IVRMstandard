@@ -410,12 +410,22 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 					IMmRvPricePtr spPrice;
 					_CHK(spSynthUndData->get_Price(&spPrice));
 
-					VARIANT_BOOL	bUseManualPrice = VARIANT_FALSE;
-					_CHK(spPrice->get_IsUseManualActive(&bUseManualPrice));
+					VARIANT_BOOL	bPriceByDriver = VARIANT_FALSE;
+					VARIANT_BOOL	bUseActivePrice = VARIANT_FALSE;
+					_CHK(spPrice->get_IsUseManualActive(&bUseActivePrice));
 
-					if (bUseManualPrice == VARIANT_TRUE)
-						_CHK(spPrice->get_Active(&dPrice));
-					else
+					VARIANT_BOOL	bPriceByHead	=	VARIANT_FALSE;
+					spSynthUnd->get_PriceByHead(&bPriceByHead);
+
+					IMmRvUndAtomPtr spHeadComponent;
+					spSynthUnd->get_HeadComponent(&spHeadComponent);
+					if ((spHeadComponent && bPriceByHead) || bUseActivePrice)
+					{
+						bPriceByDriver = VARIANT_TRUE;
+						spPrice->get_Active(&dPrice);
+					}
+
+					if (bPriceByDriver  == VARIANT_FALSE)
 						_CHK(spPrice->get_Bid(&dPrice));
 
 					if(!bBadSpotBid && dPrice > DBL_EPSILON)
@@ -426,9 +436,7 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 						*pdSynthBid = BAD_DOUBLE_VALUE;
 					}
 
-					if (bUseManualPrice == VARIANT_TRUE)
-						_CHK(spPrice->get_Active(&dPrice));
-					else
+					if (bPriceByDriver == VARIANT_FALSE)
 						_CHK(spPrice->get_Ask(&dPrice));
 
 					if(!bBadSpotAsk && dPrice > DBL_EPSILON)
@@ -439,9 +447,7 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 						*pdSynthAsk = BAD_DOUBLE_VALUE;
 					}
 
-					if (bUseManualPrice == VARIANT_TRUE)
-						_CHK(spPrice->get_Active(&dPrice));
-					else
+					if (bPriceByDriver  == VARIANT_FALSE)
 						_CHK(spPrice->get_Last(&dPrice));
 
 					if(!bBadSpotLast && dPrice > DBL_EPSILON)
@@ -507,28 +513,28 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 		EtsReplacePriceStatusEnum enUndPriceStatusBid = enRpsNone;
 		EtsReplacePriceStatusEnum enUndPriceStatusAsk = enRpsNone;
 		DOUBLE dUndPriceMid = 0., dUndPriceBid = 0., dUndPriceAsk = 0.;
-		VARIANT_BOOL bFutureUsed = VARIANT_FALSE;
+		VARIANT_BOOL bDriverUsed = VARIANT_FALSE;
 
 		EtsReplacePriceStatusEnum	enActiveUndPriceStatus = enRpsNone;
-		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enActiveUndPriceStatus ,&bFutureUsed, &dUndPriceMid));
+		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enActiveUndPriceStatus ,&bDriverUsed, &dUndPriceMid));
 
 		if(m_spUndPriceProfile != NULL)
 		{
-			if (m_pPrice->m_bManualActive == VARIANT_FALSE && m_spActiveFuture == NULL)
-			{
-				dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
-
-				dUndPriceAsk = m_spUndPriceProfile->GetUndPriceAskForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
-			}
-			else
+			if ( bDriverUsed )
 			{
 				//active future have no market price and manual price
 				if (dUndPriceMid <= 0.0)
 					dUndPriceBid = dUndPriceAsk	= DBL_EPSILON;
 				else
 					dUndPriceBid = dUndPriceAsk	= dUndPriceMid;
+			}
+			else
+			{
+				dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
+					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
+
+				dUndPriceAsk = m_spUndPriceProfile->GetUndPriceAskForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
+					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
 			}
 		}
 		//set this underlying active price
@@ -737,9 +743,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 						{
 							_CHK(spQuote->put_ReplacePriceStatus(m_enReplacePriceStatus));
 						}
-
-						if (enContractType == enCtIndex)
-							pPos->m_pQuote->m_pPrice->m_dActivePrice = dUndPriceMid;
+						pPos->m_pQuote->m_pPrice->m_dActivePrice = dUndPriceMid;
 					}
 
 					// futures
@@ -1476,7 +1480,17 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 		*pPrice = 0;
 		*bFutureUsed = VARIANT_FALSE;
 
-		if ( m_spActiveFuture && (m_bIsHead || m_spHeadComponent == NULL))	
+		if ( m_bPriceByHead && m_spHeadComponent )
+		{
+			//is this underlying is driven by his asset head component
+			m_spHeadComponent->GetUnderlyingPrice(dTolerance, enPriceRound, penPriceStatus, bFutureUsed, pPrice);
+			if (*pPrice > .0 && m_dCoeff > .0){
+				*pPrice *= m_dCoeff;
+				m_pPrice->m_bDirty	=	VARIANT_TRUE;
+			}
+			*bFutureUsed	=	VARIANT_TRUE;
+		}
+		else if ( m_spActiveFuture )	
 		{
 			// this underlying - is index with active future 
 			DOUBLE dActiveFutureMid = 0., dActiveFutureBid = 0., dActiveFutureAsk = 0., dActiveFutureLast = 0.;
@@ -1514,30 +1528,21 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 				{
 					dActiveFutureMid += dActiveFutureBasis;
 					*pPrice = dActiveFutureMid;
-					*bFutureUsed = VARIANT_TRUE;
 				}
 				else   //if we have no active future market price return 0.0
 				{
 					*pPrice = 0.0;
-					*bFutureUsed = VARIANT_FALSE;
 				}
-			}
-		}
-		else if (m_spHeadComponent && m_bPriceByHead == VARIANT_TRUE)
-		{
-			//is this underlying is driven by his asset head component
-			m_spHeadComponent->GetUnderlyingPrice(dTolerance, enPriceRound, penPriceStatus, bFutureUsed, pPrice);
-			if (*pPrice > .0 && m_dCoeff > .0)	
-			{
-				*pPrice *= m_dCoeff;
-				m_pPrice->m_bDirty	=	VARIANT_TRUE;
+				*bFutureUsed = VARIANT_TRUE;
 			}
 		}
 		else if ( m_spUndPriceProfile )
 		{
 			//asset group head component without driver (active future) or simple Underlying
-			if (m_pPrice->m_bManualActive == VARIANT_TRUE)
+			if (m_pPrice->m_bManualActive == VARIANT_TRUE){
 				*pPrice = m_pPrice->m_dActivePrice;
+				*bFutureUsed	=	VARIANT_TRUE;
+			}
 			else
 				*pPrice = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid, 
 																m_pPrice->m_dPriceAsk,
@@ -1546,6 +1551,7 @@ STDMETHODIMP CMmRvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance, EtsPriceRoundin
 			m_pPrice->m_bDirty	=	VARIANT_TRUE;
 		}
 	
+		m_pPrice->m_dActivePrice = *pPrice;
 	}
 	catch ( _com_error& e ) {
 		hr = Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), __uuidof(IMmRvUndAtom), e.Error());

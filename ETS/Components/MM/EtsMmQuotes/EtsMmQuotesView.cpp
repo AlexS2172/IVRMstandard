@@ -72,7 +72,6 @@ STDMETHODIMP CEtsMmQuotesView::Load(long lGroupID, EtsContractTypeEnum enType)
 				hr = LoadOptions(lGroupID);
 			if(m_pGrp && m_pGrp->m_pUnd)
 				m_pGrp->m_pUnd->m_pGrp = m_pGrp;
-
 			break;
 		case enCtStock:
 			hr = LoadOptions(lGroupID);
@@ -81,6 +80,8 @@ STDMETHODIMP CEtsMmQuotesView::Load(long lGroupID, EtsContractTypeEnum enType)
 			hr = LoadFutures(lGroupID);
 			break;
 		}
+
+		LoadHeadComponent(lGroupID);
 
 		DefaultOptionsSort();
 	}
@@ -112,7 +113,238 @@ STDMETHODIMP CEtsMmQuotesView::Cancel()
 	return hr;
 
 }
-	
+
+HRESULT	CEtsMmQuotesView::LoadHeadComponent(long	lGroupID)
+{
+	 try
+	 {
+		 //load head component
+		 if ( m_pGrp && m_pGrp->m_pUnd )
+		 {
+			 if ( m_pGrp->m_pUnd->m_bPriceByHead )
+			 {
+				 IEtsContractCollPtr spContractAll = m_spEtsMain->ContractAll;
+				 IEtsContractAtomPtr spContract = spContractAll->Item[lGroupID];
+				 if (spContract->Und && spContract->Und->HeadComponent)
+					 m_pGrp->m_pUnd->m_spHeadComponent = AddNewUnderlying(spContract->Und->HeadComponent);
+			 }
+		 }
+	 }
+	 catch (_com_error& e)
+	 {
+		 return Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), IID_IEtsMmQuotesView, e.Error());	
+	 }
+	 return S_OK;
+}
+IMmQvFutAtomPtr	CEtsMmQuotesView::AddNewFutureToUnderlying(IEtsFutAtomPtr spEtsFutAtom, IMmQvUndAtomPtr& spUnd)
+{
+	try
+	{
+		IEtsFutAtomPtr              spFut       = spEtsFutAtom;
+		CComObject<CMmQvFutAtom>* pFutAtom		= NULL;
+		IMmQvFutAtomPtr          spFutAtom;
+
+		WCHAR buffer[1024] = {0};
+
+		LONG	lFuturesID			=	spEtsFutAtom->ID;
+
+		//try to find this future in grp coll
+		IMmQvFutCollectionPtr	spFutColl;
+		spUnd->get_Fut(&spFutColl);
+
+		//spFutAtom = m_pGrp->m_pUnd->m_pFut->GetFutures(lFuturesID);
+
+		spFutColl->get_Item(lFuturesID, &spFutAtom);
+
+		if(spFutAtom == NULL)
+		{
+			//add it to grp collection
+			CComObject<CMmQvFutAtom>* pFuture = NULL;
+			spFutColl->Add(lFuturesID, NULL, &spFutAtom);
+			pFuture = dynamic_cast<CComObject<CMmQvFutAtom>*>(spFutAtom.GetInterfacePtr());
+
+			//spFutAtom = m_pGrp->m_pUnd->m_pFut->AddNew(lFuturesID, &pFuture);
+
+			vt_date	dtMaturity			=	spEtsFutAtom->MaturityDate;
+			vt_date dtMaturityMonth (dtMaturity.get_year(), dtMaturity.get_month(), 1);
+
+			pFuture->m_bstrSymbol			= spEtsFutAtom->Symbol;
+			pFuture->m_bstrContractName		= spEtsFutAtom->ContractName;
+			pFuture->m_dtMaturityDate		= dtMaturity;
+			pFuture->m_dtMaturityMonth		= dtMaturityMonth; 
+			pFuture->m_dBasis				= spEtsFutAtom->FutureBasis;
+			pFuture->m_dRatio				= spEtsFutAtom->ActiveFutureRatio;
+
+			spUnd->get_ID(&pFuture->m_nUndID);
+
+			if (spEtsFutAtom->ManualActivePrice > 0.){
+				pFuture->m_bUseManualActivePrice	= VARIANT_TRUE;
+				pFuture->m_dActivePrice				= spEtsFutAtom->ManualActivePrice;
+			}
+
+			IEtsPriceProfileAtomPtr spUndPriceProfile	= spEtsFutAtom->UndPriceProfile;
+			pFuture->m_spUndPriceProfile				= spUndPriceProfile;
+			spUnd->putref_UndPriceProfile(spUndPriceProfile);
+
+			pFuture->m_bIsAmerican			= spEtsFutAtom->IsAmerican;
+			pFuture->m_nFutRootID			= spEtsFutAtom->FutRootID;
+			pFuture->m_nID					= spEtsFutAtom->ID;	
+
+			AddExch(pFuture->m_spFutExch, 0L, L"", L"<NBBO>");
+
+			CComObject<CMmQvQuoteAtom>* pFutQuote = NULL;
+			CComObject<CMmQvQuoteAtom>::CreateInstance(&pFutQuote);
+			if(pFutQuote)
+			{
+				_bstr_t bsParamsExchange(pFuture->m_spFutExch->Item[0]->Code);
+
+				_snwprintf_s(buffer, sizeof(buffer)/sizeof(WCHAR),L"%02d%s", dtMaturity.get_year()-2000, bsMonth[dtMaturity.get_month()-1]);
+
+				pFutQuote->m_bstrSeries = buffer;
+				_bstr_t sQuoteKey =  pFuture->m_bstrSymbol;
+
+				IMmQvRequestAtomPtr spReq = m_pQuoteRequestAll->GetQuote(sQuoteKey);
+				if(spReq == NULL)
+				{
+					CComObject<CMmQvRequestAtom>* pReq = NULL;
+					spReq = m_pQuoteRequestAll->AddNew(sQuoteKey, &pReq);
+					if(pReq)
+					{
+						pReq->m_spExch = pFuture->m_spFutExch->Item[0];
+						pReq->m_spExch->put_Visible(VARIANT_TRUE);
+						pReq->m_spFut  = pFuture;
+						pReq->m_spUnd  = spUnd;
+					}
+				}
+
+				pFutQuote->m_spExch	=	pFuture->m_spFutExch->Item[0];
+
+				if (spEtsFutAtom->PriceClose > 0.)
+					pFutQuote->m_dPriceClose = spEtsFutAtom->PriceClose;
+
+				IMmQvQuoteAtomPtr spFutFake;
+				pFuture->m_pQuote->Add(0, L"<NBBO>", pFutQuote, &spFutFake);
+			}
+		}
+		return	spFutAtom;
+
+	}
+	catch (_com_error& e)
+	{
+		Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), IID_IEtsMmQuotesView, e.Error());	
+	}
+	return NULL;
+}
+//-------------------------------------------------------------------------------------------------------------//
+IMmQvUndAtomPtr	CEtsMmQuotesView::AddNewUnderlying(IUndAtomPtr spEtsUndAtom)
+{
+	try
+	{
+		if (spEtsUndAtom)
+		{
+			IUndAtomPtr              spUnd       = spEtsUndAtom;
+			CComObject<CMmQvUndAtom>* pUndAtom   = NULL;
+			IMmQvUndAtomPtr          spUndAtom;
+
+			_bstr_t					 bsUndSymbol = spUnd->Symbol;
+			_bstr_t					 bsUndName	 = spUnd->ContractName;
+
+			WCHAR buffer[1024] = {0};
+
+			_CHK(CComObject<CMmQvUndAtom>::CreateInstance(&pUndAtom), _T("Fail to create Underlying."));
+			spUndAtom.Attach(pUndAtom, TRUE);
+
+			pUndAtom->m_nID				= spUnd->ID;
+			pUndAtom->m_enUndType		= spUnd->UndType;
+			pUndAtom->m_bstrSymbolName	= bsUndName;
+			pUndAtom->m_bstrSymbol		= bsUndSymbol;
+
+			pUndAtom->m_spDividend      = spUnd->Dividend;
+			if(pUndAtom->m_enUndType != enCtStock)
+			{
+				pUndAtom->m_spBasketIndex  = m_spEtsMain->Index->Item[pUndAtom->m_nID];
+				if(pUndAtom->m_spBasketIndex)
+				{
+					if(pUndAtom->m_spBasketIndex->IsBasket == VARIANT_FALSE)
+						pUndAtom->m_spBasketIndex = NULL;
+				}
+				pUndAtom->m_dYield = spUnd->Yield;
+			}
+
+			pUndAtom->m_bIsAmerican				= spUnd->IsAmerican;
+			pUndAtom->m_bIsHTB					= spUnd->IsHTB;
+			pUndAtom->m_dSkew					= spUnd->Skew;
+			pUndAtom->m_dKurt					= spUnd->Kurt;
+
+			pUndAtom->m_spUndPriceProfile		= spUnd->UndPriceProfile;
+			pUndAtom->m_spOptPriceProfile		= spUnd->OptPriceProfile;
+
+			pUndAtom->m_dCoeff					= spUnd->Coeff;
+			pUndAtom->m_bIsHead					= spUnd->IsHead;
+			pUndAtom->m_bPriceByHead			= spUnd->PriceByHead;
+
+			if (spUnd->ManualActivePrice > 0)
+			{
+				pUndAtom->m_bUseManualActivePrice = VARIANT_TRUE;
+				pUndAtom->m_dActivePrice = spUnd->ManualActivePrice;
+			}
+
+			pUndAtom->m_nPrimaryExchangeID		= spUnd->PrimaryExchangeID;
+
+			AddExch(pUndAtom->m_spUndExch, 0L, L"", L"<NBBO>");
+
+			CComObject<CMmQvQuoteAtom>* pUndQuote = NULL;
+			CComObject<CMmQvQuoteAtom>::CreateInstance(&pUndQuote);
+
+			if(pUndQuote)
+			{
+				_bstr_t bsParamsExchange(pUndAtom->m_spUndExch->Item[0]->Code);
+
+				_snwprintf_s(buffer, sizeof(buffer)/sizeof(WCHAR),L"%s", (LPCOLESTR)bsUndSymbol);
+
+				pUndQuote->m_bstrSeries = buffer;
+				_bstr_t sQuoteKey =  pUndAtom->m_bstrSymbol;
+
+				pUndQuote->m_spExch = pUndAtom->m_spUndExch->Item[0];
+
+				IMmQvRequestAtomPtr spReq = m_pQuoteRequestAll->GetQuote(sQuoteKey);
+				if(spReq == NULL)
+				{
+					CComObject<CMmQvRequestAtom>* pReq = NULL;
+					spReq = m_pQuoteRequestAll->AddNew(sQuoteKey, &pReq);
+					if(pReq)
+					{
+						pReq->m_spExch = pUndAtom->m_spUndExch->Item[0];
+						pReq->m_spExch->put_Visible(VARIANT_TRUE);
+						pReq->m_spUnd  = pUndAtom;
+					}
+				}
+
+				double dPriceClose = spUnd->PriceClose;
+				if (dPriceClose > 0.)
+					pUndQuote->m_dPriceClose = dPriceClose;
+
+				IMmQvQuoteAtomPtr spUndFake;
+				pUndAtom->m_pQuote->Add(0, L"<NBBO>", pUndQuote, &spUndFake);
+			}
+
+
+			IEtsFutAtomPtr	spActiveFuture;
+			spEtsUndAtom->get_ActiveFuture(&spActiveFuture);
+
+			if (spActiveFuture)
+				pUndAtom->m_spActiveFuture = AddNewFutureToUnderlying(spActiveFuture, spUndAtom);
+
+			return spUndAtom;
+		}
+	}
+	catch (_com_error& e)
+	{
+		Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), IID_IEtsMmQuotesView, e.Error());
+	}
+	return NULL;
+}
+
 HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 {
 	HRESULT hr   = S_OK;
@@ -176,7 +408,7 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 
 							if ((LONG)spFutures[L"fManualPrice"] > 0 )
 							{
-								pFuture->m_bUseManualActivePrice = TRUE;
+								pFuture->m_bUseManualActivePrice = VARIANT_TRUE;
 								pFuture->m_dActivePrice = spFutures[L"fManualPrice"];
 							}
 
@@ -198,8 +430,6 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 								spContract->Und->OptPriceProfile	= spOptPriceProfile;
 
 								VARIANT_BOOL bIsAmerican      = spFutAtom->IsAmerican;
-								//spContract->Und->IsAmerican   = bIsAmerican;
-								//m_pGrp->m_pUnd->m_bIsAmerican = bIsAmerican;
 								pFuture->m_bIsAmerican        = bIsAmerican;
 							}
 							pFuture->m_nFutRootID = lFutRootId;
@@ -242,7 +472,7 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 								_snwprintf_s(buffer, sizeof(buffer)/sizeof(WCHAR),L"%02d%s", dtMaturity.get_year()-2000, bsMonth[dtMaturity.get_month()-1]);
 
 								pFutQuote->m_bstrSeries = buffer;
-								_bstr_t sQuoteKey =  pFuture->m_bstrSymbol;// + _bstr_t(L".") + bsParamsExchange;
+								_bstr_t sQuoteKey =  pFuture->m_bstrSymbol;
 
 								IMmQvRequestAtomPtr spReq = m_pQuoteRequestAll->GetQuote(sQuoteKey);
 								if(spReq == NULL)

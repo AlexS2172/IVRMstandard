@@ -200,7 +200,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->NetDlt$_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-					m_dDeltaEq += pUnd->NetDlt$_;
+					m_dDeltaEq += pUnd->NetDlt$_ * dCoeff;
 				}
 				if(pUnd->NetExposureSort_ > BAD_DOUBLE_VALUE)
 				{
@@ -255,7 +255,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->NetDlt_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-					m_dNetDelta += pUnd->NetDlt_;
+					m_dNetDelta += pUnd->NetDlt_ * dCoeff;
 
 					DOUBLE dBeta = pUnd->Beta_;
 					if(dBeta > BAD_DOUBLE_VALUE && DoubleNEQZero(dBeta) && dUndMidPrice > DBL_EPSILON)
@@ -494,7 +494,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 						if(dSynthUndMidPrice > DBL_EPSILON)
 						{
 							if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-							m_dDeltaEq += dUndValue * dSynthUndMidPrice;
+							m_dDeltaEq += dUndValue * dSynthUndMidPrice * dCoeff;
 
 							if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
 							m_dOptDelta += dUndValue * dSynthUndMidPrice * dCoeff;
@@ -532,7 +532,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 							}
 
 							if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-							m_dNetDelta += dUndValue;
+							m_dNetDelta += dUndValue * dCoeff;
 							dUndValue = 0.0;
 
 
@@ -546,7 +546,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 							_CHK(spUndSynthGreeks->put_BadBetaWtdDeltaInMoney(VARIANT_TRUE));
 
 							if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-							m_dNetDelta += dUndValue;
+							m_dNetDelta += dUndValue * dCoeff;
 							dUndValue = 0.0;
 
 						}

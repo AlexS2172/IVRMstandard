@@ -3115,7 +3115,7 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
         Dim aUnd As MmRvUndAtom
         Set aUnd = m_Und(sRootComp.UndID)
         
-        If (Not aUnd.Price.IsUseManualActive) Then
+        If (Not aUnd.Price.IsUseManualActive And Not aUnd.PriceByHead) Then
             dCompUndSpot = aUnd.Price.Last
             dUndCompBid = aUnd.Price.Bid
             dUndCompAsk = aUnd.Price.Ask
@@ -3640,21 +3640,26 @@ Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef a
     On Error Resume Next
     Dim dCoeff#
     
+    dCoeff = 1#
+    If (Not m_Und(aPos.UndID) Is Nothing) Then
+        dCoeff = m_Und(aPos.UndID).Coeff
+    End If
+    
     If (aGreeks.nMask And GM_DELTA) = GM_DELTA And Not IsBadDouble(aGreeks.dDelta) Then
         If aRes.Delta <= BAD_DOUBLE_VALUE Then aRes.Delta = 0#
         If aRes.NetDelta <= BAD_DOUBLE_VALUE Then aRes.NetDelta = 0#
         
         If (Not aPos.Fut Is Nothing) Then
             If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
-                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.Qty * dUndSpot * aPos.Fut.KEq
-                aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)
+                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.Qty * dUndSpot * aPos.Fut.KEq * dCoeff
+                aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize) * dCoeff
             Else
-                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot
-                aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares
+                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot * dCoeff
+                aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * dCoeff
             End If
         Else
-            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot
-            aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares
+            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot * dCoeff
+            aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * dCoeff
         End If
     Else
         aRes.BadDelta = True
@@ -3665,11 +3670,6 @@ Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef a
         If aRes.Gamma <= BAD_DOUBLE_VALUE Then aRes.Gamma = 0#
         If aRes.NetGamma <= BAD_DOUBLE_VALUE Then aRes.NetGamma = 0#
         If aRes.GammaPerc <= BAD_DOUBLE_VALUE Then aRes.GammaPerc = 0#
-        
-        dCoeff = 1#
-        If (Not m_Und(aPos.UndID) Is Nothing) Then
-            dCoeff = m_Und(aPos.UndID).Coeff
-        End If
         
         If (Not aPos.Fut Is Nothing) Then
             If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
@@ -3774,7 +3774,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
                 
-                If (Not aSynthUnd.Price.IsUseManualActive) Then
+                If (Not aSynthUnd.Price.IsUseManualActive And Not aSynthUnd.PriceByHead) Then
                     dUndLast = aSynthUnd.Price.Last
                     dUndBid = aSynthUnd.Price.Bid
                     dUndAsk = aSynthUnd.Price.Ask
@@ -3785,15 +3785,15 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
                 dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
-                    aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp
+                    aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dCoeff
                 End If
-                aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight
+                aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dCoeff
             End If
         Next
     
         If aSynthRoot.CashValue > 0# Then
-            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue
-            aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue
+            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue * dCoeff
+            aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue * dCoeff
         End If
     Else
         aRes.BadDelta = True
@@ -3810,7 +3810,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
                 
-                If (Not aSynthUnd.Price.IsUseManualActive) Then
+                If (Not aSynthUnd.Price.IsUseManualActive And Not aSynthUnd.PriceByHead) Then
                     dUndLast = aSynthUnd.Price.Last
                     dUndBid = aSynthUnd.Price.Bid
                     dUndAsk = aSynthUnd.Price.Ask
@@ -4176,12 +4176,16 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
     Dim enReplaceStatus As EtsReplacePriceStatusEnum
     Dim bFutPriceReplaced As Boolean
     Dim dUndBidSave#, dUndAskSave#, dUndSave#, dDriverPrice#, dGroupCompWeight#, dMainBetta#
-    Dim dFutSpot#, dFutBid#, dFutAsk#
+    Dim dFutSpot#, dFutBid#, dFutAsk#, dCoeff#
     
 
     nSynthOptRootID = BAD_LONG_VALUE
     
     GetBasePrices aUnd, dUndSpotBase, dUndBidBase, dUndAskBase, dDriverPrice, dGroupCompWeight, dMainBetta, bCorrelatedShift
+    dCoeff = 1#
+    If (Not aUnd.HeadComponent Is Nothing) Then
+        dCoeff = aUnd.Coeff
+    End If
     'Next Calc all greeks
     '-------------------------------------------------------------------------------------------------------------------'
     
@@ -4314,11 +4318,11 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             
                             If (Not aPos.Fut Is Nothing) Then
                                 If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
-                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.Qty * dUndSpot * aPos.Fut.KEq
-                                    m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)
+                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.Qty * dUndSpot * aPos.Fut.KEq * dCoeff
+                                    m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize) * dCoeff
                                 Else
-                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot
-                                    m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares
+                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot * dCoeff
+                                    m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares * dCoeff
                                 End If
                             End If
                             
@@ -4329,8 +4333,8 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
                             If m_Res(nX, nY).NetDelta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).NetDelta = 0#
                             
-                            m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot
-                            m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares
+                            m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot * dCoeff
+                            m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares * dCoeff
                         End If
 NextPos:
                             DoEvents

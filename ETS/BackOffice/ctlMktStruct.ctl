@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{BEEECC20-4D5F-4F8B-BFDC-5D9B6FBDE09D}#1.0#0"; "vsflex8.ocx"
-Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCT2.OCX"
+Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomct2.ocx"
 Object = "{0D452EE1-E08F-101A-852E-02608C4D0BB4}#2.0#0"; "FM20.DLL"
 Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
 Begin VB.UserControl ctlMktStruct 
@@ -566,7 +566,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   22609921
+         Format          =   60555265
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -678,7 +678,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   22609921
+         Format          =   60555265
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -955,7 +955,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   22609921
+         Format          =   60555265
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -2588,6 +2588,7 @@ Private Sub SetContractType(ByVal v As eContractType)
     rbUseCustStream.Visible = bVisibleComponents
     btnCustDivs.Visible = bVisibleComponents
     
+    cmdAsset.Visible = (m_ContractType <> GINT_COMMODITIES And m_ContractType <> GINT_FUTURES)
     
     lblYield.Visible = (m_ContractType = GINT_INDEXES)
     txtYield.Visible = lblYield.Visible

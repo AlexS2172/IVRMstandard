@@ -433,32 +433,36 @@ STDMETHODIMP CMmQvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance,
 												 DOUBLE	*pPrice)
 {
 	HRESULT						hr = S_OK;
-	CComBSTR						futureSymbol;
-	bool							dontUseFuture = true;
-	IEtsPriceProfileAtomPtr	activeFuturePriceProfile;
+	CComBSTR					futureSymbol;
+	bool						dontUseFuture = true;
+	IEtsPriceProfileAtomPtr		activeFuturePriceProfile;
 	double						activeFuturePrice = 0.;
 
 	if (!bFutureUsed || !pPrice )		return E_POINTER;
+
 	*bFutureUsed = VARIANT_FALSE;
 	*pPrice = 0.;
 
-	if (m_bUseManualActivePrice) 
-	{
-		*pPrice = m_dActivePrice;
-
-		return S_OK;
-	}
-
-	m_dActivePrice = BAD_DOUBLE_VALUE;
-	
 	try
 	{
-		if ( m_spActiveFuture )
+
+		if ( m_bPriceByHead && m_spHeadComponent )
+		{
+			_CHK(m_spHeadComponent->GetUnderlyingPrice(dTolerance, enPriceRound, penPriceStatus, bFutureUsed, pPrice));
+			if ( m_dCoeff > 0. ){	
+				*pPrice *= m_dCoeff;
+				SetDirty();
+			}
+			dontUseFuture	=	false;
+			*bFutureUsed	=	VARIANT_TRUE;
+		}
+		else if ( m_spActiveFuture )
 		{
 			_CHK(m_spActiveFuture->get_Symbol(&futureSymbol));
 
-			if (futureSymbol.Length() ){
+			if ( futureSymbol.Length() ){
 				double activeFuturePriceBid = 0., activeFuturePriceAsk = 0., activeFuturePriceLast = 0.;
+				VARIANT_BOOL bUseManualPrice = VARIANT_FALSE;
 
 				// we have active future for this underlying
 				_CHK(m_spActiveFuture->get_UndPriceProfile(&activeFuturePriceProfile));
@@ -480,59 +484,46 @@ STDMETHODIMP CMmQvUndAtom::GetUnderlyingPrice(DOUBLE dTolerance,
 																										enPriceRound,
 																										penPriceStatus, VARIANT_FALSE);
 
-					VARIANT_BOOL vb;
+					m_spActiveFuture->get_IsUseManualActivePrice(&bUseManualPrice);
 
-					m_spActiveFuture->get_IsUseManualActivePrice(&vb);
+					if ( bUseManualPrice )
+						m_spActiveFuture->get_ActivePrice(&activeFuturePrice);
+					else
+						m_spActiveFuture->put_ActivePrice(activeFuturePrice);
 
-					/*
-					if (vb)
+					if ( activeFuturePrice > 0)
 					{
 						double dFutureBasis = BAD_DOUBLE_VALUE;
-
-						m_spActiveFuture->get_ActivePrice(&activeFuturePrice);
-
-						m_spActiveFuture->get_Basis(&dFutureBasis);
-
-						m_dFuturePrice = *pPrice = activeFuturePrice + (dFutureBasis>BAD_DOUBLE_VALUE?dFutureBasis:0);
+						if(m_spActiveFuture)
+							m_spActiveFuture->get_Basis(&dFutureBasis);
+					
+						*pPrice = activeFuturePrice + ( dFutureBasis > BAD_DOUBLE_VALUE ? dFutureBasis : 0.);
 						*bFutureUsed = VARIANT_TRUE;
 						dontUseFuture = false;
-
 					}
 					else
 					{
-					*/
-
-					if (vb) m_spActiveFuture->get_ActivePrice(&activeFuturePrice);
-
-						if ( activeFuturePrice > 0)
-						{
-							double dFutureBasis = BAD_DOUBLE_VALUE;
-							if(m_spActiveFuture)
-								m_spActiveFuture->get_Basis(&dFutureBasis);
-
-							m_dFuturePrice = *pPrice = activeFuturePrice + (dFutureBasis>BAD_DOUBLE_VALUE?dFutureBasis:0);
-							*bFutureUsed = VARIANT_TRUE;
-							dontUseFuture = false;
-
-							m_spActiveFuture->put_ActivePrice(activeFuturePrice);
-						}
-						else
-						{
-							m_dFuturePrice = *pPrice = BAD_DOUBLE_VALUE;
-							*bFutureUsed = VARIANT_TRUE;
-							dontUseFuture = false;						
-						}
-					//}
+						*pPrice = BAD_DOUBLE_VALUE;
+						*bFutureUsed = VARIANT_TRUE;
+						dontUseFuture = false;						
+					}
 				}
 			}
 		}
-		// couldn't compute underlying price using active future - use quote for underlying
-		if ( dontUseFuture )	{
+		else if ( m_bUseManualActivePrice )
+		{
+			*pPrice			=	m_dActivePrice;
+			*bFutureUsed	=	VARIANT_TRUE;
+			dontUseFuture	=	false;
+			SetDirty();
+		}
+		//use quote for underlying
+		if ( dontUseFuture )	
+		{
 			IMmQvQuoteAtomPtr undQuote;
 			double spotPriceBid = 0., spotPriceAsk = 0., spotPriceLast = 0.;
 
 			_CHK(m_spQuote->get_Item(m_nPrimaryExchangeID, &undQuote));
-			//_CHK(m_spQuote->get_Item(0L, &undQuote));
 
 			_CHK(undQuote->get_PriceBid(&spotPriceBid ));
 			_CHK(undQuote->get_PriceAsk(&spotPriceAsk ));
@@ -959,7 +950,6 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 
 					spSynthUnd->get_PrimaryExchangeID(&lPrimaryExchangeID);
 					_CHK(spSynthUnd->get_Quote(&spQuotes), _T("Fail to get quotes collection."));
-					//_CHK(spQuotes->get_Item(0L, &spQuote)); // get default exchange quote
 					_CHK(spQuotes->get_Item(lPrimaryExchangeID, &spQuote)); // get default exchange quote
 
 					VARIANT_BOOL bIsManual = false;
@@ -1212,13 +1202,13 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 
 		SQuoteData undQuoteData;
 
-		VARIANT_BOOL				futureUsed = VARIANT_FALSE;
+		VARIANT_BOOL				driverUsed = VARIANT_FALSE;
 		double						dFutSpotPrice = 0.0;
 		EtsReplacePriceStatusEnum	enMidPriceStatus = enRpsNone;
-		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, &futureUsed, &dFutSpotPrice ));
+		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, &driverUsed, &dFutSpotPrice ));
 		bool   bIsDirtyUnderlying = false;
 
-		if(futureUsed)
+		if(driverUsed)
 		{
 			undQuoteData.m_dBid   = dFutSpotPrice;
 			undQuoteData.m_dAsk   = dFutSpotPrice;
@@ -1238,24 +1228,32 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 				if(!bIsDirtyUnderlying)
 					bIsDirtyUnderlying = (bForceRecalc ? true :pUndQuote->IsDirty());
 			}
+			else if (m_spHeadComponent)
+			{
+				IMmQvQuoteCollPtr driverQuoteColl;
+				_CHK( m_spHeadComponent->get_Quote(&driverQuoteColl) ); 
+
+				IMmQvQuoteAtomPtr driverQuote;
+				_CHK( driverQuoteColl->get_Item(0L, &driverQuote) );
+
+				VARIANT_BOOL vbDirty = VARIANT_FALSE;
+				driverQuote->get_IsDirty(&vbDirty);
+				bIsDirtyUnderlying = (bForceRecalc ? true :(vbDirty!=VARIANT_FALSE?true:false));
+				if(!bIsDirtyUnderlying)
+					bIsDirtyUnderlying = (bForceRecalc ? true :pUndQuote->IsDirty());	
+			}
+			else
+			{
+				if(!bIsDirtyUnderlying)
+					bIsDirtyUnderlying = (bForceRecalc ? true :pUndQuote->IsDirty());	
+			}
+
 		}
 		else
 		{
 			undQuoteData.m_dBid   = pUndQuote->m_dPriceBid;
 			undQuoteData.m_dAsk   = pUndQuote->m_dPriceAsk;
-			if (this->m_bUseManualActivePrice)
-			{
-				undQuoteData.m_dPrice = this->m_dActivePrice;
-
-				//pUndQuote->put_PriceLast(this->m_dActivePrice);
-				pUndQuote->SetDirty();
-
-				bIsDirtyUnderlying = true;
-			}
-			else
-			{
-				undQuoteData.m_dPrice = pUndQuote->m_dPriceLast;
-			}
+			undQuoteData.m_dPrice = pUndQuote->m_dPriceLast;
 
 			if(undQuoteData.m_dBid > 0. || undQuoteData.m_dAsk > 0. || undQuoteData.m_dPrice > 0.)
 			{
@@ -1263,14 +1261,15 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 				EtsReplacePriceStatusEnum enAskPriceStatus = enRpsNone;
 				enMidPriceStatus = enRpsNone;
 
-				DOUBLE dSpotPrice = m_bUseManualActivePrice ? m_dActivePrice : m_spUndPriceProfile->GetUndPriceMid(undQuoteData.m_dBid, undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, ManualEdit);
+				DOUBLE dSpotPrice = m_spUndPriceProfile->GetUndPriceMid(undQuoteData.m_dBid, undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, ManualEdit);
+				m_dActivePrice = dSpotPrice;
 
 				DOUBLE dSpotBidOld = undQuoteData.m_dBid;
 
 				undQuoteData.m_dBid = m_spUndPriceProfile->GetUndPriceBid(undQuoteData.m_dBid, undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enBidPriceStatus);
 				undQuoteData.m_dAsk = m_spUndPriceProfile->GetUndPriceAsk(dSpotBidOld,         undQuoteData.m_dAsk, undQuoteData.m_dPrice, dUndPriceTolerance, enPriceRoundingRule, &enAskPriceStatus);
 				undQuoteData.m_dPrice = dSpotPrice;
-				if (!this->m_bUseManualActivePrice) m_dActivePrice = dSpotPrice;
+
 				_CHK(pUndQuote->put_ReplacePriceStatus((EtsReplacePriceStatusEnum)(enMidPriceStatus | enBidPriceStatus | enAskPriceStatus)));
 			}
 			bIsDirtyUnderlying = (bForceRecalc ? true :pUndQuote->IsDirty());
@@ -2097,8 +2096,6 @@ void CQuotesCalculationAtom::rawCalculate(CMmQvUndAtom*	 pUndAtom)
 {
 	try
 	{
-		//CComObject<CMmQvOptAtom>* pOptForVola = NULL;
-		// enCalcIV;
 
 		CMmQvExpAtom*	  pExpiry   = dynamic_cast<CMmQvExpAtom*>(m_spExpiry.GetInterfacePtr());
 		CMmQvOptRootAtom* pOptRoot  = dynamic_cast<CMmQvOptRootAtom*>(m_spOptRoot.GetInterfacePtr());

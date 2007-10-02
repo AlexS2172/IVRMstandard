@@ -47,7 +47,7 @@ void CMmRvAggData::AddAggregatedValues(const CMmRvRowData* pRow)
 
 		accumulate_if_not_bad( UndPos_,			pRow->m_pAgg->UndPos_,	dCoeff );
 		accumulate_if_not_bad( OptQty_,			pRow->m_pAgg->OptQty_,	1.0 );
-		accumulate_if_not_bad( FutQty_,			pRow->m_pAgg->FutQty_,	1.0 );
+		accumulate_if_not_bad( FutQty_,			pRow->m_pAgg->FutQty_,	/*1.0*/dCoeff );
 
 		accumulate_if_not_bad( OptDlt_,			pRow->m_pAgg->OptDlt_,	dCoeff );
 		accumulate_if_not_bad( OptDlt$_,		pRow->m_pAgg->OptDlt$_, dCoeff );
@@ -61,8 +61,8 @@ void CMmRvAggData::AddAggregatedValues(const CMmRvRowData* pRow)
 		accumulate_if_not_bad( ThtGma_,			pRow->m_pAgg->ThtGma_,	dCoeff * dCoeff );
 		accumulate_if_not_bad( VgaDlt_,			pRow->m_pAgg->VgaDlt_,	dCoeff );
 		accumulate_if_not_bad( VgaGma_,			pRow->m_pAgg->VgaGma_,	dCoeff * dCoeff );
-		accumulate_if_not_bad( NetDlt_,			pRow->m_pAgg->NetDlt_,	1.0 );
-		accumulate_if_not_bad( NetDlt$_,		pRow->m_pAgg->NetDlt$_, 1.0 );
+		accumulate_if_not_bad( NetDlt_,			pRow->m_pAgg->NetDlt_,	/*1.0*/ dCoeff);
+		accumulate_if_not_bad( NetDlt$_,		pRow->m_pAgg->NetDlt$_, /*1.0*/ dCoeff);
 		accumulate_if_not_bad( BetaWtdDelta$_,	pRow->m_pAgg->BetaWtdDelta$_, 1.0 );
 		accumulate_if_not_bad( NetGma$_,		pRow->m_pAgg->NetGma$_, dCoeff * dCoeff );
 
@@ -94,10 +94,10 @@ void CMmRvAggData::AddAggregatedValues(const CMmRvRowData* pRow)
 				if(spUndSynthGreeks != NULL)
 				{
 					_CHK(spUndSynthGreeks->get_NetDelta(&dUndValue));
-					accumulate_if_not_bad(NetDlt_, dUndValue, 1.0);
+					accumulate_if_not_bad(NetDlt_, dUndValue, dCoeff);
 
 					_CHK(spUndSynthGreeks->get_DeltaInMoney(&dUndValue));
-					accumulate_if_not_bad(NetDlt$_, dUndValue, 1.0);
+					accumulate_if_not_bad(NetDlt$_, dUndValue, dCoeff);
 					accumulate_if_not_bad(OptDlt$_, dUndValue, dCoeff);
 
 					_CHK(spUndSynthGreeks->get_DeltaInShares(&dUndValue));

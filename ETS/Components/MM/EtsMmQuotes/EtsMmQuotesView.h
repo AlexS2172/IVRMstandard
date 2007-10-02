@@ -323,6 +323,10 @@ private:
 	HRESULT LoadFutures(long lUnderlutingID);
 	HRESULT LoadFuturesOptions(long lUnderlutingID);
 
+	IMmQvUndAtomPtr	AddNewUnderlying(IUndAtomPtr spEtsUndAtom); 
+	IMmQvFutAtomPtr	AddNewFutureToUnderlying(IEtsFutAtomPtr spEtsFutAtom, IMmQvUndAtomPtr& spUnd);
+	HRESULT	LoadHeadComponent(long	lGroupID);
+
 	HRESULT AcceptQuote(const QuoteUpdateParams& Params, const QuoteUpdateInfo& Info);
 
 

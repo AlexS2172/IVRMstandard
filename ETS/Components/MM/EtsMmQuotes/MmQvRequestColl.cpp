@@ -160,6 +160,12 @@ HRESULT CMmQvRequestColl::Request(bool bStockOrIndex, IBatchPriceProviderPtr spP
 					else
 					if(!bStockOrIndex && pRequestAtom->m_spFut!=NULL) 
 						bVisible = true;
+					
+					if (pRequestAtom->m_spUnd){
+						VARIANT_BOOL	bIsHead  = VARIANT_FALSE;
+						pRequestAtom->m_spUnd->get_IsHead(&bIsHead);
+						if (bIsHead == VARIANT_TRUE) bVisible = true;
+					}
 				}
 				pRequestAtom->m_bVisible = (bVisible?VARIANT_TRUE:VARIANT_FALSE);
 
