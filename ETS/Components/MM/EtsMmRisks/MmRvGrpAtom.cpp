@@ -200,7 +200,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->NetDlt$_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-					m_dDeltaEq += pUnd->NetDlt$_ * dCoeff;
+					m_dDeltaEq += pUnd->NetDlt$_ /** dCoeff*/;
 				}
 				if(pUnd->NetExposureSort_ > BAD_DOUBLE_VALUE)
 				{
@@ -230,7 +230,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->NetGma$_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dNetGammaEq <= BAD_DOUBLE_VALUE) m_dNetGammaEq = 0.;
-					m_dNetGammaEq += pUnd->NetGma$_ * dCoeff * dCoeff;
+					m_dNetGammaEq += pUnd->NetGma$_ /** dCoeff * dCoeff*/;
 				}
 				if(VARIANT_FALSE != pUnd->BadNetGma$_) m_bBadNetGammaEq = VARIANT_TRUE;
 
@@ -247,7 +247,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				{
 					if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
 
-					m_dOptDelta += pUnd->OptDlt$_ * dCoeff;
+					m_dOptDelta += pUnd->OptDlt$_ /** dCoeff*/;
 				}
 				if(VARIANT_FALSE != pUnd->BadOptDelta_) m_bBadOptDelta = VARIANT_TRUE;
 
@@ -258,6 +258,9 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 					m_dNetDelta += pUnd->NetDlt_ * dCoeff;
 
 					DOUBLE dBeta = pUnd->Beta_;
+					if (pUnd->m_spHeadComponent)
+						pUnd->m_spHeadComponent->get_Beta(&dBeta);
+
 					if(dBeta > BAD_DOUBLE_VALUE && DoubleNEQZero(dBeta) && dUndMidPrice > DBL_EPSILON)
 					{
 						if(m_dBetaWtdDelta <= BAD_DOUBLE_VALUE) m_dBetaWtdDelta = 0.;
@@ -274,7 +277,7 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 				if(pUnd->Gma1$_ > BAD_DOUBLE_VALUE)
 				{
 					if(m_dNetGamma <= BAD_DOUBLE_VALUE) m_dNetGamma = 0.;
-					m_dNetGamma += pUnd->Gma1$_ * dCoeff * dCoeff;
+					m_dNetGamma += pUnd->Gma1$_ * dCoeff /** dCoeff*/;
 				}
 				if(VARIANT_FALSE != pUnd->BadGma1$_) m_bBadNetGamma = VARIANT_TRUE;
 
@@ -494,16 +497,18 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 						if(dSynthUndMidPrice > DBL_EPSILON)
 						{
 							if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-							m_dDeltaEq += dUndValue * dSynthUndMidPrice * dCoeff;
+							m_dDeltaEq += dUndValue * dSynthUndMidPrice /** dCoeff*/;
 
 							if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
-							m_dOptDelta += dUndValue * dSynthUndMidPrice * dCoeff;
+							m_dOptDelta += dUndValue * dSynthUndMidPrice /** dCoeff*/;
 
 							DOUBLE dDeltaInMoney = dUndValue * dSynthUndMidPrice;
 							_CHK(spUndSynthGreeks->put_DeltaInMoney(dDeltaInMoney));
 
 							DOUBLE dBeta = BAD_DOUBLE_VALUE, dBetaWtdDeltaInMoney = BAD_DOUBLE_VALUE;
 							_CHK(spSynthUndData->get_Beta(&dBeta));
+							if (pMainUnd->m_spHeadComponent)
+								pMainUnd->m_spHeadComponent->get_Beta(&dBeta);
 
 							if(nSynthUndID == 0L) // USD_ID
 							{
@@ -532,7 +537,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 							}
 
 							if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-							m_dNetDelta += dUndValue * dCoeff;
+							m_dNetDelta += dUndValue /** dCoeff*/;
 							dUndValue = 0.0;
 
 
@@ -546,7 +551,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 							_CHK(spUndSynthGreeks->put_BadBetaWtdDeltaInMoney(VARIANT_TRUE));
 
 							if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-							m_dNetDelta += dUndValue * dCoeff;
+							m_dNetDelta += dUndValue /** dCoeff*/;
 							dUndValue = 0.0;
 
 						}
@@ -574,7 +579,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 					if(dUndValue > BAD_DOUBLE_VALUE && dSynthUndMidPrice > DBL_EPSILON)
 					{
 						if(m_dGammaEq <= BAD_DOUBLE_VALUE) m_dGammaEq = 0.;
-						m_dGammaEq += dUndValue * dSynthUndMidPrice * dCoeff * dCoeff;
+						m_dGammaEq += dUndValue * dSynthUndMidPrice * dCoeff /** dCoeff*/;
 					}
 					else
 						m_bBadGammaEq = VARIANT_TRUE;
@@ -594,7 +599,7 @@ void CMmRvGrpAtom::_CalcUndSynthValues(IMmRvUndCollPtr spUndColl, IMmRvUndAtomPt
 					if(dUndValue > BAD_DOUBLE_VALUE)
 					{
 						if(m_dNetGammaEq <= BAD_DOUBLE_VALUE) m_dNetGammaEq = 0.;
-						m_dNetGammaEq += dUndValue * dCoeff * dCoeff;
+						m_dNetGammaEq += dUndValue /** dCoeff * dCoeff*/;
 					}
 					else
 						m_bBadNetGammaEq = VARIANT_TRUE;

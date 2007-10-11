@@ -1679,7 +1679,7 @@ Private Function UnderlyingsLoad() As Boolean
     Dim mmTradesColl As MmTradeInfoColl
 
     If m_bDataLoad Then
-        Set mmTradesColl = g_TradeChannel.Trades.FilterTrades(m_aFilter, g_UnderlyingGroup, True, True)
+        Set mmTradesColl = g_TradeChannel.Trades.FilterTrades(m_aFilter, g_UnderlyingGroup, False)
         pbProgress.Max = 100
         m_View.Grp.ID = mmTradesColl.Count
         Set m_View.EtsMain = g_Main

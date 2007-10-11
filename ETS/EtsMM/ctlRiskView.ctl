@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61407233
+      Format          =   61734913
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -6782,6 +6782,38 @@ Private Sub TradeChannel_AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
     Exit Sub
 Exception:
     Debug.Print "Error while try to update Asset configuration"
+End Sub
+
+Private Sub TradeChannel_DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
+    On Error GoTo Exception
+        If (m_bShutDown) Then Exit Sub
+        Dim bChange As Boolean
+        Dim aUnd As EtsMmRisksLib.MmRvUndAtom
+    
+        bChange = False
+        
+        If (aUndData.UpdStatus And enUndDividendUpdate) Then
+            Set aUnd = m_Aux.Und(aUndData.UndID)
+            If (Not aUnd Is Nothing) Then
+            
+                'check for modifications
+                If (aUnd.ID = aUndData.UndID) Then
+                    bChange = True
+                End If
+                
+                'recalculate and refresh all data
+                If bChange Then
+                    m_AuxClc.UnderlyingsCalc True, True, False, False
+                    m_AuxOut.UnderlyingsUpdate False
+                    RefreshPositions
+                    m_AuxOut.TotalsUpdate
+                End If
+                
+            End If
+        End If
+    Exit Sub
+Exception:
+    Debug.Print "Error while try to update dividend Type"
 End Sub
 
 Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)

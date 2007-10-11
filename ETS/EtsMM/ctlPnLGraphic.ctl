@@ -2389,7 +2389,7 @@ Private Function PositionsLoad() As Boolean
                     Set aUnd.OptPriceProfile = aTrd.Und.OptPriceProfile
                 
                     aUnd.Price.Close = aTrd.Und.PriceClose
-                    aUnd.Price.TheoClose = aTrd.Und.PriceTheoClose
+                    aUnd.Price.TheoClose = aTrd.Und.PriceTheoclose
                     aUnd.LotSize = aTrd.Und.LotSize
                     
                     aUnd.Qty = BAD_LONG_VALUE
@@ -2419,7 +2419,7 @@ Private Function PositionsLoad() As Boolean
                         aUnd.HasOptPos = True
                         aPos.Symbol = aTrd.Opt.Symbol
                         aPos.Quote.Price.Close = aTrd.Opt.PriceClose
-                        aPos.Quote.Price.TheoClose = aTrd.Opt.PriceTheoClose
+                        aPos.Quote.Price.TheoClose = aTrd.Opt.PriceTheoclose
                         aPos.Quote.LotSize = aTrd.OptRoot.LotSize
                         aPos.OptType = aTrd.Opt.OptType
                         aPos.Expiry = aTrd.Opt.Expiry
@@ -2472,7 +2472,7 @@ Private Function PositionsLoad() As Boolean
                                                 aSynthUnd.Kurt = aGUnd.Kurt
                                                 aSynthUnd.HasSynthetic = aGUnd.HaveSyntheticRoots
                                                 aSynthUnd.Price.Close = aGUnd.PriceClose
-                                                aSynthUnd.Price.TheoClose = aGUnd.PriceTheoClose
+                                                aSynthUnd.Price.TheoClose = aGUnd.PriceTheoclose
                                                 aSynthUnd.LotSize = aGUnd.LotSize
                                                 Set aSynthUnd.SynthRoots = aGUnd.SyntheticRoots
                                                 
@@ -3573,6 +3573,8 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
     Dim nFlag&
     Dim bIsBasket As Boolean
+    Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
+    Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
     
     nDivCount = 0
     ReDim dDivDte(0 To 0)
@@ -3581,35 +3583,66 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     nIsAmerican = IIf(aUnd.IsAmerican, 1, 0)
     CalcGreeksCommon = False
     
+    Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
+    Set aDiv = aUnd.Dividend
     
-    If aUnd.ContractType = enCtStock Then
-        Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
-        Set aDiv = aUnd.Dividend
-        If Not aDiv Is Nothing Then
-            aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
-            If nDivCount > 0 Then
-                aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
-            End If
-            Set aDiv = Nothing
-        End If
-    Else
-        If Not aUnd.BasketIndex Is Nothing Then
-            Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
-            Set aBasketDiv = aUnd.BasketIndex.BasketDivs
-            bIsBasket = aUnd.BasketIndex.IsBasket
-            If Not aBasketDiv Is Nothing Then
-                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
-                If nBaskDivCount > 0 Then
-                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
-                End If
-            End If
-            Set aBasketDiv = Nothing
-
-            Erase aBaskDivs
-        End If
-
-        If nDivCount <= 0 And Not bIsBasket Then dYield = aUnd.Yield
+    enDivType = enDivCustomStream
+    If (Not aDiv Is Nothing) Then
+        enDivType = aDiv.DivType
     End If
+                
+    Select Case enDivType
+        Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
+            If Not aDiv Is Nothing Then
+                aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                If nDivCount > 0 Then
+                    aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                End If
+                Set aDiv = Nothing
+            End If
+        Case enDivStockBasket
+            If Not aUnd.BasketIndex Is Nothing Then
+                Set aBasketDivs = aUnd.BasketIndex.BasketDivs
+                    If Not aBasketDivs Is Nothing Then
+                        aBasketDivs.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                        If nDivCount > 0 Then
+                            aBasketDivs.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                        End If
+                    End If
+                    Set aBasketDivs = Nothing
+            End If
+        Case enDivIndexYield
+            dYield = aUnd.Yield
+        End Select
+    
+'    If aUnd.ContractType = enCtStock Then
+'        Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
+'        Set aDiv = aUnd.Dividend
+'        If Not aDiv Is Nothing Then
+'            aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+'            If nDivCount > 0 Then
+'                aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+'            End If
+'            Set aDiv = Nothing
+'        End If
+'    Else
+'        If Not aUnd.BasketIndex Is Nothing Then
+'            Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
+'            Set aBasketDiv = aUnd.BasketIndex.BasketDivs
+'            bIsBasket = aUnd.BasketIndex.IsBasket
+'            If Not aBasketDiv Is Nothing Then
+'                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
+'                If nBaskDivCount > 0 Then
+'                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+'                End If
+'            End If
+'            Set aBasketDiv = Nothing
+'
+'            Erase aBaskDivs
+'        End If
+'
+'        If nDivCount <= 0 And Not bIsBasket Then dYield = aUnd.Yield
+'    End If
     
     Dim nRow&
     dVola = 0#

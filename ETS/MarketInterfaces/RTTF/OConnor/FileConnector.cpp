@@ -1035,7 +1035,7 @@ BOOL CFileConnector::DownloadTradesFile()
 
 	}
 	if(CTracer::GetWindowHandle())
-		::SetWindowText(CTracer::GetWindowHandle(), "OConnor Connector");
+		::SetWindowText(CTracer::GetWindowHandle(), "File Format - Real-Time Trade Feed");
 
 	return TRUE;
 }

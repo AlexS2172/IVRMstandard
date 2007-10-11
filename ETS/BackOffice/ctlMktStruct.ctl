@@ -1232,6 +1232,12 @@ Begin VB.UserControl ctlMktStruct
          EndProperty
          Caption         =   "Delete"
       End
+      Begin VB.Shape Shape1 
+         Height          =   1095
+         Left            =   120
+         Top             =   3360
+         Width           =   7695
+      End
       Begin MSForms.ComboBox cboType 
          Height          =   300
          Left            =   7320
@@ -1311,12 +1317,6 @@ Begin VB.UserControl ctlMktStruct
          TabIndex        =   48
          Top             =   1080
          Width           =   735
-      End
-      Begin VB.Shape Shape1 
-         Height          =   1095
-         Left            =   120
-         Top             =   3360
-         Width           =   7695
       End
       Begin MSForms.ComboBox cboDivFreq 
          Height          =   300
@@ -2569,7 +2569,7 @@ Private Sub SetContractType(ByVal v As eContractType)
     btnComponentsDividends.Visible = False
     
     For i = 0 To 1
-        lblDivFreq(i).Visible = (m_ContractType = GINT_STOCKS)
+        lblDivFreq(i).Visible = (m_ContractType = GINT_STOCKS Or (i = 1 And m_ContractType = GINT_INDEXES))
         cboDivFreq(i).Visible = lblDivFreq(i).Visible
         lblDivDate(i).Visible = lblDivFreq(i).Visible
         dtpDivDate(i).Visible = lblDivFreq(i).Visible
@@ -2578,7 +2578,7 @@ Private Sub SetContractType(ByVal v As eContractType)
     Next
     
     Dim bVisibleComponents As Boolean
-    bVisibleComponents = (m_ContractType = GINT_STOCKS And m_ContractType <> GINT_COMMODITIES)
+    bVisibleComponents = ((m_ContractType = GINT_STOCKS Or m_ContractType = GINT_INDEXES) And m_ContractType <> GINT_COMMODITIES)
     
     lblPrimExchange.Visible = ((m_ContractType = GINT_STOCKS Or m_ContractType = GINT_INDEXES) And m_ContractType <> GINT_COMMODITIES)
     cboPrimExchange.Visible = lblPrimExchange.Visible
@@ -2598,9 +2598,7 @@ Private Sub SetContractType(ByVal v As eContractType)
     txtSkew.Visible = lblSkew.Visible
     lblKurt.Visible = lblSkew.Visible
     txtKurt.Visible = lblSkew.Visible
-    
-   ' SetCBOValue cboContractType, m_ContractType
-        
+
     ' loading contracts list
     ContractListLoad
     
@@ -2871,6 +2869,7 @@ Private Function ContractSave() As Boolean
     Dim fSkew As Double
     Dim fKurt As Double
     Dim m_State1 As eState
+    Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
 
     On Error Resume Next
 
@@ -2971,19 +2970,29 @@ Private Function ContractSave() As Boolean
             m_State = m_State1
             Exit Function
         End If
-    
-    If IsBasket = False Then
-        fYield = gCmn.ReadDbl(txtYield.Text) * 0.01
+        
+        IsManual = (chkUseManualDivData.Value <> 0)
+        If IsManual Then
+            If (rbUseCustStream.Value) Then
+                lDivType = 2 'CustomStream
+            End If
         Else
-        fYield = 0
-    End If
         
-        
-        If fYield < 0 Then
-            ShowWarning "Negative Yield value"
-            m_State = m_State1
-            Exit Function
+            fYield = gCmn.ReadDbl(txtYield.Text) * 0.01
+            
+            If IsBasket Then
+                lDivType = 3 'Basket
+            Else
+                lDivType = 4 'Yield
+            End If
+               
+            If fYield < 0 Then
+                ShowWarning "Negative Yield value"
+                m_State = m_State1
+                Exit Function
+            End If
         End If
+        
     End If
     
     If m_ContractType <> GINT_FUTURES Then
@@ -3073,7 +3082,8 @@ Private Function ContractSave() As Boolean
                 , DBWrite(fSkew, 0) _
                 , DBWrite(fKurt, 0) _
                 , 1 _
-                , vExchangeID)
+                , vExchangeID _
+                , lDivType)
     
         Case GINT_COMMODITIES
             vId = gDBW.usp_IC_Save( _
@@ -3613,7 +3623,6 @@ Private Function ContractLoad() As Boolean
                             .DivAmt = gCmn.ReadDbl(rst!fDivAmt)
                             .DivDate = gCmn.ReadDate(rst!dtDivDate)
                         End If
-                        '.DivUse2 = DBRead(rst!tiDivCustom, False)
                         .DivType = DBRead(rst!tiDivCustom)
                         .DivFreq2 = gCmn.ReadDbl(rst!iDivFreqCustom)
                         If .DivFreq2 > 0 Then
@@ -3631,7 +3640,20 @@ Private Function ContractLoad() As Boolean
                         .CalendarType = DBRead(rst!iExpCalendarID, CALENDAR_THIRD_SATURDAY)
                         .IsBasket = DBRead(rst!tiIsBasket, False) <> 0
                         .ExchangeID = gCmn.ReadLng(rst!iPrimaryExchangeID)
-                        '.DivType = DBRead(rst!tiDivCustom)
+                        
+                        .DivFreq = gCmn.ReadDbl(rst!iDivFreq)
+                        If .DivFreq > 0 Then
+                            .DivAmt = gCmn.ReadDbl(rst!fDivAmt)
+                            .DivDate = gCmn.ReadDate(rst!dtDivDate)
+                        End If
+                        
+                        .DivType = DBRead(rst!tiDivCustom)
+                        
+                        .DivFreq2 = gCmn.ReadDbl(rst!iDivFreqCustom)
+                        If .DivFreq2 > 0 Then
+                            .DivAmt2 = gCmn.ReadDbl(rst!fDivAmtCustom)
+                            .DivDate2 = gCmn.ReadDate(rst!dtDivDateCustom)
+                        End If
                         
                     Case GINT_FUTURES
                         .OptionsStyle = DBRead(rst!tiCalcOptionType, OPTIONS_AMERICAN)
@@ -3667,7 +3689,6 @@ Private Function ContractLoad() As Boolean
                 SetCBOValue cboPrimExchange, .ExchangeID
         
                 IsManual = .DivUse2
-                'sManual = .DivUse2
                 CurDivType = .DivType
                 If (CurDivType = enDivMarket) Then
                     chkUseManualDivData.Value = 0
@@ -3719,10 +3740,6 @@ Private Function ContractLoad() As Boolean
                     cboDivFreq(1).Enabled = True
                     dtpDivDate(1).Enabled = True
                     txtDivAmt(1).Enabled = True
-                                                        Else
-                    cboDivFreq(1).Enabled = False
-                    dtpDivDate(1).Enabled = False
-                    txtDivAmt(1).Enabled = False
                 End If
         
             Case GINT_INDEXES
@@ -3730,14 +3747,42 @@ Private Function ContractLoad() As Boolean
                 
                 chkIsActive.Value = IIf(.IsActive <> 0, 1, 0)
                 txtYield.Text = gCmn.FmtDbl(.Yield * 100)
-                chkIsBasket.Value = IIf(.IsBasket, 1, 0)
                 
-                btnComponents.Visible = .IsBasket
-                btnComponentsDividends.Visible = .IsBasket
+                btnCustDivs.Visible = True
+                CurDivType = .DivType
                 
-                lblYield.Visible = Not .IsBasket
-                txtYield.Visible = Not .IsBasket
-        
+                If (CurDivType = enDivCustomStream) Then
+                    chkUseManualDivData.Value = 1
+                    rbUseCustStream.Value = True
+                    btnCustDivs.Enabled = True
+                    
+                    btnComponents.Visible = False
+                    btnComponentsDividends.Visible = False
+                    
+                    lblYield.Visible = False
+                    txtYield.Visible = False
+                    chkIsBasket.Visible = False
+                Else
+                    chkIsBasket.Value = IIf(.IsBasket, 1, 0)
+                    chkIsBasket.Visible = True
+                    btnComponents.Visible = .IsBasket
+                    btnComponentsDividends.Visible = .IsBasket
+                    
+                    chkUseManualDivData.Value = 0
+                    rbUseCustStream.Value = True
+                    btnCustDivs.Enabled = False
+                    
+                    lblYield.Visible = Not .IsBasket
+                    txtYield.Visible = Not .IsBasket
+                End If
+                
+                
+                rbUseCustFreq.Enabled = False
+                cboDivFreq(1).Enabled = False
+                dtpDivDate(1).Enabled = False
+                txtDivAmt(1).Enabled = False
+                rbUseCustFreq.Value = False
+                
             Case GINT_FUTURES
                 dtMaturityPicker.Value = IIf(.MaturityDate <> 0, .MaturityDate, Date)
                 dtFutMaturity = dtMaturityPicker.Value
@@ -4970,6 +5015,20 @@ Private Sub chkUseManualDivData_Click()
             dtpDivDate(1).Enabled = True
             txtDivAmt(1).Enabled = True
             btnCustDivs.Enabled = False
+       End If
+   End If
+   
+   If (m_ContractType = GINT_INDEXES) Then
+       rbUseCustFreq.Value = False
+       rbUseCustFreq.Enabled = False
+       cboDivFreq(1).Enabled = False
+       dtpDivDate(1).Enabled = False
+       txtDivAmt(1).Enabled = False
+       If (IsManual) Then
+            chkIsBasket.Value = False
+            chkIsBasket.Visible = False
+            lblYield.Visible = Not IsManual
+            txtYield.Visible = Not IsManual
        End If
    End If
 End Sub

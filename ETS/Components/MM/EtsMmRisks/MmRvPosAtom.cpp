@@ -485,8 +485,8 @@ void CMmRvPosAtom::_CalcOptPositionData(
 			ISynthRootCompCollPtr spSRCompColl;
 			
 			//only for display ActivPrice for main SU component as price of SU
-			if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_FALSE)
-				m_pQuote->m_pPrice->m_dActivePrice = m_pQuote->m_pSuPrice->m_dPriceLast;
+			/*if (m_pQuote->m_pPrice->m_bManualActive == VARIANT_FALSE)
+				m_pQuote->m_pPrice->m_dActivePrice = m_pQuote->m_pSuPrice->m_dPriceLast;*/
 
 			spSRCompColl = spSynthRoot->SynthRootComponents;
 			if(spSRCompColl != NULL)

@@ -1135,12 +1135,12 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                         aFut.IsAmerican = (ReadByte(rs!tiCalcOptionType) <> 0)
                         aFut.IsActive = (ReadByte(rs!tiIsActive) <> 0)
                         aFut.PriceClose = ReadDbl(rs!fPriceClose)
-                        aFut.PriceTheoClose = ReadDbl(rs!fPriceTheoClose)
+                        aFut.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
                         aFut.HaveOptions = (ReadLng(rs!iHaveOptions) <> 0)
-                        aFut.ManualActivePrice = ReadDbl(rs!fManualActivePrice)
+                        aFut.manualActivePrice = ReadDbl(rs!fManualActivePrice)
                         
-                        If aFut.ManualActivePrice <> 0 Then
-                            aFut.ManualActivePrice = aFut.ManualActivePrice
+                        If aFut.manualActivePrice <> 0 Then
+                            aFut.manualActivePrice = aFut.manualActivePrice
                         End If
 
                         Set aFut.UndPriceProfile = g_PriceProfile(ReadLng(rs!iUndPriceProfileID))
@@ -1286,7 +1286,6 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         g_Index.Clear
         g_BasketIndex.Clear
         g_HedgeSymbols.Clear
-        'g_BasketIndexUndBySym.Clear
         Set rs = gDBW.usp_MmIndex_Get()
         While Not rs.EOF
             nID = ReadLng(rs!iContractID)
@@ -1294,7 +1293,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                 Set aIdx = New EtsGeneralLib.IndexAtom
                 aIdx.ID = nID
                 aIdx.Symbol = ReadStr(rs!vcSymbol)
-                aIdx.IsBasket = (ReadByte(rs!tiIsBasket) <> 0)
+                aIdx.IsBasket = True '(ReadByte(rs!tiIsBasket) <> 0)
                 Set aIdx.UndPriceProfile = g_UnderlyingAll(nID).UndPriceProfile
                 Set aIdx.OptPriceProfile = g_UnderlyingAll(nID).OptPriceProfile
                 g_Index.Add aIdx.ID, aIdx.Symbol, aIdx
@@ -1309,8 +1308,6 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         Set rs = gDBW.usp_MmIndexDefinition_Get()
         While Not rs.EOF
             dWeight = ReadDbl(rs!fWeight)
-            'dDividendWeight = ReadDbl(rs!fDividendWeight)
-            'dComponentWeight = ReadDbl(rs!fComponentWeight)
             
             If dWeight > 0# Then
                 nIdxID = ReadLng(rs!iIndexID)
@@ -1323,15 +1320,11 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                         Set aIdxComp = aIdx.Components.Add(nID)
                         aIdxComp.ID = nID
                         aIdxComp.Weight = dWeight
-                        'aIdxComp.ComponentWeight = dComponentWeight
-                        'aIdxComp.DividendWeight = dDividendWeight
                         aIdxComp.IsBasketComponent = True
                     End If
                     
                     If aIdx.IsBasket And g_BasketIndex(aIdx.ID) Is Nothing Then
                         g_BasketIndex.Add aIdx.ID, aIdx.Symbol, aIdx
-                        'Set aUnd = g_UnderlyingAll(aIdx.ID)
-                        'g_BasketIndexUndBySym.Add aUnd.Symbol, aUnd
                         Set aUnd = Nothing
                     End If
                         
@@ -1412,7 +1405,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
 '        Set rs = Nothing
         
         For Each aIdx In g_Index
-            If aIdx.IsBasket Then
+            If (aIdx.IsBasket) Then
                 aIdx.InitBasketDivs g_UnderlyingAll
             End If
         Next

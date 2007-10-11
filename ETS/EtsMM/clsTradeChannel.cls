@@ -19,6 +19,7 @@ Public Event TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrd
 Public Event PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
 Public Event PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
 Public Event AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
+Public Event DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
 
 Private WithEvents MmwMsgManager As MMWLib.MsgManager
 Attribute MmwMsgManager.VB_VarHelpID = -1
@@ -1157,6 +1158,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     Dim aSynthRoot As EtsGeneralLib.SynthRootAtom
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
     Dim aBasketDivs As EtsGeneralLib.EtsIndexDivColl
+    Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
     Dim nFlag As Long
     
     dYield = 0#
@@ -1169,37 +1171,69 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
             ReDim dDivAmts(0 To 0)
             
             If Not aTrd.Und.HaveSyntheticRoots Or aTrd.Und.SyntheticRoots(aTrd.OptRoot.ID) Is Nothing Then
-            
-                If aTrd.Und.UndType = enCtStock Then
-                    Set aUnd = aTrd.Und
-                    Set aDiv = aUnd.Dividend
-                    If Not aDiv Is Nothing Then
-                        aDiv.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
-                        If nDivCount > 0 Then
-                           aDiv.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
-                        End If
+                
+                Set aUnd = aTrd.Und
+                Set aDiv = aUnd.Dividend
+                
+                enDivType = enDivCustomStream
+                If (Not aDiv Is Nothing) Then
+                    enDivType = aDiv.DivType
                 End If
-                Else
-                    Set aIdx = g_Index(aTrd.UndID)
-                    If Not aIdx Is Nothing Then
-                        If aIdx.IsBasket Then
-                            Set aBasketDivs = aIdx.BasketDivs
-                            If Not aBasketDivs Is Nothing Then
-                                aBasketDivs.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
+                
+                Select Case enDivType
+                        Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
+                            If Not aDiv Is Nothing Then
+                                aDiv.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
                                 If nDivCount > 0 Then
-                                    aBasketDivs.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
+                                    aDiv.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
                                 End If
+                                Set aDiv = Nothing
                             End If
-                            Erase aBaskDivs
-                        End If
-                        Set aIdx = Nothing
-                    End If
-                    
-                    If Not aIdx.IsBasket And nDivCount <= 0 Then
-                        nDivCount = 0
-                        dYield = aTrd.Und.Yield
-                    End If
-                End If
+                        Case enDivStockBasket
+                            If Not aUnd.BasketIndex Is Nothing Then
+                                Set aBasketDivs = aUnd.BasketIndex.BasketDivs
+                                If Not aBasketDivs Is Nothing Then
+                                    aBasketDivs.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
+                                    If nDivCount > 0 Then
+                                            aBasketDivs.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                                    End If
+                                End If
+                                Set aBasketDivs = Nothing
+                            End If
+                        Case enDivIndexYield
+                            dYield = aUnd.Yield
+                End Select
+                
+'                If aTrd.Und.UndType = enCtStock Then
+'                    Set aUnd = aTrd.Und
+'                    Set aDiv = aUnd.Dividend
+'                    If Not aDiv Is Nothing Then
+'                        aDiv.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
+'                        If nDivCount > 0 Then
+'                           aDiv.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
+'                        End If
+'                End If
+'                Else
+'                    Set aIdx = g_Index(aTrd.UndID)
+'                    If Not aIdx Is Nothing Then
+'                        If aIdx.IsBasket Then
+'                            Set aBasketDivs = aIdx.BasketDivs
+'                            If Not aBasketDivs Is Nothing Then
+'                                aBasketDivs.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
+'                                If nDivCount > 0 Then
+'                                    aBasketDivs.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
+'                                End If
+'                            End If
+'                            Erase aBaskDivs
+'                        End If
+'                        Set aIdx = Nothing
+'                    End If
+'
+'                    If Not aIdx.IsBasket And nDivCount <= 0 Then
+'                        nDivCount = 0
+'                        dYield = aTrd.Und.Yield
+'                    End If
+'                End If
                 
                 If Not aTrd.Und.IsHTB Then
                     dRate = GetNeutralRate(Date, aTrd.Opt.Expiry)
@@ -3169,21 +3203,19 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
                 Set aUnd.Dividend = New EtsGeneralLib.EtsDivAtom
             End If
             
-            aUnd.Dividend.DivAmt = Data.DivAmt
-            aUnd.Dividend.DivAmtCust = Data.DivAmtCust
-            aUnd.Dividend.DivDate = Data.DivDate
-            aUnd.Dividend.DivDateCust = Data.DivDateCust
-            aUnd.Dividend.DivFreq = Data.DivFreq
-            aUnd.Dividend.DivFreqCust = Data.DivFreqCust
+            'aUnd.Dividend.DivAmt = Data.DivAmt
+            'aUnd.Dividend.DivAmtCust = Data.DivAmtCust
+            'aUnd.Dividend.DivDate = Data.DivDate
+            'aUnd.Dividend.DivDateCust = Data.DivDateCust
+            'aUnd.Dividend.DivFreq = Data.DivFreq
+            'aUnd.Dividend.DivFreqCust = Data.DivFreqCust
             aUnd.Dividend.DivType = Data.DivType
             
             If aUnd.Dividend.DivType = enDivCustomPeriodical Then
                 LoadCustomDivs aUnd
             End If
             
-            If aUnd.Dividend.DivType = enDivIndexYield Then
-                aUnd.Yield = aUnd.Dividend.DivAmt
-            End If
+            RaiseEvent DividendTypeUpdate(Data)
             
         End If
     End If

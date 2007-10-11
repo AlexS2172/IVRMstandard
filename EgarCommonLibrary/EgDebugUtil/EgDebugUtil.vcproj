@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="EgDebugUtil"
 	ProjectGUID="{9994278C-180F-4D33-B7CC-F39E3CB73CF9}"
+	RootNamespace="EgDebugUtil"
 	SccProjectName="&quot;$/EgCommon/EgDebugUtil&quot;, TAZCAAAA"
 	SccLocalPath="."
 	SccProvider="MSSCCI:ClearCase"
@@ -18,8 +19,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug6"
-			IntermediateDirectory=".\Debug6"
+			OutputDirectory=".\Debug"
+			IntermediateDirectory=".\Debug"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -56,10 +57,10 @@
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="stdafx.h"
-				PrecompiledHeaderFile=".\Debug6/EgDebugUtil.pch"
-				AssemblerListingLocation=".\Debug6/"
-				ObjectFile=".\Debug6/"
-				ProgramDataBaseFileName=".\Debug6/"
+				PrecompiledHeaderFile=".\Debug/EgDebugUtil.pch"
+				AssemblerListingLocation=".\Debug/"
+				ObjectFile=".\Debug/"
+				ProgramDataBaseFileName=".\Debug/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -77,14 +78,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../bin/EgDebugUtil6D.dll"
+				OutputFile="$(CommonProgramFiles)\Egar\EgDebugUtilD.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile=".\EgDebugUtil.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="../bin/EgDebugUtil6D.pdb"
+				ProgramDatabaseFile="../bin/EgDebugUtilD.pdb"
 				BaseAddress="0x3000000"
-				ImportLibrary="../lib/EgDebugUtil6D.lib"
+				ImportLibrary="../lib/EgDebugUtilD.lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -99,7 +100,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Debug6/EgDebugUtil.bsc"
+				OutputFile=".\Debug/EgDebugUtil.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -116,8 +117,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release6"
-			IntermediateDirectory=".\Release6"
+			OutputDirectory=".\Release"
+			IntermediateDirectory=".\Release"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -155,10 +156,10 @@
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="stdafx.h"
-				PrecompiledHeaderFile=".\Release6/EgDebugUtil.pch"
-				AssemblerListingLocation=".\Release6/"
-				ObjectFile=".\Release6/"
-				ProgramDataBaseFileName=".\Release6/"
+				PrecompiledHeaderFile=".\Release/EgDebugUtil.pch"
+				AssemblerListingLocation=".\Release/"
+				ObjectFile=".\Release/"
+				ProgramDataBaseFileName=".\Release/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -176,14 +177,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../bin/EgDebugUtil6.dll"
+				OutputFile="$(CommonProgramFiles)\Egar\EgDebugUtil.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile=".\EgDebugUtil.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="../bin/EgDebugUtil6.pdb"
+				ProgramDatabaseFile="../bin/EgDebugUtil.pdb"
 				BaseAddress="0x3000000"
-				ImportLibrary="../lib/EgDebugUtil6.lib"
+				ImportLibrary="../lib/EgDebugUtil.lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -198,7 +199,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Release6/EgDebugUtil.bsc"
+				OutputFile=".\Release/EgDebugUtil.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"

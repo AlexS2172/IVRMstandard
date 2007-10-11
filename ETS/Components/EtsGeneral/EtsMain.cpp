@@ -947,7 +947,7 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 						case enCtIndex:
 							{
 								pObject->m_dYield = rs[L"fYield"];
-								pObject->m_bIsBasketIndex = ((bool)rs[L"tiIsBasket"])?VARIANT_TRUE:VARIANT_FALSE;
+								pObject->m_bIsBasketIndex = VARIANT_TRUE;//((bool)rs[L"tiIsBasket"])?VARIANT_TRUE:VARIANT_FALSE;
 
 								CComObject<CEtsIndexDivAtom>* pDivAtom = NULL;
 								CComObject<CEtsIndexDivAtom>::CreateInstance(&pDivAtom);

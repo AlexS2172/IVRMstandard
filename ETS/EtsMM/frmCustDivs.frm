@@ -172,7 +172,7 @@ Begin VB.Form frmCustomDivs
          _ExtentX        =   2566
          _ExtentY        =   556
          _Version        =   393216
-         Format          =   63504385
+         Format          =   20709377
          CurrentDate     =   38251
       End
       Begin VB.Label lblStep 
@@ -477,7 +477,7 @@ Public Sub Init(iStockID As Long, strSimbol As String, dtLastExpity As Date, bRe
     btnDelete.Enabled = Not m_bReadOnly
     btnClear.Enabled = Not m_bReadOnly
     btnApply.Enabled = Not m_bReadOnly
-    btnOK.Enabled = Not m_bReadOnly
+    btnOk.Enabled = Not m_bReadOnly
     m_bSortDate = True
     m_bSortAmount = True
     SetDataDirty False

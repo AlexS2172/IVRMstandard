@@ -821,7 +821,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks3(	double	dDomesticRate,
 
 	pGreeks->dTheoPrice = CalculateFutureOption3(dDomesticRate, dYield, bSpotGreeks, dFuturePrice, dStrike, 
 		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
-		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, pDivYears, pDivAmnts, nCount, pGreeks);
+		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))
 	{

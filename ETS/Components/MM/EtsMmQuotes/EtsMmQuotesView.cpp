@@ -263,11 +263,11 @@ IMmQvUndAtomPtr	CEtsMmQuotesView::AddNewUnderlying(IUndAtomPtr spEtsUndAtom)
 			if(pUndAtom->m_enUndType != enCtStock)
 			{
 				pUndAtom->m_spBasketIndex  = m_spEtsMain->Index->Item[pUndAtom->m_nID];
-				if(pUndAtom->m_spBasketIndex)
+				/*if(pUndAtom->m_spBasketIndex)
 				{
 					if(pUndAtom->m_spBasketIndex->IsBasket == VARIANT_FALSE)
 						pUndAtom->m_spBasketIndex = NULL;
-				}
+				}*/
 				pUndAtom->m_dYield = spUnd->Yield;
 			}
 

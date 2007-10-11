@@ -437,22 +437,21 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                             .TextMatrix(nRow, nCol) = STR_NA
                         End If
                     Case QUC_INDEXCALCPRICE
-'                        Dim CalcPrice#: CalcPrice = 0
-'                        Dim dummy1 As EtsReplacePriceStatusEnum: dummy1 = enRpsNone
-'                        Dim boolFuture As Boolean: boolFuture = False
-'
-'                        If m_Aux.Grp.ContractType = enCtIndex Or m_Aux.Grp.ContractType = enCtStock Then _
-'                            CalcPrice = m_Aux.Grp.Und.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, dummy1, boolFuture)
-
                         Set .Cell(flexcpPicture, nRow, nCol) = Nothing
+                        .TextMatrix(nRow, nCol) = STR_NA
                         
                         If m_Aux.Grp.ContractType = enCtIndex Or m_Aux.Grp.ContractType = enCtStock Then
                             .TextMatrix(nRow, nCol) = IIf(aUnd.ActivePrice > 0, aUnd.ActivePrice, STR_NA)
-                        Else
-                            .TextMatrix(nRow, nCol) = STR_NA
                         End If
-                        If aUnd.UseManualActivePrice Then
-                              Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
+                        
+                        If (aUnd.IsHead) Then
+                            If (aUnd.ActiveFuture Is Nothing And aUnd.UseManualActivePrice) Then
+                                Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
+                            End If
+                        ElseIf (Not aUnd.PriceByHead) Then
+                            If (aUnd.ActiveFuture Is Nothing And aUnd.UseManualActivePrice) Then
+                                Set .Cell(flexcpPicture, nRow, nCol) = imgInSpread
+                            End If
                         End If
                     Case QUC_ACTIVEFUTURE
                         If aUnd.ActiveFuture Is Nothing Then
@@ -475,23 +474,19 @@ Public Function UnderlyingUpdateQuote(ByVal nRow As Long, ByVal bSymbol As Boole
                         End If
                     Case QUC_HEAD_COMP
                         .TextMatrix(nRow, nCol) = STR_NA
-                        
-                        If m_Aux.Grp.ID = aUnd.ID Then
-                            If m_Aux.Grp.Und.IsHead Or m_Aux.Grp.Und.HeadComponent Is Nothing Then
-                                .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.Symbol
-                            Else
-                                If Not m_Aux.Grp.Und.HeadComponent Is Nothing Then
-                                    .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.HeadComponent.Symbol
-                                End If
-                            End If
+                                               
+                        If (Not m_Aux.Grp.Und.HeadComponent Is Nothing) Then
+                            .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.HeadComponent.Symbol
+                        ElseIf (m_Aux.Grp.Und.IsHead) Then
+                            .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.Symbol
                         End If
                         
                     Case QUC_COEFF
                         .TextMatrix(nRow, nCol) = STR_NA
-                        
-                        If m_Aux.Grp.ID = aUnd.ID Then
+                        If (Not m_Aux.Grp.Und.HeadComponent Is Nothing Or m_Aux.Grp.Und.IsHead) Then
                             .TextMatrix(nRow, nCol) = m_Aux.Grp.Und.Coeff
                         End If
+
                         
                 End Select
 
@@ -1716,13 +1711,8 @@ Public Sub DivsUpdate()
         
         '   SUD-109
         If m_Aux.Grp.ContractType = enCtIndex Then
-            If Not m_Aux.Grp.Und.BasketIndex Is Nothing Then
-                .ColComboList(QDC_DIV) = "#3;Stock Basket Div|#2;Custom Stream"
-                .TextMatrix(1, QDC_DIV) = "3"
-            Else
-                .ColComboList(QDC_DIV) = "#4;Yield %|#2;Custom Stream"
-                .TextMatrix(1, QDC_DIV) = "4"
-            End If
+            .ColComboList(QDC_DIV) = "#4;Yield %|#3;Stock Basket Div|#2;Custom Stream"
+            .TextMatrix(1, QDC_DIV) = "4"
         Else
             .ColComboList(QDC_DIV) = "#0;Market|#1;Custom Periodical|#2;Custom Stream"
             .TextMatrix(1, QDC_DIV) = "0"
@@ -1755,8 +1745,6 @@ Public Sub DivsUpdate()
                     
                 Case enDivStockBasket
                     .TextMatrix(1, QDC_DIV) = "3"
-'                    aDiv.GetNearest CLng(Date), 0, dAmount(0), dDate(0)
-                    ' TODO:
                     m_Aux.Grp.Und.BasketIndex.BasketDivs.GetNearest CLng(Date), CDate("01/01/2999"), dAmount(0), dDate(0)
                     nDivFreq = 0
                     dDivAmt = dAmount(0)
@@ -1765,7 +1753,7 @@ Public Sub DivsUpdate()
                 Case enDivIndexYield
                     .TextMatrix(1, QDC_DIV) = "4"
                     nDivFreq = 0
-                    dDivAmt = aDiv.DivAmt
+                    dDivAmt = m_Aux.Grp.Und.Yield
                     dtDivDate = 0
                     
             End Select

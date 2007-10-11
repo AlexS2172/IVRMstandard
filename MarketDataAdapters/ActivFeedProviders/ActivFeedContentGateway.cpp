@@ -1969,61 +1969,62 @@ void  CActivFeedContentGateway::OnResponse(HeapMessage &response,  T& Params,  R
 			if( psitr == m_PSMap.end() )
 				return;
 			pSubsMap = &psitr->second;
-		}
-		if(pSubsMap!=NULL && (pSubsMap->size() > 1L || pSubsMap->begin()->first.length()))
-		{
-			for (;it!=itend;it++) 
-			{
-				ResponseBlock& rb = *it;
-				if( rb.IsValidResponse() ) 
-				{
-					CSMap::iterator itrRequest = pSubsMap->find(rb.m_requestKey.m_symbol);
-					if(itrRequest != pSubsMap->end())
-					{	
-						_RealtimeQuoteAtomPtr spData = itrRequest->second;
 
-						if ( rb.m_status == ResponseBlock::STATUS_SOURCE_NOT_FOUND ) 
-						{
-							pApp->OnBIError( enSymbolNotSupported, ResponseBlock::StatusToString( rb.m_status ).c_str(), enSubscribeQuote, spData->m_spRequest );
+			if(pSubsMap!=NULL && (pSubsMap->size() > 1L || pSubsMap->begin()->first.length()))
+			{
+				for (;it!=itend;it++) 
+				{
+					ResponseBlock& rb = *it;
+					if( rb.IsValidResponse() ) 
+					{
+						CSMap::iterator itrRequest = pSubsMap->find(rb.m_requestKey.m_symbol);
+						if(itrRequest != pSubsMap->end())
+						{	
+							_RealtimeQuoteAtomPtr spData = itrRequest->second;
+
+							if ( rb.m_status == ResponseBlock::STATUS_SOURCE_NOT_FOUND ) 
+							{
+								pApp->OnBIError( enSymbolNotSupported, ResponseBlock::StatusToString( rb.m_status ).c_str(), enSubscribeQuote, spData->m_spRequest );
+								pSubsMap->erase(itrRequest);
+								continue;
+							}
+
+							ParseResponseBlock( rb, spData->m_spResponse.get(), spData->m_spRequest->Type == enOPT ? true : false, spData->m_spRequest.get());
+							spData->m_bUpdate = true;
+							spData->m_Cookie = Params.m_subscriptionCookie;
+							m_SMap[ rb.m_responseKey.m_symbol ]= spData;
+							pApp->OnSubscribed( spData->m_spRequest );
+							++m_UpdateCount;
 							pSubsMap->erase(itrRequest);
-							continue;
 						}
-
-						ParseResponseBlock( rb, spData->m_spResponse.get(), spData->m_spRequest->Type == enOPT ? true : false, spData->m_spRequest.get());
-						spData->m_bUpdate = true;
-						spData->m_Cookie = Params.m_subscriptionCookie;
-						m_SMap[ rb.m_responseKey.m_symbol ]= spData;
-						pApp->OnSubscribed( spData->m_spRequest );
-						++m_UpdateCount;
-						pSubsMap->erase(itrRequest);
+						else
+							ATLASSERT(FALSE);
 					}
-					else
-						ATLASSERT(FALSE);
 				}
-			}
-			if(bIsComplete)
-			{
-				// Notify Client;
-				CSMap::iterator itrReq = pSubsMap->begin();
-				while(itrReq != pSubsMap->end())
+				if(bIsComplete)
 				{
-					m_SMap[ itrReq->first ]= itrReq->second;
-					itrReq->second->m_Cookie = Params.m_subscriptionCookie;
-					itrReq->second->m_bUpdate = true;
-					pApp->OnSubscribed( itrReq->second->m_spRequest );
-					++m_UpdateCount;
-					++itrReq;
-				}
+					// Notify Client;
+					CSMap::iterator itrReq = pSubsMap->begin();
+					while(itrReq != pSubsMap->end())
+					{
+						m_SMap[ itrReq->first ]= itrReq->second;
+						itrReq->second->m_Cookie = Params.m_subscriptionCookie;
+						itrReq->second->m_bUpdate = true;
+						pApp->OnSubscribed( itrReq->second->m_spRequest );
+						++m_UpdateCount;
+						++itrReq;
+					}
 
-				{
-					CAutoLock lock(m_csPSMap);
-					m_PSMap.erase( pRequestID);
-				}
+					{
+						//CAutoLock lock(m_csPSMap);
+						m_PSMap.erase( pRequestID);
+					}
 
+				}
+				return;
 			}
-
 		}
-		else
+		/*else*/
 		{
 			r = pSubsMap->begin()->second;
 			// The RequestId of this response was not found in 'request last updates' map ( m_LU )

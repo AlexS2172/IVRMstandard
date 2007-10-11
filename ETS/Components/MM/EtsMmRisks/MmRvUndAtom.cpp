@@ -870,9 +870,14 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 		}
 
 		CalcNetDeltas(m_enContractType);
-		if(NetDlt$_ > BAD_DOUBLE_VALUE && Beta_ > BAD_DOUBLE_VALUE && DoubleNEQZero(Beta_))
+		DOUBLE	dBeta = Beta_;
+		if (m_spHeadComponent)
+			m_spHeadComponent->get_Beta(&dBeta);
+
+		if(NetDlt$_ > BAD_DOUBLE_VALUE && dBeta > BAD_DOUBLE_VALUE && DoubleNEQZero(dBeta))
 		{
-			BetaWtdDelta$_ = NetDlt$_ * Beta_;
+
+			BetaWtdDelta$_ = NetDlt$_ * dBeta;
 			if(BadNetDlt$_) BadBetaWtdDelta$_ = VARIANT_TRUE;
 		}
 		else

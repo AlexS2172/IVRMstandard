@@ -859,7 +859,14 @@ Public Function usp_Index_Save( _
     Optional fSkew As Variant = Null, _
     Optional fKurt As Variant = Null, _
     Optional tiCheckExistance As Byte = 1, _
-    Optional iPrimaryExchangeID As Variant = Null _
+    Optional iPrimaryExchangeID As Variant = Null, _
+    Optional isDivCustom As Variant = Null, _
+    Optional iDivFreq As Variant = Null, _
+    Optional dtDivDate As Variant = Null, _
+    Optional fDivAmt As Variant = Null, _
+    Optional iDivFreqCustom As Variant = Null, _
+    Optional dtDivDateCustom As Variant = Null, _
+    Optional fDivAmtCustom As Variant = Null _
 ) As Long
     usp_Index_Save = Execute(False, "usp_Index_Save" _
         , iIndexID _
@@ -879,7 +886,11 @@ Public Function usp_Index_Save( _
         , Null _
         , Null _
         , Null _
-        , iPrimaryExchangeID)
+        , iPrimaryExchangeID _
+        , isDivCustom, _
+        , iDivFreq, _
+        , fDivAmt, _
+        , dtDivDate)
 End Function
 
 

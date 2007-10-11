@@ -3641,7 +3641,7 @@ Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef a
     Dim dCoeff#
     
     dCoeff = 1#
-    If (Not m_Und(aPos.UndID) Is Nothing) Then
+    If (Not m_Und(aPos.UndID).HeadComponent Is Nothing) Then
         dCoeff = m_Und(aPos.UndID).Coeff
     End If
     
@@ -3651,14 +3651,14 @@ Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef a
         
         If (Not aPos.Fut Is Nothing) Then
             If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
-                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.Qty * dUndSpot * aPos.Fut.KEq * dCoeff
+                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.Qty * dUndSpot * aPos.Fut.KEq '* dCoeff
                 aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize) * dCoeff
             Else
-                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot * dCoeff
+                aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot '* dCoeff
                 aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * dCoeff
             End If
         Else
-            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot * dCoeff
+            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * dUndSpot '* dCoeff
             aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * dCoeff
         End If
     Else
@@ -3673,18 +3673,18 @@ Private Sub CalcPosTotalsCommon(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef a
         
         If (Not aPos.Fut Is Nothing) Then
             If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
-                aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.Qty * dUndSpot * dUndSpot / 100# * aPos.Fut.KEq) * dCoeff * dCoeff
+                aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.Qty * dUndSpot * dUndSpot / 100# * aPos.Fut.KEq) '* dCoeff * dCoeff
                 aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)) * dCoeff * dCoeff
-                aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.Qty * dUndSpot / 100# * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)) * dCoeff * dCoeff
+                aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.Qty * dUndSpot / 100# * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize)) * dCoeff '* dCoeff
             Else
-                aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#) * dCoeff * dCoeff
+                aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#) '* dCoeff * dCoeff
                 aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares) * dCoeff * dCoeff
-                aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#) * dCoeff * dCoeff
+                aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#) * dCoeff '* dCoeff
             End If
         Else
-            aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#) * dCoeff * dCoeff
+            aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot * dUndSpot / 100#) '* dCoeff * dCoeff
             aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares) * dCoeff * dCoeff
-            aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#) * dCoeff * dCoeff
+            aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * dUndSpot / 100#) * dCoeff '* dCoeff
         End If
     Else
         aRes.BadGamma = True
@@ -3761,7 +3761,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
     
-    If (Not m_Und(aPos.UndID) Is Nothing) Then
+    If (Not m_Und(aPos.UndID).HeadComponent Is Nothing) Then
             dCoeff = m_Und(aPos.UndID).Coeff
     End If
     
@@ -3785,14 +3785,14 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
                 dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
-                    aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dCoeff
+                    aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp '* dCoeff
                 End If
                 aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dCoeff
             End If
         Next
     
         If aSynthRoot.CashValue > 0# Then
-            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue * dCoeff
+            aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue '* dCoeff
             aRes.NetDelta = aRes.NetDelta + aGreeks.dDelta * aPos.QtyInShares * aSynthRoot.CashValue * dCoeff
         End If
     Else
@@ -3821,17 +3821,17 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
                 dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
-                    aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dTmp / 100#) * dCoeff * dCoeff
-                    aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp / 100#) * dCoeff * dCoeff
+                    aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dTmp / 100#) '* dCoeff * dCoeff
+                    aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp / 100#) * dCoeff '* dCoeff
                 End If
                 aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight) * dCoeff * dCoeff
             End If
         Next
     
         If aSynthRoot.CashValue > 0# Then
-            aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#) * dCoeff * dCoeff
+            aRes.Gamma = aRes.Gamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#) '* dCoeff * dCoeff
             aRes.NetGamma = aRes.NetGamma + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue) * dCoeff * dCoeff
-            aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#) * dCoeff * dCoeff
+            aRes.GammaPerc = aRes.GammaPerc + (aGreeks.dGamma * aPos.QtyInShares * aSynthRoot.CashValue / 100#) * dCoeff '* dCoeff
         End If
     Else
         aRes.BadGamma = True
@@ -3871,7 +3871,7 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                                 Optional ByVal dFutSpot As Double = 0) As Boolean
     On Error Resume Next
     Dim nDivCount&, nBaskDivCount&, dYield#, dVola#, dOptSpot#, nIsAmerican&, nIsAmericanFut&
-    Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
+    Dim dDivDte() As Double, dDivAmts() As Double
     Dim nFlag&
     Dim bIsBasket As Boolean
     
@@ -3882,35 +3882,67 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     nIsAmerican = IIf(aUnd.IsAmerican, 1, 0)
     CalcGreeksCommon = False
     
+    Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
+    Set aDiv = aUnd.Dividend
+    Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
     
-    If aUnd.ContractType = enCtStock Then
-        Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
-        Set aDiv = aUnd.Dividend
-        If Not aDiv Is Nothing Then
-            aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
-            If nDivCount > 0 Then
-                aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
-            End If
-            Set aDiv = Nothing
-        End If
-    Else
-        If Not aUnd.BasketIndex Is Nothing Then
-            Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
-            Set aBasketDiv = aUnd.BasketIndex.BasketDivs
-            bIsBasket = aUnd.BasketIndex.IsBasket
-            If Not aBasketDiv Is Nothing Then
-                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
-                If nBaskDivCount > 0 Then
-                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+    enDivType = enDivCustomStream
+    If (Not aDiv Is Nothing) Then enDivType = aDiv.DivType
+    
+    Select Case enDivType
+            Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
+                If Not aDiv Is Nothing Then
+                    aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                    If nDivCount > 0 Then
+                        aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                    End If
+                    Set aDiv = Nothing
                 End If
-            End If
-            Set aBasketDiv = Nothing
-           
-            Erase aBaskDivs
-        End If
-        
-        If nDivCount <= 0 And Not bIsBasket Then dYield = aUnd.Yield
-    End If
+            Case enDivStockBasket
+                If Not aUnd.BasketIndex Is Nothing Then
+                    Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
+                    Set aBasketDiv = aUnd.BasketIndex.BasketDivs
+                    bIsBasket = aUnd.BasketIndex.IsBasket
+                    If Not aBasketDiv Is Nothing Then
+                        aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                        If nDivCount > 0 Then
+                                aBasketDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                        End If
+                    End If
+                    Set aBasketDiv = Nothing
+                End If
+            Case enDivIndexYield
+                dYield = aUnd.Yield
+    End Select
+    
+'    If aUnd.ContractType = enCtStock Then
+'        Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
+'        Set aDiv = aUnd.Dividend
+'        If Not aDiv Is Nothing Then
+'            aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+'            If nDivCount > 0 Then
+'                aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+'            End If
+'            Set aDiv = Nothing
+'        End If
+'    Else
+'        If Not aUnd.BasketIndex Is Nothing Then
+'            Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
+'            Set aBasketDiv = aUnd.BasketIndex.BasketDivs
+'            bIsBasket = aUnd.BasketIndex.IsBasket
+'            If Not aBasketDiv Is Nothing Then
+'                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
+'                If nBaskDivCount > 0 Then
+'                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+'                End If
+'            End If
+'            Set aBasketDiv = Nothing
+'
+'            Erase aBaskDivs
+'        End If
+'
+'        If nDivCount <= 0 And Not bIsBasket Then dYield = aUnd.Yield
+'    End If
     
     dVola = 0#
     If g_Params.UseTheoVolatility Then
@@ -3961,7 +3993,7 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
             Else
                 RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutSpot, True, aPos.Strike, dVola, aPos.Expiry - dtToday, _
-                            aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, RetCount, _
+                            aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, nDivCount, _
                             dDivAmts(0), dDivDte(0), aGreeks)
             End If
         End If
@@ -4095,7 +4127,7 @@ On Error GoTo Exception
     ElseIf (Not aUnd.HeadComponent Is Nothing And aUnd.PriceByHead) Then
         dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
     Else
-        If (aUnd.Price.IsUseManualActive) Then
+        If (aUnd.Price.IsUseManualActive Or bFutPriceReplaced) Then
             dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
         Else
             dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
@@ -4318,10 +4350,10 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             
                             If (Not aPos.Fut Is Nothing) Then
                                 If (aPos.Fut.Underlying.ContractType = enCtFutUnd) Then
-                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.Qty * dUndSpot * aPos.Fut.KEq * dCoeff
+                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.Qty * dUndSpot * aPos.Fut.KEq '* dCoeff
                                     m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.Qty * IIf(aPos.Fut.MultOptDltEq, 1, aPos.Fut.FutLotSize) * dCoeff
                                 Else
-                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot * dCoeff
+                                    m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot '* dCoeff
                                     m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares * dCoeff
                                 End If
                             End If
@@ -4333,7 +4365,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
                             If m_Res(nX, nY).NetDelta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).NetDelta = 0#
                             
-                            m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot * dCoeff
+                            m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot '* dCoeff
                             m_Res(nX, nY).NetDelta = m_Res(nX, nY).NetDelta + aPos.QtyInShares * dCoeff
                         End If
 NextPos:

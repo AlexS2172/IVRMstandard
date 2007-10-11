@@ -22,7 +22,7 @@ STDMETHODIMP CIndexAtom::InitBasketDivs(IUndColl* pUndColl)
 {
 	ObjectLock lock(this);
 	m_spDivs->Clear();
-	if(VARIANT_FALSE != m_bIsBasket)
+	//if(VARIANT_FALSE != m_bIsBasket)
 	{
 		if(pUndColl != NULL)
 		{

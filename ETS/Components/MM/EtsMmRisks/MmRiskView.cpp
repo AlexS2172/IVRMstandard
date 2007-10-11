@@ -1209,11 +1209,11 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 	if(pUndAtom->m_enContractType != enCtStock)
 	{
 		pUndAtom->m_spBasketIndex  = m_spEtsMain->Index->Item[pUndAtom->m_nID];
-		if(pUndAtom->m_spBasketIndex!=NULL)
+		/*if(pUndAtom->m_spBasketIndex!=NULL)
 		{
             if(pUndAtom->m_spBasketIndex->IsBasket == VARIANT_FALSE)
 				pUndAtom->m_spBasketIndex = NULL;
-		}
+		}*/
 		pUndAtom->m_dYield = spUnd->Yield;
 	}
     pUndAtom->m_bShouldMultOptDeltaEq   = spUnd->bShouldMultOptDeltaEq;

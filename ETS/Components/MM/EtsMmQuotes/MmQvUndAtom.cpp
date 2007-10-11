@@ -952,13 +952,15 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 					_CHK(spSynthUnd->get_Quote(&spQuotes), _T("Fail to get quotes collection."));
 					_CHK(spQuotes->get_Item(lPrimaryExchangeID, &spQuote)); // get default exchange quote
 
-					VARIANT_BOOL bIsManual = false;
+					VARIANT_BOOL bIsManual = VARIANT_FALSE;
+					VARIANT_BOOL bPriceByHead = VARIANT_FALSE;
 					double dManulPrice = BAD_DOUBLE_VALUE;
 					_CHK(spSynthUnd->get_UseManualActivePrice(&bIsManual));
+					_CHK(spSynthUnd->get_PriceByHead(&bPriceByHead));
 					_CHK(spSynthUnd->get_ActivePrice(&dManulPrice));
 
 					_CHK(spQuote->get_PriceBid(&dPriceBid));
-					dPriceBid = bIsManual ? dManulPrice : dPriceBid;
+					dPriceBid = (bIsManual || bPriceByHead) ? dManulPrice : dPriceBid;
 					if(!bBadSpotBid && dPriceBid > 0.)
 						dSpotBid += dPriceBid * dWeight;
 					else
@@ -968,7 +970,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 					}
 
 					_CHK(spQuote->get_PriceAsk(&dPriceAsk));
-					dPriceAsk = bIsManual ? dManulPrice : dPriceAsk;
+					dPriceAsk = (bIsManual || bPriceByHead) ? dManulPrice : dPriceAsk;
 					if(!bBadSpotAsk && dPriceAsk > 0.)
 						dSpotAsk += dPriceAsk * dWeight;
 					else
@@ -978,7 +980,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 					}
 
 					_CHK(spQuote->get_PriceLast(&dPriceLast));
-					dPriceLast = bIsManual ? dManulPrice : dPriceLast;
+					dPriceLast = (bIsManual || bPriceByHead) ? dManulPrice : dPriceLast;
 					if(!bBadSpotLast && dPriceLast > 0.)
 						dSpotLast += dPriceLast * dWeight;
 					else
@@ -1002,7 +1004,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 				//_CHK(m_spQuote->get_Item(0L, &spQuote)); // get default exchange quote
 
 				_CHK(spQuote->get_PriceBid(&dPriceBid));
-				dPriceBid = m_bUseManualActivePrice ? m_dActivePrice : dPriceBid;
+				dPriceBid = (m_bUseManualActivePrice || m_bPriceByHead) ? m_dActivePrice : dPriceBid;
 				if(!bBadSpotBid && dPriceBid > 0.)
 					dSpotBid += dPriceBid * dWeight;
 				else
@@ -1012,7 +1014,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 				}
 
 				_CHK(spQuote->get_PriceAsk(&dPriceAsk));
-				dPriceAsk = m_bUseManualActivePrice ? m_dActivePrice : dPriceAsk;
+				dPriceAsk = (m_bUseManualActivePrice || m_bPriceByHead) ? m_dActivePrice : dPriceAsk;
 				if(!bBadSpotAsk && dPriceAsk > 0.)
 					dSpotAsk += dPriceAsk * dWeight;
 				else
@@ -1022,7 +1024,7 @@ HRESULT CMmQvUndAtom::_GetSyntheticUnderlyingPrice(ISynthRootAtomPtr aSynthRoot,
 				}
 
 				_CHK(spQuote->get_PriceLast(&dPriceLast));
-				dPriceLast = m_bUseManualActivePrice ? m_dActivePrice : dPriceLast;
+				dPriceLast =(m_bUseManualActivePrice || m_bPriceByHead)? m_dActivePrice : dPriceLast;
 				if(!bBadSpotLast && dPriceLast > 0.)
 					dSpotLast += dPriceLast * dWeight;
 				else
@@ -1979,6 +1981,8 @@ STDMETHODIMP CMmQvUndAtom::CleanUp()
 		if(m_spOptExch != NULL)		m_spOptExch->Clear();
 		if(m_pOpt != NULL)			m_pOpt->Clear();
 		if (m_pFut)					m_pFut->Clear();
+		if(m_spHeadComponent)		m_spHeadComponent->CleanUp();
+		m_spHeadComponent	= NULL;
 		
 	}
 	catch(const _com_error& e)

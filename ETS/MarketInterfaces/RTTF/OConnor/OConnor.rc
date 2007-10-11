@@ -225,12 +225,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "EGAR Technology Inc."
-            VALUE "FileDescription", "OConnor Connector Module"
+            VALUE "FileDescription", "File Format - Real-Time Trade Feed Module"
             VALUE "FileVersion", "1, 2,59, 0"
-            VALUE "InternalName", "OConnor Connector"
+            VALUE "InternalName", "File Format - Real-Time Trade Feed"
             VALUE "LegalCopyright", "© 2001-2003 EGAR Technology Inc."
-            VALUE "OriginalFilename", "OConnorConnector.exe"
-            VALUE "ProductName", "OConnor Connector"
+            VALUE "OriginalFilename", "File Format - Real-Time Trade Feed.exe"
+            VALUE "ProductName", "File Format - Real-Time Trade Feed"
             VALUE "ProductVersion", "1, 2,59, 0"
         END
     END
@@ -275,7 +275,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDR_MAINFRAME           "OConnor Connector"
+    IDR_MAINFRAME           "File Format - Real-Time Trade Feed"
 END
 
 STRINGTABLE 

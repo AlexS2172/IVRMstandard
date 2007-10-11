@@ -1536,9 +1536,11 @@ End Function
 Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
     On Error Resume Next
     Dim aIdx As EtsGeneralLib.IndexAtom, sKey$
+    Dim nID As Long
     
     If m_Aux.Grp.ID = 0 Then Exit Sub
     
+    nID = aContract.Und.ID
     m_Aux.Grp.Und.ID = aContract.Und.ID
     m_Aux.Grp.Und.Symbol = aContract.Und.Symbol
     m_Aux.Grp.Und.SymbolName = aContract.Und.ContractName
@@ -1590,11 +1592,12 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
         
     Else
         m_Aux.Grp.Und.Yield = aContract.Und.Yield
-        Set m_Aux.Grp.Und.BasketIndex = Nothing
+        
         Set m_Aux.Grp.Und.Dividend = Nothing
+        Set m_Aux.Grp.Und.Dividend = aContract.Und.Dividend
         
-        
-        Set aIdx = g_Index(m_Aux.Grp.Und.ID)
+        Set m_Aux.Grp.Und.BasketIndex = Nothing
+        Set aIdx = g_Index(nID)
         If Not aIdx Is Nothing Then
             If aIdx.IsBasket Then
                 Set m_Aux.Grp.Und.BasketIndex = aIdx
@@ -1602,15 +1605,9 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
             Set aIdx = Nothing
         End If
         
-        
-        Set m_Aux.Grp.Und.Dividend = aContract.Und.Dividend
-        
         Select Case aContract.Und.Dividend.DivType
             Case enDivCustomStream:
                 LoadCustomDivs
-
-            Case enDivIndexYield:
-                m_Aux.Grp.Und.Dividend.DivAmt = m_Aux.Grp.Und.Yield
         End Select
 
     End If
@@ -2569,42 +2566,17 @@ Private Function InitGroup(ByVal nGroupID As Long) As Boolean
     QV.ConnectionString = g_Params.DbConnection
     Set QV.EtsMain = g_Main
         
-    'begin 8801
     QV.Load m_Aux.Grp.ID, aContract.ContractType
+    DoEvents
+    If m_bShutDown Then GoTo Ex
     
     m_Aux.geOpt.RemoveSortPicture
     
     m_Aux.IndexOptionsComboVisible = (aContract.ContractType = enCtIndex And QV.Grp.Und.Fut.Count > 0)
     
     m_Aux.Grp.ShowIndexFutureOptions = (m_Aux.OptionsFilter = 1 And m_Aux.IndexOptionsComboVisible)
-    'end 8801
-'    Select Case aContract.ContractType
-'        Case enCtStock
-'            If Not InitUnderlyingOptions(aContract) Then GoTo EX
-'            m_Aux.IndexOptionsComboVisible = False
-'
-'        Case enCtIndex
-'            If HaveFutures(aContract) Then
-'                'If Not InitFutures(aContract) Then GoTo EX
-'                If Not InitIndexFutures(aContract) Then GoTo EX
-'                If Not InitUnderlyingOptions(aContract) Then GoTo EX
-'                m_Aux.IndexOptionsComboVisible = True
-'            Else
-'                If Not InitUnderlyingOptions(aContract) Then GoTo EX
-'                m_Aux.IndexOptionsComboVisible = False
-'            End If
-'
-'        Case enCtFutUnd
-'            If Not InitFutures(aContract) Then GoTo EX
-'            m_Aux.IndexOptionsComboVisible = False
-'
-'        Case Else
-'            GoTo EX
-'    End Select
     
-    'QV.DefaultOptionsSort will be called from CEtsMmQuotesView::Load
-    
-    If m_bShutDown Then GoTo Ex
+
     UnderlyingUpdatePositions
     UnderlyingAdjustRates True
     m_Aux.FormatFutGrid
@@ -2632,10 +2604,6 @@ Private Sub ShowGroup()
     Dim bAllExpVisible As Boolean, bAllExchVisible As Boolean, bAllRootVisible As Boolean, bShowOnlyDefExch As Boolean, aRoot As EtsMmQuotesLib.MmQvOptRootAtom
     Dim bAllStrVisible As Boolean, aStrAll As EtsMmQuotesLib.MmQvStrikeAtom
                
-    DoEvents
-
-    If m_bShutDown Then Exit Sub
-       
     If (m_Aux.Grp.ID = 0) Then Exit Sub
     
     AdjustState
@@ -3974,12 +3942,12 @@ Private Sub fgOpt_Compare(ByVal Row1 As Long, ByVal Row2 As Long, Cmp As Integer
     Set aRowData2 = Nothing
 End Sub
 
+Private Sub StopAllActivities()
 
-
-Private Sub imgStop_Click()
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     If m_bLastQuoteReqNow Then
+    
         m_bLastQuoteReqNow = False
         PriceProvider.CancelLastQuote
         If m_bGroupRequest Then m_GroupPriceProvider.CancelLastGroupQuotes
@@ -4007,6 +3975,7 @@ Private Sub imgStop_Click()
         AdjustState
         
     ElseIf m_Aux.RealTime Or m_bSubscribingNow Then
+    
         m_Aux.RealTime = False
         m_Aux.RealTimeConnected = False
         m_bSubscribingNow = False
@@ -4046,10 +4015,17 @@ Private Sub imgStop_Click()
         AdjustState
         
     ElseIf m_bInProc Then
+    
         m_bInProc = False
         AdjustState
         
     End If
+End Sub
+
+
+Private Sub imgStop_Click()
+    On Error Resume Next
+    StopAllActivities
 End Sub
 
 Private Sub SaveProfilesInfo()
@@ -4313,7 +4289,8 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     m_AuxOut.ProfilesUpdate
                 
                 Case QDC_DIV
-'                    If m_Aux.Grp.ContractType = enCtStock Then
+                    If m_Aux.Grp.ContractType = enCtStock Or m_Aux.Grp.ContractType = enCtIndex Then
+                    
                         lValue = CLng(sValue)
                         enDivType = m_Aux.Grp.Und.Dividend.DivType
                         Set aDiv = m_Aux.Grp.Und.Dividend
@@ -4344,23 +4321,24 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             If m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream Then
                                 LoadCustomDivs
                             End If
-                            
-                            If m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket Then
-                                ' TODO: check
-                                Set m_Aux.Grp.Und.Dividend.CustomDivs = m_Aux.Grp.Und.BasketIndex.BasketDivs
-                            End If
-                            
-                            If m_Aux.Grp.Und.Dividend.DivType = enDivIndexYield Then
-                                m_Aux.Grp.Und.Dividend.DivAmt = m_Aux.Grp.Und.Yield
-                            End If
-                            
+                           
                             SaveDividendsInfo
+                            
+                            Dim Data As MSGSTRUCTLib.UnderlyingUpdate
+                            Set Data = New MSGSTRUCTLib.UnderlyingUpdate
+                                            
+                            Data.UpdStatus = enUndAggregationUpdate
+                            Data.UndID = m_Aux.Grp.Und.ID
+                            Data.DivType = lValue
+                                            
+                            g_TradeChannel.PubUnderlyingUpdate Data
+                            
                             bNeedRecalc = True
                             bForceRecalc = True
                         End If
                         
                         
-'                    End If
+                    End If
                     m_AuxOut.DivsUpdate
                     mnuCtxCustomDividend.Enabled = m_Aux.Grp.ID <> 0
                     
@@ -5035,16 +5013,14 @@ Private Sub ShowPopup()
 '    mnuCtxOrderNewOption.Enabled = Not m_bInProc And g_Params.EnableOrders
     mnuCtxTntCardNew.Enabled = Not m_bInProc
     bEnableCustomDivs = False
-    
-    ' TODO:
-    If Not m_Aux.Grp.Und.Dividend Is Nothing Then
-        mnuCtxCustomDividend.Enabled = IIf(m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream Or enDivStockBasket, True, False)
-    ElseIf m_Aux.Grp.Und.UndType = enCtIndex And Not m_Aux.Grp.Und.BasketIndex Is Nothing Then
-        mnuCtxCustomDividend.Enabled = True
-    Else
-        mnuCtxCustomDividend.Enabled = False
-    End If
  
+    If (Not m_Aux.Grp.Und.Dividend Is Nothing) Then
+        If (m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream Or m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket) Then
+            mnuCtxCustomDividend.Enabled = True
+        Else
+            mnuCtxCustomDividend.Enabled = False
+        End If
+    End If
     
     
     mnuCtxVolaFitToImpCur.Caption = "This Expiry" & vbTab & "Ctrl+Shift+I"
@@ -8270,7 +8246,6 @@ Private Sub tmrShow_Timer()
     If Not g_PerformanceLog Is Nothing Then _
         nOperation = g_PerformanceLog.BeginLogMmOperation
     
-    'Screen.MousePointer = vbArrow
    
     If m_Aux.Grp.ID <> 0 And Not PriceProvider Is Nothing Then
         m_Aux.Grp.Und.StopCalc
@@ -8296,7 +8271,6 @@ Private Sub tmrShow_Timer()
             If Not g_PerformanceLog Is Nothing Then _
                 g_PerformanceLog.LogMmInfo enLogEnhDebug, "FAIL: Can't stop calculations.", m_frmOwner.GetCaption
         End If
-        '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
         If m_Aux.RealTime Or m_bSubscribingNow Then
             m_bSubscribingNow = False
@@ -8383,7 +8357,6 @@ Private Sub tmrShow_Timer()
             
             AdjustCaption
         End If
-        'm_nNewGrpID = 0
         m_bInitializing = False
     End If
 
@@ -10056,6 +10029,35 @@ Exception:
     Debug.Print "Error while try to update Asset configuration"
 End Sub
 
+Private Sub TradeChannel_DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
+    On Error GoTo Exception
+        If (m_bShutDown) Then Exit Sub
+        Dim bChange As Boolean
+        Dim aUnd As EtsMmQuotesLib.MmQvUndAtom
+    
+        bChange = False
+        
+        If (aUndData.UpdStatus And enUndDividendUpdate) Then
+            Set aUnd = m_Aux.Grp.Und
+            If (Not aUnd Is Nothing) Then
+            
+                'chech for modifications
+                If (aUnd.ID = aUndData.UndID) Then
+                    bChange = True
+                End If
+                
+                'recalculate all data
+                If bChange Then
+                    If m_Aux.RealTime = False Then Recalculate True, , True
+                End If
+                
+            End If
+        End If
+    Exit Sub
+Exception:
+    Debug.Print "Error while try to update Dividend Type"
+End Sub
+
 Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
@@ -10411,10 +10413,13 @@ End Sub
 
 Public Sub Term()
     On Error Resume Next
-    m_bShutDown = True
+
+    StopAllActivities
     
+    m_bShutDown = True
 
     If gCmn Is Nothing Then Exit Sub
+    
     m_AuxOut.Term
     Unload frmSpread
     
@@ -12022,6 +12027,7 @@ Private Sub Recalculate(ByVal bSymbol As Boolean, Optional ManualEdit As Boolean
         m_AuxOut.FuturesUpdate bSymbol, True, True
         m_AuxOut.UnderlyingUpdate bSymbol, True, ManualEdit
         m_AuxOut.UnderlyingUpdateTotals
+        m_AuxOut.DivsUpdate
         UpdateTotals
         m_AuxOut.VolaUpdateValues ManualEdit
     
