@@ -121,7 +121,7 @@ HRESULT	CEtsMmQuotesView::LoadHeadComponent(long	lGroupID)
 		 //load head component
 		 if ( m_pGrp && m_pGrp->m_pUnd )
 		 {
-			 if ( m_pGrp->m_pUnd->m_bPriceByHead )
+			 if ( /*m_pGrp->m_pUnd->m_bPriceByHead*/ true )
 			 {
 				 IEtsContractCollPtr spContractAll = m_spEtsMain->ContractAll;
 				 IEtsContractAtomPtr spContract = spContractAll->Item[lGroupID];

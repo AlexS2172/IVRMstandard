@@ -119,7 +119,8 @@ END_COM_MAP()
 
 	CComPtr<IUnknown> m_pUnkMarshaler;
 public:
-	void CalcTotals();
+	void	CalcTotals();
+	double	GetCoeff();
 private:
 	void CalcSynthetictotals(CMmRvPosAtom* pPos);
 	void ClearSyntheticsValues();

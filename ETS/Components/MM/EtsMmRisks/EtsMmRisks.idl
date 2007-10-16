@@ -899,6 +899,7 @@ library EtsMmRisksLib
 		[id(91), helpstring("method GetFormatedXMLForDBUpdate")]		HRESULT GetFormatedXMLForDBUpdate([in] LONG vUndID, [out,retval]BSTR*pVal);
 		
 		ETSGENERAL_PROP_DEF(92,	VARIANT_BOOL,	IsUseManualActivePrice)
+		ETSGENERAL_PROPPUTREF_DEF(93,	IMmRvUndAtom*,					Und)
 	};
 	//
 	//[

@@ -15,7 +15,7 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 		HRESULT hr = S_OK;
 
 		__MmRvExpTotalAtom::ClearValues();
-
+		double	dCoeff = 1.0;
 
 		CMmRvExpColl::CollType::iterator itrExp    = m_pExpiry->m_coll.begin();
 		CMmRvExpColl::CollType::iterator itrExpEnd = m_pExpiry->m_coll.end();
@@ -26,10 +26,11 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 			{
 				// DeltaInShares total
 				pExp->CalcTotals();
+				dCoeff = pExp->GetCoeff();
 				if(pExp->m_dDeltaInShares > BAD_DOUBLE_VALUE)
 				{
 					if(m_dDeltaInShares <= BAD_DOUBLE_VALUE) m_dDeltaInShares = 0.;
-					m_dDeltaInShares += pExp->m_dDeltaInShares;
+					m_dDeltaInShares += pExp->m_dDeltaInShares * dCoeff;
 				}
 
 				if(VARIANT_FALSE == m_bBadDeltaInShares)
@@ -52,7 +53,7 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 				if(pExp->m_dGammaInShares > BAD_DOUBLE_VALUE)
 				{
 					if(m_dGammaInShares <= BAD_DOUBLE_VALUE) m_dGammaInShares = 0.;
-					m_dGammaInShares += pExp->m_dGammaInShares ;
+					m_dGammaInShares += pExp->m_dGammaInShares * dCoeff * dCoeff;
 				}
 
 				if(VARIANT_FALSE == m_bBadGammaInShares)
@@ -104,6 +105,13 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 						CMmRvPosAtom* pPos = dynamic_cast<CMmRvPosAtom*>(itrPos->second);
 						if(pPos && pPos->m_bIsSynthetic && pPos->m_spSynthGreeks!=NULL)
 						{
+							dCoeff = 1.0;
+							IMmRvUndAtomPtr	spHeadComponent;
+							if (pPos->m_spUnd){
+								_CHK(pPos->m_spUnd->get_HeadComponent(&spHeadComponent), _T("Fail to get HeadComponent."));
+								if (spHeadComponent)
+									_CHK(pPos->m_spUnd->get_Coeff(&dCoeff), _T("Fail to get Asset Groupt Coefficient"));
+							}
 							CMmRvSynthGreeksColl* pSynthColl = dynamic_cast<CMmRvSynthGreeksColl*>(pPos->m_spSynthGreeks.GetInterfacePtr());
 							ATLASSERT(pSynthColl!=NULL);
 
@@ -121,7 +129,7 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 										if(pSynthAtom->m_dDeltaInShares > BAD_DOUBLE_VALUE)
 										{
 											if(m_dDeltaInShares <= BAD_DOUBLE_VALUE) m_dDeltaInShares = 0.;
-											m_dDeltaInShares += pSynthAtom->m_dDeltaInShares;
+											m_dDeltaInShares += pSynthAtom->m_dDeltaInShares * dCoeff;
 										}
 
 										if(VARIANT_FALSE == m_bBadDeltaInShares)
@@ -141,7 +149,7 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 										if(pSynthAtom->m_dGammaInShares > BAD_DOUBLE_VALUE)
 										{
 											if(m_dGammaInShares <= BAD_DOUBLE_VALUE) m_dGammaInShares = 0.;
-											m_dGammaInShares += pSynthAtom->m_dGammaInShares;
+											m_dGammaInShares += pSynthAtom->m_dGammaInShares * dCoeff * dCoeff;
 										}
 
 										if(VARIANT_FALSE == m_bBadGammaInShares)

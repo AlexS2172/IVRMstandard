@@ -915,17 +915,14 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
                     End If
                     Set aCustDiv = Nothing
     
-                                                    Else
-                    If aDiv.DivType = enDivCustomPeriodical Then
+                ElseIf aDiv.DivType = enDivCustomPeriodical Then
                         dDate = aDiv.DivDateCust
                         dAmount = aDiv.DivAmtCust
                         dFreq = aDiv.DivFreqCust
-                                                            Else
+                ElseIf aDiv.DivType = enDivMarket Then
                         dDate = aDiv.DivDate
                         dAmount = aDiv.DivAmt
                         dFreq = aDiv.DivFreq
-                    
-                    End If ' is custom periodical
                 End If ' is custom stream
             End If ' Not aDiv is Nothing
             Set aCustDiv = Nothing
@@ -997,10 +994,10 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
                     
                     Case NLC_YIELD
                     
-                        If (aUnd.UndType = enCtIndex And aUnd.UndTypeName = "Basket") Then
-                        .TextMatrix(nRow, nCol) = "0"
+                        If (aUnd.UndType <> enCtIndex) Then
+                            .TextMatrix(nRow, nCol) = ""
                         Else
-                        .TextMatrix(nRow, nCol) = IIf(aUnd.UndType = enCtIndex, aUnd.Yield, "")
+                            .TextMatrix(nRow, nCol) = IIf(aUnd.UndType = enCtIndex, aUnd.Yield, "")
                         End If
                     
                     Case NLC_SKEW
@@ -1916,37 +1913,22 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             nValue = .ComboData
                             If aDiv.DivType <> nValue Then
                             
-                            If (aDiv.DivType = enDivMarket) And (nValue = 1) Then
-                                If (aDiv.DivAmtCust = 0) Then
-                                    aDiv.DivAmtCust = aDiv.DivAmt
+                                If (aDiv.DivType = enDivMarket) And (nValue = 1) Then
+                                    If (aDiv.DivAmtCust = 0) Then
+                                        aDiv.DivAmtCust = aDiv.DivAmt
+                                    End If
+                                    
+                                    If (aDiv.DivDateCust = 0) Or (aDiv.DivDateCust = CLng(Now)) Then
+                                        aDiv.DivDateCust = aDiv.DivDate
+                                    End If
+                                    
+                                    If (aDiv.DivFreqCust = 0) Then
+                                        aDiv.DivFreqCust = aDiv.DivFreq
+                                    End If
                                 End If
-                                
-                                If (aDiv.DivDateCust = 0) Or (aDiv.DivDateCust = CLng(Now)) Then
-                                    aDiv.DivDateCust = aDiv.DivDate
-                                End If
-                                
-                                If (aDiv.DivFreqCust = 0) Then
-                                    aDiv.DivFreqCust = aDiv.DivFreq
-                                End If
-                            End If
-                                
-                                
-'                                If m_Aux.Grp.Und.Dividend.DivType = enDivCustomStream Then
-'                                    LoadCustomDivs
-'                                End If
-'
-'                                If m_Aux.Grp.Und.Dividend.DivType = enDivStockBasket Then
-'                                    ' TODO: check
-'                                    Set m_Aux.Grp.Und.Dividend.CustomDivs = m_Aux.Grp.Und.BasketIndex.BasketDivs
-'                                End If
-                                
                                 
                                 aDiv.DivType = nValue
-                                
-                                If aUnd.Dividend.DivType = enDivIndexYield Then
-                                    aUnd.Dividend.DivAmt = aUnd.Yield
-                                End If
-                                
+                                    
                             End If
                         End If
                         

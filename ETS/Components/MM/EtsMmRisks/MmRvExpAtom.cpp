@@ -6,6 +6,34 @@
 
 
 // CMmRvExpAtom
+double CMmRvExpAtom::GetCoeff()
+{
+	if (m_pPos)
+	{
+		if (!m_pPos->m_coll.empty())
+		{
+			CMmRvPosColl::EnumCollType::iterator itr    = m_pPos->m_coll.begin();
+			if (itr != m_pPos->m_coll.end())
+			{
+				CMmRvPosAtom* pPos = dynamic_cast<CMmRvPosAtom*>(itr->second);
+				if(pPos)
+				{
+					double	dCoeff = 1.0;
+					IMmRvUndAtomPtr spHeadComponent;
+					if (pPos->m_spUnd){
+						_CHK(pPos->m_spUnd->get_HeadComponent(&spHeadComponent), _T("Fail to get HeadComponent."));
+						if (spHeadComponent){
+							_CHK(pPos->m_spUnd->get_Coeff(&dCoeff), _T("Fail to get Asset Group Coefficient."));
+							return dCoeff;
+						}
+					}
+				}
+			}
+		}
+	}
+	return 1.0;
+}
+
 void CMmRvExpAtom::CalcTotals()
 {
 	try

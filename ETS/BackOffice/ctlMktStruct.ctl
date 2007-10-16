@@ -566,7 +566,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   60555265
+         Format          =   20643841
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -678,7 +678,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   60555265
+         Format          =   20643841
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -955,7 +955,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   60555265
+         Format          =   20643841
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -3745,8 +3745,8 @@ Private Function ContractLoad() As Boolean
             Case GINT_INDEXES
                 SetCBOValue cboPrimExchange, .ExchangeID
                 
-                chkIsActive.Value = IIf(.IsActive <> 0, 1, 0)
                 txtYield.Text = gCmn.FmtDbl(.Yield * 100)
+                chkIsActive.Value = IIf(.IsActive <> 0, 1, 0)
                 
                 btnCustDivs.Visible = True
                 CurDivType = .DivType
@@ -3762,6 +3762,17 @@ Private Function ContractLoad() As Boolean
                     lblYield.Visible = False
                     txtYield.Visible = False
                     chkIsBasket.Visible = False
+                ElseIf (CurDivType = enDivIndexYield) Then
+                
+                    lblYield.Visible = True
+                    txtYield.Visible = True
+                    
+                    chkIsBasket.Visible = True
+                    chkUseManualDivData.Value = 0
+                    
+                    rbUseCustStream.Value = True
+                    btnCustDivs.Enabled = False
+                    
                 Else
                     chkIsBasket.Value = IIf(.IsBasket, 1, 0)
                     chkIsBasket.Visible = True

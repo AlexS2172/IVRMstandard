@@ -3079,9 +3079,39 @@ Private Sub ShiftSpot(ByVal dBeta#, ByVal enUnits As RmUnitTypeEnum, _
             If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
         End If
     Else
-        dUndSpot = dUndSpot + dShift
-        If dUndBid > 0# Then dUndBid = dUndBid + dShift
-        If dUndAsk > 0# Then dUndAsk = dUndAsk + dShift
+        If (Not bCorrelatedShift) Then
+            dUndSpot = dUndSpot + dShift
+            If dUndBid > 0# Then dUndBid = dUndBid + dShift
+            If dUndAsk > 0# Then dUndAsk = dUndAsk + dShift
+        Else
+            Dim enReplaceStatus As EtsReplacePriceStatusEnum
+            Dim bFutPriceReplaced As Boolean
+            Dim dIdxPrice As Double
+            
+            dIdxPrice = 0#
+            'Try to get IdxPrice
+            If (Not m_Idx Is Nothing) Then
+                dIdxPrice = m_Idx.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+            End If
+            
+            'Try to compute shifted spot prices
+            If (dIdxPrice > 0#) Then
+                dBetaFactor = 1# + (dShift / dIdxPrice)
+                If dBetaFactor > 0# Then
+                    dShiftDelta = dUndDriverPrice * (Exp(Log(dBetaFactor) * dBeta) - 1#) * dWeight
+                Else
+                    dShiftDelta = 0#
+                End If
+                dUndSpot = dUndSpot + dShiftDelta
+                If dUndBid > 0# Then dUndBid = dUndBid + dShiftDelta
+                If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
+            Else
+                'If not idxPrice use Abs shift
+                dUndSpot = dUndSpot + dShift
+                If dUndBid > 0# Then dUndBid = dUndBid + dShift
+                If dUndAsk > 0# Then dUndAsk = dUndAsk + dShift
+            End If
+        End If
     End If
 End Sub
 
@@ -4113,6 +4143,8 @@ On Error GoTo Exception
 
     Dim enReplaceStatus As EtsReplacePriceStatusEnum
     Dim bFutPriceReplaced As Boolean
+    dGroupCompWeight = 1#
+    
     'Calc base price's of current underlying
     dUndSpotBase = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
     If (aUnd.IsHead) Then
@@ -4151,7 +4183,18 @@ On Error GoTo Exception
                 dDriverPrice = aUnd.HeadComponent.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
             End If
         Else
-            dDriverPrice = dUndSpotBase
+            If (Not aUnd.ActiveFuture Is Nothing) Then
+                dDriverPrice = aUnd.ActiveFuture.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
+            Else
+                dDriverPrice = dUndSpotBase
+            End If
+        End If
+        
+        'Get asset group component weight
+        If (Not aUnd.HeadComponent Is Nothing) Then
+            If (aUnd.PriceByHead) Then
+                dGroupCompWeight = aUnd.Coeff
+            End If
         End If
     Else
         If (Not aUnd.HeadComponent Is Nothing) Then
@@ -4159,11 +4202,11 @@ On Error GoTo Exception
         Else
             dDriverPrice = dUndSpotBase
         End If
-    End If
-    'Get asset group component weight
-    dGroupCompWeight = 1#
-    If (Not aUnd.HeadComponent Is Nothing) Then
-        dGroupCompWeight = aUnd.Coeff
+        
+        'Get asset group component weight
+        If (Not aUnd.HeadComponent Is Nothing) Then
+            dGroupCompWeight = aUnd.Coeff
+        End If
     End If
     'Get Main Betta for calc
     dMainBetta = aUnd.Beta

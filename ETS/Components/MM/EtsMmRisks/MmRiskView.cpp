@@ -671,6 +671,8 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 				pRequestAtom->m_spPos = spPosAtom;
 		}
 
+		if (pPosAtom->m_spUnd == NULL)
+			pPosAtom->m_spUnd = m_pUnd->GetUnderlying(pUndAtom->m_nID);
 
 		switch(pPosAtom->m_enContractType)
 		{
@@ -700,7 +702,6 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 				pPosAtom->m_nUndID        = pUndAtom->m_nID;
 				pPosAtom->m_bstrImportId  = spOpt->ImportID; 
 				pPosAtom->m_dVegaWeight   = m_spEtsMain->ExpCalendar->GetVegaWeight(pPosAtom->m_dtExpiry);
-
 
 				_bstr_t	bsExpiryKey = _bstr_t(static_cast<long>(pPosAtom->m_dtExpiry));
 				_CHK(pUndAtom->m_spVolaSrv->get_OptionVola(pPosAtom->m_dtExpiry, spOpt->Strike, &pPosAtom->m_pQuote->m_dMIV )); 

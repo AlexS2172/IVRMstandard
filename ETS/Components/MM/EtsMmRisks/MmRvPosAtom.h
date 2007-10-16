@@ -119,6 +119,8 @@ struct __MmRvPosAtom
 	double						m_dKEq;
 	VARIANT_BOOL				m_bMultOptDltEq;
 	VARIANT_BOOL				m_bUseManualActivePrice;
+
+	IMmRvUndAtomPtr				m_spUnd;
 	//double						m_dManualActivePrice;
 	__MmRvPosAtom() :
 		m_nID(0L), m_enContractType(enCtNone),
@@ -161,7 +163,8 @@ struct __MmRvPosAtom
 		m_spActiveFuture(NULL),
 		m_dKEq(1.),
 		m_bMultOptDltEq(VARIANT_FALSE),
-		m_bUseManualActivePrice(VARIANT_FALSE)//,
+		m_bUseManualActivePrice(VARIANT_FALSE),
+		m_spUnd(NULL)
 		//m_dManualActivePrice(0)
 	{
 		AggregationsPtr_[0] = AggregationsPtr_[1] = AggregationsPtr_[2] = NULL;
@@ -257,6 +260,8 @@ public:
 
 		m_pQuote  = NULL;
 		m_spQuote = NULL;
+
+		m_spUnd	  =	NULL;
 
 		m_pUnkMarshaler.Release();
 	}
@@ -399,6 +404,7 @@ public:
 
 		IMPLEMENT_OBJECT_PROPERTY(IMmRvFutAtom*, Fut, m_spFut)
 		IMPLEMENT_OBJECT_PROPERTY(IMmRvFutAtom*, ActiveFuture, m_spActiveFuture)
+		IMPLEMENT_OBJECT_PROPERTY(IMmRvUndAtom*, Und, m_spUnd)
 		STDMETHODIMP ClearValues()
 	{
 		__MmRvPosAtom::ClearValues();

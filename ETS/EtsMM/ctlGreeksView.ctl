@@ -1085,7 +1085,24 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
             If Err.Number = 0 Then
                 Select Case Col
                 Case GFC_SYMBOL, GFC_GROUPS To GFC_STRATEGY
-                    m_aFilter.Data(Col) = nValue
+                    If (Col = GFC_SYMBOL) Then
+                        If (Not g_UnderlyingAll(nValue) Is Nothing) Then
+                            If (g_UnderlyingAll(nValue).IsHead) Then
+                                m_aFilter.Data(Col) = g_UnderlyingAll(nValue).ID
+                                .TextMatrix(Row, Col) = g_UnderlyingAll(nValue).Symbol
+                            Else
+                                If (Not g_UnderlyingAll(nValue).HeadComponent Is Nothing) Then
+                                    m_aFilter.Data(Col) = g_UnderlyingAll(nValue).HeadComponent.ID
+                                    .TextMatrix(Row, Col) = g_UnderlyingAll(nValue).HeadComponent.Symbol
+                                Else
+                                    m_aFilter.Data(Col) = nValue
+                                End If
+                            End If
+                        End If
+                    Else
+                        m_aFilter.Data(Col) = nValue
+                    End If
+                    
                     .AutoSize 0, .Cols - 1, , 100
                     tmrShow.Enabled = True
                 
@@ -2606,15 +2623,15 @@ Private Sub UnderlyingUpdate(ByVal nUndRow As Long, ByVal bAddRows As Boolean, B
                 End If
 
                 ' Gma$
-                .TextMatrix(nRow, nCol) = IIf(aUnd.NetGamma > BAD_DOUBLE_VALUE, aUnd.NetGamma, STR_NA)
-                .Cell(flexcpForeColor, nRow, nCol) = IIf(aUnd.BadNetGamma, m_gdUnd.Col(GUC_SYM_TOTAL).ForeColorAlt1, _
+                .TextMatrix(nRow, nCol) = IIf(aUnd.GammaEq > BAD_DOUBLE_VALUE, aUnd.GammaEq, STR_NA)
+                .Cell(flexcpForeColor, nRow, nCol) = IIf(aUnd.BadGammaEq, m_gdUnd.Col(GUC_SYM_TOTAL).ForeColorAlt1, _
                                                                         m_gdUnd.Col(GUC_SYM_TOTAL).ForeColor)
                 nRow = nRow + 1
 
                 If aUnd.HasSynthetic And Not aUnd.SynthGreeks Is Nothing Then
                     For Each aSynthGreek In aUnd.SynthGreeks
                         .TextMatrix(nRow, nCol) = IIf(aSynthGreek.NetGamma > BAD_DOUBLE_VALUE, aSynthGreek.NetGamma, STR_NA)
-                        .Cell(flexcpForeColor, nRow, nCol) = IIf(aSynthGreek.BadGamma, m_gdUnd.Col(GUC_SYM_TOTAL).ForeColorAlt1, _
+                        .Cell(flexcpForeColor, nRow, nCol) = IIf(aSynthGreek.BadNetGamma, m_gdUnd.Col(GUC_SYM_TOTAL).ForeColorAlt1, _
                                                                                 m_gdUnd.Col(GUC_SYM_TOTAL).ForeColor)
                         nRow = nRow + 1
                     Next
