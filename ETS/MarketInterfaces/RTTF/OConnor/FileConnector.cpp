@@ -789,7 +789,7 @@ int CFileConnector::ParseTradeLine(CString& strTrade)
     // trade_price
     CHECK_FIELD_EXISTENCE(trade_price, dwLen, lpszTrade)
     sTmp = GET_FIELD_VALUE(trade_price, lpszTrade);
-    if ( (dblTmp = double(_ttol(sTmp))/1000000) < 0. ) 
+	if ( (dblTmp = boost::lexical_cast<double>(sTmp)/1000000) < 0. )
     {
         CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field 'trade_price' is not valid"));
         return 0;

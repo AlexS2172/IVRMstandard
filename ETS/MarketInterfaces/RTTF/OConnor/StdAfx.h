@@ -48,6 +48,7 @@
 #include <set>
 #include <queue>
 #include <fstream>
+#include <Boost/lexical_cast.hpp>
 
 #include "winsock.h"
 
