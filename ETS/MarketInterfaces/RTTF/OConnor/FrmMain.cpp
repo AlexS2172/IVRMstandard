@@ -299,14 +299,18 @@ UINT __stdcall CFrmMain::OConnorProc(LPVOID pData)
 	    }
 	    else
 	    {
-		    dwResult = m_pOConnor->Run();
+			dwResult = m_pOConnor->Stop();
+			pMain->Stop();
+			pMain->PostMessage(WM_CLOSE);
+		    //dwResult = m_pOConnor->Run();
 		    if (dwResult)
 		    {
 			    CTracer::TraceMessage(CTracer::enMtError,NULL, _T("Failed to run application."));
 		    }
 		    else
 		    {
-			    dwResult = m_pOConnor->Stop();
+
+			    //dwResult = m_pOConnor->Stop();
 			    if (dwResult)
 			    {
 				    CTracer::TraceMessage(CTracer::enMtError,NULL, _T("While stopping some errors occured."));

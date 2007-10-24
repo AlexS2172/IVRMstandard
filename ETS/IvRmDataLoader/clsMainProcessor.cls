@@ -151,12 +151,12 @@ Private Function LoadDividentImport(ByVal Buffer As String, ByRef vCount As Long
             GoTo Skip
         End If
     
-        For j = 0 To rsIndexList.RecordCount
-            If mIdxSymArr(j) = UCase(Trim(Items(0))) Then
-                LogMsg "Symbol " & Trim(Items(0)) & " set as Index in ETS! It was Skipped"
-            GoTo Skip
-            End If
-        Next
+'        For j = 0 To rsIndexList.RecordCount
+'            If mIdxSymArr(j) = UCase(Trim(Items(0))) Then
+'                LogMsg "Symbol " & Trim(Items(0)) & " set as Index in ETS! It was Skipped"
+'            GoTo Skip
+'            End If
+'        Next
         
         On Error GoTo ParseError
         

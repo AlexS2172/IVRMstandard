@@ -392,13 +392,14 @@ UINT  __stdcall CFileConnector::Thread(void* pParam)
     //CInternetException  ie(ERROR_INTERNET_INTERNAL_ERROR);
 		DWORD nTicks = 0; 	        
 
-		do 
+		//do 
 		{
 			nTicks = GetTickCount(); 
 			try
 			{
 				if(!pFC->DownloadTradesFile() || !pFC->DownloadPositionsFile() )
-					break;
+					//break;
+					return 0;
 			}
 			catch (_com_error &e)
 			{
@@ -416,7 +417,7 @@ UINT  __stdcall CFileConnector::Thread(void* pParam)
 				nTicks = 0;
 
 		}
-		while (  WaitForSingleObject(GetStopEventHandle(), nTicks) != WAIT_OBJECT_0);
+		//while (  WaitForSingleObject(GetStopEventHandle(), nTicks) != WAIT_OBJECT_0);
 	}
 	catch (_com_error &e)
 	{
@@ -617,6 +618,12 @@ int CFileConnector::ParseTradeLineEzeCastle(CString& strTrade)
 		pTrade->ins_upd_del_flag = NEW_FLAG;
 	}
 
+	if(GetElement(&strTrade, enTfUserDefinedField1, sTmp))
+		pTrade->strategy = sTmp;
+	else{
+		 CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field Strategy not defined. It set to default.") );
+	}
+
 	//Settle Date   [not used]
 	//Custodian		[not used]
 
@@ -789,7 +796,7 @@ int CFileConnector::ParseTradeLine(CString& strTrade)
     // trade_price
     CHECK_FIELD_EXISTENCE(trade_price, dwLen, lpszTrade)
     sTmp = GET_FIELD_VALUE(trade_price, lpszTrade);
-	if ( (dblTmp = boost::lexical_cast<double>(sTmp)/1000000) < 0. )
+    if ( (dblTmp = boost::lexical_cast<double>(sTmp)/1000000) < 0. )
     {
         CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field 'trade_price' is not valid"));
         return 0;
@@ -1019,8 +1026,8 @@ BOOL CFileConnector::DownloadTradesFile()
 					}
 				}
 			}
-			if(WaitForSingleObject(GetStopEventHandle(),0)!=WAIT_TIMEOUT)
-				break;
+			//if(WaitForSingleObject(GetStopEventHandle(),0)!=WAIT_TIMEOUT)
+			//break;
 		}
 		m_dwLastTradeLine = dwAllTrades;
 
