@@ -742,6 +742,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ManualPriceUpdate.cpp"
+				>
+			</File>
+			<File
 				RelativePath="MsgStruct.cpp"
 				>
 				<FileConfiguration
@@ -1224,6 +1228,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ManualPriceUpdate.h"
+				>
+			</File>
+			<File
 				RelativePath="MsgPacking.h"
 				>
 			</File>
@@ -1294,6 +1302,10 @@
 			</File>
 			<File
 				RelativePath=".\FlexOption.rgs"
+				>
+			</File>
+			<File
+				RelativePath=".\ManualPriceUpdate.rgs"
 				>
 			</File>
 			<File

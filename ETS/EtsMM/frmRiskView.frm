@@ -987,18 +987,11 @@ End Sub
 
 Private Sub mnuManualPrices_Click()
     Dim frmMPrices As New frmManualPrices
-    Dim i As Integer
-    Dim ctrID() As Long, price() As Double, isManual() As Boolean
-    
+   
     frmMPrices.Show vbModal, Me
     
     If (frmMPrices.ChangedCount > 0) Then
-
-        frmMPrices.GetChanged ctrID, price, isManual
-        
         ctlView.Refresh
-        'ctlView.UpdateManualPrices ctrID, price, isManual
-        
     End If
 End Sub
 

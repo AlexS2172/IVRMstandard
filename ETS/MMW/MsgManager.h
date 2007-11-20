@@ -206,6 +206,7 @@ public:
 	STDMETHOD(PubTradeUpdate)(ITradeUpdate* Data, long* Result);
 	STDMETHOD(PubPriceUpdate)(IPriceUpdate* Data, long* Result);
 	STDMETHOD(PubUnderlyingUpdate)(IUnderlyingUpdate* Data, long* Result);
+	STDMETHOD(PubManualPriceUpdate)(IManualPriceUpdate* Data, long* Result);
 	STDMETHOD(get_IsLogoned)(/*[out, retval]*/ VARIANT_BOOL *pVal);
 
 // ISubManager
@@ -235,6 +236,9 @@ public:
 
 	STDMETHOD(SubFlexOption)();
 	STDMETHOD(UnsubFlexOption)();
+
+	STDMETHOD(SubManualPriceUpdate)();
+	STDMETHOD(UnsubManualPriceUpdate)();
 
 	DECLARE_PUBLISH_METHOD(RequestNewOrder,		Order)
 	DECLARE_PUBLISH_METHOD(AlterOrder,			Order)
@@ -282,6 +286,7 @@ private:
 	static const wstring m_subjMtDynamicMessage;
 	static const wstring m_subjMtActiveFuturesChange;
 	static const wstring m_subjMtFlexOption;
+	static const wstring m_subjMtManualPriceUpdate;
 
 };
 

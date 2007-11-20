@@ -19,6 +19,7 @@ Public Event TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrd
 Public Event PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
 Public Event PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
 Public Event AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
+Public Event ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdate)
 Public Event DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
 
 Private WithEvents MmwMsgManager As MMWLib.MsgManager
@@ -80,6 +81,7 @@ Public Sub InitMessaging()
         aPubManager.RegPublisher enMtTradeUpdate, Nothing
         aPubManager.RegPublisher enMtPriceUpdate, Nothing
         aPubManager.RegPublisher enMtUnderlyingUpdate, Nothing
+        aPubManager.RegPublisher enMtManualPriceUpdate, Nothing
         Set aPubManager = Nothing
     End If
         
@@ -279,6 +281,7 @@ Public Sub Start()
     MmwMsgManager.SubBroadcastMessage
     MmwMsgManager.SubPriceUpdate
     MmwMsgManager.SubUnderlyingUpdate
+    MmwMsgManager.SubManualPriceUpdate
     
     Exit Sub
 EH:
@@ -294,11 +297,13 @@ Private Sub Class_Terminate()
     MmwMsgManager.UnsubBroadcastMessage
     MmwMsgManager.UnsubTradeUpdate
     MmwMsgManager.UnsubPriceUpdate
+    MmwMsgManager.UnsubManualPriceUpdate
     
     Set aPubManager = MmwMsgManager
     aPubManager.UnregPublisher enMtTradeUpdate, Nothing
     aPubManager.UnregPublisher enMtPriceUpdate, Nothing
     aPubManager.UnregPublisher enMtUnderlyingUpdate, Nothing
+    aPubManager.UnregPublisher enMtManualPriceUpdate, Nothing
     Set aPubManager = Nothing
     
     Set MmwMsgManager = Nothing
@@ -385,7 +390,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
     aDst.TraderID = aSrc.Trader.ID
     aDst.SymbolID = aSrc.ContractID
     aDst.Quantity = aSrc.Quantity
-    aDst.Price = aSrc.Price
+    aDst.price = aSrc.price
     aDst.IsBuy = aSrc.IsBuy
     aDst.IsPosition = aSrc.IsPosition
     aDst.OrderID = aSrc.OrderID
@@ -472,7 +477,7 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
         
         aDst.SeqNum = aSrc.SeqNum
         aDst.TradeID = aSrc.TradeID
-        aDst.Price = aSrc.Price
+        aDst.price = aSrc.price
         aDst.Quantity = aSrc.Quantity
         aDst.IsBuy = aSrc.IsBuy
         aDst.IsPosition = aSrc.IsPosition
@@ -672,7 +677,7 @@ Public Function NewTrade(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom) As Bool
     Screen.MousePointer = vbHourglass
 
     With aNewTrdInfo
-        .SeqNum = gDBW.usp_Trade_New(.ContractID, .Quantity, .Price, IIf(.IsBuy, 1, 0), _
+        .SeqNum = gDBW.usp_Trade_New(.ContractID, .Quantity, .price, IIf(.IsBuy, 1, 0), _
                                 .Trader.ID, .strategyID, .BrokerID, .BrokerCommission, .ClearingBrokerID, _
                                 .ClearingBrokerCommission, .TradedIV, .SpotReference, 0, nNewTradeID, _
                                 dtNewTradeDate, .Status, .Mark, .Und.ID, .OptRootID, _
@@ -852,7 +857,7 @@ Public Function UpdateTrade(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOld
      End If
      
     With aNewTrdInfo
-        .SeqNum = gDBW.usp_Trade_Update(aOldTrdInfo.TradeID, .ContractID, .Quantity, .Price, IIf(.IsBuy, 1, 0), _
+        .SeqNum = gDBW.usp_Trade_Update(aOldTrdInfo.TradeID, .ContractID, .Quantity, .price, IIf(.IsBuy, 1, 0), _
                                 .Trader.ID, .strategyID, .BrokerID, .BrokerCommission, .ClearingBrokerID, _
                                 .ClearingBrokerCommission, .TradedIV, .SpotReference, .IsPosition, nNewTradeID, _
                                 dtNewTradeDate, .Status, .Mark, .Und.ID, .OptRootID, _
@@ -963,7 +968,7 @@ Public Function TransferPosition(ByRef aTrdFrom As EtsMmGeneralLib.MmTradeInfoAt
     TransferPosition = False
     Screen.MousePointer = vbHourglass
     
-    If 0 <> gDBW.usp_Trade_PositionTransfer(aTrdFrom.ContractID, aTrdFrom.Quantity, aTrdFrom.Price, aTrdFrom.Status, _
+    If 0 <> gDBW.usp_Trade_PositionTransfer(aTrdFrom.ContractID, aTrdFrom.Quantity, aTrdFrom.price, aTrdFrom.Status, _
                 aTrdFrom.Trader.ID, aTrdFrom.strategyID, aTrdFrom.Mark, IIf(aTrdFrom.IsBuy, 1, 0), _
                 aTrdTo.Trader.ID, aTrdTo.strategyID, aTrdTo.Mark, IIf(aTrdTo.IsBuy, 1, 0), _
                 nSeqNumFrom, nTradeIDFrom, dtTradeDateFrom, _
@@ -1165,7 +1170,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     
     If aTrd.ContractType = enCtOption Then
         aTrd.TradedIV = 0#
-        If aTrd.SpotReference > 0 And aTrd.Price > 0 Then
+        If aTrd.SpotReference > 0 And aTrd.price > 0 Then
             nDivCount = 0
             ReDim dDivDte(0 To 0)
             ReDim dDivAmts(0 To 0)
@@ -1241,7 +1246,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
                 End If
                 
-                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, aTrd.SpotReference, aTrd.Price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
+                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
                                         aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
                 
                 Erase dDivDte
@@ -1284,7 +1289,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
                 End If
                 
-                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, aTrd.SpotReference, aTrd.Price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
+                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
                                         aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
                 
                 Erase dDivDte
@@ -1302,7 +1307,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     
     ElseIf aTrd.ContractType = enCtFutOption Then
         aTrd.TradedIV = 0#
-        If aTrd.SpotReference > 0 And aTrd.Price > 0 Then
+        If aTrd.SpotReference > 0 And aTrd.price > 0 Then
             nDivCount = 0
             ReDim dDivDte(0 To 0)
             ReDim dDivAmts(0 To 0)
@@ -1313,7 +1318,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                 dRate = GetNeutralHTBRate(Date, aTrd.FutOpt.Expiry)
             End If
             
-            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, aTrd.SpotReference, aTrd.Price, aTrd.FutOpt.Strike, aTrd.FutOpt.Expiry - Date, _
+            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, aTrd.SpotReference, aTrd.price, aTrd.FutOpt.Strike, aTrd.FutOpt.Expiry - Date, _
                                     aTrd.FutOpt.OptType, 1, nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
             
             Erase dDivDte
@@ -1328,6 +1333,75 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
             End If
         End If
     End If
+End Sub
+
+Private Sub MmwMsgManager_OnManualPriceUpdate(ByVal Data As MSGSTRUCTLib.IManualPriceUpdate)
+On Error GoTo Exception
+    
+    Dim aUnd As EtsGeneralLib.UndAtom
+    Dim aFut As EtsGeneralLib.EtsFutAtom
+    Dim aFutRoot As EtsGeneralLib.EtsFutRootAtom
+    Dim bFound As Boolean
+    
+
+    If (Data.ContractType = enCtFuture) Then
+    
+        Set aUnd = g_UnderlyingAll(Data.UndID)
+        If (Not aUnd Is Nothing) Then
+        
+            Set aFut = aUnd.ActiveFuture
+            If (Not aFut Is Nothing) Then
+                If (aFut.ID = Data.ContractID) Then
+                    If (Data.Status = enUsAdd Or Data.Status = enUsUpdate) Then
+                        aFut.manualActivePrice = Data.ActivePrice
+                    Else
+                        aFut.manualActivePrice = 0#
+                    End If
+                End If
+                Set aFut = Nothing
+            End If
+                        
+            bFound = False
+            If (Not aUnd.FutRoots Is Nothing) Then
+                For Each aFutRoot In aUnd.FutRoots
+                    For Each aFut In aFutRoot.Futures
+                        If (aFut.ID = Data.ContractID) Then
+                            If (Data.Status = enUsAdd Or Data.Status = enUsUpdate) Then
+                                aFut.manualActivePrice = Data.ActivePrice
+                            Else
+                                aFut.manualActivePrice = 0#
+                            End If
+                            bFound = True
+                            If (bFound) Then Exit For
+                        End If
+                    Next
+                    If (bFound) Then Exit For
+                Next
+                Set aFut = Nothing
+            End If
+            
+        End If
+        Set aUnd = Nothing
+        
+    ElseIf (Data.ContractType = enCtIndex Or Data.ContractType = enCtStock) Then
+    
+        Set aUnd = g_UnderlyingAll(Data.UndID)
+        If (Not aUnd Is Nothing) Then
+            If (Data.Status = enUsAdd Or Data.Status = enUsUpdate) Then
+                aUnd.manualActivePrice = Data.ActivePrice
+            Else
+                aUnd.manualActivePrice = 0#
+            End If
+        End If
+        Set aUnd = Nothing
+        
+    End If
+    
+    RaiseEvent ManualPriceUpdate(Data)
+    
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to update global collection: TradeChannel.cls"
 End Sub
 
 Private Sub MmwMsgManager_OnPriceUpdate(ByVal Data As MSGSTRUCTLib.IPriceUpdate)
@@ -1762,7 +1836,7 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                             
                             aTrd.TradeID = ReadLng(rs!iTradeID)
                             Position = 19
-                            aTrd.Price = ReadDbl(rs!fPrice)
+                            aTrd.price = ReadDbl(rs!fPrice)
                             Position = 20
                             aTrd.Quantity = ReadLng(rs!iQuantity)
                             Position = 21
@@ -2286,7 +2360,7 @@ Public Sub MakeTradesListForExec(ByRef collTrades As clsTradeExecColl, ByVal nUn
                 And (g_CurTraderID = 0 Or g_CurTraderID = aTrd.Trader.ID) Then
                 
                 Set aTrdExec = collTrades.Add(CStr(aTrd.TradeID))
-                aTrdExec.IsExec = (aTrd.Price >= 0)
+                aTrdExec.IsExec = (aTrd.price >= 0)
                 aTrdExec.QtyToExec = IIf(aTrdExec.IsExec, aTrd.Quantity, 0)
                 
                 If aTrd.ContractType = enCtOption Then
@@ -2321,7 +2395,7 @@ Public Sub ProcessCommonTradeExec(ByRef aTrdExec As clsTradeExecAtom, ByVal aPri
         ' fill opposite option trade
         aTrdExec.Trd.CopyTo aNewOptTrdInfo
         aNewOptTrdInfo.Quantity = aTrdExec.QtyToExec
-        aNewOptTrdInfo.Price = aPriceOfTrade
+        aNewOptTrdInfo.price = aPriceOfTrade
         aNewOptTrdInfo.IsBuy = Not aTrdExec.Trd.IsBuy
         aNewOptTrdInfo.TradeDate = Now
         aNewOptTrdInfo.IsPosition = 0
@@ -2345,7 +2419,7 @@ Public Sub ProcessCommonTradeExec(ByRef aTrdExec As clsTradeExecAtom, ByVal aPri
             
             Set aNewUndTrdInfo.FutRoot = aNewOptTrdInfo.FutRoot
         
-            aNewUndTrdInfo.Price = aTrdExec.UndTradePrice
+            aNewUndTrdInfo.price = aTrdExec.UndTradePrice
             
             If aNewOptTrdInfo.ContractType = enCtOption Then
                 aNewUndTrdInfo.Quantity = aNewOptTrdInfo.Quantity * aNewOptTrdInfo.OptRoot.LotSize
@@ -2379,11 +2453,11 @@ Public Sub ProcessCommonTradeExec(ByRef aTrdExec As clsTradeExecAtom, ByVal aPri
         nLastSeqNum = gDBW.usp_Trade_Exec(IIf(bExercise, 1, 0), aNewOptTrdInfo.TradeID, aNewOptTrdInfo.Quantity, _
                                         IIf(aNewOptTrdInfo.IsBuy, 1, 0), aNewOptTrdInfo.Status, _
                                         aNewOptTrdInfo.BrokerCommission, aNewOptTrdInfo.ClearingBrokerCommission, _
-                                        aNewUndTrdInfo.Quantity, aNewUndTrdInfo.Price, _
+                                        aNewUndTrdInfo.Quantity, aNewUndTrdInfo.price, _
                                         IIf(aNewUndTrdInfo.IsBuy, 1, 0), aNewUndTrdInfo.Status, _
                                         aNewUndTrdInfo.BrokerCommission, aNewUndTrdInfo.ClearingBrokerCommission, _
                                         IIf(aNewOptTrdInfo.ContractType = enCtOption, 0, 1), _
-                                        IIf(bisIndex = 1, aPriceOfIndex, aNewOptTrdInfo.Price), _
+                                        IIf(bisIndex = 1, aPriceOfIndex, aNewOptTrdInfo.price), _
                                         bisIndex, _
                                         nNewOptTradeSeqNum, nNewOptTradeID, dtNewOptTradeDate, _
                                         nNewUndTradeSeqNum, nNewUndTradeID, dtNewUndTradeDate)
@@ -2391,7 +2465,7 @@ Public Sub ProcessCommonTradeExec(ByRef aTrdExec As clsTradeExecAtom, ByVal aPri
         If nLastSeqNum <= 0 Then GoTo Ex
         
         If bisIndex = 1 Then
-            aNewOptTrdInfo.Price = aPriceOfIndex
+            aNewOptTrdInfo.price = aPriceOfIndex
         End If
         Set aNewOptTrdInfo.Strategy = aTrdExec.Trd.Strategy
         Set aNewOptTrdInfo.Trader = aTrdExec.Trd.Trader
@@ -2498,7 +2572,7 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
         ' fill opposite option trade
         aTrdExec.Trd.CopyTo aNewOptTrdInfo
         aNewOptTrdInfo.Quantity = aTrdExec.QtyToExec
-        aNewOptTrdInfo.Price = aPriceOfTrade
+        aNewOptTrdInfo.price = aPriceOfTrade
         aNewOptTrdInfo.IsBuy = Not aTrdExec.Trd.IsBuy
         aNewOptTrdInfo.TradeDate = Now
         aNewOptTrdInfo.IsPosition = 0
@@ -2516,11 +2590,11 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
         nLastSeqNum = gDBW.usp_Trade_Exec(1, aNewOptTrdInfo.TradeID, aNewOptTrdInfo.Quantity, _
                                         IIf(aNewOptTrdInfo.IsBuy, 1, 0), aNewOptTrdInfo.Status, _
                                         aNewOptTrdInfo.BrokerCommission, aNewOptTrdInfo.ClearingBrokerCommission, _
-                                        aNewUndTrdInfo.Quantity, aNewUndTrdInfo.Price, _
+                                        aNewUndTrdInfo.Quantity, aNewUndTrdInfo.price, _
                                         IIf(aNewUndTrdInfo.IsBuy, 1, 0), aNewUndTrdInfo.Status, _
                                         aNewUndTrdInfo.BrokerCommission, aNewUndTrdInfo.ClearingBrokerCommission, _
                                         IIf(aNewOptTrdInfo.ContractType = enCtOption, 0, 1), _
-                                        IIf(bisIndex = 1, aPriceOfIndex, aNewOptTrdInfo.Price), _
+                                        IIf(bisIndex = 1, aPriceOfIndex, aNewOptTrdInfo.price), _
                                         bisIndex, _
                                         nNewOptTradeSeqNum, nNewOptTradeID, dtNewOptTradeDate, _
                                         nNewUndTradeSeqNum, nNewUndTradeID, dtNewUndTradeDate)
@@ -2530,7 +2604,7 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
         If nLastSeqNum <= 0 Then GoTo Ex
         
         If aNewOptTrdInfo.Und.UndType = enCtIndex Then
-            aNewOptTrdInfo.Price = aPriceOfIndex
+            aNewOptTrdInfo.price = aPriceOfIndex
         End If
         Set aNewOptTrdInfo.Strategy = aTrdExec.Trd.Strategy
         Set aNewOptTrdInfo.Trader = aTrdExec.Trd.Trader
@@ -2570,7 +2644,7 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
                     dblWeight = 1#
                 End If
                 
-                aUndTrdInfo.Price = aTrdExec.Trd.Opt.Strike * aSyntRootCompAtom.Settlement / dblWeight
+                aUndTrdInfo.price = aTrdExec.Trd.Opt.Strike * aSyntRootCompAtom.Settlement / dblWeight
         
                 aUndTrdInfo.Quantity = aNewOptTrdInfo.Quantity * aNewOptTrdInfo.OptRoot.LotSize * aSyntRootCompAtom.Weight
                 aUndTrdInfo.IsBuy = IIf(aNewOptTrdInfo.Opt.OptType = enOtPut, Not aTrdExec.Trd.IsBuy, aTrdExec.Trd.IsBuy)
@@ -2587,7 +2661,7 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
                 Set aUndTrdInfo.Strategy = aNewOptTrdInfo.Strategy
                 
                 nLastSeqNum = gDBW.usp_Trade_SU_Exec(aNewOptTrdInfo.TradeID, aSyntRootCompAtom.UndID, _
-                                                     aUndTrdInfo.Quantity, aUndTrdInfo.Price, _
+                                                     aUndTrdInfo.Quantity, aUndTrdInfo.price, _
                                                      IIf(aUndTrdInfo.IsBuy, 1, 0), aUndTrdInfo.Status, _
                                                      aUndTrdInfo.BrokerCommission, aUndTrdInfo.ClearingBrokerCommission, _
                                                      nUndTradeSeqNum, nUndTradeID, dtUndTradeDate)
@@ -3203,16 +3277,24 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
                 Set aUnd.Dividend = New EtsGeneralLib.EtsDivAtom
             End If
             
-            'aUnd.Dividend.DivAmt = Data.DivAmt
-            'aUnd.Dividend.DivAmtCust = Data.DivAmtCust
-            'aUnd.Dividend.DivDate = Data.DivDate
-            'aUnd.Dividend.DivDateCust = Data.DivDateCust
-            'aUnd.Dividend.DivFreq = Data.DivFreq
-            'aUnd.Dividend.DivFreqCust = Data.DivFreqCust
-            aUnd.Dividend.DivType = Data.DivType
-            
-            If aUnd.Dividend.DivType = enDivCustomPeriodical Then
+            If (Data.DivType = enDivIndexYield) Then
+                aUnd.Dividend.DivType = Data.DivType
+                aUnd.Yield = Data.Yield
+            ElseIf (Data.DivType = enDivMarket) Then
+                aUnd.Dividend.DivType = Data.DivType
+                aUnd.Dividend.DivAmt = Data.DivAmt
+                aUnd.Dividend.DivDate = Data.DivDate
+                aUnd.Dividend.DivFreq = Data.DivFreq
+            ElseIf (Data.DivType = enDivCustomPeriodical) Then
+                aUnd.Dividend.DivType = Data.DivType
+                aUnd.Dividend.DivAmtCust = Data.DivAmtCust
+                aUnd.Dividend.DivDateCust = Data.DivDateCust
+                aUnd.Dividend.DivFreqCust = Data.DivFreqCust
+            ElseIf (Data.DivType = enDivCustomStream) Then
+                aUnd.Dividend.DivType = Data.DivType
                 LoadCustomDivs aUnd
+            ElseIf (Data.DivType = enDivStockBasket) Then
+                aUnd.Dividend.DivType = Data.DivType
             End If
             
             RaiseEvent DividendTypeUpdate(Data)
@@ -3234,6 +3316,17 @@ Public Sub PubUnderlyingUpdate(ByRef Data As MSGSTRUCTLib.IUnderlyingUpdate)
     
     Set aPubManager = MmwMsgManager
     aPubManager.PubUnderlyingUpdate Data
+    
+    Set aPubManager = Nothing
+    
+End Sub
+
+Public Sub PubManualPriceUpdate(ByRef Data As MSGSTRUCTLib.IManualPriceUpdate)
+    On Error Resume Next
+    Dim aPubManager As MMWLib.IPubManager
+    
+    Set aPubManager = MmwMsgManager
+    aPubManager.PubManualPriceUpdate Data
     
     Set aPubManager = Nothing
     

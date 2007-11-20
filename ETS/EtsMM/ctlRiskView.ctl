@@ -19,7 +19,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61734913
+      Format          =   61800449
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -451,6 +451,7 @@ Option Explicit
 Public Event OnSetCaption()
 Public Event OnStateChange()
 Public Event OnSetRefreshHint(ByVal bSet As Boolean, ByRef strHint$)
+'Public Event OnManualPriceChanged(ByVal nUndID As Long, ByVal nContractID As Long, ByVal dPrice As Double, ByVal enStatus As Long)
 
 Private m_gdFlt As clsGridDef
 Private m_gdTot As clsGridDef
@@ -1971,7 +1972,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             If Not aPos Is Nothing Then
                                     If Not g_PerformanceLog Is Nothing Then _
                                                 g_PerformanceLog.LogMmInfo enLogUserAction, "Position ActivePrice Changed " _
-                                                                                            & "OldValue=""" & aPos.Quote.Price.Active & """ " _
+                                                                                            & "OldValue=""" & aPos.Quote.price.Active & """ " _
                                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                                     
                                         nUndRow = .GetNodeRow(Row, flexNTParent)
@@ -1981,17 +1982,19 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         Select Case aPos.ContractType
                                             Case enCtOption, enCtFutOption
                                                 If dValue > 0 Then
-                                                    aPos.Quote.Price.Active = dValue
+                                                    aPos.Quote.price.Active = dValue
+                                                    PubManualPrice dValue, aPos.ID, aPos.UndID, aPos.ContractType, enUsAdd
                                                 End If
                                                 bCalcPos = True
                                                 
                                             Case enCtFuture
                                                 If dValue > 0 Then
-                                                    aPos.Fut.Price.Active = dValue
+                                                    aPos.Fut.price.Active = dValue
                                                     If (Not g_ContractAll(aPos.Fut.ID) Is Nothing) Then
                                                         If (Not g_ContractAll(aPos.Fut.ID).Fut Is Nothing) Then
                                                             g_ContractAll(aPos.Fut.ID).Fut.manualActivePrice = dValue
                                                             gDBW.usp_MmManualPrice_Save aFut.ID, dValue
+                                                            PubManualPrice dValue, aPos.Fut.ID, aPos.Fut.UndID, enCtFuture, enUsAdd
                                                         End If
                                                     End If
                                                                                                         
@@ -2005,13 +2008,14 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                 
                                             Case Else
                                                 If dValue > 0 Then
-                                                    aUnd.Price.Active = dValue
-                                                    aUnd.Price.IsUseManualActive = True
+                                                    aUnd.price.Active = dValue
+                                                    aUnd.price.IsUseManualActive = True
                                                     
                                                     If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
                                                         If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
                                                             g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
                                                             gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
+                                                            PubManualPrice dValue, aUnd.ID, aUnd.ID, aUnd.ContractType, enUsAdd
                                                         End If
                                                     End If
                                                     
@@ -2019,20 +2023,19 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                         aPos.Quote.IsDirty = True
                                                     End If
                                                     
-                                                    aUnd.VolaSrv.UnderlyingPrice = dValue 'aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
                                                 End If
                                                 
                                                 bCalcUnd = True
                                                 
-                                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Active = aUndData.Price.Active
+                                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Active = aUndData.price.Active
                                         End Select
                                                                                                                       
-                                        gDBW.usp_MmManualPrice_Save aRowData.Pos.ID, aPos.Quote.Price.Active
+                                        gDBW.usp_MmManualPrice_Save aRowData.Pos.ID, aPos.Quote.price.Active
                                               
                             ElseIf aSynthGreeks Is Nothing Then
                                 If Not g_PerformanceLog Is Nothing Then _
                                                 g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying ActivePrice Changed " _
-                                                                                            & "OldValue=""" & aUndData.Price.Active & """ " _
+                                                                                            & "OldValue=""" & aUndData.price.Active & """ " _
                                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                                                                                             
                                     If (Not aFut Is Nothing) Or (Not aUnd Is Nothing) Then
@@ -2043,7 +2046,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                     If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
                                                         g_ContractAll(aFut.ID).Fut.manualActivePrice = dValue
                                                         gDBW.usp_MmManualPrice_Save aFut.ID, dValue
-                                                        aFut.Price.IsDirty = True
+                                                        aFut.price.IsDirty = True
+                                                        PubManualPrice dValue, aFut.ID, aFut.UndID, enCtFuture, enUsAdd
                                                     End If
                                                  End If
                                              End If
@@ -2053,13 +2057,12 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                     If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
                                                         g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
                                                         gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
-                                                        aUnd.VolaSrv.UnderlyingPrice = dValue  'aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
-                                                        aUnd.Price.IsDirty = True
-                                                        
+                                                        aUnd.price.IsDirty = True
+                                                        PubManualPrice dValue, aUnd.ID, aUnd.ID, aUnd.ContractType, enUsAdd
                                                         If (Not m_Aux.Und(aUnd.ID) Is Nothing) Then
-                                                            m_Aux.Und(aUnd.ID).Price.Active = dValue
-                                                            m_Aux.Und(aUnd.ID).Price.IsDirty = True
-                                                            m_Aux.Und(aUnd.ID).Price.IsUseManualActive = True
+                                                            m_Aux.Und(aUnd.ID).price.Active = dValue
+                                                            m_Aux.Und(aUnd.ID).price.IsDirty = True
+                                                            m_Aux.Und(aUnd.ID).price.IsUseManualActive = True
                                                         End If
                                                     End If
                                                  End If
@@ -2070,20 +2073,20 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                          nUndRow = Row
                                          
                                          Set aPos = aUnd.Pos(aUnd.ID)
-                                         If Not aPos Is Nothing Then aPos.Quote.Price.Active = aUndData.Price.Active
-                                         If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Active = aUndData.Price.Active
+                                         If Not aPos Is Nothing Then aPos.Quote.price.Active = aUndData.price.Active
+                                         If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Active = aUndData.price.Active
                                     End If
                             Else
                                 Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
                                 If dValue > 0 Then
-                                    aUnd.Price.Active = dValue
-                                    aUnd.Price.IsDirty = True
+                                    aUnd.price.Active = dValue
+                                    aUnd.price.IsDirty = True
                                     If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
                                         If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
                                                 g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
                                                 gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
-                                                aUnd.VolaSrv.UnderlyingPrice = dValue  'aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
-                                                aUnd.Price.IsDirty = True
+                                                aUnd.price.IsDirty = True
+                                                PubManualPrice dValue, aUnd.ID, aUnd.ID, aUnd.ContractType, enUsAdd
                                         End If
                                     End If
                                 End If
@@ -2095,8 +2098,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 End If
                                     
                                 Set aPos = aUnd.Pos(aUnd.ID)
-                                If Not aPos Is Nothing Then aPos.Quote.Price.Active = aUndData.Price.Active
-                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Active = aUndData.Price.Active
+                                If Not aPos Is Nothing Then aPos.Quote.price.Active = aUndData.price.Active
+                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Active = aUndData.price.Active
 
                             End If
 
@@ -2106,12 +2109,12 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             'If aPos.Quote.Price.Bid <> dValue Then
                                 If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceBid Changed " _
-                                                                                        & "OldValue=""" & aPos.Quote.Price.Bid & """ " _
+                                                                                        & "OldValue=""" & aPos.Quote.price.Bid & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                                 If dValue > 0 Then
-                                    aPos.Quote.Price.Bid = dValue
+                                    aPos.Quote.price.Bid = dValue
                                 Else
-                                    dValue = aPos.Quote.Price.Bid
+                                    dValue = aPos.Quote.price.Bid
                                 End If
                                 nUndRow = .GetNodeRow(Row, flexNTParent)
                                 
@@ -2123,19 +2126,19 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 
                                     Case enCtFuture
                                         If dValue > 0 Then
-                                            aPos.Fut.Price.Bid = dValue
+                                            aPos.Fut.price.Bid = dValue
                                         Else
-                                            dValue = aPos.Fut.Price.Bid
+                                            dValue = aPos.Fut.price.Bid
                                         End If
                                         
                                         bCalcUnd = True
                                         
                                     Case Else
-                                        aUndData.Price.Bid = aPos.Quote.Price.Bid
-                                        aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                        aUndData.price.Bid = aPos.Quote.price.Bid
+                                        aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                         bCalcUnd = True
                                                                               
-                                        If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Bid = aUndData.Price.Bid
+                                        If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
                                         
                                 End Select
                             'Else
@@ -2148,33 +2151,33 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             'If aUndData.Price.Bid <> dValue Then
                                  If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Changed " _
-                                                                                        & "OldValue=""" & aUndData.Price.Bid & """ " _
+                                                                                        & "OldValue=""" & aUndData.price.Bid & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                                 If Not aFut Is Nothing Then
                                     If dValue > 0 Then
-                                        aFut.Price.Bid = dValue
+                                        aFut.price.Bid = dValue
                                     Else
-                                        dValue = aFut.Price.Bid
+                                        dValue = aFut.price.Bid
                                     End If
                                 Else
                                     If dValue > 0 Then
-                                        aUndData.Price.Bid = dValue
+                                        aUndData.price.Bid = dValue
                                     Else
-                                        dValue = aUndData.Price.Bid
+                                        dValue = aUndData.price.Bid
                                     End If
                                 End If
                            
-                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                 bCalcUnd = True
                                 nUndRow = Row
                                 
                                 If (Not m_Aux.Und(aUnd.ID) Is Nothing) Then
-                                    m_Aux.Und(aUnd.ID).Price.Bid = dValue
+                                    m_Aux.Und(aUnd.ID).price.Bid = dValue
                                 End If
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
-                                If Not aPos Is Nothing Then aPos.Quote.Price.Bid = aUndData.Price.Bid
-                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Bid = aUndData.Price.Bid
+                                If Not aPos Is Nothing Then aPos.Quote.price.Bid = aUndData.price.Bid
+                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
                             'Else
                             '  If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
@@ -2185,15 +2188,15 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             'If aUndData.Price.Bid <> dValue Then
                             If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Changed " _
-                                                                                        & "OldValue=""" & aUndData.Price.Bid & """ " _
+                                                                                        & "OldValue=""" & aUndData.price.Bid & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                            
                                 If dValue > 0 Then
-                                    aUndData.Price.Bid = dValue
+                                    aUndData.price.Bid = dValue
                                 Else
-                                    dValue = aUndData.Price.Bid
+                                    dValue = aUndData.price.Bid
                                 End If
-                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                 bCalcSynthUnd = True
                                 
                                 If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
@@ -2202,8 +2205,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 End If
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
-                                If Not aPos Is Nothing Then aPos.Quote.Price.Bid = aUndData.Price.Bid
-                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Bid = aUndData.Price.Bid
+                                If Not aPos Is Nothing Then aPos.Quote.price.Bid = aUndData.price.Bid
+                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
                             'Else
                             '  If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
@@ -2218,13 +2221,13 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             'If aPos.Quote.Price.Ask <> dValue Then
                                 If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceAsk Changed " _
-                                                                                        & "OldValue=""" & aPos.Quote.Price.Ask & """ " _
+                                                                                        & "OldValue=""" & aPos.Quote.price.Ask & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                               
                                 If dValue > 0 Then
-                                    aPos.Quote.Price.Ask = dValue
+                                    aPos.Quote.price.Ask = dValue
                                 Else
-                                    dValue = aPos.Quote.Price.Ask
+                                    dValue = aPos.Quote.price.Ask
                                 End If
                                 nUndRow = .GetNodeRow(Row, flexNTParent)
                                 
@@ -2236,18 +2239,18 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 
                                     Case enCtFuture
                                         If dValue > 0 Then
-                                            aPos.Fut.Price.Ask = dValue
+                                            aPos.Fut.price.Ask = dValue
                                         Else
-                                            dValue = aPos.Fut.Price.Ask
+                                            dValue = aPos.Fut.price.Ask
                                         End If
                                         bCalcUnd = True
                                         
                                     Case Else
-                                        aUndData.Price.Ask = aPos.Quote.Price.Ask
-                                        aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                        aUndData.price.Ask = aPos.Quote.price.Ask
+                                        aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                         bCalcUnd = True
                                         
-                                        If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Ask = aUndData.Price.Ask
+                                        If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Ask = aUndData.price.Ask
                                         
                                 End Select
                             'Else
@@ -2261,35 +2264,35 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             'If aUndData.Price.Ask <> dValue Then
                             If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceAsk Changed " _
-                                                                                        & "OldValue=""" & aUndData.Price.Ask & """ " _
+                                                                                        & "OldValue=""" & aUndData.price.Ask & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                               
                                 If Not aFut Is Nothing Then
                                     If dValue > 0 Then
-                                        aFut.Price.Ask = dValue
+                                        aFut.price.Ask = dValue
                                     Else
-                                        dValue = aFut.Price.Ask
+                                        dValue = aFut.price.Ask
                                     End If
                                 Else
                                     If dValue > 0 Then
-                                        aUndData.Price.Ask = dValue
+                                        aUndData.price.Ask = dValue
                                     Else
-                                        dValue = aUndData.Price.Ask
+                                        dValue = aUndData.price.Ask
                                     End If
                                 End If
                                 
-                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                 bCalcUnd = True
                                 nUndRow = Row
                                 
                                                                         
                                 If (Not m_Aux.Und(aUnd.ID) Is Nothing) Then
-                                    m_Aux.Und(aUnd.ID).Price.Ask = dValue
+                                    m_Aux.Und(aUnd.ID).price.Ask = dValue
                                 End If
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
-                                If Not aPos Is Nothing Then aPos.Quote.Price.Ask = aUndData.Price.Ask
-                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Ask = aUndData.Price.Ask
+                                If Not aPos Is Nothing Then aPos.Quote.price.Ask = aUndData.price.Ask
+                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Ask = aUndData.price.Ask
                             'Else
                               'If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceAsk Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
@@ -2299,11 +2302,11 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
                             'If aUndData.Price.Ask <> dValue Then
                                 If dValue > 0 Then
-                                    aUndData.Price.Ask = dValue
+                                    aUndData.price.Ask = dValue
                                 Else
-                                    dValue = aUndData.Price.Ask
+                                    dValue = aUndData.price.Ask
                                 End If
-                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, aUndData.Price.Ask, aUndData.Price.Last, dToleranceValue, enRoundingRule)
+                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                 bCalcSynthUnd = True
                                 
                                 If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
@@ -2312,8 +2315,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 End If
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
-                                If Not aPos Is Nothing Then aPos.Quote.Price.Ask = aUndData.Price.Ask
-                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.Price.Ask = aUndData.Price.Ask
+                                If Not aPos Is Nothing Then aPos.Quote.price.Ask = aUndData.price.Ask
+                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Ask = aUndData.price.Ask
                             'Else
                               'If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceAsk Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
@@ -2329,7 +2332,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         If Not aPos Is Nothing Then
                             If Not g_PerformanceLog Is Nothing Then _
                                         g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceTheoClose Changed " _
-                                                                                    & "OldValue=""" & aPos.Quote.Price.TheoClose & """ " _
+                                                                                    & "OldValue=""" & aPos.Quote.price.TheoClose & """ " _
                                                                                     & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             nUndRow = .GetNodeRow(Row, flexNTParent)
                                 
@@ -2342,8 +2345,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     If Not aTradeColl Is Nothing Then
                                         For Each aTrd In aTradeColl
                                             If aTrd.ContractID = aPos.ID Then
-                                                If aTrd.Opt.PriceTheoclose <> aPos.Quote.Price.TheoClose Then bChangePos = True
-                                                aTrd.Opt.PriceTheoclose = aPos.Quote.Price.TheoClose
+                                                If aTrd.Opt.PriceTheoclose <> aPos.Quote.price.TheoClose Then bChangePos = True
+                                                aTrd.Opt.PriceTheoclose = aPos.Quote.price.TheoClose
                                             End If
                                             Set aTrd = Nothing
                                         Next
@@ -2354,8 +2357,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     If Not aTradeColl Is Nothing Then
                                         For Each aTrd In aTradeColl
                                             If aTrd.ContractID = aPos.ID Then
-                                                If aTrd.FutOpt.PriceTheoclose <> aPos.Quote.Price.TheoClose Then bChangePos = True
-                                                aTrd.FutOpt.PriceTheoclose = aPos.Quote.Price.TheoClose
+                                                If aTrd.FutOpt.PriceTheoclose <> aPos.Quote.price.TheoClose Then bChangePos = True
+                                                aTrd.FutOpt.PriceTheoclose = aPos.Quote.price.TheoClose
                                             End If
                                             Set aTrd = Nothing
                                         Next
@@ -2363,20 +2366,20 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     bCalcUnd = True
                                 
                                 Case enCtFuture
-                                    aPos.Fut.Price.TheoClose = dValue
+                                    aPos.Fut.price.TheoClose = dValue
                                     For Each aTrd In TradeChannel.TradesByFut(aPos.Fut.ID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Fut.PriceTheoclose = aPos.Fut.Price.TheoClose
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Fut.PriceTheoclose = aPos.Fut.price.TheoClose
                                         Set aTrd = Nothing
                                         bChangePos = True
                                     Next
                                     bCalcUnd = True
                                         
                                 Case Else
-                                    aUnd.Price.TheoClose = aPos.Quote.Price.TheoClose
+                                    aUnd.price.TheoClose = aPos.Quote.price.TheoClose
                                     bChangeUnd = True
                                     bCalcUnd = True
                                         
-                                    If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.TheoClose = aUnd.Price.TheoClose
+                                    If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.TheoClose = aUnd.price.TheoClose
                                     bChangePos = True
                                    
                             End Select
@@ -2384,32 +2387,32 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         ElseIf aSynthGreeks Is Nothing Then
                             If Not g_PerformanceLog Is Nothing Then _
                                 g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Changed " _
-                                                                            & "OldValue=""" & aUnd.Price.TheoClose & """ " _
+                                                                            & "OldValue=""" & aUnd.price.TheoClose & """ " _
                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             
                               If aUnd.ContractType <> enCtFutUnd And aFut Is Nothing Then
-                                aUnd.Price.TheoClose = dValue
+                                aUnd.price.TheoClose = dValue
                                 bChangeUnd = True
                                 bCalcUnd = True
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
                                 If Not aPos Is Nothing Then
-                                    aPos.Quote.Price.TheoClose = aUnd.Price.TheoClose
+                                    aPos.Quote.price.TheoClose = aUnd.price.TheoClose
                                     For Each aTrd In TradeChannel.TradesByUnd(aPos.UndID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceTheoclose = aPos.Quote.Price.TheoClose
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceTheoclose = aPos.Quote.price.TheoClose
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
                                 End If
                                 g_ContractAll(aUnd.ID).Und.PriceTheoclose = dValue
 
-                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.TheoClose = aUnd.Price.TheoClose
+                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.TheoClose = aUnd.price.TheoClose
                               Else
-                                    aFut.Price.TheoClose = dValue
+                                    aFut.price.TheoClose = dValue
                                     bChangeUnd = True
                                     bCalcUnd = True
                                     For Each aTrd In TradeChannel.TradesByFut(aFut.ID)
-                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceTheoclose = aFut.Price.TheoClose
+                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceTheoclose = aFut.price.TheoClose
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
@@ -2456,7 +2459,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         If Not aPos Is Nothing Then
                             If Not g_PerformanceLog Is Nothing Then _
                                         g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceClose Changed " _
-                                                                                    & "OldValue=""" & aPos.Quote.Price.Close & """ " _
+                                                                                    & "OldValue=""" & aPos.Quote.price.Close & """ " _
                                                                                     & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             nUndRow = .GetNodeRow(Row, flexNTParent)
                                 
@@ -2469,8 +2472,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     If Not aTradeColl Is Nothing Then
                                         For Each aTrd In aTradeColl
                                             If aTrd.ContractID = aPos.ID Then
-                                                If aTrd.Opt.PriceClose <> aPos.Quote.Price.Close Then bChangePos = True
-                                                aTrd.Opt.PriceClose = aPos.Quote.Price.Close
+                                                If aTrd.Opt.PriceClose <> aPos.Quote.price.Close Then bChangePos = True
+                                                aTrd.Opt.PriceClose = aPos.Quote.price.Close
                                             End If
                                             Set aTrd = Nothing
                                         Next
@@ -2481,8 +2484,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     If Not aTradeColl Is Nothing Then
                                         For Each aTrd In aTradeColl
                                             If aTrd.ContractID = aPos.ID Then
-                                                If aTrd.FutOpt.PriceClose <> aPos.Quote.Price.Close Then bChangePos = True
-                                                aTrd.FutOpt.PriceClose = aPos.Quote.Price.Close
+                                                If aTrd.FutOpt.PriceClose <> aPos.Quote.price.Close Then bChangePos = True
+                                                aTrd.FutOpt.PriceClose = aPos.Quote.price.Close
                                             End If
                                             Set aTrd = Nothing
                                         Next
@@ -2490,20 +2493,20 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     bCalcUnd = True
                                 
                                 Case enCtFuture
-                                    aPos.Fut.Price.Close = dValue
+                                    aPos.Fut.price.Close = dValue
                                     For Each aTrd In TradeChannel.TradesByFut(aPos.Fut.ID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Fut.PriceClose = aPos.Fut.Price.Close
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Fut.PriceClose = aPos.Fut.price.Close
                                         Set aTrd = Nothing
                                         bChangePos = True
                                     Next
                                     bCalcUnd = True
                                         
                                 Case Else
-                                    aUnd.Price.Close = aPos.Quote.Price.Close
+                                    aUnd.price.Close = aPos.Quote.price.Close
                                     bChangeUnd = True
                                     bCalcUnd = True
                                         
-                                    If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.Close = aUnd.Price.Close
+                                    If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.Close = aUnd.price.Close
                                     bChangePos = True
                                    
                             End Select
@@ -2511,19 +2514,19 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         ElseIf aSynthGreeks Is Nothing Then
                             If Not g_PerformanceLog Is Nothing Then _
                                 g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Changed " _
-                                                                            & "OldValue=""" & aUnd.Price.Close & """ " _
+                                                                            & "OldValue=""" & aUnd.price.Close & """ " _
                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             
                               If aUnd.ContractType <> enCtFutUnd And aFut Is Nothing Then
-                                aUnd.Price.Close = dValue
+                                aUnd.price.Close = dValue
                                 bChangeUnd = True
                                 bCalcUnd = True
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
                                 If Not aPos Is Nothing Then
-                                    aPos.Quote.Price.Close = aUnd.Price.Close
+                                    aPos.Quote.price.Close = aUnd.price.Close
                                     For Each aTrd In TradeChannel.TradesByUnd(aPos.UndID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceClose = aPos.Quote.Price.Close
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceClose = aPos.Quote.price.Close
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
@@ -2531,16 +2534,16 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 g_ContractAll(aUnd.ID).Und.PriceClose = dValue
                                 
                                 If (Not m_Aux.Und(aUnd.ID) Is Nothing) Then
-                                    m_Aux.Und(aUnd.ID).Price.Close = dValue
+                                    m_Aux.Und(aUnd.ID).price.Close = dValue
                                 End If
                                 
-                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.Close = aUnd.Price.Close
+                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.Close = aUnd.price.Close
                               Else
-                                    aFut.Price.Close = dValue
+                                    aFut.price.Close = dValue
                                     bChangeUnd = True
                                     bCalcUnd = True
                                     For Each aTrd In TradeChannel.TradesByFut(aFut.ID)
-                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceClose = aFut.Price.Close
+                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceClose = aFut.price.Close
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
@@ -2551,13 +2554,13 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                               
                         Else
                             Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
-                            If aUnd.Price.Close <> dValue Then
+                            If aUnd.price.Close <> dValue Then
                                 If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Changed " _
-                                                                                        & "OldValue=""" & aUnd.Price.Close & """ " _
+                                                                                        & "OldValue=""" & aUnd.price.Close & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                               
-                                aUnd.Price.Close = dValue
+                                aUnd.price.Close = dValue
                                 bChangeUnd = True
                                 bCalcSynthUnd = True
                                 
@@ -2568,14 +2571,14 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 
                                 Set aPos = aUnd.Pos(aUnd.ID)
                                 If Not aPos Is Nothing Then
-                                    aPos.Quote.Price.Close = aUnd.Price.Close
+                                    aPos.Quote.price.Close = aUnd.price.Close
                                     For Each aTrd In TradeChannel.TradesByUnd(aPos.UndID)
-                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceClose = aPos.Quote.Price.Close
+                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceClose = aPos.Quote.price.Close
                                         Set aTrd = Nothing
                                     Next
                                     bChangePos = True
                                 End If
-                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.Close = aUnd.Price.Close
+                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.Close = aUnd.price.Close
                             Else
                               If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
@@ -2586,8 +2589,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     
                 If bChangeUnd Or bChangePos Then
                     If bChangeUnd Then
-                        g_Underlying(aUnd.ID).PriceClose = aUnd.Price.Close
-                        g_Underlying(aUnd.ID).PriceTheoclose = aUnd.Price.TheoClose
+                        g_Underlying(aUnd.ID).PriceClose = aUnd.price.Close
+                        g_Underlying(aUnd.ID).PriceTheoclose = aUnd.price.TheoClose
                     End If
                     
                     
@@ -2595,7 +2598,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     bPricePub = False
                     If Not aPos Is Nothing Then
                         m_AuxClc.ClearPosQty aPos
-                        If SavePriceClose(aPos.ContractType, aPos.ID, aPos.Quote.Price.Close, aPos.Quote.Price.TheoClose) Then
+                        If SavePriceClose(aPos.ContractType, aPos.ID, aPos.Quote.price.Close, aPos.Quote.price.TheoClose) Then
                             If Not bPricePub Then
                                 If aPos.ContractType = enCtStock Or aPos.ContractType = enCtIndex Then
                                     dwUndID = aPos.ID
@@ -2604,21 +2607,21 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     dwUndID = aPos.UndID
                                     dwPosID = aPos.ID
                                 End If
-                                TradeChannel.PriceCloseForPub aPos.ContractType, dwPosID, dwUndID, aPos.Quote.Price.Close, aPos.Quote.Price.TheoClose
+                                TradeChannel.PriceCloseForPub aPos.ContractType, dwPosID, dwUndID, aPos.Quote.price.Close, aPos.Quote.price.TheoClose
                                 bCalcPos = True
                                 bPricePub = True
                             End If
                         End If
                     Else
                         If Not aFut Is Nothing Then
-                            If SavePriceClose(enCtFuture, aFut.ID, aFut.Price.Close, aFut.Price.TheoClose) Then
-                                TradeChannel.PriceCloseForPub enCtFuture, aFut.ID, aFut.UndID, aFut.Price.Close, aFut.Price.TheoClose
+                            If SavePriceClose(enCtFuture, aFut.ID, aFut.price.Close, aFut.price.TheoClose) Then
+                                TradeChannel.PriceCloseForPub enCtFuture, aFut.ID, aFut.UndID, aFut.price.Close, aFut.price.TheoClose
                                 bPricePub = True
                                 bCalcPos = True
                             End If
                         ElseIf Not aUnd Is Nothing Then
-                            If SavePriceClose(aUnd.ContractType, aUnd.ID, aUnd.Price.Close, aUnd.Price.TheoClose) Then
-                                TradeChannel.PriceCloseForPub aUnd.ContractType, 0, aUnd.ID, aUnd.Price.Close, aUnd.Price.TheoClose
+                            If SavePriceClose(aUnd.ContractType, aUnd.ID, aUnd.price.Close, aUnd.price.TheoClose) Then
+                                TradeChannel.PriceCloseForPub aUnd.ContractType, 0, aUnd.ID, aUnd.price.Close, aUnd.price.TheoClose
                                 bPricePub = True
                                 bCalcPos = True
                             End If
@@ -3166,16 +3169,16 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                 
                 If nQty >= 0 Then
                     bBuy = False
-                    dPrice = aCurUndData.Price.Bid
+                    dPrice = aCurUndData.price.Bid
                     If nQty = 0 Then nQty = 100
                     
                 ElseIf nQty < 0 Then
                     nQty = Abs(nQty)
                     bBuy = True
-                    dPrice = aCurUndData.Price.Ask
+                    dPrice = aCurUndData.price.Ask
                 End If
                 
-                If dPrice <= 0# Then dPrice = aCurUndData.Price.Last
+                If dPrice <= 0# Then dPrice = aCurUndData.price.Last
             Else
                 If Not aCurPos Is Nothing Then
                     If aCurPos.ContractType = enCtOption Then
@@ -3187,8 +3190,8 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                         aOpt.Expiry = aCurPos.Expiry
                         aOpt.Strike = aCurPos.Strike
                     
-                        dPrice = aCurPos.Quote.Price.Ask
-                        If dPrice <= 0# Then dPrice = aCurPos.Quote.Price.Last
+                        dPrice = aCurPos.Quote.price.Ask
+                        If dPrice <= 0# Then dPrice = aCurPos.Quote.price.Last
                     End If
                 End If
             End If
@@ -3475,8 +3478,10 @@ Private Sub mnuCtxUseMaualPrice_Click()
 
     Dim aRowData As EtsMmRisksLib.MmRvRowData
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom, aFut As MmRvFutAtom
-    Dim isManualPrice As Boolean, ID As Long, Price As Double
+    Dim bUseManualPrice As Boolean, nID As Long, dPrice As Double
     
+    Dim updFut As MmRvFutAtom
+    Dim updUnd As MmRvUndAtom
 
     If m_enMenuGrid = GT_RISKS_POSITIONS Then
     
@@ -3485,67 +3490,62 @@ Private Sub mnuCtxUseMaualPrice_Click()
             Set aUnd = aRowData.Und
             Set aPos = aRowData.Pos
             Set aFut = aRowData.Fut
-        
             
-            isManualPrice = Not mnuCtxUseMaualPrice.Checked
+            bUseManualPrice = Not mnuCtxUseMaualPrice.Checked
             
             If Not aPos Is Nothing Then
-                aPos.Quote.Price.IsUseManualActive = isManualPrice
-                ID = aPos.ID
-                Price = aPos.Quote.Price.Active
-                If (Not g_Main.ContractAll(ID) Is Nothing) Then
-                    If (aPos.ContractType = enCtStock Or aPos.ContractType = enCtIndex) Then
-                        If (Not g_Main.ContractAll(ID).Und Is Nothing) Then
-                            g_Main.ContractAll(ID).Und.manualActivePrice = 0
+                If (aPos.ContractType = enCtFuture) Then
+                    If (Not aPos.Und Is Nothing) Then
+                        If (Not aPos.Und.Fut(aPos.ID) Is Nothing) Then
+                            Set updFut = aPos.Und.Fut(aPos.ID)
+                            If (IsFutEditable(updFut)) Then
+                                dPrice = updFut.price.Active
+                                UpdateFutManualPrice updFut, dPrice, IIf(bUseManualPrice, enUsAdd, enUsDelete)
+                            End If
                         End If
-                    ElseIf (aPos.ContractType = enCtFuture) Then
-                        If (Not g_Main.ContractAll(ID).Fut Is Nothing) Then
-                            g_Main.ContractAll(ID).Fut.manualActivePrice = 0
-                        End If
-                    ElseIf (aPos.ContractType = enCtFutUnd) Then
-                        ' Nothing to do
                     End If
+                ElseIf (aPos.ContractType = enCtIndex Or aPos.ContractType = enCtStock) Then
+                    If (Not aPos.Und Is Nothing) Then
+                        If (aPos.ID = aPos.Und.ID) Then
+                            Set updUnd = aPos.Und
+                            If (IsUndEditable(updUnd)) Then
+                                dPrice = updUnd.price.Active
+                                UpdateUndManualPrice updUnd, dPrice, IIf(bUseManualPrice, enUsAdd, enUsDelete)
+                            End If
+                        End If
+                    End If
+                ElseIf (aPos.ContractType = enCtFutOption Or aPos.ContractType = enCtOption) Then
+                    UpdatePosOptManualPrice aPos, aPos.Quote.price.Active, IIf(bUseManualPrice, enUsAdd, enUsDelete)
                 End If
             ElseIf Not aFut Is Nothing Then
-                aFut.Price.IsUseManualActive = isManualPrice
-                ID = aFut.ID
-                Price = aFut.Price.Active
-                If (Not g_Main.ContractAll(ID) Is Nothing) Then
-                    If (Not g_Main.ContractAll(ID).Fut Is Nothing) Then
-                        g_Main.ContractAll(ID).Fut.manualActivePrice = 0
-                    End If
+                If (IsFutEditable(aFut)) Then
+                    dPrice = aFut.price.Active
+                    UpdateFutManualPrice aFut, dPrice, IIf(bUseManualPrice, enUsAdd, enUsDelete)
                 End If
             ElseIf Not aUnd Is Nothing Then
-                aUnd.Price.IsUseManualActive = isManualPrice
-                ID = aUnd.ID
-                Price = aUnd.Price.Active
-                If (Not g_Main.ContractAll(ID) Is Nothing) Then
-                    If (Not g_Main.ContractAll(ID).Und Is Nothing) Then
-                        g_Main.ContractAll(ID).Und.manualActivePrice = 0
-                    End If
+                If (IsUndEditable(aUnd)) Then
+                    dPrice = aUnd.price.Active
+                    UpdateUndManualPrice aUnd, dPrice, IIf(bUseManualPrice, enUsAdd, enUsDelete)
                 End If
             End If
+                       
+            'Recalc And Refresh
+            RefreshRiskView
             
-            If isManualPrice Then
-                gDBW.usp_MmManualPrice_Save ID, Price
-            Else
-                gDBW.usp_MmManualPrice_Del ID
-            End If
-            
-            mnuCtxUseMaualPrice.Checked = False
-            
-            m_AuxClc.UnderlyingsCalc True, True, False, False
-
-            RefreshPositions
-                    
-            m_AuxOut.TotalsUpdate
-            
-            Me.Refresh
+            Set updFut = Nothing
+            Set updUnd = Nothing
                     
         End If
         
     End If
     
+End Sub
+Public Sub RefreshRiskView()
+On Error Resume Next
+    m_AuxClc.UnderlyingsCalc True, True, False, False
+    m_AuxOut.UnderlyingsUpdate False
+    RefreshPositions
+    m_AuxOut.TotalsUpdate
 End Sub
 
 Private Sub mnuCtxWtdVega_Click()
@@ -3762,30 +3762,30 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         
         If Not aReq.IndexOnly Then
             If Not aReq.Pos Is Nothing Then
-                If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
-                If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
-                If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
-                If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.NetChange = dNetChange
+                If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Bid = dPriceBid
+                If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Ask = dPriceAsk
+                If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Last = dPriceLast
+                If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.NetChange = dNetChange
             End If
             
             If Params.Type <> enOPT Then
                 Set aReqUndData = aReq.Und
                 
                 If Params.Type = enSTK Or Params.Type = enIDX Then
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.Price.Last = dPriceLast
-                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.Price.NetChange = dNetChange
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.price.Last = dPriceLast
+                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.price.NetChange = dNetChange
                     
                     Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                    aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.Price.Bid, aReqUndData.Price.Ask, aReqUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                    aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.price.Bid, aReqUndData.price.Ask, aReqUndData.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
                 
                     If m_Aux.Idx.ID = aReq.Und.ID Then
                         Set aReqIdxData = m_Aux.Idx
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
-                        If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.Price.NetChange = dNetChange
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
+                        If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
                     End If
                     
                 ElseIf Params.Type = enFUT Then
@@ -3796,10 +3796,10 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                     End If
                 
                     If Not aFut Is Nothing Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aFut.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aFut.Price.Last = dPriceLast
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aFut.Price.NetChange = dNetChange
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aFut.price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aFut.price.Last = dPriceLast
+                        If dNetChange <> BAD_DOUBLE_VALUE Then aFut.price.NetChange = dNetChange
 
                         Set aFut = Nothing
                     End If
@@ -3810,10 +3810,10 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             If m_Aux.Idx.ID = aReq.Und.ID Then
                 
                 Set aReqIdxData = m_Aux.Idx
-                If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
-                If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
-                If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
-                If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.Price.NetChange = dNetChange
+                If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
+                If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
+                If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
+                If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
                 
             End If
         End If
@@ -4172,21 +4172,21 @@ Private Sub RealTimeQuotesUpdate()
             
             If Not aReq.IndexOnly Then
                 If Not aReq.Pos Is Nothing Then
-                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.NetChange = dNetChange
-                    If dPriceBid > BAD_DOUBLE_VALUE And aReq.Pos.Quote.Price.Bid <> dPriceBid Then
-                        aReq.Pos.Quote.Price.Bid = dPriceBid
+                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.NetChange = dNetChange
+                    If dPriceBid > BAD_DOUBLE_VALUE And aReq.Pos.Quote.price.Bid <> dPriceBid Then
+                        aReq.Pos.Quote.price.Bid = dPriceBid
                         aReq.Pos.CalcGreeks = True
                         aReq.Und.CalcTotals = True
                         bOneOfPricesUpdated = True
                     End If
-                    If dPriceAsk > BAD_DOUBLE_VALUE And aReq.Pos.Quote.Price.Ask <> dPriceAsk Then
-                        aReq.Pos.Quote.Price.Ask = dPriceAsk
+                    If dPriceAsk > BAD_DOUBLE_VALUE And aReq.Pos.Quote.price.Ask <> dPriceAsk Then
+                        aReq.Pos.Quote.price.Ask = dPriceAsk
                         aReq.Pos.CalcGreeks = True
                         aReq.Und.CalcTotals = True
                         bOneOfPricesUpdated = True
                     End If
-                    If dPriceLast > BAD_DOUBLE_VALUE And aReq.Pos.Quote.Price.Last <> dPriceLast Then
-                        aReq.Pos.Quote.Price.Last = dPriceLast
+                    If dPriceLast > BAD_DOUBLE_VALUE And aReq.Pos.Quote.price.Last <> dPriceLast Then
+                        aReq.Pos.Quote.price.Last = dPriceLast
                         aReq.Pos.CalcGreeks = True
                         aReq.Und.CalcTotals = True
                         bOneOfPricesUpdated = True
@@ -4195,22 +4195,22 @@ Private Sub RealTimeQuotesUpdate()
                 
                 If Params.Type <> enOPT Then
                     If Params.Type = enSTK Or Params.Type = enIDX Then
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.Price.NetChange = dNetChange
+                        If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.price.NetChange = dNetChange
                         Set aUndData = aReq.Und
-                        If dPriceBid > BAD_DOUBLE_VALUE And aUndData.Price.Bid <> dPriceBid Then
-                            aUndData.Price.Bid = dPriceBid
+                        If dPriceBid > BAD_DOUBLE_VALUE And aUndData.price.Bid <> dPriceBid Then
+                            aUndData.price.Bid = dPriceBid
                             aReq.Und.CalcGreeks = True
                             aReq.Und.CalcTotals = True
                             bOneOfPricesUpdated = True
                         End If
-                        If dPriceAsk > BAD_DOUBLE_VALUE And aUndData.Price.Ask <> dPriceAsk Then
-                            aUndData.Price.Ask = dPriceAsk
+                        If dPriceAsk > BAD_DOUBLE_VALUE And aUndData.price.Ask <> dPriceAsk Then
+                            aUndData.price.Ask = dPriceAsk
                             aReq.Und.CalcGreeks = True
                             aReq.Und.CalcTotals = True
                             bOneOfPricesUpdated = True
                         End If
-                        If dPriceLast > BAD_DOUBLE_VALUE And aUndData.Price.Last <> dPriceLast Then
-                            aUndData.Price.Last = dPriceLast
+                        If dPriceLast > BAD_DOUBLE_VALUE And aUndData.price.Last <> dPriceLast Then
+                            aUndData.price.Last = dPriceLast
                             aReq.Und.CalcGreeks = True
                             aReq.Und.CalcTotals = True
                             bOneOfPricesUpdated = True
@@ -4218,8 +4218,8 @@ Private Sub RealTimeQuotesUpdate()
                 
                         If aReq.Und.CalcGreeks Then
                             Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aUndData.Price.Bid, _
-                                aUndData.Price.Bid, aUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, _
+                                aUndData.price.Bid, aUndData.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
                         End If
                         
                         If bOneOfPricesUpdated And Not aReq.Und.SynthPos Is Nothing Then
@@ -4235,20 +4235,20 @@ Private Sub RealTimeQuotesUpdate()
                         End If
                         
                         If m_Aux.Idx.ID = aReq.Und.ID Then
-                            If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.Price.NetChange = dNetChange
+                            If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
                             Set aIdxData = m_Aux.Idx
-                            If dPriceBid > BAD_DOUBLE_VALUE And aIdxData.Price.Bid <> dPriceBid Then
-                                aIdxData.Price.Bid = dPriceBid
+                            If dPriceBid > BAD_DOUBLE_VALUE And aIdxData.price.Bid <> dPriceBid Then
+                                aIdxData.price.Bid = dPriceBid
                                 m_Aux.Idx.CalcTotals = True
                                 bOneOfPricesUpdated = True
                             End If
-                            If dPriceAsk > BAD_DOUBLE_VALUE And aIdxData.Price.Ask <> dPriceAsk Then
-                                aIdxData.Price.Ask = dPriceAsk
+                            If dPriceAsk > BAD_DOUBLE_VALUE And aIdxData.price.Ask <> dPriceAsk Then
+                                aIdxData.price.Ask = dPriceAsk
                                 m_Aux.Idx.CalcTotals = True
                                 bOneOfPricesUpdated = True
                             End If
-                            If dPriceLast > BAD_DOUBLE_VALUE And aIdxData.Price.Last <> dPriceLast Then
-                                aIdxData.Price.Last = dPriceLast
+                            If dPriceLast > BAD_DOUBLE_VALUE And aIdxData.price.Last <> dPriceLast Then
+                                aIdxData.price.Last = dPriceLast
                                 m_Aux.Idx.CalcTotals = True
                                 bOneOfPricesUpdated = True
                             End If
@@ -4262,23 +4262,23 @@ Private Sub RealTimeQuotesUpdate()
                         ElseIf Not aReq.Fut Is Nothing Then
                             Set aFut = aReq.Fut
                         End If
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aFut.Price.NetChange = dNetChange
+                        If dNetChange <> BAD_DOUBLE_VALUE Then aFut.price.NetChange = dNetChange
                    
                         If Not aFut Is Nothing Then
-                            If dPriceBid > BAD_DOUBLE_VALUE And aFut.Price.Bid <> dPriceBid Then
-                                aFut.Price.Bid = dPriceBid
+                            If dPriceBid > BAD_DOUBLE_VALUE And aFut.price.Bid <> dPriceBid Then
+                                aFut.price.Bid = dPriceBid
                                 aFut.CalcGreeks = True
                                 aReq.Und.CalcTotals = True
                                 bOneOfPricesUpdated = True
                             End If
-                            If dPriceAsk > BAD_DOUBLE_VALUE And aFut.Price.Ask <> dPriceAsk Then
-                                aFut.Price.Ask = dPriceAsk
+                            If dPriceAsk > BAD_DOUBLE_VALUE And aFut.price.Ask <> dPriceAsk Then
+                                aFut.price.Ask = dPriceAsk
                                 aFut.CalcGreeks = True
                                 aReq.Und.CalcTotals = True
                                 bOneOfPricesUpdated = True
                             End If
-                            If dPriceLast > BAD_DOUBLE_VALUE And aFut.Price.Last <> dPriceLast Then
-                                aFut.Price.Last = dPriceLast
+                            If dPriceLast > BAD_DOUBLE_VALUE And aFut.price.Last <> dPriceLast Then
+                                aFut.price.Last = dPriceLast
                                 aFut.CalcGreeks = True
                                 aReq.Und.CalcTotals = True
                                 bOneOfPricesUpdated = True
@@ -4293,21 +4293,21 @@ Private Sub RealTimeQuotesUpdate()
                 End If
             Else
                 Debug.Assert m_Aux.Idx.ID = aReq.Und.ID
-                If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.Price.NetChange = dNetChange
+                If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
                
                 If m_Aux.Idx.ID = aReq.Und.ID Then
-                    If dPriceBid > BAD_DOUBLE_VALUE And m_Aux.Idx.Price.Bid <> dPriceBid Then
-                        m_Aux.Idx.Price.Bid = dPriceBid
+                    If dPriceBid > BAD_DOUBLE_VALUE And m_Aux.Idx.price.Bid <> dPriceBid Then
+                        m_Aux.Idx.price.Bid = dPriceBid
                         m_Aux.Idx.CalcTotals = True
                         bOneOfPricesUpdated = True
                     End If
-                    If dPriceAsk > BAD_DOUBLE_VALUE And m_Aux.Idx.Price.Ask <> dPriceAsk Then
-                        m_Aux.Idx.Price.Ask = dPriceAsk
+                    If dPriceAsk > BAD_DOUBLE_VALUE And m_Aux.Idx.price.Ask <> dPriceAsk Then
+                        m_Aux.Idx.price.Ask = dPriceAsk
                         m_Aux.Idx.CalcTotals = True
                         bOneOfPricesUpdated = True
                     End If
-                    If dPriceLast > BAD_DOUBLE_VALUE And m_Aux.Idx.Price.Last <> dPriceLast Then
-                        m_Aux.Idx.Price.Last = dPriceLast
+                    If dPriceLast > BAD_DOUBLE_VALUE And m_Aux.Idx.price.Last <> dPriceLast Then
+                        m_Aux.Idx.price.Last = dPriceLast
                         m_Aux.Idx.CalcTotals = True
                         bOneOfPricesUpdated = True
                     End If
@@ -5241,7 +5241,7 @@ Private Function IndexLoad() As Boolean
     If m_bInProc Then Exit Function
     Dim aGIdx As EtsGeneralLib.IndexAtom, aComp As EtsGeneralLib.IndexCompAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, sKey$, sKeyActiveFuture$
     Dim aReq As EtsMmRisksLib.MmRvReqAtom, aReqActiveFuture As EtsMmRisksLib.MmRvReqAtom, nKey&
-    Dim aUndActive As UndAtom
+    Dim aUndActive As UndAtom, aUndIdx As UndAtom
     
     m_bInProc = True
     AdjustState
@@ -5324,10 +5324,22 @@ Private Function IndexLoad() As Boolean
                 aReq.IndexOnly = True
                 m_AuxClc.UndCount = m_AuxClc.UndCount + 1
             Else
-                m_Aux.Idx.Price.Bid = aReq.Und.Price.Bid
-                m_Aux.Idx.Price.Ask = aReq.Und.Price.Ask
-                m_Aux.Idx.Price.Last = aReq.Und.Price.Last
-                m_Aux.Idx.Price.NetChange = aReq.Und.Price.NetChange
+                m_Aux.Idx.price.Bid = aReq.Und.price.Bid
+                m_Aux.Idx.price.Ask = aReq.Und.price.Ask
+                m_Aux.Idx.price.Last = aReq.Und.price.Last
+                m_Aux.Idx.price.NetChange = aReq.Und.price.NetChange
+            End If
+            
+            Set aUndIdx = g_ContractAll(m_Aux.Idx.ID).Und
+            
+            If (Not aUndIdx Is Nothing) Then
+                m_Aux.Idx.price.Close = aUndIdx.PriceClose
+                m_Aux.Idx.price.TheoClose = aUndIdx.PriceTheoclose
+                If (aUndIdx.manualActivePrice > 0) Then
+                    m_Aux.Idx.price.IsUseManualActive = True
+                    m_Aux.Idx.price.Active = aUndIdx.manualActivePrice
+                End If
+                Set aUndIdx = Nothing
             End If
             
             Set m_Aux.Idx.UndPriceProfile = aGIdx.UndPriceProfile
@@ -5338,11 +5350,11 @@ Private Function IndexLoad() As Boolean
             'Dim aActiveFuture As EtsMmRisksLib.MmRvFutAtom
             Set m_Aux.Idx.ActiveFuture = Nothing    ' delete active future for previous active
             
-            If Not aReqActiveFuture Is Nothing Then
-                If Not aReqActiveFuture.Fut Is Nothing Then
-                    Set m_Aux.Idx.ActiveFuture = aReqActiveFuture.Fut
-                End If
-            End If
+'            If Not aReqActiveFuture Is Nothing Then
+'                If Not aReqActiveFuture.Fut Is Nothing Then
+'                    Set m_Aux.Idx.ActiveFuture = aReqActiveFuture.Fut
+'                End If
+'            End If
             If m_Aux.Idx.ActiveFuture Is Nothing Then
                 If Not g_ContractAll(m_Aux.Idx.ID) Is Nothing Then
                     Set aUndActive = g_ContractAll(m_Aux.Idx.ID).Und
@@ -5353,10 +5365,6 @@ Private Function IndexLoad() As Boolean
                                 Set aReq = m_AuxClc.QuoteReqsAll(sKey)
                                 If Not aReq Is Nothing Then
                                     Set m_Aux.Idx.ActiveFuture = aReq.Fut
-                                    'm_Aux.Idx.ActiveFuture.PriceBid = aReq.Und.PriceBid
-                                    'm_Aux.Idx.ActiveFuture.PriceAsk = aReq.Und.PriceAsk
-                                    'm_Aux.Idx.ActiveFuture.PriceLast = aReq.Und.PriceLast
-                                    'm_Aux.Idx.ActiveFuture.NetChange = aReq.Und.NetChange
                                 Else
                                     Set m_Aux.Idx.ActiveFuture = New EtsMmRisksLib.MmRvFutAtom
                                     ' fill up active future info for newly selected index
@@ -5371,8 +5379,8 @@ Private Function IndexLoad() As Boolean
                                         m_Aux.Idx.ActiveFuture.IsAmerican = aUndActive.ActiveFuture.IsAmerican
                                         m_Aux.Idx.ActiveFuture.FutRootID = aUndActive.ActiveFuture.FutRootID
                                         m_Aux.Idx.ActiveFuture.Maturity = aUndActive.ActiveFuture.MaturityDate
-                                        m_Aux.Idx.ActiveFuture.Price.Close = aUndActive.ActiveFuture.PriceClose
-                                        m_Aux.Idx.ActiveFuture.Price.TheoClose = aUndActive.ActiveFuture.PriceTheoclose
+                                        m_Aux.Idx.ActiveFuture.price.Close = aUndActive.ActiveFuture.PriceClose
+                                        m_Aux.Idx.ActiveFuture.price.TheoClose = aUndActive.ActiveFuture.PriceTheoclose
                                         If Not aUndActive.FutRoots(m_Aux.Idx.ActiveFuture.FutRootID) Is Nothing Then
                                             m_Aux.Idx.ActiveFuture.FutRootSymbol = aUndActive.FutRoots(m_Aux.Idx.ActiveFuture.FutRootID).Symbol
                                             m_Aux.Idx.ActiveFuture.FutLotSize = aUndActive.FutRoots(m_Aux.Idx.ActiveFuture.FutRootID).FutLotSize
@@ -5453,6 +5461,7 @@ End Sub
 Private Sub ShowPopup()
     On Error Resume Next
     Dim aRowData As EtsMmRisksLib.MmRvRowData
+    Dim aPos As MmRvPosAtom
     If m_nMenuGridCol < 0 Or m_nMenuGridRow < 0 Then Exit Sub
 
     'mnuCtxTradeNew         "New Trade..."
@@ -5537,14 +5546,29 @@ Private Sub ShowPopup()
             mnuCtxAutosizeCol.Enabled = (m_nMenuGridCol > 0 And m_nMenuGridCol < m_nMenuGridCols)
             mnuCtxAutosizeGrid.Enabled = True
             
-            If Not aRowData.Pos Is Nothing Then
-                mnuCtxUseMaualPrice.Checked = aRowData.Pos.Quote.Price.IsUseManualActive
+            '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+            '''''''''''''''''''''''''''''Manual Price Menu'''''''''''''''''''''''''''''''''''''''
+            '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+            Set aPos = aRowData.Pos
+            If Not aPos Is Nothing Then
+                mnuCtxUseMaualPrice.Checked = aRowData.Pos.Quote.price.IsUseManualActive
+                If (aPos.ContractType = enCtFuture) Then
+                    mnuCtxUseMaualPrice.Enabled = IsFutEditable(aPos.Fut)
+                ElseIf (aPos.ContractType = enCtStock Or aPos.ContractType = enCtIndex) Then
+                    mnuCtxUseMaualPrice.Enabled = IsUndEditable(aPos.Und)
+                Else
+                    mnuCtxUseMaualPrice.Enabled = True
+                End If
+                Set aPos = Nothing
             Else
                 If Not aRowData.Fut Is Nothing Then
-                        mnuCtxUseMaualPrice.Checked = aRowData.Fut.Price.IsUseManualActive
-                    Else
+                        mnuCtxUseMaualPrice.Checked = aRowData.Fut.price.IsUseManualActive
+                        mnuCtxUseMaualPrice.Enabled = IsFutEditable(aRowData.Fut)
+                Else
                         If Not aRowData.Und Is Nothing Then
-                            mnuCtxUseMaualPrice.Checked = aRowData.Und.Price.IsUseManualActive
+                            mnuCtxUseMaualPrice.Checked = aRowData.Und.price.IsUseManualActive
+                            mnuCtxUseMaualPrice.Enabled = IsUndEditable(aRowData.Und)
                         End If
                 End If
             End If
@@ -6766,7 +6790,7 @@ Private Sub TradeChannel_AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
                         bChange = True
                         aUnd.Coeff = aUndData.Coeff
                     End If
-                    aUnd.Price.IsDirty = bChange
+                    aUnd.price.IsDirty = bChange
                 End If
                 
                 'recalculate and refresh all data
@@ -6798,9 +6822,31 @@ Private Sub TradeChannel_DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingU
             
                 'check for modifications
                 If (aUnd.ID = aUndData.UndID) Then
-                    bChange = True
+                    If (aUndData.DivType = enDivIndexYield) Then
+                            aUnd.Dividend.DivType = enDivIndexYield
+                            aUnd.Yield = aUndData.Yield
+                            bChange = True
+                    ElseIf (aUndData.DivType = enDivMarket) Then
+                            aUnd.Dividend.DivType = enDivMarket
+                            aUnd.Dividend.DivAmt = aUndData.DivAmt
+                            aUnd.Dividend.DivDate = aUndData.DivDate
+                            aUnd.Dividend.DivFreq = aUndData.DivFreq
+                            bChange = True
+                    ElseIf (aUndData.DivType = enDivCustomPeriodical) Then
+                            aUnd.Dividend.DivType = enDivCustomPeriodical
+                            aUnd.Dividend.DivAmtCust = aUndData.DivAmtCust
+                            aUnd.Dividend.DivDateCust = aUndData.DivDateCust
+                            aUnd.Dividend.DivFreqCust = aUndData.DivFreqCust
+                            bChange = True
+                    ElseIf (aUndData.DivType = enDivStockBasket) Then
+                        aUnd.Dividend.DivType = enDivStockBasket
+                        bChange = True
+                    ElseIf (aUndData.DivType = enDivCustomStream) Then
+                        aUnd.Dividend.DivType = enDivCustomStream
+                        bChange = True
+                    End If
                 End If
-                
+               
                 'recalculate and refresh all data
                 If bChange Then
                     m_AuxClc.UnderlyingsCalc True, True, False, False
@@ -6816,6 +6862,172 @@ Exception:
     Debug.Print "Error while try to update dividend Type"
 End Sub
 
+Private Sub TradeChannel_ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdate)
+    On Error GoTo Exception
+        If (m_bShutDown) Then Exit Sub
+        
+        Dim bChange As Boolean
+        Dim aUnd As EtsMmRisksLib.MmRvUndAtom
+        Dim aFut As EtsMmRisksLib.MmRvFutAtom
+        Dim aPos As EtsMmRisksLib.MmRvPosAtom
+        
+        bChange = False
+        
+        If (Data.ContractType = enCtIndex Or Data.ContractType = enCtStock) Then
+                Set aUnd = m_Aux.Und(Data.UndID)
+                If (Not aUnd Is Nothing) Then
+                
+                    If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                        aUnd.price.IsUseManualActive = True
+                        aUnd.price.Active = Data.ActivePrice
+                        bChange = True
+                    ElseIf (Data.Status = enUsDelete) Then
+                        aUnd.price.IsUseManualActive = False
+                        bChange = True
+                    End If
+                    
+                End If
+                
+                'Head Component
+                For Each aUnd In m_Aux.Und
+                    If (Not aUnd.HeadComponent Is Nothing) Then
+                        If (aUnd.HeadComponent.ID = Data.UndID) Then
+                            If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                                aUnd.HeadComponent.price.IsUseManualActive = True
+                                aUnd.HeadComponent.price.Active = Data.ActivePrice
+                                bChange = True
+                            Else
+                                aUnd.HeadComponent.price.IsUseManualActive = False
+                                bChange = True
+                            End If
+                            Exit For
+                        End If
+                    End If
+                Next
+                
+                'Idx
+                If (Not m_Aux.Idx Is Nothing) Then
+                    If (m_Aux.Idx.ID = Data.UndID) Then
+                        If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                            m_Aux.Idx.price.IsUseManualActive = True
+                            m_Aux.Idx.price.Active = Data.ActivePrice
+                            bChange = True
+                        Else
+                            m_Aux.Idx.price.IsUseManualActive = False
+                            bChange = True
+                        End If
+                    End If
+                End If
+            
+            Set aUnd = Nothing
+        ElseIf (Data.ContractType = enCtFuture) Then
+            Set aUnd = m_Aux.Und(Data.UndID)
+            
+                If (Not aUnd Is Nothing) Then
+                
+                    If (Not aUnd.Fut Is Nothing) Then
+                        Set aFut = aUnd.Fut(Data.ContractID)
+                        If (Not aFut Is Nothing) Then
+                            If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                                aFut.price.IsUseManualActive = True
+                                aFut.price.Active = Data.ActivePrice
+                                bChange = True
+                            Else
+                                aFut.price.IsUseManualActive = False
+                                bChange = True
+                            End If
+                            Set aFut = Nothing
+                        End If
+                    End If
+                    
+                    Set aFut = aUnd.ActiveFuture
+                    If (Not aFut Is Nothing) Then
+                        If (aFut.ID = Data.ContractID) Then
+                            If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                                aFut.price.IsUseManualActive = True
+                                aFut.price.Active = Data.ActivePrice
+                                bChange = True
+                            Else
+                                aFut.price.IsUseManualActive = False
+                                bChange = True
+                            End If
+                        End If
+                        Set aFut = Nothing
+                    End If
+                    
+                End If
+            
+                'Idx
+                If (Not m_Aux.Idx Is Nothing) Then
+                    Set aFut = m_Aux.Idx.ActiveFuture
+                    If (Not aFut Is Nothing) Then
+                        If (aFut.ID = Data.ContractID) Then
+                            If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                                aFut.price.IsUseManualActive = True
+                                aFut.price.Active = Data.ActivePrice
+                                bChange = True
+                            Else
+                                aFut.price.IsUseManualActive = False
+                                bChange = True
+                            End If
+                        End If
+                        Set aFut = Nothing
+                    End If
+                End If
+                
+                'head component
+                For Each aUnd In m_Aux.Und
+                    If (Not aUnd.HeadComponent Is Nothing) Then
+                        Set aFut = aUnd.HeadComponent.ActiveFuture
+                        If (Not aFut Is Nothing) Then
+                            If (aFut.ID = Data.ContractID) Then
+                                If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                                    aFut.price.IsUseManualActive = True
+                                    aFut.price.Active = Data.ActivePrice
+                                    bChange = True
+                                Else
+                                    aFut.price.IsUseManualActive = False
+                                    bChange = True
+                                End If
+                                Exit For
+                            End If
+                            Set aFut = Nothing
+                        End If
+                    End If
+                Next
+                            
+        ElseIf (Data.ContractType = enCtOption Or Data.ContractType = enCtFutOption) Then
+        
+            Set aUnd = m_Aux.Und(Data.UndID)
+            If (Not aUnd Is Nothing) Then
+                Set aPos = aUnd.Pos(Data.ContractID)
+                If (Not aPos Is Nothing) Then
+                    If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                        aPos.Quote.price.IsUseManualActive = True
+                        aPos.Quote.price.Active = Data.ActivePrice
+                        bChange = True
+                    Else
+                        aPos.Quote.price.IsUseManualActive = False
+                        bChange = True
+                    End If
+                End If
+            End If
+            
+        End If
+        
+        'Now we can recalculate and refresh screen
+        If bChange Then
+            m_AuxClc.UnderlyingsCalc True, True, False, False
+            m_AuxOut.UnderlyingsUpdate False
+            RefreshPositions
+            m_AuxOut.TotalsUpdate
+        End If
+        
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to update manual price"
+End Sub
+
 Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
@@ -6825,15 +7037,15 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
     Set aUnd = m_Aux.Und(aPrcData.UndID)
     If Not aUnd Is Nothing Then
         If aPrcData.ContractType = enCtIndex Or aPrcData.ContractType = enCtStock Then _
-            aUnd.Price.Close = aPrcData.PriceClose
-            aUnd.Price.TheoClose = aPrcData.TheoPriceClose
+            aUnd.price.Close = aPrcData.PriceClose
+            aUnd.price.TheoClose = aPrcData.TheoPriceClose
         
         If m_Aux.RealTime Then Exit Sub
         
         Set aPos = aUnd.Pos(aPrcData.ContractID)
         If Not aPos Is Nothing Then
-            aPos.Quote.Price.Close = aPrcData.PriceClose
-            aPos.Quote.Price.TheoClose = aPrcData.TheoPriceClose
+            aPos.Quote.price.Close = aPrcData.PriceClose
+            aPos.Quote.price.TheoClose = aPrcData.TheoPriceClose
             m_AuxClc.ClearPosQty aPos
             
             For Each aTrd In TradeChannel.Trades.FilterTrades(m_Aux.FilterData, g_UnderlyingGroup, False) 'FilterTrades(m_Aux.Grp.ID, m_Aux.Grp.GroupType, m_Aux.Filter(RFC_TYPE), g_UnderlyingGroup, False)
@@ -7646,9 +7858,9 @@ Public Sub CallOtcOptionCalcRV()
             sStockSymbol = aUnd.Symbol
             sOptionSymbol = aUnd.Symbol
             
-            dStrike = aUnd.Price.Last
-            dBid = aUnd.Price.Bid
-            dAsk = aUnd.Price.Ask
+            dStrike = aUnd.price.Last
+            dBid = aUnd.price.Bid
+            dAsk = aUnd.price.Ask
 
 
             lSymbolType = 0
@@ -7689,8 +7901,8 @@ Public Sub CallOtcOptionCalcRV()
                 nID = aPos.ID
                 sOptionSymbol = aPos.Symbol
                 dStrike = aPos.Strike
-                dBid = aPos.Quote.Price.Bid
-                dAsk = aPos.Quote.Price.Ask
+                dBid = aPos.Quote.price.Bid
+                dAsk = aPos.Quote.price.Ask
                 dtExpiry = aPos.Expiry
                 dRate = aPos.Rate
                 dVola = aPos.Quote.Vola
@@ -7705,8 +7917,8 @@ Public Sub CallOtcOptionCalcRV()
                         If (Not aPos Is Nothing) And (aPos.Expiry > 0) Then
                             sOptionSymbol = aPos.Symbol
                             dStrike = aPos.Strike
-                            dBid = aPos.Quote.Price.Bid
-                            dAsk = aPos.Quote.Price.Ask
+                            dBid = aPos.Quote.price.Bid
+                            dAsk = aPos.Quote.price.Ask
                             dtExpiry = aPos.Expiry
                             dRate = aPos.Rate
                             dVola = aPos.Quote.Vola
@@ -7891,7 +8103,7 @@ On Error GoTo ErrEx
                             If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
                         End If
                         
-                        If aRowData.Pos.Quote.Price.IsUseManualActive Then
+                        If aRowData.Pos.Quote.price.IsUseManualActive Then
                         
                             If (aRowData.Pos.ContractType = enCtFuture) Then
                                 dActive = g_Main.ContractAll(aRowData.Pos.ID).Fut.manualActivePrice
@@ -7900,7 +8112,7 @@ On Error GoTo ErrEx
                                     dActive = g_Main.ContractAll(aRowData.Pos.ID).Und.manualActivePrice
                                 End If
                             Else
-                                dActive = aRowData.Pos.Quote.Price.Active
+                                dActive = aRowData.Pos.Quote.price.Active
                             End If
                             
                             nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
@@ -7927,13 +8139,13 @@ On Error GoTo ErrEx
                 If Not aRowData.Fut Is Nothing Then
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
                         dActive = g_Main.ContractAll(aRowData.Fut.ID).Fut.manualActivePrice
-                        If nCol <> -1 And aRowData.Fut.Price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                        If nCol <> -1 And aRowData.Fut.price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                     ElseIf Not aRowData.Und Is Nothing Then
                         If (Not g_Main.ContractAll(aRowData.Und.ID).Und.PriceByHead) Then
                             dActive = g_Main.ContractAll(aRowData.Und.ID).Und.manualActivePrice
                         End If
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
-                        If nCol <> -1 And (nAggRow = -1 Or nAggRow = 1) And aRowData.Und.Price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
+                        If nCol <> -1 And (nAggRow = -1 Or nAggRow = 1) And aRowData.Und.price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                 End If
                                                   
                 If nAggRow <> -1 Then
@@ -8262,7 +8474,7 @@ Public Sub FuturesParamsChange(ByVal iUndID As Long, ByVal iFutID As Long, ByVal
             If m_RiskView.Idx.ActiveFuture.Ratio <> dRatio Or m_RiskView.Idx.ActiveFuture.bAsIs <> dBasis Then bFound = True
             m_RiskView.Idx.ActiveFuture.Ratio = dRatio
             m_RiskView.Idx.ActiveFuture.bAsIs = dBasis
-            m_RiskView.Idx.Price.IsDirty = bFound
+            m_RiskView.Idx.price.IsDirty = bFound
         End If
     End If
     
@@ -8273,7 +8485,7 @@ Public Sub FuturesParamsChange(ByVal iUndID As Long, ByVal iFutID As Long, ByVal
             If aUnd.ActiveFuture.Ratio <> dRatio Or aUnd.ActiveFuture.bAsIs <> dBasis Then bFound = True
             aUnd.ActiveFuture.Ratio = dRatio
             aUnd.ActiveFuture.bAsIs = dBasis
-            aUnd.Price.IsDirty = bFound
+            aUnd.price.IsDirty = bFound
         End If
       End If
       If Not aUnd.Fut Is Nothing Then
@@ -8282,7 +8494,7 @@ Public Sub FuturesParamsChange(ByVal iUndID As Long, ByVal iFutID As Long, ByVal
             If aFut.Ratio <> dRatio Or aFut.bAsIs <> dBasis Then bFound = True
             aFut.Ratio = dRatio
             aFut.bAsIs = dBasis
-            aFut.Price.IsDirty = bFound
+            aFut.price.IsDirty = bFound
         End If
       End If
     End If
@@ -8293,3 +8505,207 @@ Public Sub FuturesParamsChange(ByVal iUndID As Long, ByVal iFutID As Long, ByVal
     End If
 End Sub
 
+Private Function IsFutEditable(aFut As MmRvFutAtom) As Boolean
+On Error GoTo Exception
+
+    IsFutEditable = False
+    Dim aUnd As MmRvUndAtom
+    Dim aActFut As MmRvFutAtom
+    
+    If (aFut Is Nothing) Then Exit Function
+
+    Set aUnd = aFut.Underlying
+    
+    If (Not aUnd Is Nothing) Then
+        Set aActFut = aUnd.ActiveFuture
+        If (aUnd.IsHead) Then
+            If (Not aActFut Is Nothing) Then
+                If (aActFut.ID = aFut.ID) Then
+                    IsFutEditable = True
+                End If
+            Else
+                IsFutEditable = True
+            End If
+        Else
+            If (Not aUnd.PriceByHead) Then
+                If (Not aActFut Is Nothing) Then
+                    If (aActFut.ID = aFut.ID) Then
+                        IsFutEditable = True
+                    End If
+                Else
+                    IsFutEditable = True
+                End If
+            End If
+        End If
+    End If
+    
+    Set aActFut = Nothing
+    Set aUnd = Nothing
+    Exit Function
+    
+Exception:
+    Debug.Print "Error while trying to CheckFutureForEdit"
+    
+    Set aActFut = Nothing
+    Set aUnd = Nothing
+End Function
+
+Private Function IsUndEditable(aUnd As MmRvUndAtom) As Boolean
+On Error GoTo Exception
+    IsUndEditable = False
+    
+    Dim aActFut As MmRvFutAtom
+    If (aUnd Is Nothing) Then Exit Function
+    
+    Set aActFut = aUnd.ActiveFuture
+    
+    If (aUnd.IsHead) Then
+        If (aActFut Is Nothing) Then
+            IsUndEditable = True
+        End If
+    Else
+        If (Not aUnd.PriceByHead And aActFut Is Nothing) Then
+            IsUndEditable = True
+        End If
+    End If
+    Set aActFut = Nothing
+    
+    Exit Function
+Exception:
+    Debug.Print "Error while trying to CheckUndFotEdit"
+    Set aActFut = Nothing
+End Function
+
+Private Sub PubManualPrice(dPrice As Double, nContractID As Long, nUndID As Long, enCtType As EtsContractTypeEnum, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+
+    Dim Data As MSGSTRUCTLib.ManualPriceUpdate
+    Set Data = New MSGSTRUCTLib.ManualPriceUpdate
+                                            
+    Data.Status = enStatus
+    Data.ContractID = nContractID
+    Data.UndID = nUndID
+    Data.ContractType = enCtType
+    Data.ActivePrice = dPrice
+                                            
+    g_TradeChannel.PubManualPriceUpdate Data
+    Exit Sub
+    
+Exception:
+    Debug.Print "Error while trying to pub active price for contract"
+End Sub
+
+Private Sub ManualPriceDel(nID As Long)
+On Error GoTo Exception
+    gDBW.usp_MmManualPrice_Del nID
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to delete manual price from db RiskView"
+End Sub
+
+Private Sub ManualPriceSave(dPrice As Double, nID As Long)
+On Error GoTo Exception
+    gDBW.usp_MmManualPrice_Save nID, dPrice
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to save manual price to db RiskView"
+End Sub
+
+Private Sub UpdatePosOptManualPrice(aPos As MmRvPosAtom, dPrice As Double, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+    If (aPos Is Nothing) Then Exit Sub
+        
+    If (enStatus = enUsAdd Or enStatus = enUsUpdate) Then
+        aPos.Quote.price.Active = dPrice
+        aPos.Quote.price.IsUseManualActive = True
+        'save manual price to db
+        ManualPriceSave dPrice, aPos.ID
+        'pub manual price
+        PubManualPrice dPrice, aPos.ID, aPos.UndID, aPos.ContractType, enStatus
+    Else
+        aPos.Quote.price.IsUseManualActive = False
+        'delete manu lrpice from db
+        ManualPriceDel aPos.ID
+        'pub changes
+        PubManualPrice 0#, aPos.ID, aPos.UndID, aPos.ContractType, enStatus
+    End If
+    
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to Update PosOpt Manual Price"
+End Sub
+
+Private Sub UpdateFutManualPrice(aFut As MmRvFutAtom, dPrice As Double, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+        If (aFut Is Nothing) Then Exit Sub
+        
+        If (enStatus = enUsUpdate Or enStatus = enUsAdd) Then
+            aFut.price.Active = dPrice
+            aFut.price.IsUseManualActive = True
+            'manual price save to db
+            ManualPriceSave dPrice, aFut.ID
+            'pub changes
+            PubManualPrice dPrice, aFut.ID, aFut.UndID, enCtFuture, enStatus
+            'update global collection
+            If (Not g_ContractAll(aFut.ID) Is Nothing) Then
+                If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
+                    g_ContractAll(aFut.ID).Fut.manualActivePrice = dPrice
+                End If
+            End If
+        Else
+            aFut.price.IsUseManualActive = False
+            'delete manual price
+            ManualPriceDel aFut.ID
+            'pub changes
+            PubManualPrice 0#, aFut.ID, aFut.UndID, enCtFuture, enStatus
+            'update global colection
+            If (Not g_ContractAll(aFut.ID) Is Nothing) Then
+                If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
+                    g_ContractAll(aFut.ID).Fut.manualActivePrice = 0#
+                End If
+            End If
+        End If
+        
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to UpdateFutureManualPrice"
+End Sub
+
+Private Sub UpdateUndManualPrice(aUnd As MmRvUndAtom, dPrice As Double, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+    If (aUnd Is Nothing) Then Exit Sub
+    Dim ctType As EtsContractTypeEnum
+    
+    If (enStatus = enUsAdd Or enStatus = enUsUpdate) Then
+        aUnd.price.Active = dPrice
+        aUnd.price.IsUseManualActive = True
+        'manual price save to DB
+        ManualPriceSave dPrice, aUnd.ID
+        'update global collection
+        If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
+            If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
+                ctType = g_ContractAll(aUnd.ID).ContractType
+                g_ContractAll(aUnd.ID).Und.manualActivePrice = dPrice
+            End If
+        End If
+        'pub changes
+        PubManualPrice dPrice, aUnd.ID, aUnd.ID, ctType, enStatus
+    Else
+        aUnd.price.IsUseManualActive = False
+        'manual price save to DB
+        ManualPriceDel aUnd.ID
+        'update global collection
+        If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
+            If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
+                ctType = g_ContractAll(aUnd.ID).ContractType
+                g_ContractAll(aUnd.ID).Und.manualActivePrice = 0#
+            End If
+        End If
+        'pub changes
+        PubManualPrice 0#, aUnd.ID, aUnd.ID, ctType, enStatus
+    End If
+    
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to Upadte ManualPrice for Underlying"
+End Sub

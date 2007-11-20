@@ -69,6 +69,7 @@ void CMmRvAggData::AddAggregatedValues(const CMmRvRowData* pRow)
 		accumulate_if_not_bad( PnlEdge_,		pRow->m_pAgg->PnlEdge_, 1.0 );
 		accumulate_if_not_bad( PnlMTM_,			pRow->m_pAgg->PnlMTM_,	1.0 );
 		accumulate_if_not_bad( PnLTheo_,		pRow->m_pAgg->PnLTheo_, 1.0 );
+		accumulate_if_not_bad( TmVal_,			pRow->m_pAgg->TmVal_,	1.0 );
 
 
 		//-------------------------------------------------------------------------------//

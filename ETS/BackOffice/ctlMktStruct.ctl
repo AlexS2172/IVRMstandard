@@ -566,7 +566,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20643841
+         Format          =   60686337
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -678,7 +678,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20643841
+         Format          =   60686337
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -955,7 +955,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20643841
+         Format          =   60686337
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -5035,12 +5035,14 @@ Private Sub chkUseManualDivData_Click()
        cboDivFreq(1).Enabled = False
        dtpDivDate(1).Enabled = False
        txtDivAmt(1).Enabled = False
+       
        If (IsManual) Then
             chkIsBasket.Value = False
-            chkIsBasket.Visible = False
-            lblYield.Visible = Not IsManual
-            txtYield.Visible = Not IsManual
        End If
+       
+       chkIsBasket.Visible = Not IsManual
+       lblYield.Visible = Not IsManual
+       txtYield.Visible = Not IsManual
    End If
 End Sub
 

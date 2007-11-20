@@ -48,7 +48,6 @@
 #include <set>
 #include <queue>
 #include <fstream>
-#include <Boost/lexical_cast.hpp>
 
 #include "winsock.h"
 
@@ -62,6 +61,7 @@
 #include <EgLib/EgLibDB.h>
 #include <EgLib/EgLibReg.h>
 #include <EgLib/EgLibStrategy.h>
+#include <Boost/lexical_cast.hpp>
 
 #include <Win32Error.h>
 

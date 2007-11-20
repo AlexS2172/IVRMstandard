@@ -484,7 +484,7 @@ STDMETHODIMP CEtsPriceProfileAtom::GetOptPriceBidForPnL(DOUBLE dPriceBid, DOUBLE
 
 		if (bZeroBid && bZeroAsk)
 		{
-			if (!bZeroLast && (m_enBadOptBothPriceRule == enObbprUseLast || bUseTheoVola == VARIANT_FALSE) )
+			if (/*!bZeroLast &&*/ (m_enBadOptBothPriceRule == enObbprUseLast || bUseTheoVola == VARIANT_FALSE) )
 				dRetVal = dPriceLast;
 			else
 				dRetVal = dPriceTheo;
@@ -614,7 +614,7 @@ STDMETHODIMP CEtsPriceProfileAtom::GetOptPriceAskForPnL(DOUBLE dPriceBid, DOUBLE
 
 		if (bZeroBid && bZeroAsk)
 		{
-			if (!bZeroLast && (m_enBadOptBothPriceRule == enObbprUseLast || bUseTheoVola == VARIANT_FALSE) )
+			if (/*!bZeroLast &&*/ (m_enBadOptBothPriceRule == enObbprUseLast || bUseTheoVola == VARIANT_FALSE) )
 				dRetVal = dPriceLast;
 			else
 				dRetVal = dPriceTheo;

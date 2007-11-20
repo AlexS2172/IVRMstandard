@@ -61,6 +61,7 @@ library MMWLib
 		DISPID_PubExpiryInCalendar,
 		DISPID_PubPriceUpdate,
 		DISPID_PubUnderlyingUpdate,
+		DISPID_PubManualPriceUpdate,
 
 	    // ISubManager
 	    DISPID_SubQuote,
@@ -134,6 +135,8 @@ library MMWLib
 		DISPID_UnsubPriceUpdate,
 		DISPID_SubUnderlyingUpdate,
 		DISPID_UnsubUnderlyingUpdate,
+		DISPID_UnsubManualPriceUpdate,
+		DISPID_SubManualPriceUpdate,
 
 	    // _IOnMessages
 	    DISPID_OnQuote,
@@ -171,6 +174,7 @@ library MMWLib
 		DISPID_OnExpiryInCalendar,
 		DISPID_OnPriceUpdate,
 		DISPID_OnUnderlyingUpdate,
+		DISPID_OnManualPriceUpdate,
 
 		DISPID_OnLogon,
 		DISPID_OnLogoff,
@@ -347,7 +351,8 @@ library MMWLib
 		enMtPriceUpdate					= 48,
 		enMtActiveFuturesChange         = 49,
 		enMtFlexOption					= 50,
-		enMtUnderlyingUpdate			= 51
+		enMtUnderlyingUpdate			= 51,
+		enMtManualPriceUpdate			= 52
 	}
 	MESSAGE_TYPE;
 
@@ -416,6 +421,8 @@ library MMWLib
 		[id(DISPID_PubFlexOption), helpstring("method PubFlexOption")]
 		HRESULT PubFlexOption([in] IFlexOption* Data, [out, retval] long* Result);
 
+		[id(DISPID_PubManualPriceUpdate), helpstring("method PubManualPriceUpdate")]
+		HRESULT PubManualPriceUpdate([in] IManualPriceUpdate* Data, [out, retval] long* Result);
 	};
 
 	[
@@ -494,6 +501,12 @@ library MMWLib
 
 		[id(DISPID_UnsubFlexOption), helpstring("method UnsubFlexOption")]
 		HRESULT UnsubFlexOption();
+
+		[id(DISPID_SubManualPriceUpdate), helpstring("method SubManualPriceUpdate")]
+		HRESULT SubManualPriceUpdate();
+
+		[id(DISPID_UnsubManualPriceUpdate), helpstring("method UnsubManualPriceUpdate")]
+		HRESULT UnsubManualPriceUpdate();
 	};
 
 	[
@@ -558,6 +571,9 @@ library MMWLib
 
 		[id(DISPID_OnFlexOption), helpstring("method OnFlexOption")]
 		HRESULT OnFlexOption([in] IFlexOption* Data);
+
+		[id(DISPID_OnManualPriceUpdate), helpstring("method OnManualPriceUpdate")]
+		HRESULT OnManualPriceUpdate([in] IManualPriceUpdate* Data);
 	};
 
 	[

@@ -468,6 +468,13 @@ Public Function usp_UnderlyingOptions_Get(Optional iUnderlyingID As Variant = Nu
     Set usp_UnderlyingOptions_Get = Execute(True, "usp_UnderlyingOptions_Get", iUnderlyingID, _
                                 IIf(iTraderID <> 0, iTraderID, Null), iGroupID, tiWithPosition, dtMinExpiry)
 End Function
+Public Function usp_MmDividend_Save(ByVal iContractID As Variant, Optional ByVal iDivType As Variant = Null, Optional ByVal fYield As Variant = Null, _
+                                    Optional ByVal fDivAmt As Variant = Null, Optional ByVal iDivFreq As Variant = Null, Optional ByVal dtDivDate As Variant = Null, _
+                                    Optional ByVal fDivAmtCust As Variant = Null, Optional ByVal iDivFreqCust As Variant = Null, Optional ByVal dtDivDateCust As Variant = Null)
+                                    
+    usp_MmDividend_Save = Execute(False, "usp_MmDividend_Save", iContractID, iDivType, fDivAmt, dtDivDate, iDivFreq, _
+                                                                fDivAmtCust, dtDivDateCust, iDivFreqCust, fYield)
+End Function
 
 Public Function usp_Stock_Save(ByVal iStockID As Variant, ByVal iExchangeId As Variant, ByVal vcSymbol As Variant, ByVal vcContractName As Variant, _
                                 ByVal bIsHTB As Variant, ByVal iDivFreq As Variant, ByVal fDivAmt As Variant, ByVal dtDivDate As Variant, _

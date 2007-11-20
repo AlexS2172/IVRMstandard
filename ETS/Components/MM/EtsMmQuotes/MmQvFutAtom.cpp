@@ -619,15 +619,12 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 
 		m_spVolaSrv = pUnd->m_spVolaSrv;
 
-		DOUBLE dFutPriceBid = 0., dFutPriceAsk = 0., dFutPriceLast = 0., dFutPriceMid = 0.;
+		DOUBLE dFutPriceBid = 0., dFutPriceAsk = 0., dFutPriceLast = 0., dFutPriceMid = 0., dUndPriceMid = 0.;
 		//IMmQvQuoteAtomPtr spFutQuote;
 		SQuoteData futQuote;
 
 		if (pUnd)
 		{
-			
-
-			DOUBLE dFutPriceMid = 0.;
 			VARIANT_BOOL	futureUsed = VARIANT_FALSE;
 			EtsReplacePriceStatusEnum enMidPriceStatus = enRpsNone;
 
@@ -682,7 +679,7 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 																	ManualEdit);		
 				_CHK(spFutQuote->put_ReplacePriceStatus(enMidPriceStatus));
 			}*/
-
+			_CHK(pUnd->GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, &futureUsed, &dUndPriceMid));
 		}
 
 
@@ -1004,15 +1001,16 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 
 			m_dNetDelta += m_dTotalDelta;
 		}
-		if(dFutPriceMid > 0) 
+
+		EtsContractTypeEnum	enUndType = pUnd->m_enUndType;
+
+		if((dFutPriceMid > 0 && enUndType == enCtFutUnd) || (dUndPriceMid > 0 && enUndType== enCtIndex)) 
 		{
 			LONG nMultiplier = 1;
 			if(m_bShowInFutureContractEq==VARIANT_FALSE)
 			{
 				nMultiplier = m_nLotSize;
 			}
-
-			EtsContractTypeEnum	enUndType = pUnd->m_enUndType;
 
 			if(m_dNetDelta > BAD_DOUBLE_VALUE)
 			{
@@ -1025,7 +1023,7 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 				else
 				{
 					m_dNetDelta *= dDeltaGammaCalcKoeff;
-					m_dNetDeltaEq = m_dNetDelta * dFutPriceMid;
+					m_dNetDeltaEq = m_dNetDelta * dUndPriceMid;
 				}
 			}
 			if(m_dTotalDelta > BAD_DOUBLE_VALUE)
@@ -1039,7 +1037,7 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 				else
 				{
 					m_dTotalDelta *= dDeltaGammaCalcKoeff;
-					m_dTotalDeltaEq = m_dTotalDelta * dFutPriceMid;
+					m_dTotalDeltaEq = m_dTotalDelta * dUndPriceMid;
 				}
 			}
 			if(m_dTotalGamma > BAD_DOUBLE_VALUE)
@@ -1054,7 +1052,7 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 				{
 					m_dTotalGamma *= dDeltaGammaCalcKoeff;
 					//m_dTotalGammaEq = m_dTotalGamma * dFutPriceMid;
-					m_dTotalGammaEq = m_dTotalGamma * dFutPriceMid * dFutPriceMid / 100;
+					m_dTotalGammaEq = m_dTotalGamma * dUndPriceMid * dUndPriceMid / 100;
 				}
 			}
 		}

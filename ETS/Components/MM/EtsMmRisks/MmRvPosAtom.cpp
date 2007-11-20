@@ -437,7 +437,7 @@ void CMmRvPosAtom::_CalcOptPositionData(
 	   m_pQuote->m_pPrice->m_dActivePrice = dOptPriceMid;
 
 	// pnl
-	_CalcPnlMtm(bIsPnlLTD, dOptPriceBid, dOptPriceAsk, spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero , dtCalcDate);
+	_CalcPnlMtm(bIsPnlLTD, dOptPriceBid, dOptPriceAsk, /*spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero*/ false, dtCalcDate);
 	_CalcPnlTheo(bIsPnlLTD, dtCalcDate);
 
 	//AUM
@@ -1095,7 +1095,7 @@ void CMmRvPosAtom::_CalcFutPositionData(
 	}
 
 	// pnl
-	_CalcPnlMtm ( bIsPnlLTD, dOptPriceBid, dOptPriceAsk, spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero , dtCalcDate ) ;
+	_CalcPnlMtm ( bIsPnlLTD, dOptPriceBid, dOptPriceAsk, /*spOptPriceProfile->GetBadOptSinglePriceRule() == enObsprReplaceWithZero*/ false, dtCalcDate ) ;
 	_CalcPnlTheo ( bIsPnlLTD,dtCalcDate ) ;
 
 	if ( m_enContractType == enCtFutOption && enUndType == enCtFutUnd && m_spFut ) {

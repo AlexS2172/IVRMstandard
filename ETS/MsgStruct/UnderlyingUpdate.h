@@ -29,6 +29,7 @@ struct __UnderlyingUpdateData
 		FIELD_ENTRY(m_dDivFreq)
 		FIELD_ENTRY(m_dDivFreqCust)
 		FIELD_ENTRY(m_nDivType)
+		FIELD_ENTRY(m_dYield)
 
 		FIELD_ENTRY(m_enUpdStatus)
 	END_PACKING
@@ -44,6 +45,7 @@ struct __UnderlyingUpdateData
 	DoubleF			m_dDivFreq;
 	DoubleF			m_dDivFreqCust;
 	LongF			m_nDivType;
+	DoubleF			m_dYield;
 
 
 	TStaticField<UNDERLYING_UPDATE_STATUS>		m_enUpdStatus;
@@ -107,6 +109,7 @@ public:
 	IMPLEMENT_DATE_PROP		(DivDateCust,			m_dtDivDateCust)
 	IMPLEMENT_DOUBLE_PROP	(DivFreq,				m_dDivFreq)
 	IMPLEMENT_DOUBLE_PROP	(DivFreqCust,			m_dDivFreqCust)
+	IMPLEMENT_DOUBLE_PROP	(Yield,					m_dYield)
 	IMPLEMENT_LONG_PROP		(DivType,				m_nDivType)
 
 	

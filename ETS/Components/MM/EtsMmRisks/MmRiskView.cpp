@@ -221,7 +221,7 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 				CMmRvRowData* pAtom = static_cast<CMmRvRowData*>(spAtom.GetInterfacePtr());
 				_variant_t	vtVal = _bstr_t(newData);
 				double dblValue = vtVal;
-				if(dblValue > 0.)
+				if(!(dblValue < 0.))
 				{
 					if(pAtom->m_pPos) 
 						pAtom->m_pPos->m_pQuote->m_pPrice->put_Close(dblValue); // set close for position
@@ -239,7 +239,7 @@ STDMETHODIMP CMmRiskView::raw_SetData(/*[in]*/ long Field,	/*[in]*/ long Record,
 					CMmRvRowData* pAtom = static_cast<CMmRvRowData*>(spAtom.GetInterfacePtr());
 					_variant_t	vtVal = _bstr_t(newData);
 					double dblValue = vtVal;
-					if(dblValue > 0.)
+					if(!(dblValue < 0.))
 					{
 					
 						if(pAtom->m_pPos)

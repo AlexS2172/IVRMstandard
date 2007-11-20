@@ -55,54 +55,59 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 		LONG nIdxID = pIdx->m_nID;
 		DOUBLE activeFuturePrice = 0.;
 
+		LONG nCalcDate = static_cast<LONG>(dtCalcDate);
+		dtCalcDate = static_cast<DATE>(nCalcDate);
+
 		if(nIdxID != 0L)
 		{
 			EtsReplacePriceStatusEnum enPriceStatusMid = enRpsNone;
-			DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
-			DOUBLE dFutPriceBid = 0., dFutPriceAsk = 0., dFutPriceLast = 0.;
-			DOUBLE activeFutureBasis = 0.;
+			VARIANT_BOOL	bDriverUsed = VARIANT_FALSE;
+			//DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
+			//DOUBLE dFutPriceBid = 0., dFutPriceAsk = 0., dFutPriceLast = 0.;
+			//DOUBLE activeFutureBasis = 0.;
 
-			IEtsPriceProfileAtomPtr spUndPriceProfile;
-			spUndPriceProfile = pIdx->m_spUndPriceProfile;
+			//IEtsPriceProfileAtomPtr spUndPriceProfile;
+			//spUndPriceProfile = pIdx->m_spUndPriceProfile;
 
-			if(spUndPriceProfile != NULL)
-			{
-				dPriceBid  = pIdx->m_pPrice->m_dPriceBid;
-				dPriceAsk  = pIdx->m_pPrice->m_dPriceAsk;
-				dPriceLast = pIdx->m_pPrice->m_dPriceLast;
+			//if(spUndPriceProfile != NULL)
+			//{
+			//	dPriceBid  = pIdx->m_pPrice->m_dPriceBid;
+			//	dPriceAsk  = pIdx->m_pPrice->m_dPriceAsk;
+			//	dPriceLast = pIdx->m_pPrice->m_dPriceLast;
 
-				dIdxPrice = spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk,
-					dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, VARIANT_FALSE);
-			}
+			//	dIdxPrice = spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk,
+			//		dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, VARIANT_FALSE);
+			//}
 
-			pIdx->m_enReplacePriceStatus = enPriceStatusMid;
+			//pIdx->m_enReplacePriceStatus = enPriceStatusMid;
 
-			// get active future for index prices
-			IMmRvFutAtomPtr spActiveFuture;
-			_CHK( pIdx->get_ActiveFuture(&spActiveFuture) );
-			if (spActiveFuture)	{
-				_CHK(spActiveFuture->get_Basis(&activeFutureBasis));	// get basis value
+			//// get active future for index prices
+			//IMmRvFutAtomPtr spActiveFuture;
+			//_CHK( pIdx->get_ActiveFuture(&spActiveFuture) );
+			//if (spActiveFuture)	{
+			//	_CHK(spActiveFuture->get_Basis(&activeFutureBasis));	// get basis value
 
-				// get active future price
-				IEtsPriceProfileAtomPtr activeFuturePriceProfile;
-				_CHK(spActiveFuture->get_UndPriceProfile(&activeFuturePriceProfile));
-				if ( NULL != activeFuturePriceProfile)
-				{
-					IMmRvPricePtr spPrice;
-					_CHK(spActiveFuture->get_Price(&spPrice));
+			//	// get active future price
+			//	IEtsPriceProfileAtomPtr activeFuturePriceProfile;
+			//	_CHK(spActiveFuture->get_UndPriceProfile(&activeFuturePriceProfile));
+			//	if ( NULL != activeFuturePriceProfile)
+			//	{
+			//		IMmRvPricePtr spPrice;
+			//		_CHK(spActiveFuture->get_Price(&spPrice));
 
-					_CHK(spPrice->get_Bid(&dFutPriceBid));
-					_CHK(spPrice->get_Ask(&dFutPriceAsk));
-					_CHK(spPrice->get_Last(&dFutPriceLast));
-					activeFuturePrice = activeFuturePriceProfile->GetUndPriceMid(dFutPriceBid, dFutPriceAsk,
-						dFutPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, VARIANT_FALSE);
-					if ( activeFuturePrice > 0.){
-						activeFuturePrice += activeFutureBasis;
-						dIdxPrice = activeFuturePrice;
-						spPrice->put_Active(activeFuturePrice);
-					}
-				}
-			}
+			//		_CHK(spPrice->get_Bid(&dFutPriceBid));
+			//		_CHK(spPrice->get_Ask(&dFutPriceAsk));
+			//		_CHK(spPrice->get_Last(&dFutPriceLast));
+			//		activeFuturePrice = activeFuturePriceProfile->GetUndPriceMid(dFutPriceBid, dFutPriceAsk,
+			//			dFutPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, VARIANT_FALSE);
+			//		if ( activeFuturePrice > 0.){
+			//			activeFuturePrice += activeFutureBasis;
+			//			dIdxPrice = activeFuturePrice;
+			//			spPrice->put_Active(activeFuturePrice);
+			//		}
+			//	}
+			//}
+			pIdx->GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enPriceStatusMid, &bDriverUsed, &dIdxPrice);
 		}
 
 		CMmRvUndColl::EnumCollType::iterator itUnd    =  pUndColl->m_coll.begin();

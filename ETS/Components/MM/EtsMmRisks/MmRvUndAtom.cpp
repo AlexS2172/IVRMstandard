@@ -337,7 +337,7 @@ void __MmRvUndAtom::AggregatePositionTmVal(CMmRvPosAtom* pPos)
 			pPos->AggregationsPtr_[i]->TmVal_ += pPos->m_dTimeValue;
 			if (IsBadValue(pPos->AggregationsPtr_[i]->TmValInShares_))
 				pPos->AggregationsPtr_[i]->TmValInShares_= 0.;
-			TmValInShares_ += (pPos->m_dTimeValue*pPos->m_nQtyInShares);
+			pPos->AggregationsPtr_[i]->TmValInShares_ += (pPos->m_dTimeValue*pPos->m_nQtyInShares);
 		}
 	}
 }

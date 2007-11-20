@@ -1831,7 +1831,7 @@ Public Sub DivsUpdate()
                     .ColHidden(QDC_FREQ) = True
                 
                     gdDiv.Col(QDC_DATE).CanEdit = False
-                    gdDiv.Col(QDC_AMT).CanEdit = False
+                    gdDiv.Col(QDC_AMT).CanEdit = True
                     gdDiv.Col(QDC_FREQ).CanEdit = False
             End If
             

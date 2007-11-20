@@ -1005,7 +1005,7 @@ Private Function CheckPosFilter(ByRef aPos As EtsMmRisksLib.MmRvPosAtom) As Bool
     nValue = m_aFilter.Data(MFC_EXPIRY)
     bMatched = (nValue = 0)
     If Not bMatched Then
-        If aPos.ContractType = enCtOption Then
+        If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
             bMatched = (nValue = CLng(aPos.Expiry))
         Else
             bMatched = False
@@ -4781,6 +4781,7 @@ Private Function IndexLoad() As Boolean
     If m_bInProc Then Exit Function
     Dim aGIdx As EtsGeneralLib.IndexAtom, aComp As EtsGeneralLib.IndexCompAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, sKey$, sKeyActiveFuture$
     Dim aReq As EtsMmRisksLib.MmRvReqAtom, aReqActiveFuture As EtsMmRisksLib.MmRvReqAtom, aPos As EtsMmRisksLib.MmRvPosAtom, nKey&
+    Dim aUndIdx As UndAtom
     
     m_bInProc = True
     AdjustState
@@ -4801,6 +4802,12 @@ Private Function IndexLoad() As Boolean
         If Not m_Idx.ActiveFuture Is Nothing Then
             sKeyActiveFuture = CStr(enCtFuture) & "_" & m_Idx.ActiveFuture.Symbol
             Set aReqActiveFuture = m_QuoteRequests(sKeyActiveFuture)
+            
+            m_Idx.ActiveFuture.Price.IsUseManualActive = False
+            If (g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice > 0) Then
+                m_Idx.ActiveFuture.Price.IsUseManualActive = True
+                m_Idx.ActiveFuture.Price.Active = g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice
+            End If
         End If
         
         If Not aReq Is Nothing Then
@@ -4866,18 +4873,29 @@ Private Function IndexLoad() As Boolean
                 m_Idx.Price.NetChange = aReq.Und.Price.NetChange
             End If
             
+            Set aUndIdx = g_ContractAll(m_Idx.ID).Und
+            If (Not aUndIdx Is Nothing) Then
+                m_Idx.Price.Close = aUndIdx.PriceClose
+                m_Idx.Price.TheoClose = aUndIdx.PriceTheoclose
+                If (aUndIdx.manualActivePrice > 0) Then
+                    m_Idx.Price.IsUseManualActive = True
+                    m_Idx.Price.Active = aUndIdx.manualActivePrice
+                End If
+                Set aUndIdx = Nothing
+            End If
+            
             Set m_Idx.UndPriceProfile = aGIdx.UndPriceProfile
             Set m_Idx.OptPriceProfile = aGIdx.OptPriceProfile
             
             ' try to get active future for selected index
             '******************************************************
             'Dim aActiveFuture As EtsMmRisksLib.MmRvFutAtom
-            Set m_Idx.ActiveFuture = Nothing    ' delete active future for previous active
-            If Not aReqActiveFuture Is Nothing Then
-                If Not aReqActiveFuture.Fut Is Nothing Then
-                    Set m_Idx.ActiveFuture = aReqActiveFuture.Fut
-                End If
-            End If
+'            Set m_Idx.ActiveFuture = Nothing    ' delete active future for previous active
+'            If Not aReqActiveFuture Is Nothing Then
+'                If Not aReqActiveFuture.Fut Is Nothing Then
+'                    Set m_Idx.ActiveFuture = aReqActiveFuture.Fut
+'                End If
+'            End If
             If m_Idx.ActiveFuture Is Nothing Then
                 If Not g_ContractAll(m_Idx.ID) Is Nothing Then
                     If Not g_ContractAll(m_Idx.ID).Und Is Nothing Then
@@ -4897,6 +4915,15 @@ Private Function IndexLoad() As Boolean
                                     m_Idx.ActiveFuture.ID = g_ContractAll(m_Idx.ID).Und.ActiveFuture.ID
                                     Set m_Idx.ActiveFuture.UndPriceProfile = g_ContractAll(m_Idx.ID).Und.ActiveFuture.UndPriceProfile
                                     Set m_Idx.ActiveFuture.OptPriceProfile = g_ContractAll(m_Idx.ID).Und.ActiveFuture.OptPriceProfile
+                                    m_Idx.ActiveFuture.Price.Close = g_ContractAll(m_Idx.ID).Und.ActiveFuture.PriceClose
+                                    m_Idx.ActiveFuture.Price.TheoClose = g_ContractAll(m_Idx.ID).Und.ActiveFuture.PriceTheoclose
+                                    
+                                    m_Idx.ActiveFuture.Price.IsUseManualActive = False
+                                    If (g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice > 0) Then
+                                        m_Idx.ActiveFuture.Price.IsUseManualActive = True
+                                        m_Idx.ActiveFuture.Price.Active = g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice
+                                    End If
+                                    
                                     m_Idx.ActiveFuture.CalcGreeks = False
                                     m_Idx.ActiveFuture.bAsIs = g_ContractAll(m_Idx.ID).Und.ActiveFuture.FutureBasis
                                     m_Idx.ActiveFuture.Symbol = g_ContractAll(m_Idx.ID).Und.ActiveFuture.Symbol
@@ -5229,6 +5256,7 @@ Private Sub HandleGridDblClick()
         End If
     End If
 End Sub
+
 
 
 

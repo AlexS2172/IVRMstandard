@@ -962,10 +962,10 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
         
         aUnd.Symbol = aTrd.Und.Symbol
         
-        Set aUnd.Price = Nothing
-        Set aUnd.Price = m_Und.GetPriceProperty(aUnd.Symbol)
-        If aUnd.Price Is Nothing Then
-            Set aUnd.Price = New EtsMmReportsLib.MMRpPrice
+        Set aUnd.price = Nothing
+        Set aUnd.price = m_Und.GetPriceProperty(aUnd.Symbol)
+        If aUnd.price Is Nothing Then
+            Set aUnd.price = New EtsMmReportsLib.MMRpPrice
         End If
         
 
@@ -999,7 +999,7 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                         If (aUnd.Dividend.CustomDivs Is Nothing) Then
                             If (Not g_Main.UnderlyingAll(aUnd.ID) Is Nothing) Then
                                 If (Not g_Main.UnderlyingAll(aUnd.ID).Dividend Is Nothing) Then
-                                    aUnd.Dividend.CustomDivs = g_Main.UnderlyingAll(aUnd.ID).Dividend.CustomDivs
+                                    Set aUnd.Dividend.CustomDivs = g_Main.UnderlyingAll(aUnd.ID).Dividend.CustomDivs
                                 End If
                             End If
                         End If
@@ -1021,17 +1021,17 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                     aUnd.ActiveFuture.FutRootSymbol = aTrd.Und.ActiveFuture.Symbol
                     aUnd.ActiveFuture.UndID = aTrd.Und.ID
                     aUnd.ActiveFuture.CalcGreeks = True
-                    Set aUnd.ActiveFuture.Price = Nothing
-                    Set aUnd.ActiveFuture.Price = m_Und.GetPricePropertyFut(aTrd.Und.Symbol, aUnd.ActiveFuture.Symbol)
-                    If aUnd.ActiveFuture.Price Is Nothing Then
-                        Set aUnd.ActiveFuture.Price = New EtsMmReportsLib.MMRpPrice
+                    Set aUnd.ActiveFuture.price = Nothing
+                    Set aUnd.ActiveFuture.price = m_Und.GetPricePropertyFut(aTrd.Und.Symbol, aUnd.ActiveFuture.Symbol)
+                    If aUnd.ActiveFuture.price Is Nothing Then
+                        Set aUnd.ActiveFuture.price = New EtsMmReportsLib.MMRpPrice
                     End If
             
-                    aUnd.ActiveFuture.Price.Bid = BAD_DOUBLE_VALUE
-                    aUnd.ActiveFuture.Price.Ask = BAD_DOUBLE_VALUE
-                    aUnd.ActiveFuture.Price.Last = BAD_DOUBLE_VALUE
-                    aUnd.ActiveFuture.Price.Close = aTrd.Und.ActiveFuture.PriceClose
-                    aUnd.ActiveFuture.Price.TheoClose = aTrd.Und.ActiveFuture.PriceTheoclose
+                    aUnd.ActiveFuture.price.Bid = BAD_DOUBLE_VALUE
+                    aUnd.ActiveFuture.price.Ask = BAD_DOUBLE_VALUE
+                    aUnd.ActiveFuture.price.Last = BAD_DOUBLE_VALUE
+                    aUnd.ActiveFuture.price.Close = aTrd.Und.ActiveFuture.PriceClose
+                    aUnd.ActiveFuture.price.TheoClose = aTrd.Und.ActiveFuture.PriceTheoclose
                     aUnd.ActiveFuture.ContractName = aTrd.Und.ActiveFuture.ContractName
                     aUnd.ActiveFuture.OptLotSize = aTrd.Und.FutRoots(aUnd.ActiveFuture.FutRootID).OptLotSize
                     aUnd.ActiveFuture.FutLotSize = aTrd.Und.FutRoots(aUnd.ActiveFuture.FutRootID).FutLotSize
@@ -1050,8 +1050,8 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                 Set aUnd.UndPriceProfile = aTrd.Und.UndPriceProfile
                 Set aUnd.OptPriceProfile = aTrd.Und.OptPriceProfile
 
-                aUnd.Price.Close = aTrd.Und.PriceClose
-                aUnd.Price.TheoClose = aTrd.Und.PriceTheoclose
+                aUnd.price.Close = aTrd.Und.PriceClose
+                aUnd.price.TheoClose = aTrd.Und.PriceTheoclose
                 aUnd.LotSize = aTrd.Und.LotSize
 
                 gDBW.usp_DataHistoryDH_Get aUnd.ID, aUnd.UndType, fIV, fHV, fVolOfVol, fVega, dtUpdateDate
@@ -1104,18 +1104,18 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                 aFut.FutRootSymbol = aTrd.FutRoot.Symbol
                 aFut.UndID = aTrd.UndID
                 aFut.CalcGreeks = True
-                Set aFut.Price = Nothing
-                Set aFut.Price = m_Und.GetPricePropertyFut(aTrd.Und.Symbol, aFut.Symbol)
+                Set aFut.price = Nothing
+                Set aFut.price = m_Und.GetPricePropertyFut(aTrd.Und.Symbol, aFut.Symbol)
                 
-                If aFut.Price Is Nothing Then
-                    Set aFut.Price = New EtsMmReportsLib.MMRpPrice
+                If aFut.price Is Nothing Then
+                    Set aFut.price = New EtsMmReportsLib.MMRpPrice
                 End If
                 
-                aFut.Price.Bid = BAD_DOUBLE_VALUE
-                aFut.Price.Ask = BAD_DOUBLE_VALUE
-                aFut.Price.Last = BAD_DOUBLE_VALUE
-                aFut.Price.Close = aTrd.Fut.PriceClose
-                aFut.Price.TheoClose = aTrd.Fut.PriceTheoclose
+                aFut.price.Bid = BAD_DOUBLE_VALUE
+                aFut.price.Ask = BAD_DOUBLE_VALUE
+                aFut.price.Last = BAD_DOUBLE_VALUE
+                aFut.price.Close = aTrd.Fut.PriceClose
+                aFut.price.TheoClose = aTrd.Fut.PriceTheoclose
                 aFut.ContractName = aTrd.ContractName
                 aFut.OptLotSize = aTrd.FutRoot.OptLotSize
                 aFut.FutLotSize = aTrd.FutRoot.FutLotSize
@@ -1162,14 +1162,14 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                             aOpt.Strike = aTrd.Opt.Strike
                             aOpt.Symbol = aTrd.Opt.Symbol
                 
-                            Set aOpt.Price = Nothing
-                            Set aOpt.Price = m_Und.GetPricePropertyOpt(aTrd.Und.Symbol, aOpt.Symbol)
-                            If aOpt.Price Is Nothing Then
-                                Set aOpt.Price = New EtsMmReportsLib.MMRpPrice
+                            Set aOpt.price = Nothing
+                            Set aOpt.price = m_Und.GetPricePropertyOpt(aTrd.Und.Symbol, aOpt.Symbol)
+                            If aOpt.price Is Nothing Then
+                                Set aOpt.price = New EtsMmReportsLib.MMRpPrice
                             End If
                 
-                            aOpt.Price.Close = aTrd.Opt.PriceClose
-                            aOpt.Price.TheoClose = aTrd.Opt.PriceTheoclose
+                            aOpt.price.Close = aTrd.Opt.PriceClose
+                            aOpt.price.TheoClose = aTrd.Opt.PriceTheoclose
                             aOpt.UnderlyingName = aUnd.Symbol
                             aOpt.PriceTheoclose = aTrd.Opt.PriceTheoclose
                             aOpt.RootID = aTrd.OptRootID
@@ -1184,12 +1184,12 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                                  aOpt.UnderlyingName = aFuture.Symbol
                             End If
                     
-                            Set aOpt.Price = Nothing
-                            Set aOpt.Price = m_Und.GetPricePropertyOpt(aTrd.Und.Symbol, aOpt.Symbol)
-                            If aOpt.Price Is Nothing Then
-                                  Set aOpt.Price = New EtsMmReportsLib.MMRpPrice
+                            Set aOpt.price = Nothing
+                            Set aOpt.price = m_Und.GetPricePropertyOpt(aTrd.Und.Symbol, aOpt.Symbol)
+                            If aOpt.price Is Nothing Then
+                                  Set aOpt.price = New EtsMmReportsLib.MMRpPrice
                             End If
-                            aOpt.Price.Close = aTrd.FutOpt.PriceClose
+                            aOpt.price.Close = aTrd.FutOpt.PriceClose
                             aOpt.PriceTheoclose = aTrd.FutOpt.PriceTheoclose
                             aOpt.RootID = aTrd.Fut.FutRootID
                     
@@ -1211,18 +1211,18 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                             aFut.CalcGreeks = True
                             aFut.Ratio = aTrd.Fut.ActiveFutureRatio
                             aFut.FutureBasis = aTrd.Fut.FutureBasis
-                            Set aFut.Price = Nothing
-                            Set aFut.Price = m_Und.GetPricePropertyFut(aTrd.Und.Symbol, aFut.Symbol)
+                            Set aFut.price = Nothing
+                            Set aFut.price = m_Und.GetPricePropertyFut(aTrd.Und.Symbol, aFut.Symbol)
 
-                            If aFut.Price Is Nothing Then
-                                Set aFut.Price = New EtsMmReportsLib.MMRpPrice
+                            If aFut.price Is Nothing Then
+                                Set aFut.price = New EtsMmReportsLib.MMRpPrice
                             End If
                         
-                            aFut.Price.Bid = BAD_DOUBLE_VALUE
-                            aFut.Price.Ask = BAD_DOUBLE_VALUE
-                            aFut.Price.Last = BAD_DOUBLE_VALUE
-                            aFut.Price.Close = aTrd.Fut.PriceClose
-                            aFut.Price.TheoClose = aTrd.Fut.PriceTheoclose
+                            aFut.price.Bid = BAD_DOUBLE_VALUE
+                            aFut.price.Ask = BAD_DOUBLE_VALUE
+                            aFut.price.Last = BAD_DOUBLE_VALUE
+                            aFut.price.Close = aTrd.Fut.PriceClose
+                            aFut.price.TheoClose = aTrd.Fut.PriceTheoclose
                             aFut.OptLotSize = aTrd.FutRoot.OptLotSize
                             aFut.FutLotSize = aTrd.FutRoot.FutLotSize
                             If Not aUnd.ActiveFuture Is Nothing Then Set aFut.ActiveFuture = aUnd.ActiveFuture
@@ -1290,14 +1290,14 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                                                     Set aSynthUnd.Dividend = aGUnd.Dividend
                                                 End If
 
-                                                Set aSynthUnd.Price = Nothing
-                                                Set aSynthUnd.Price = m_Und.GetPriceProperty(aSynthUnd.Symbol)
-                                                If aSynthUnd.Price Is Nothing Then
-                                                    Set aSynthUnd.Price = New EtsMmReportsLib.MMRpPrice
+                                                Set aSynthUnd.price = Nothing
+                                                Set aSynthUnd.price = m_Und.GetPriceProperty(aSynthUnd.Symbol)
+                                                If aSynthUnd.price Is Nothing Then
+                                                    Set aSynthUnd.price = New EtsMmReportsLib.MMRpPrice
                                                 End If
 
-                                                aSynthUnd.Price.Close = aGUnd.PriceClose
-                                                aSynthUnd.Price.TheoClose = aGUnd.PriceTheoclose
+                                                aSynthUnd.price.Close = aGUnd.PriceClose
+                                                aSynthUnd.price.TheoClose = aGUnd.PriceTheoclose
                                                 aSynthUnd.LotSize = aGUnd.LotSize
 
                                                 aSynthUnd.IsAmerican = aGUnd.IsAmerican
@@ -1636,10 +1636,10 @@ Private Function OptionsLoad() As Boolean
                 If Not bUnd Is Nothing Then
                     For Each aOpt In bUnd.Opt
                         Set bOpt = trOptColl.Add(aOpt.ID, aOpt)
-                            If bOpt.Price Is Nothing Then
-                                Set bOpt.Price = m_Und.GetPricePropertyOpt(aUnd.Symbol, bOpt.Symbol)
-                                If bOpt.Price Is Nothing Then
-                                    Set bOpt.Price = New EtsMmReportsLib.MMRpPrice
+                            If bOpt.price Is Nothing Then
+                                Set bOpt.price = m_Und.GetPricePropertyOpt(aUnd.Symbol, bOpt.Symbol)
+                                If bOpt.price Is Nothing Then
+                                    Set bOpt.price = New EtsMmReportsLib.MMRpPrice
                                 End If
                             End If
                     Next
@@ -1670,17 +1670,17 @@ Private Function OptionsLoad() As Boolean
                                     aFuture.UndID = bUnd.ID
                                     aFuture.CalcGreeks = True
                                     aFuture.Ratio = aFut.ActiveFutureRatio
-                                    Set aFuture.Price = Nothing
-                                    Set aFuture.Price = m_Und.GetPricePropertyFut(bUnd.Symbol, aFuture.Symbol)
-                                    If aFuture.Price Is Nothing Then
-                                        Set aFuture.Price = New EtsMmReportsLib.MMRpPrice
+                                    Set aFuture.price = Nothing
+                                    Set aFuture.price = m_Und.GetPricePropertyFut(bUnd.Symbol, aFuture.Symbol)
+                                    If aFuture.price Is Nothing Then
+                                        Set aFuture.price = New EtsMmReportsLib.MMRpPrice
                                     End If
                                             
-                                    aFuture.Price.Bid = BAD_DOUBLE_VALUE
-                                    aFuture.Price.Ask = BAD_DOUBLE_VALUE
-                                    aFuture.Price.Last = BAD_DOUBLE_VALUE
-                                    aFuture.Price.Close = g_ContractAll(futureID).Fut.PriceClose
-                                    aFuture.Price.TheoClose = g_ContractAll(futureID).Fut.PriceTheoclose
+                                    aFuture.price.Bid = BAD_DOUBLE_VALUE
+                                    aFuture.price.Ask = BAD_DOUBLE_VALUE
+                                    aFuture.price.Last = BAD_DOUBLE_VALUE
+                                    aFuture.price.Close = g_ContractAll(futureID).Fut.PriceClose
+                                    aFuture.price.TheoClose = g_ContractAll(futureID).Fut.PriceTheoclose
                                     aFuture.OptLotSize = g_ContractAll(futureID).FutRoot.OptLotSize
                                     aFuture.FutLotSize = g_ContractAll(futureID).FutRoot.FutLotSize
                                     If Not bUnd.ActiveFuture Is Nothing Then Set aFuture.ActiveFuture = bUnd.ActiveFuture
@@ -1723,11 +1723,11 @@ Private Function OptionsLoad() As Boolean
                                 Set aOpt.Fut = aFuture
                                 Set aFuture = Nothing
                                 aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(dtExpiry)
-                                Set aOpt.Price = Nothing
-                                Set aOpt.Price = m_Und.GetPricePropertyOpt(aUnd.Symbol, aOpt.Symbol)
+                                Set aOpt.price = Nothing
+                                Set aOpt.price = m_Und.GetPricePropertyOpt(aUnd.Symbol, aOpt.Symbol)
                                 
-                                If aOpt.Price Is Nothing Then
-                                        Set aOpt.Price = New EtsMmReportsLib.MMRpPrice
+                                If aOpt.price Is Nothing Then
+                                        Set aOpt.price = New EtsMmReportsLib.MMRpPrice
                                 End If
                                 sKey = GetColKeyFromOpt(aOpt)
                                 If bReqAll Then
@@ -2267,7 +2267,7 @@ Private Sub UpdateResGrid()
                     .FontSize = 8
                     .TextAlign = taLeftTop
                     .Text = "Symbol" & String$(2, vbTab) & aPosWithEarlyExerciseAtom.Symbol & vbCrLf
-                    .Text = "Stock Price" & vbTab & Format$(aPosWithEarlyExerciseAtom.Price, "#,##0.00") & String$(2, vbTab)
+                    .Text = "Stock Price" & vbTab & Format$(aPosWithEarlyExerciseAtom.price, "#,##0.00") & String$(2, vbTab)
                     .Text = "Stock Position" & vbTab & Format$(aPosWithEarlyExerciseAtom.PosInShares, "#,##0.00") & vbCrLf
                     .Text = String$(4, vbTab) & "Net Delta" & String$(2, vbTab) & aPosWithEarlyExerciseAtom.NetDelta & String$(2, vbCrLf)
                 End With
@@ -2477,7 +2477,7 @@ NEXT_POSITION_WITH_EARLY_EXERCISE:
                     .FontSize = 8
                     .TextAlign = taLeftTop
                     .Text = "Symbol" & String$(2, vbTab) & aMatrixByStockAtom.Symbol & vbCrLf
-                    .Text = "Stock Price" & vbTab & Format$(aMatrixByStockAtom.Price, "#,##0.00") & String$(2, vbCrLf)
+                    .Text = "Stock Price" & vbTab & Format$(aMatrixByStockAtom.price, "#,##0.00") & String$(2, vbCrLf)
                     .RenderControl = fgRes.hWnd
                     .Text = vbCrLf
                 End With
@@ -2500,7 +2500,7 @@ NEXT_MATRIX_BY_STOCK:
                     .Text = "Symbol" & String$(2, vbTab) & aSyntheticAtom.Symbol & String$(2, vbTab)
                     .Text = "Stock Position" & vbTab & Format$(aSyntheticAtom.Pos, "#,##0.00") & String$(2, vbTab)
                     .Text = "Net Delta" & String$(2, vbTab) & Format$(aSyntheticAtom.NetDelta, "#,##0.00") & vbCrLf
-                    .Text = "Stock Price" & vbTab & Format$(aSyntheticAtom.Price, "#,##0.00") & String$(2, vbTab)
+                    .Text = "Stock Price" & vbTab & Format$(aSyntheticAtom.price, "#,##0.00") & String$(2, vbTab)
                     .Text = "Synthetic Stock" & vbTab & Format$(aSyntheticAtom.Synthetic, "#,##0.00") & String$(2, vbTab)
                     .Text = "Net Stock" & String$(2, vbTab) & Format$(aSyntheticAtom.Net, "#,##0.00") & String$(2, vbCrLf)
                 End With
@@ -2842,7 +2842,7 @@ NEXT_SYNTHETIC:
                     .TextAlign = taLeftTop
                     If aRiskMatrixAtom.ID <> -1 Then
                         .Text = "Symbol" & String$(2, vbTab) & aRiskMatrixAtom.Symbol & vbCrLf
-                        .Text = "Stock Price" & vbTab & Format$(aRiskMatrixAtom.Price, "#,##0.00") & String$(2, vbTab)
+                        .Text = "Stock Price" & vbTab & Format$(aRiskMatrixAtom.price, "#,##0.00") & String$(2, vbTab)
                         .Text = "30d HV" & vbTab & Format$(aRiskMatrixAtom.HV, "#,##0.00") & "%" & String$(2, vbTab)
                         .Text = "1 STD" & vbTab & Format$(aRiskMatrixAtom.STD, "#,##0.00") & "%" & String$(2, vbCrLf)
                     Else
@@ -2862,7 +2862,7 @@ NEXT_SYNTHETIC:
                         .AddItem ""
                         .TextMatrix(i, 0) = aRiskMatrixShiftAtom.MarketMove
 '                        .TextMatrix(i, 1) = aRiskMatrixShiftAtom.Shift
-                        .TextMatrix(i, 2) = IIf(aRiskMatrixShiftAtom.Price >= 0, aRiskMatrixShiftAtom.Price, "--")
+                        .TextMatrix(i, 2) = IIf(aRiskMatrixShiftAtom.price >= 0, aRiskMatrixShiftAtom.price, "--")
                         .TextMatrix(i, 3) = IIf(aRiskMatrixShiftAtom.MarketValue > BAD_DOUBLE_VALUE, aRiskMatrixShiftAtom.MarketValue, "--")
                         .TextMatrix(i, 4) = IIf(aRiskMatrixShiftAtom.MarketValueChange > BAD_DOUBLE_VALUE, aRiskMatrixShiftAtom.MarketValueChange, "--")
                         .TextMatrix(i, 5) = aRiskMatrixShiftAtom.PoP
@@ -2905,7 +2905,7 @@ NEXT_SYNTHETIC:
                         .AddItem ""
                         .TextMatrix(i, 0) = CStr(aRiskMatrixShiftAtom.MarketMove) & " STD"
                         .TextMatrix(i, 1) = aRiskMatrixShiftAtom.Shift
-                        .TextMatrix(i, 2) = IIf(aRiskMatrixShiftAtom.Price > BAD_DOUBLE_VALUE, aRiskMatrixShiftAtom.Price, "--")
+                        .TextMatrix(i, 2) = IIf(aRiskMatrixShiftAtom.price > BAD_DOUBLE_VALUE, aRiskMatrixShiftAtom.price, "--")
                         .TextMatrix(i, 3) = IIf(aRiskMatrixShiftAtom.MarketValue > BAD_DOUBLE_VALUE, aRiskMatrixShiftAtom.MarketValue, "--")
                         .TextMatrix(i, 4) = IIf(aRiskMatrixShiftAtom.MarketValueChange > BAD_DOUBLE_VALUE, aRiskMatrixShiftAtom.MarketValueChange, "--")
                         .TextMatrix(i, 5) = aRiskMatrixShiftAtom.PoP
@@ -3033,10 +3033,10 @@ REPORT_RISK_MATRIX_NEXT:
                     
                     If aOpt.ContractType = enCtFutOption Then
                         Dim dummy As EtsReplacePriceStatusEnum
-                        dPriceClc = aOpt.Fut.UndPriceProfile.GetUndPriceMid(aOpt.Fut.Price.Bid, aOpt.Fut.Price.Ask, aOpt.Fut.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, dummy)
+                        dPriceClc = aOpt.Fut.UndPriceProfile.GetUndPriceMid(aOpt.Fut.price.Bid, aOpt.Fut.price.Ask, aOpt.Fut.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, dummy)
                         '.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, dummy, bdummy)
                     Else
-                        dPriceClc = aUnd.Price.Last
+                        dPriceClc = aUnd.price.Last
                     End If
 
                     bDiffCurrent = Abs(dPriceClc - dStrike)
@@ -3053,7 +3053,7 @@ REPORT_RISK_MATRIX_NEXT:
                         
                         .TextMatrix(i, 2) = aUnd.Symbol
                         
-                        .TextMatrix(i, 6) = aUnd.Price.Last
+                        .TextMatrix(i, 6) = aUnd.price.Last
                         .TextMatrix(i, 7) = bDiffCurrent
     
                         'For Each aOpt In aUnd.Opt
@@ -3513,8 +3513,8 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
     Set aUnd = g_Underlying(m_nFilter(PFC_UNDERLYING))
             
     If bIsStock And Not aUnd Is Nothing Then
-        dPrice = m_Und(aUnd.ID).Price.Bid
-        If dPrice <= 0# Then dPrice = m_Und(aUnd.ID).Price.Last
+        dPrice = m_Und(aUnd.ID).price.Bid
+        If dPrice <= 0# Then dPrice = m_Und(aUnd.ID).price.Last
     End If
 End Sub
 
@@ -4094,17 +4094,17 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             Set aFut = aReq.Fut
             
             If Not aOpt Is Nothing Then
-                aOpt.Price.Bid = dPriceBid
-                aOpt.Price.Ask = dPriceAsk
-                aOpt.Price.Last = dPriceLast
+                aOpt.price.Bid = dPriceBid
+                aOpt.price.Ask = dPriceAsk
+                aOpt.price.Last = dPriceLast
             ElseIf Not aUnd Is Nothing Then
-                aUnd.Price.Bid = dPriceBid
-                aUnd.Price.Ask = dPriceAsk
-                aUnd.Price.Last = dPriceLast
+                aUnd.price.Bid = dPriceBid
+                aUnd.price.Ask = dPriceAsk
+                aUnd.price.Last = dPriceLast
             ElseIf Not aFut Is Nothing Then
-                aFut.Price.Bid = dPriceBid
-                aFut.Price.Ask = dPriceAsk
-                aFut.Price.Last = dPriceLast
+                aFut.price.Bid = dPriceBid
+                aFut.price.Ask = dPriceAsk
+                aFut.price.Last = dPriceLast
             End If
             
             

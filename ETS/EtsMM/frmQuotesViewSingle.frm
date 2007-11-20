@@ -2014,11 +2014,7 @@ Private Sub mnuManualPrices_Click()
     frmMPrices.Show vbModal, Me
     
     If (frmMPrices.ChangedCount > 0) Then
-
-        frmMPrices.GetChanged ctrID, price, isManual
-        
         ctlView.UpdateManualPrices ctrID, price, isManual
-    
     End If
         
 End Sub

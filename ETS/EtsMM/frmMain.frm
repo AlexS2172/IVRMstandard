@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Begin VB.Form frmMain 
    Appearance      =   0  'Flat
    Caption         =   "ETS"
@@ -416,7 +416,7 @@ Private Sub Form_Load()
     mnuToolsShowEventsLog.Checked = g_Params.ShowEventLog
     mnuToolsAlwaysOnTop.Checked = g_Params.MainWinAlwaysOnTop
     
-    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
     
     mnuFileOrderView.Visible = g_Params.OrdersVisible
     mnuFileOrderView.Enabled = g_Params.OrdersEnabled
@@ -454,7 +454,6 @@ Public Sub InitMessaging()
             
             MmwMsgManager.SubActiveFuturesChange
             MmwMsgManager.SubFlexOption
-            MmwMsgManager.UnsubActiveFuturesChange
             
         End If
     Exit Sub
@@ -1497,7 +1496,7 @@ Public Sub WindowsShowInTaskBar(ByVal bShow As Boolean)
     Dim i&, nCount&
     
     g_Params.ShowWindowsInTaskbar = bShow
-    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
     
     nCount = g_ViewFrm.Count
     For i = 1 To nCount

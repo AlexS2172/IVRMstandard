@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   20578305
+      Format          =   61276161
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -907,6 +907,7 @@ Public Event OnStrikesChange()
 Public Event OnScreenRefresh()
 Public Event OnScreenClose()
 Public Event OnScreenRefreshAndShow()
+'Public Event OnManualPriceChanged(ByVal nUndID As Long, ByVal nContractID As Long, ByVal dPrice As Double, ByVal enStatus As Long)
 
 Private WithEvents geFut As clsGridEx
 Attribute geFut.VB_VarHelpID = -1
@@ -3076,6 +3077,7 @@ End Sub
 Private Sub dtCalculationDate_LostFocus()
     dtCalculationDate.Visible = False
     Dim nUnds&, nOpts&, nFuts&
+    If (m_bShutDown) Then Exit Sub
     If m_bDateChanged And Not dtCalculationDate.Visible And Not m_Aux.RealTime And m_Aux.Grp.ID <> 0 Then
         CalculateUnderlyingOptions True, , , True
         nUnds = m_AuxOut.UnderlyingUpdate(False, True)
@@ -3232,16 +3234,15 @@ Private Sub fgFut_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 UpdateBasis aFut, ReadDbl(sValue)
                                 
                             Case QOF_ACTIVEPRICE
-                                If Not QV.Grp.Und.ActiveFuture Is Nothing Then
-                                    If (aFut.ID = QV.Grp.Und.ActiveFuture.ID) Then
-                                        aFut.ActivePrice = CDbl(sValue)
-                                        aFut.IsUseManualActivePrice = True
-                                        UpdateFutureManualPrice aFut.ActivePrice, aFut.ID
+                            
+                                If (dValue <> 0) Then
+                                    If Not QV.Grp.Und.ActiveFuture Is Nothing Then
+                                        If (aFut.ID = QV.Grp.Und.ActiveFuture.ID) Then
+                                            UpdateFutureManualPrice aFut, dValue, enUsAdd
+                                        End If
+                                    Else
+                                        UpdateFutureManualPrice aFut, dValue, enUsAdd
                                     End If
-                                Else
-                                    aFut.ActivePrice = CDbl(sValue)
-                                    aFut.IsUseManualActivePrice = True
-                                    UpdateFutureManualPrice aFut.ActivePrice, aFut.ID
                                 End If
 
                             Case QOF_CLOSE
@@ -3788,11 +3789,6 @@ Private Sub fgVol_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
         dtCalculationDate.Move fgVol.CellLeft, fgVol.CellTop + fgVol.Top, fgVol.CellWidth, fgVol.CellHeight
         dtCalculationDate.Value = fgVol
         dtCalculationDate.Tag = fgVol
-        dtCalculationDate.CalendarForeColor = fgVol.Cell(flexcpForeColor, 1, fgVol.Cols - 1)
-        'dtCalculationDate.CalendarTitleForeColor = fgVol.Cell(flexcpForeColor, 1, fgVol.Cols - 1)
-        
-        dtCalculationDate.CalendarBackColor = fgVol.Cell(flexcpBackColor, 1, fgVol.Cols - 1)
-        'dtCalculationDate.CalendarTitleBackColor = fgVol.Cell(flexcpBackColor, 1, fgVol.Cols - 1)
                 
         dtCalculationDate.Visible = True
         dtCalculationDate.SetFocus
@@ -4083,6 +4079,7 @@ Private Sub SaveDividendsInfo()
     Dim aGUnd As EtsGeneralLib.UndAtom
     Dim aUnd As EtsMmQuotesLib.MmQvUndAtom
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
+    Dim dYield As Double
     
     Set aUnd = m_Aux.Grp.Und
     
@@ -4091,52 +4088,30 @@ Private Sub SaveDividendsInfo()
         If Not aUnd Is Nothing Then
             Set aDiv = aUnd.Dividend
             If Not aDiv Is Nothing Then
+                
+                'Update global collection
                 Set aGUnd = g_Underlying(aUnd.ID)
                 If Not aGUnd Is Nothing Then
                     Set aGUnd.Dividend = aDiv
+                    dYield = aGUnd.Yield
                 End If
-            
-            
+                
                 With aDiv
-                    If .DivType = enDivCustomPeriodical Then
-                        gDBW.usp_Stock_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
-                                        1, .DivAmtCust, .DivFreqCust, IIf(.DivDateCust > 0, .DivDateCust, Null), Null, Null, _
-                                        Null, Null, Null, Null, Null, 0, Null, Null
-                    
+                
+                    'Save data to db
+                    If (.DivType = enDivCustomPeriodical) Then
+                        gDBW.usp_MmDividend_Save aUnd.ID, .DivType, , , , , .DivAmtCust, .DivFreqCust, IIf(.DivDateCust > 0, .DivDateCust, Null)
+                    ElseIf (.DivType = enDivCustomStream) Then
+                        gDBW.usp_MmDividend_Save aUnd.ID, .DivType
+                    ElseIf (.DivType = enDivIndexYield) Then
+                        gDBW.usp_MmDividend_Save aUnd.ID, .DivType, dYield
+                    ElseIf (.DivType = enDivMarket) Then
+                        gDBW.usp_MmDividend_Save aUnd.ID, .DivType, , .DivAmt, .DivFreq, IIf(.DivDate > 0, .DivDate, Null)
+                    ElseIf (.DivType = enDivStockBasket) Then
+                        gDBW.usp_MmDividend_Save aUnd.ID, .DivType
                     End If
                     
-                    If .DivType = enDivMarket Then
-                        gDBW.usp_Stock_Save aUnd.ID, Null, Null, Null, Null, .DivFreq, .DivAmt, IIf(.DivDate > 0, .DivDate, Null), _
-                                        0, Null, Null, Null, Null, Null, _
-                                        Null, Null, Null, Null, Null, 0, Null, Null
-                    
-                    End If
-                    
-                    If .DivType = enDivCustomStream Then
-                        If m_Aux.Grp.ContractType = enCtStock Then
-                            gDBW.usp_Stock_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
-                                            2, Null, Null, Null, Null, Null, _
-                                            Null, Null, Null, Null, Null, 0, Null, Null
-                        Else
-                            gDBW.usp_Index_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
-                                            Null, Null, Null, Null, Null, 0, _
-                                            Null, Null, Null, 2
-                        End If
-                    End If
-                    
-                    If .DivType = enDivStockBasket Then
-                        gDBW.usp_Index_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
-                                        Null, Null, Null, Null, Null, 0, _
-                                        Null, Null, Null, 3
-                    End If
-                    
-                    If .DivType = enDivIndexYield Then
-                        gDBW.usp_Index_Save aUnd.ID, Null, Null, Null, Null, Null, Null, Null, _
-                                        Null, Null, Null, Null, Null, 0, _
-                                        Null, Null, Null, 4
-                    End If
-                    
-                  
+                    'pub all changes to other apps
                     Dim aData As MSGSTRUCTLib.UnderlyingUpdate
                     Set aData = New MSGSTRUCTLib.UnderlyingUpdate
                     
@@ -4146,6 +4121,7 @@ Private Sub SaveDividendsInfo()
                     aData.DivDateCust = .DivDateCust
                     aData.DivFreq = .DivFreq
                     aData.DivFreqCust = .DivFreqCust
+                    aData.Yield = dYield
                     aData.DivType = .DivType
                     
                     aData.UndID = aUnd.ID
@@ -4155,7 +4131,7 @@ Private Sub SaveDividendsInfo()
                   
                 End With
             
-            End If 'Not aDiv  Is Nothing
+            End If
         End If
     End If
     Set aGUnd = Nothing
@@ -4324,15 +4300,6 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                            
                             SaveDividendsInfo
                             
-                            Dim Data As MSGSTRUCTLib.UnderlyingUpdate
-                            Set Data = New MSGSTRUCTLib.UnderlyingUpdate
-                                            
-                            Data.UpdStatus = enUndAggregationUpdate
-                            Data.UndID = m_Aux.Grp.Und.ID
-                            Data.DivType = lValue
-                                            
-                            g_TradeChannel.PubUnderlyingUpdate Data
-                            
                             bNeedRecalc = True
                             bForceRecalc = True
                         End If
@@ -4413,7 +4380,7 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         dValue = ReadDbl(sValue)
                         If dValue > 0# Then
                             Set aDiv = m_Aux.Grp.Und.Dividend
-                            enDivType = m_Aux.Grp.Und.Dividend.DivType
+                            enDivType = aDiv.DivType
                         
                             If enDivType = enDivMarket And aDiv.DivAmt <> dValue _
                                 Or enDivType = enDivCustomPeriodical And aDiv.DivAmtCust <> dValue Then
@@ -4425,9 +4392,18 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     enDivType = enDivCustomPeriodical
                                 End If
                             End If
-                            
                             SaveDividendsInfo
                             bNeedRecalc = True
+                        End If
+                    ElseIf (m_Aux.Grp.ContractType = enCtIndex And m_Aux.Grp.Und.Dividend.DivType = enDivIndexYield) Then
+                        dValue = ReadDbl(sValue)
+                        If (dValue >= 0) Then
+                            m_Aux.Grp.Und.Yield = dValue
+                            If (Not g_Underlying(m_Aux.Grp.Und.ID) Is Nothing) Then
+                                g_Underlying(m_Aux.Grp.Und.ID).Yield = dValue
+                                SaveDividendsInfo
+                                bNeedRecalc = True
+                            End If
                         End If
                     End If
                     m_AuxOut.DivsUpdate
@@ -5088,20 +5064,21 @@ Private Sub ShowPopup()
             nIdx = fgUnd.ColKey(m_nMenuGridCol)
             
             If nIdx = QUC_INDEXCALCPRICE And Not aRowData.Und Is Nothing Then
-                mnuCtxUseManualPrice.Enabled = aRowData.Und.ActiveFuture Is Nothing And _
-                                               aRowData.Und.ID > 0 And _
+                mnuCtxUseManualPrice.Enabled = IsUndEditable(aRowData.Und) And _
                                                Not (m_Aux.RealTime Or m_bSubscribingNow)
-                                               
-                mnuCtxUseManualPrice.Checked = aRowData.Und.UseManualActivePrice
+                
+                mnuCtxUseManualPrice.Checked = aRowData.Und.UseManualActivePrice And _
+                                               mnuCtxUseManualPrice.Enabled
+                
             End If
             
             If nIdx = QUC_ACTIVEFUTUREPRICE And Not aRowData.Und Is Nothing Then
-                mnuCtxUseManualPrice.Enabled = Not aRowData.Und.ActiveFuture Is Nothing And _
-                                               aRowData.Und.ID > 0 And _
+                mnuCtxUseManualPrice.Enabled = IsFutEditable(aRowData.Und.ActiveFuture) And _
                                                Not (m_Aux.RealTime Or m_bSubscribingNow)
                                                                
                 If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
-                    mnuCtxUseManualPrice.Checked = aRowData.Und.ActiveFuture.IsUseManualActivePrice
+                    mnuCtxUseManualPrice.Checked = aRowData.Und.ActiveFuture.IsUseManualActivePrice And _
+                                                   mnuCtxUseManualPrice.Enabled
                 End If
             End If
                 
@@ -5128,15 +5105,10 @@ Private Sub ShowPopup()
             nIdx = fgFut.ColKey(m_nMenuGridCol)
             
             If nIdx = QOF_ACTIVEPRICE Then
-                If Not m_Aux.Grp.Und.ActiveFuture Is Nothing Then
-                    If m_Aux.Grp.Und.ActiveFuture.ID = aRowData.Fut.ID Then
-                        mnuCtxUseManualPrice.Enabled = True
-                    End If
-                Else
-                    mnuCtxUseManualPrice.Enabled = True
-                End If
-                
-                mnuCtxUseManualPrice.Checked = aRowData.Fut.IsUseManualActivePrice
+                mnuCtxUseManualPrice.Enabled = IsFutEditable(aRowData.Fut) And _
+                                               Not (m_Aux.RealTime Or m_bSubscribingNow)
+                mnuCtxUseManualPrice.Checked = aRowData.Fut.IsUseManualActivePrice And _
+                                               mnuCtxUseManualPrice.Enabled
             End If
             
             PopupMenu mnuCtx, , , , mnuCtxTradeNew
@@ -5291,29 +5263,29 @@ Private Sub fgOpt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     End If
 End Sub
 
-Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef Price() As Double, ByRef isManual() As Boolean)
+Public Sub UpdateManualPrices(ByRef ctrID() As Long, ByRef price() As Double, ByRef isManual() As Boolean)
 
-    Dim aRowData As MmQvRowData
-
-    Set aRowData = fgUnd.RowData(1)
-
-    Dim l, i As Long
-
-    i = 1
-
-    For Each l In ctrID
-
-        If l = QV.Grp.Und.ID Then
-            QV.Grp.Und.ActivePrice = Price(i)
-            QV.Grp.Und.UseManualActivePrice = isManual(i)
-            If QV.Grp.Und.UseManualActivePrice = False Then
-                QV.EtsMain.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
-            End If
-         End If
-
-        i = i + 1
-
-    Next
+'    Dim aRowData As MmQvRowData
+'
+'    Set aRowData = fgUnd.RowData(1)
+'
+'    Dim l, i As Long
+'
+'    i = 1
+'
+'    For Each l In ctrID
+'
+'        If l = QV.Grp.Und.ID Then
+'            QV.Grp.Und.ActivePrice = price(i)
+'            QV.Grp.Und.UseManualActivePrice = isManual(i)
+'            If QV.Grp.Und.UseManualActivePrice = False Then
+'                QV.EtsMain.Contract(QV.Grp.Und.ID).Und.manualActivePrice = 0
+'            End If
+'         End If
+'
+'        i = i + 1
+'
+'    Next
     
     Me.Refresh
     
@@ -5491,24 +5463,23 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     dValue = ReadDbl(sValue)
                                     If dValue <> 0 Then
                                         
-                                        UpdateActiveFuturesPrice dValue
+                                        UpdateFutureManualPrice aRowData.Und.ActiveFuture, dValue, enUsAdd
+                                        
                                         bNeedRecalc = True
                                         bManualEdit = True
-                                        gDBW.usp_MmManualPrice_Save aRowData.Und.ActiveFuture.ID, aRowData.Und.ActiveFuture.ActivePrice
                                     End If
                                 End If
                             Case QUC_INDEXCALCPRICE
                                 If aRowData.Und.ActiveFuture Is Nothing Then
                                 
-                                    aRowData.Und.ActivePrice = CDbl(sValue)
-                                    aRowData.Und.UseManualActivePrice = True
-                                    
-                                    gDBW.usp_MmManualPrice_Save aRowData.Und.ID, aRowData.Und.ActivePrice
-                                    
-                                    SaveManualActivePrice aRowData.Und.ID, aRowData.Und.ActivePrice
-                                    
-                                    bNeedRecalc = True
-                                    bManualEdit = True
+                                    dValue = ReadDbl(sValue)
+                                    If (dValue <> 0#) Then
+                                        
+                                        UpdateUndManualPrice aRowData.Und, dValue, enUsAdd
+                                        
+                                        bNeedRecalc = True
+                                        bManualEdit = True
+                                    End If
                                  End If
                             Case QUC_CLOSE
                                 m_AuxOut.UnderlyingUpdateQuoteColors Row, aQuote
@@ -6868,16 +6839,9 @@ Private Sub mnuCtxUseManualPrice_Click()
             If nIdx = QUC_INDEXCALCPRICE Then
             
                 If mnuCtxUseManualPrice.Checked Then
-                    aUnd.ActivePrice = 0
-                    aUnd.UseManualActivePrice = False
-                    
-                    SaveManualActivePrice aUnd.ID, 0
-                    gDBW.usp_MmManualPrice_Del aUnd.ID
+                    UpdateUndManualPrice aUnd, 0#, enUsDelete
                 Else
-                    aUnd.UseManualActivePrice = True
-                    
-                    SaveManualActivePrice aUnd.ID, aUnd.ActivePrice
-                    gDBW.usp_MmManualPrice_Save aUnd.ID, aUnd.ActivePrice
+                    UpdateUndManualPrice aUnd, aUnd.ActivePrice, enUsAdd
                 End If
                 
             End If
@@ -6885,16 +6849,9 @@ Private Sub mnuCtxUseManualPrice_Click()
             If nIdx = QUC_ACTIVEFUTUREPRICE Then
 
                 If mnuCtxUseManualPrice.Checked Then
-                    aUnd.ActiveFuture.IsUseManualActivePrice = False
-                    aUnd.ActiveFuture.ActivePrice = 0
-                
-                    SaveManualFuturePrice aUnd.ActiveFuture.ID, 0
-                    gDBW.usp_MmManualPrice_Del aUnd.ActiveFuture.ID
+                    UpdateFutureManualPrice aUnd.ActiveFuture, 0#, enUsDelete
                 Else
-                    UpdateActiveFuturesPrice aUnd.ActiveFuture.ActivePrice
-                
-                    SaveManualFuturePrice aUnd.ActiveFuture.ID, aUnd.ActiveFuture.ActivePrice
-                    gDBW.usp_MmManualPrice_Save aUnd.ActiveFuture.ID, aUnd.ActiveFuture.ActivePrice
+                    UpdateFutureManualPrice aUnd.ActiveFuture, aUnd.ActiveFuture.ActivePrice, enUsAdd
                 End If
 
             End If
@@ -6904,17 +6861,9 @@ Private Sub mnuCtxUseManualPrice_Click()
             Set aRowData = fgFut.RowData(m_nMenuGridRow)
             
             If mnuCtxUseManualPrice.Checked Then
-                aRowData.Fut.IsUseManualActivePrice = False
-                aRowData.Fut.ActivePrice = 0
-                
-                SaveManualFuturePrice aRowData.Fut.ID, 0
-                gDBW.usp_MmManualPrice_Del aRowData.Fut.ID
+                UpdateFutureManualPrice aRowData.Fut, 0#, enUsDelete
             Else
-                aRowData.Fut.IsUseManualActivePrice = True
-                UpdateFutureManualPrice aRowData.Fut.ActivePrice, aRowData.Fut.ID
-                
-                SaveManualFuturePrice aRowData.Fut.ID, aRowData.Fut.ActivePrice
-                gDBW.usp_MmManualPrice_Save aRowData.Fut.ID, aRowData.Fut.ActivePrice
+                UpdateFutureManualPrice aRowData.Fut, aRowData.Fut.ActivePrice, enUsAdd
             End If
     
     End Select
@@ -10041,9 +9990,34 @@ Private Sub TradeChannel_DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingU
             Set aUnd = m_Aux.Grp.Und
             If (Not aUnd Is Nothing) Then
             
-                'chech for modifications
+                'check for modifications
                 If (aUnd.ID = aUndData.UndID) Then
-                    bChange = True
+                    If (aUndData.DivType = enDivIndexYield) Then
+                            aUnd.Dividend.DivType = enDivIndexYield
+                            aUnd.Yield = aUndData.Yield
+                            bChange = True
+                    ElseIf (aUndData.DivType = enDivMarket) Then
+                            aUnd.Dividend.DivType = enDivMarket
+                            aUnd.Dividend.DivAmt = aUndData.DivAmt
+                            aUnd.Dividend.DivDate = aUndData.DivDate
+                            aUnd.Dividend.DivFreq = aUndData.DivFreq
+                            bChange = True
+                    ElseIf (aUndData.DivType = enDivCustomPeriodical) Then
+                            aUnd.Dividend.DivType = enDivCustomPeriodical
+                            aUnd.Dividend.DivAmtCust = aUndData.DivAmtCust
+                            aUnd.Dividend.DivDateCust = aUndData.DivDateCust
+                            aUnd.Dividend.DivFreqCust = aUndData.DivFreqCust
+                            bChange = True
+                    ElseIf (aUndData.DivType = enDivStockBasket) Then
+                        aUnd.Dividend.DivType = enDivStockBasket
+                        bChange = True
+                    ElseIf (aUndData.DivType = enDivCustomStream) Then
+                        aUnd.Dividend.DivType = enDivCustomStream
+                        LoadCustomDivs
+                        bChange = True
+                    End If
+                    
+                    
                 End If
                 
                 'recalculate all data
@@ -10056,6 +10030,112 @@ Private Sub TradeChannel_DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingU
     Exit Sub
 Exception:
     Debug.Print "Error while try to update Dividend Type"
+End Sub
+
+Private Sub TradeChannel_ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdate)
+    On Error GoTo Exception
+    
+    If m_bShutDown Then Exit Sub
+    
+    Dim aUnd As EtsMmQuotesLib.MmQvUndAtom
+    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
+    Dim bChange As Boolean
+    
+    bChange = False
+    Set aUnd = m_Aux.Grp.Und
+    If (Data.ContractType = enCtStock Or Data.ContractType = enCtIndex) Then
+        If (Not aUnd Is Nothing) Then
+        
+            If (aUnd.ID = Data.UndID) Then
+                If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                    aUnd.ActivePrice = Data.ActivePrice
+                    aUnd.UseManualActivePrice = True
+                    bChange = True
+                Else
+                    aUnd.UseManualActivePrice = False
+                    bChange = True
+                End If
+            End If
+            
+            'Head component
+            If (Not aUnd.HeadComponent Is Nothing) Then
+                If (aUnd.HeadComponent.ID = Data.UndID) Then
+                    If (Data.Status = enUsAdd Or Data.Status = enUsUpdate) Then
+                        aUnd.HeadComponent.UseManualActivePrice = True
+                        aUnd.HeadComponent.ActivePrice = Data.ActivePrice
+                        bChange = True
+                    Else
+                        aUnd.HeadComponent.UseManualActivePrice = False
+                        bChange = True
+                    End If
+                End If
+            End If
+            
+        End If
+    ElseIf (Data.ContractType = enCtFuture) Then
+        If (Not aUnd Is Nothing) Then
+        
+            Set aFut = aUnd.ActiveFuture
+            If (Not aFut Is Nothing And aUnd.ID = Data.UndID) Then
+                If (aFut.ID = Data.ContractID) Then
+                    If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                        aFut.ActivePrice = Data.ActivePrice
+                        aFut.IsUseManualActivePrice = True
+                        bChange = True
+                    Else
+                        aFut.IsUseManualActivePrice = False
+                        bChange = True
+                    End If
+                End If
+                Set aFut = Nothing
+            End If
+            
+            'update future of underlying
+            If (Not aUnd.Fut Is Nothing) Then
+                Set aFut = aUnd.Fut(Data.ContractID)
+                If (Not aFut Is Nothing) Then
+                    If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                        aFut.ActivePrice = Data.ActivePrice
+                        aFut.IsUseManualActivePrice = True
+                        bChange = True
+                    Else
+                        aFut.IsUseManualActivePrice = False
+                        bChange = True
+                    End If
+                End If
+                Set aFut = Nothing
+            End If
+                
+            'Head component
+            If (Not aUnd.HeadComponent Is Nothing) Then
+                If (aUnd.HeadComponent.ID = Data.UndID) Then
+                    If (Not aUnd.HeadComponent.ActiveFuture Is Nothing) Then
+                        Set aFut = aUnd.HeadComponent.ActiveFuture
+                        If (aFut.ID = Data.ContractID) Then
+                            If (Data.Status = enUsUpdate Or Data.Status = enUsAdd) Then
+                                aFut.ActivePrice = Data.ActivePrice
+                                aFut.IsUseManualActivePrice = True
+                                bChange = True
+                            Else
+                                aFut.IsUseManualActivePrice = False
+                                bChange = True
+                            End If
+                        End If
+                    End If
+                End If
+            End If
+            
+        End If
+    End If
+    
+    'recalculate all data
+    If bChange Then
+        If m_Aux.RealTime = False Then Recalculate True, False, True
+    End If
+    
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to update manual price on QuoteView"
 End Sub
 
 Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
@@ -12866,10 +12946,8 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
     bChanged = False
     
     If iFutureID <> 0 Then
-        QV.Grp.Und.UseManualActivePrice = False
-        QV.Grp.Und.ActivePrice = 0
-        g_ContractAll(QV.Grp.Und.ID).Und.manualActivePrice = 0
-        gDBW.usp_MmManualPrice_Del QV.Grp.Und.ID
+        UpdateUndManualPrice QV.Grp.Und, 0#, enUsDelete
+        bChanged = True
     End If
 
     If iFutureID <> 0 Then
@@ -12878,12 +12956,7 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
             aFut.IsUseManualActivePrice = CBool(g_ContractAll(aFut.ID).Fut.manualActivePrice <> 0)
         
             If aFut.IsUseManualActivePrice And aFut.ID <> iFutureID Then
-                aFut.IsUseManualActivePrice = False
-                aFut.ActivePrice = 0
-                gDBW.usp_MmManualPrice_Del aFut.ID
-
-                SaveManualFuturePrice aFut.ID, 0
-
+                UpdateFutureManualPrice aFut, 0#, enUsDelete
             End If
         Next
     End If
@@ -12894,6 +12967,7 @@ Private Sub UpdateActiveFutures(iFutureID As Long)
     ElseIf iFutureID <> QV.Grp.Und.ActiveFuture.ID Then
        bChanged = True
     End If
+    
     If bChanged Then
       RaiseEvent OnActiveFutChange(QV.Grp.Und.ID, iFutureID)
       
@@ -12922,43 +12996,186 @@ Er:
         g_PerformanceLog.LogMmInfo enLogFaults, "UpdateActiveFutures " & Err.Description, m_frmOwner.GetCaption
 End Sub
 
-Private Sub UpdateActiveFuturesPrice(newActiveFuturePrice As Double)
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''Manual Price Routine'''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+Private Sub PubManualPrice(dPrice As Double, nContractID As Long, nUndID As Long, enCtType As EtsContractTypeEnum, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+
+    Dim Data As MSGSTRUCTLib.ManualPriceUpdate
+    Set Data = New MSGSTRUCTLib.ManualPriceUpdate
+                                            
+    Data.Status = enStatus
+    Data.ContractID = nContractID
+    Data.UndID = nUndID
+    Data.ContractType = enCtType
+    Data.ActivePrice = dPrice
+                                            
+    g_TradeChannel.PubManualPriceUpdate Data
+    Exit Sub
     
-        If Not QV.Grp.Und.ActiveFuture Is Nothing Then
-            QV.Grp.Und.ActiveFuture.ActivePrice = newActiveFuturePrice
-            QV.Grp.Und.ActiveFuture.IsUseManualActivePrice = True
-            If (Not g_ContractAll(QV.Grp.Und.ActiveFuture.ID).Fut Is Nothing) Then
-                g_ContractAll(QV.Grp.Und.ActiveFuture.ID).Fut.manualActivePrice = newActiveFuturePrice
+Exception:
+    Debug.Print "Error while trying to pub active price for index"
+End Sub
+
+Private Sub ManualPriceSave(dPrice As Double, nID As Long)
+On Error GoTo Exception
+   gDBW.usp_MmManualPrice_Save nID, dPrice
+   Exit Sub
+Exception:
+    Debug.Print "Error while trying to save ManualPrice"
+End Sub
+
+Private Sub ManualPriceDel(nID As Long)
+On Error GoTo Exception
+   gDBW.usp_MmManualPrice_Del nID
+   Exit Sub
+Exception:
+    Debug.Print "Error while trying to delete ManualPrice"
+End Sub
+
+Private Sub UpdateUndManualPrice(aUnd As MmQvUndAtom, dPrice As Double, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+    If (aUnd Is Nothing) Then Exit Sub
+    Dim ctType As EtsContractTypeEnum
+    
+    If (enStatus = enUsAdd Or enStatus = enUsUpdate) Then
+        aUnd.ActivePrice = dPrice
+        aUnd.UseManualActivePrice = True
+        'manual price save to DB
+        ManualPriceSave dPrice, aUnd.ID
+        'update global collection
+        If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
+            If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
+                ctType = g_ContractAll(aUnd.ID).ContractType
+                g_ContractAll(aUnd.ID).Und.manualActivePrice = dPrice
             End If
         End If
+        'pub changes
+        PubManualPrice dPrice, aUnd.ID, aUnd.ID, ctType, enStatus
+    Else
+        aUnd.UseManualActivePrice = False
+        'manual price save to DB
+        ManualPriceDel aUnd.ID
+        'update global collection
+        If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
+            If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
+                ctType = g_ContractAll(aUnd.ID).ContractType
+                g_ContractAll(aUnd.ID).Und.manualActivePrice = dPrice
+            End If
+        End If
+        'pub changes
+        PubManualPrice 0#, aUnd.ID, aUnd.ID, ctType, enStatus
+    End If
+    
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to Upadte ManualPrice for Underlying"
+End Sub
+
+Private Sub UpdateFutureManualPrice(aFut As MmQvFutAtom, dPrice As Double, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+        If (aFut Is Nothing) Then Exit Sub
         
+        If (enStatus = enUsUpdate Or enStatus = enUsAdd) Then
+            aFut.ActivePrice = dPrice
+            aFut.IsUseManualActivePrice = True
+            'manual price save to db
+            ManualPriceSave dPrice, aFut.ID
+            'pub changes
+            PubManualPrice dPrice, aFut.ID, aFut.UndID, enCtFuture, enStatus
+            'update global collection
+            If (Not g_ContractAll(aFut.ID) Is Nothing) Then
+                If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
+                    g_ContractAll(aFut.ID).Fut.manualActivePrice = dPrice
+                End If
+            End If
+        Else
+            aFut.IsUseManualActivePrice = False
+            'delete manual price
+            ManualPriceDel aFut.ID
+            'pub changes
+            PubManualPrice 0#, aFut.ID, aFut.UndID, enCtFuture, enStatus
+            'update global colection
+            If (Not g_ContractAll(aFut.ID) Is Nothing) Then
+                If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
+                    g_ContractAll(aFut.ID).Fut.manualActivePrice = 0#
+                End If
+            End If
+        End If
+    Exit Sub
+Exception:
+    Debug.Print "Error while trying to UpdateFutureManualPrice"
 End Sub
 
-Private Sub UpdateFutureManualPrice(ByVal dPrice As Double, ByVal lFutId As Long)
-    If (Not g_ContractAll(lFutId) Is Nothing) Then
-        If (Not g_ContractAll(lFutId).Fut Is Nothing) Then
-            g_ContractAll(lFutId).Fut.manualActivePrice = dPrice
-            gDBW.usp_MmManualPrice_Save lFutId, dPrice
-        End If
-    End If
-End Sub
+Private Function IsFutEditable(aFut As MmQvFutAtom) As Boolean
+On Error GoTo Exception
 
-Private Sub SaveManualActivePrice(ID As Long, dPrice As Double)
+    IsFutEditable = False
+    Dim aUnd As MmQvUndAtom
+    Dim aActFut As MmQvFutAtom
     
-    If Not g_ContractAll(ID) Is Nothing Then
-        If Not g_ContractAll(ID).Und Is Nothing Then
-                g_ContractAll(ID).Und.manualActivePrice = dPrice
-        End If
-    End If
-    
-End Sub
+    If (aFut Is Nothing) Then Exit Function
 
-Private Sub SaveManualFuturePrice(ID As Long, dPrice As Double)
+    Set aUnd = QV.Grp.Und
     
-    If Not g_ContractAll(ID) Is Nothing Then
-        If Not g_ContractAll(ID).Fut Is Nothing Then
-                g_ContractAll(ID).Fut.manualActivePrice = dPrice
+    If (Not aUnd Is Nothing) Then
+        Set aActFut = aUnd.ActiveFuture
+        If (aUnd.IsHead) Then
+            If (Not aActFut Is Nothing) Then
+                If (aActFut.ID = aFut.ID) Then
+                    IsFutEditable = True
+                End If
+            Else
+                IsFutEditable = True
+            End If
+        Else
+            If (Not aUnd.PriceByHead) Then
+                If (Not aActFut Is Nothing) Then
+                    If (aActFut.ID = aFut.ID) Then
+                        IsFutEditable = True
+                    End If
+                Else
+                    IsFutEditable = True
+                End If
+            End If
         End If
     End If
     
-End Sub
+    Set aActFut = Nothing
+    Set aUnd = Nothing
+    Exit Function
+    
+Exception:
+    Debug.Print "Error while trying to CheckFutureForEdit"
+    
+    Set aActFut = Nothing
+    Set aUnd = Nothing
+End Function
+
+Private Function IsUndEditable(aUnd As MmQvUndAtom) As Boolean
+On Error GoTo Exception
+    IsUndEditable = False
+    
+    Dim aActFut As MmQvFutAtom
+    If (aUnd Is Nothing) Then Exit Function
+
+    Set aActFut = aUnd.ActiveFuture
+    
+    If (aUnd.IsHead) Then
+        If (aActFut Is Nothing) Then
+            IsUndEditable = True
+        End If
+    Else
+        If (Not aUnd.PriceByHead And aActFut Is Nothing) Then
+            IsUndEditable = True
+        End If
+    End If
+    Set aActFut = Nothing
+    
+    Exit Function
+Exception:
+    Debug.Print "Error while trying to CheckUndFotEdit"
+    Set aActFut = Nothing
+End Function

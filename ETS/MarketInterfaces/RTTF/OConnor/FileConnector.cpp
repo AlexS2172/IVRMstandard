@@ -607,6 +607,11 @@ int CFileConnector::ParseTradeLineEzeCastle(CString& strTrade)
 		CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field Trade Date not defined. It set to default.") );
 	}
 
+	if(GetElement(&strTrade, enTfUserDefinedField1, sTmp))
+		pTrade->strategy = sTmp;
+	else{
+		CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field Strategy not defined. It set to default.") );
+	}
 
 	//update flag
 	if (0 == pTrade->quantity)
@@ -616,12 +621,6 @@ int CFileConnector::ParseTradeLineEzeCastle(CString& strTrade)
 	else
 	{
 		pTrade->ins_upd_del_flag = NEW_FLAG;
-	}
-
-	if(GetElement(&strTrade, enTfUserDefinedField1, sTmp))
-		pTrade->strategy = sTmp;
-	else{
-		 CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field Strategy not defined. It set to default.") );
 	}
 
 	//Settle Date   [not used]
@@ -796,7 +795,7 @@ int CFileConnector::ParseTradeLine(CString& strTrade)
     // trade_price
     CHECK_FIELD_EXISTENCE(trade_price, dwLen, lpszTrade)
     sTmp = GET_FIELD_VALUE(trade_price, lpszTrade);
-    if ( (dblTmp = boost::lexical_cast<double>(sTmp)/1000000) < 0. )
+	if ( (dblTmp = boost::lexical_cast<double>(sTmp)/1000000) < 0. )
     {
         CTracer::TraceMessage(CTracer::enMtError, lpszTrade, _T("Field 'trade_price' is not valid"));
         return 0;

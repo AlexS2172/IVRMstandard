@@ -116,6 +116,20 @@ library MSGSTRUCTLib
 
 	typedef 
 	[
+		uuid(6A152DAE-69FF-487a-8FD2-917466EEA731),
+		v1_enum,
+	]
+	enum 
+	{
+		enUsNone					=   0,
+		enUsAdd						=	1,
+		enUsDelete					=	2,
+		enUsUpdate					=	3
+	}
+	MANUAL_PRICE_UPDATE_STATUS;
+
+	typedef 
+	[
 		uuid(4A604B3C-28C7-48a7-A414-D6F2FFEE9B7A),
 		v1_enum,
 	]
@@ -303,6 +317,22 @@ library MSGSTRUCTLib
 
 	[
 		object,
+		uuid(DC4D14E4-6513-4E39-8AB8-DEFE2D195FF3),
+		dual,
+		nonextensible,
+		helpstring("IManualPriceUpdate Interface"),
+		pointer_default(unique)
+	]
+	interface IManualPriceUpdate : IDispatch{
+		MSGSTRUCT_PROP_DEF(1, long,		ContractType)
+		MSGSTRUCT_PROP_DEF(2, long,		UndID)
+		MSGSTRUCT_PROP_DEF(3, long,		ContractID)
+		MSGSTRUCT_PROP_DEF(4, double,	ActivePrice)
+		MSGSTRUCT_PROP_DEF(5, MANUAL_PRICE_UPDATE_STATUS,		Status)
+	};
+
+	[
+		object,
 		uuid(7FCC823C-FF68-4eb1-B8E6-68EECED8FB01),
 		dual,
 		helpstring("IUIDGenerator Interface"),
@@ -422,6 +452,7 @@ library MSGSTRUCTLib
 		MSGSTRUCT_PROP_DEF(8,	double,			DivFreq)
 		MSGSTRUCT_PROP_DEF(9,	double,			DivFreqCust)
 		MSGSTRUCT_PROP_DEF(10,	long,			DivType)
+		MSGSTRUCT_PROP_DEF(11,	double,			Yield)
 
 		// updated fields
 		MSGSTRUCT_PROP_DEF(90,	UNDERLYING_UPDATE_STATUS,	UpdStatus)
@@ -725,5 +756,13 @@ library MSGSTRUCTLib
 	{
 		[default]	interface IUnderlyingUpdate;
 					interface INetPacking;
+	};
+	[
+		uuid(996229A4-9364-4B53-B3D3-6788C0966AE2),
+		helpstring("ManualPriceUpdate Class")
+	]
+	coclass ManualPriceUpdate
+	{
+		[default] interface IManualPriceUpdate;
 	};
 };

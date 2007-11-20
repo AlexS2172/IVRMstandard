@@ -143,25 +143,24 @@ Attribute VB_Exposed = False
 Private Type TManualPrice
     ctrID As Long
     Sym As String
-    Price As Double
+    price As Double
     OrigPrice As Double
     IsRemoved As Boolean
+    UndID As Long
+    ContractType As Long
 End Type
-
 
 Private mprices() As TManualPrice
 
 Private m_sEditedValue As String
 
 Public ChangedCount As Long
+Private m_nRecCount As Long
 
-Private chgCtr() As Long
-Private chgPrc() As Double
-Private chgIs() As Boolean
 
 Private Sub InitGrid()
     
-        With fgMP
+    With fgMP
         .Redraw = flexRDNone
         
         .Rows = 1
@@ -214,32 +213,22 @@ Private Sub InitGrid()
     
         .Redraw = flexRDBuffered
     End With
-
-'    With fgMP
-'        .Init 0, 2
-'        .IsRowSelection = False
-'
-'        .Col(0).Init "", "", "", flexDTEmpty, False, False, False, False
-'        .Col(1).Init "Sym", "Symbol", "", flexDTString, True, False, True, False
-'        .Col(2).Init "Act Price", "Active Price", "#,##0.00", flexDTDouble, True, True, True, True
-'    End With
     
 End Sub
 
 Private Sub AddGridRow(ByVal RowNum As Integer, ByRef mPrice As TManualPrice)
-    
-    fgMP.TextMatrix(RowNum, 0) = mPrice.ctrID
-    fgMP.TextMatrix(RowNum, 1) = mPrice.Sym
-    fgMP.TextMatrix(RowNum, 2) = mPrice.Price
-    fgMP.RowHidden(RowNum) = mPrice.IsRemoved
-    
+On Error Resume Next
+        fgMP.TextMatrix(RowNum, 0) = mPrice.ctrID
+        fgMP.TextMatrix(RowNum, 1) = mPrice.Sym
+        fgMP.TextMatrix(RowNum, 2) = mPrice.price
+        fgMP.RowHidden(RowNum) = mPrice.IsRemoved
 End Sub
 
 Private Sub RefreshGridRows()
     
     Dim i As Integer
         
-    For i = 1 To fgMP.Rows - 1
+    For i = 1 To m_nRecCount
         AddGridRow i, mprices(i)
     Next i
         
@@ -247,89 +236,73 @@ End Sub
 
 
 Private Sub LoadRecords()
+On Error Resume Next
 
-    
     Dim rs As ADODB.Recordset
-    Dim ContractID As Long, manualActivePrice As Double, i As Integer
-    Dim mPrice As TManualPrice
+    Dim i As Integer
     
+    'Load All manual prices from db
     Set rs = gDBW.usp_MmManualPrice_Get
-    
-    ReDim Preserve mprices(1 To rs.Properties.Count)
+    'make array
+    m_nRecCount = rs.RecordCount
+    ReDim Preserve mprices(1 To m_nRecCount)
+    fgMP.Rows = m_nRecCount + 1
     
     i = 1
-    
     While Not rs.EOF
     
-       fgMP.Rows = i + 1
-    
-       mprices(i).ctrID = rs!ContractID
-       mprices(i).Sym = rs!Symbol
-       mprices(i).Price = rs!manualPrice
-       mprices(i).OrigPrice = rs!manualPrice
-       mprices(i).IsRemoved = False
+        mprices(i).ctrID = rs!ContractID
+        mprices(i).Sym = rs!Symbol
+        mprices(i).price = rs!manualPrice
+        mprices(i).OrigPrice = rs!manualPrice
+        mprices(i).UndID = rs!UnderlyingID
+        mprices(i).ContractType = rs!ContractTypeID
+        mprices(i).IsRemoved = False
        
-       AddGridRow i, mprices(i)
-       
-       i = i + 1
-    
-    rs.MoveNext
+        AddGridRow i, mprices(i)
+        i = i + 1
+        rs.MoveNext
     
     Wend
-    
     rs.Close
 
 End Sub
 
-Private Sub SetPriceByContractID(ByVal ctrID As Long, ByVal Price As Double)
-
+Private Sub SetPriceByContractID(ByVal ctrID As Long, ByVal price As Double)
     Dim i As Integer
         
-    For i = 1 To fgMP.Rows - 1
+    For i = 1 To m_nRecCount
         If mprices(i).ctrID = ctrID Then
-            mprices(i).Price = Price
+            mprices(i).price = price
             Exit For
         End If
     Next i
-        
 End Sub
 
 Private Sub DeleteRecord(ByVal ctrID As Long)
-
     Dim i As Integer
         
-    For i = 1 To fgMP.Rows - 1
+    For i = 1 To m_nRecCount
         If mprices(i).ctrID = ctrID Then
-            
             mprices(i).IsRemoved = True
-            
             Exit For
         End If
     Next i
-
 End Sub
 
 
 Private Sub Command1_Click()
-        
-    Dim sValue As String, dValue As Double
+On Error Resume Next
     
-    Dim r&, C&, r1&, c1&, r2&, c2&
+    Dim sValue As String, dValue As Double, nValue As Long
+    Dim r As Long
     
-    fgMP.GetSelection r1, c1, r2, c2
-    
-    For r = r1 To r2
-    
-        sValue = Trim$(fgMP.TextMatrix(r, 0))
-    
-        dValue = Abs(ReadDbl(sValue))
-    
-        If dValue > 0 Then
-    
-            DeleteRecord dValue
-    
+    For r = 1 To fgMP.Rows - 1
+        If (fgMP.IsSelected(r)) Then
+            sValue = Trim$(fgMP.TextMatrix(r, 0))
+            nValue = Abs(ReadLng(sValue))
+            DeleteRecord (nValue)
         End If
-    
     Next
     
     RefreshGridRows
@@ -337,148 +310,144 @@ Private Sub Command1_Click()
 End Sub
 
 Private Sub Command2_Click()
-    
+On Error Resume Next
     Dim i As Integer
         
     For i = 1 To fgMP.Rows - 1
-            
         mprices(i).IsRemoved = False
-        
-        mprices(i).Price = mprices(i).OrigPrice
-        
+        mprices(i).price = mprices(i).OrigPrice
         AddGridRow i, mprices(i)
-            
     Next i
 
-    
 End Sub
 
 Private Sub Command3_Click()
     
     Dim i As Integer
     Dim isChg As Boolean
-            
-    For i = 1 To fgMP.Rows - 1
-        
-        isChg = False
+    Dim enCtType As EtsContractTypeEnum
+    
+    isChg = False
+    
+    For i = 1 To m_nRecCount
             
         If mprices(i).IsRemoved Then
                 gDBW.usp_MmManualPrice_Del mprices(i).ctrID
                 ChangedCount = ChangedCount + 1
+                enCtType = mprices(i).ContractType
                 
                 If Not g_ContractAll(mprices(i).ctrID) Is Nothing Then
-                    If Not g_ContractAll(mprices(i).ctrID).Und Is Nothing Then
-                        g_ContractAll(mprices(i).ctrID).Und.manualActivePrice = 0
-                    End If
-                    
-                    If Not g_ContractAll(mprices(i).ctrID).Fut Is Nothing Then
-                        g_ContractAll(mprices(i).ctrID).Fut.manualActivePrice = 0
+                    If (enCtType = enCtIndex Or enCtType = enCtStock) Then
+                        If Not g_ContractAll(mprices(i).ctrID).Und Is Nothing Then
+                            g_ContractAll(mprices(i).ctrID).Und.manualActivePrice = 0
+                            PubManualPrice 0#, mprices(i).ctrID, mprices(i).UndID, mprices(i).ContractType, enUsDelete
+                        End If
+                        
+                    ElseIf (enCtType = enCtFuture) Then
+                        If Not g_ContractAll(mprices(i).ctrID).Fut Is Nothing Then
+                            g_ContractAll(mprices(i).ctrID).Fut.manualActivePrice = 0
+                            PubManualPrice 0#, mprices(i).ctrID, mprices(i).UndID, mprices(i).ContractType, enUsDelete
+                        End If
                     End If
                 End If
                 
                 isChg = True
         Else
-                If mprices(i).Price <> mprices(i).OrigPrice Then
-                    gDBW.usp_MmManualPrice_Save mprices(i).ctrID, mprices(i).Price
+                If mprices(i).price <> mprices(i).OrigPrice Then
+                    gDBW.usp_MmManualPrice_Save mprices(i).ctrID, mprices(i).price
                     ChangedCount = ChangedCount + 1
                     
+                    enCtType = mprices(i).ContractType
                     If Not g_ContractAll(mprices(i).ctrID) Is Nothing Then
-                        If Not g_ContractAll(mprices(i).ctrID).Und Is Nothing Then
-                            If g_ContractAll(mprices(i).ctrID).Und.ActiveFuture Is Nothing Then
-                                g_ContractAll(mprices(i).ctrID).Und.manualActivePrice = mprices(i).Price
+                        If (enCtType = enCtIndex Or enCtType = enCtStock) Then
+                            If Not g_ContractAll(mprices(i).ctrID).Und Is Nothing Then
+                                If g_ContractAll(mprices(i).ctrID).Und.ActiveFuture Is Nothing Then
+                                    g_ContractAll(mprices(i).ctrID).Und.manualActivePrice = mprices(i).price
+                                    PubManualPrice mprices(i).price, mprices(i).ctrID, mprices(i).UndID, mprices(i).ContractType, enUsUpdate
+                                End If
                             End If
-                        End If
-                    
-                        If Not g_ContractAll(mprices(i).ctrID).Fut Is Nothing Then
-                            g_ContractAll(mprices(i).ctrID).Fut.manualActivePrice = mprices(i).Price
+                        ElseIf (enCtType = enCtFuture) Then
+                            If Not g_ContractAll(mprices(i).ctrID).Fut Is Nothing Then
+                                g_ContractAll(mprices(i).ctrID).Fut.manualActivePrice = mprices(i).price
+                                PubManualPrice mprices(i).price, mprices(i).ctrID, mprices(i).UndID, mprices(i).ContractType, enUsUpdate
+                            End If
                         End If
                     End If
                     
                     isChg = True
                 End If
         End If
-        
-        If isChg = True Then
-        
-            ReDim Preserve chgIs(1 To ChangedCount)
-            ReDim Preserve chgCtr(1 To ChangedCount)
-            ReDim Preserve chgPrc(1 To ChangedCount)
-    
-            chgIs(ChangedCount) = Not mprices(i).IsRemoved
-            chgCtr(ChangedCount) = mprices(i).ctrID
-            chgPrc(ChangedCount) = mprices(i).Price
-            
-        End If
-        
-                    
+                        
     Next i
 
     Unload Me
 
 End Sub
 
-Public Sub GetChanged(ByRef ctrID() As Long, ByRef Price() As Double, ByRef isManual() As Boolean)
-
-    ctrID = chgCtr
-    Price = chgPrc
-    isManual = chgIs
-    
-End Sub
-
 Private Sub fgMP_AfterEdit(ByVal Row As Long, ByVal Col As Long)
-    
+On Error Resume Next
+
     Dim sValue As String
     Dim dValue As Double
     
     If Col = 2 Then
-    
         sValue = Trim$(fgMP.TextMatrix(Row, Col))
         
         If (sValue <> m_sEditedValue) Then
-        
             dValue = Abs(ReadDbl(sValue))
-            
             If dValue <> 0 Then
-                
                 SetPriceByContractID ReadLng(Trim$(fgMP.TextMatrix(Row, 0))), dValue
-            
             End If
-        
         End If
-    
+        
     End If
 
 End Sub
 
 Private Sub fgMP_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boolean)
+On Error Resume Next
     m_sEditedValue = Trim$(fgMP.TextMatrix(Row, Col))
 End Sub
 
 
 Private Sub fgMP_Click()
-    
+On Error Resume Next
     Dim IsCtrlPressed As Boolean
-    
     Dim r As Integer
     
     r = fgMP.MouseRow
     
     If r <> -1 Then
-    
-    IsCtrlPressed = ((GetKeyState(VK_CONTROL) And &H80000000) <> 0)
-    
-    If IsCtrlPressed Then
-      
-      fgMP.IsSelected(r) = Not fgMP.IsSelected(r)
-        
-    End If
-    
+        IsCtrlPressed = ((GetKeyState(VK_CONTROL) And &H80000000) <> 0)
+        If IsCtrlPressed Then
+            fgMP.IsSelected(r) = Not fgMP.IsSelected(r)
+        End If
     End If
 
 End Sub
 
 Private Sub Form_Load()
+On Error Resume Next
     ChangedCount = 0
     InitGrid
     LoadRecords
+End Sub
+
+Private Sub PubManualPrice(dPrice As Double, nContractID As Long, nUndID As Long, enCtType As EtsContractTypeEnum, enStatus As MANUAL_PRICE_UPDATE_STATUS)
+On Error GoTo Exception
+
+    Dim Data As MSGSTRUCTLib.ManualPriceUpdate
+    Set Data = New MSGSTRUCTLib.ManualPriceUpdate
+                                            
+    Data.Status = enStatus
+    Data.ContractID = nContractID
+    Data.UndID = nUndID
+    Data.ContractType = enCtType
+    Data.ActivePrice = dPrice
+                                            
+    g_TradeChannel.PubManualPriceUpdate Data
+    Exit Sub
+    
+Exception:
+    Debug.Print "Error while trying to pub active price for contract"
 End Sub
