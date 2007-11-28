@@ -144,10 +144,18 @@ Format3:
 Format1:
         Items = Split(sFirstString, ",")
         
-        If UBound(Items) < 15 Then
+        If UBound(Items) < 16 Then
             If (UBound(Items) = 10) Then 'Goldman Sachs format
                 m_dtUTCTradeDate = Now()
                 m_btFileFormat = 6 'Goldman Sachs #6
+                ParseFileFormatType = m_btFileFormat
+                Erase Items
+                Exit Function
+            ElseIf (UBound(Items) = 15) Then
+                'Sage format without Strategy support
+                m_dtUTCTradeDate = CDate(Items(0))
+                m_bStrategySupport = False
+                m_btFileFormat = 1
                 ParseFileFormatType = m_btFileFormat
                 Erase Items
                 Exit Function
@@ -157,7 +165,9 @@ Format1:
             End If
         End If
         
+        'Sage format with Strategy support
         m_dtUTCTradeDate = CDate(Items(0))
+        m_bStrategySupport = True
         m_btFileFormat = 1
         ParseFileFormatType = m_btFileFormat
         Erase Items
@@ -448,7 +458,7 @@ Private Sub LoadFutures()
             aFut.IndexSymbol = gCmn.ReadStr(rs!vcUnderlyingSymbol)
             aFut.ExportSymbol = gCmn.ReadStr(rs!vcFutureRootExportSymbol)
                 
-            aFut.IndexId = gCmn.ReadLng(rs!iUnderlyingID)
+            aFut.IndexID = gCmn.ReadLng(rs!iUnderlyingID)
             aFut.FutureRootId = gCmn.ReadLng(rs!iFutureRootID)
             aFut.SymbolDisplay = gCmn.ReadStr(rs!vcFutureRootSymbol) & " " & UCase(Format$(aFut.Maturity, "MMMYY"))
             
@@ -465,7 +475,7 @@ Private Sub LoadPositions(ByVal bSetNewStrategyToOld As Boolean)
     Dim iKeyTypeValue
     Dim bUseStrategy  As Boolean
     
-    bUseStrategy = (m_btFileFormat = 3 Or m_btFileFormat = 5)
+    bUseStrategy = (m_btFileFormat = 3 Or m_btFileFormat = 5 Or m_bStrategySupport)
     m_collPos.Clear
     Set rs = gDBW.usp_BoPositionForReconcile_Get(m_dtUTCTradeDate, bUseStrategy)
     If rs.RecordCount > 0 Then
@@ -703,7 +713,7 @@ End Function
 
 Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLine As String, ByRef bStructureExist As Boolean) As Boolean
     Dim aOpt As clsRecPosOptAtom, aUnd As clsRecPosUndAtom, aTrader As clsRecPosTraderAtom
-    Dim sAccountAcronym$, sStockSymbol$, sImportSymbol$
+    Dim sAccountAcronym$, sStockSymbol$, sImportSymbol$, sStrategy$
     Dim Items$(), dtTradeDate As Date, sOptionRoot$, dStrike#, sOptionType$, nPosition&, dOptionMark#, dUnderlierStockMark#
     Dim nContractMultiplier&, sOptionStock$, dtExpirationDate As Date, sCol$, sValue$, dPrice#, dUndPrice#
     Dim aFut As clsRecPosFutAtom
@@ -716,7 +726,8 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
     End If
     
     Items = Split(sLine, ",")
-    If UBound(Items) < 15 Then
+    '16 - Strategy Support or 15 - Strategy Not Supported
+    If Not (UBound(Items) = 15 Or (UBound(Items) = 16 And m_bStrategySupport)) Then
         Erase Items
         Err.Raise vbObjectError, "Load Positions", "Wrong format of input file in line " & nLineNumber
     End If
@@ -725,6 +736,7 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
     dtTradeDate = 0#: sAccountAcronym = "": sStockSymbol = "": sOptionRoot = ""
     dStrike = 0#: sOptionType = "": nPosition = 0&: dOptionMark = 0#: dUnderlierStockMark = 0#
     nContractMultiplier = 0: sOptionStock = "": dtExpirationDate = 0#: sImportSymbol = ""
+    sStrategy = ""
     
     sCol = "Trade Date":           sValue = Items(0):  If Len(sValue) > 4 Then dtTradeDate = CDate(sValue)
     sCol = "Account Acronym":      sValue = Items(1):  If Len(sValue) > 0 Then sAccountAcronym = sValue
@@ -739,6 +751,9 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
     sCol = "Contract Multiplier":  sValue = Items(11): If Len(sValue) > 0 Then nContractMultiplier = gCmn.ReadLng(sValue)
     sCol = "Option/Stock":         sValue = Items(12): If Len(sValue) > 0 Then sOptionStock = sValue
     sCol = "Expiration Date":      sValue = Items(13): If Len(sValue) > 4 Then dtExpirationDate = CDate(sValue)
+    If (m_bStrategySupport) Then
+        sCol = "Strategy":             sValue = Items(16): If Len(Trim(sValue)) > 0 Then sStrategy = sValue
+    End If
     sCol = ""
     sValue = ""
     
@@ -762,12 +777,16 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
             sCol = "Strike"
             Err.Raise vbObjectError, "Load Positions", "Invalid Strike"
         End If
+    ElseIf (m_bStrategySupport And sStrategy = "") Then
+        sCol = "Strategy"
+        Err.Raise vbObjectError, "Load Positions", "Invalid Strategy Name"
     End If
 
     On Error GoTo 0
         
     Set aTrader = FindTraderByName(sAccountAcronym)
     
+    'check underlying for contract
     If (sOptionStock = "FUTURE" Or sOptionStock = "FUTOPT") Then
         Set aFut = FindFuture(sStockSymbol)
         If (aFut Is Nothing) Then
@@ -775,17 +794,18 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
             bStructureExist = False
             Exit Function
         End If
-        CheckTraderContract aTrader.ID, aFut.IndexId
+        CheckTraderContract aTrader.ID, aFut.IndexID
     Else 'STOCK or OPTION
-    Set aUnd = m_collUnd(sStockSymbol)
-    If aUnd Is Nothing Then
-        Set aUnd = AddNewUnderlyingToDatabase(sStockSymbol)
-        bStructureExist = False
+        Set aUnd = m_collUnd(sStockSymbol)
+        If aUnd Is Nothing Then
+            Set aUnd = AddNewUnderlyingToDatabase(sStockSymbol)
+            bStructureExist = False
+        End If
+        
+        CheckTraderContract aTrader.ID, aUnd.ID
     End If
     
-    CheckTraderContract aTrader.ID, aUnd.ID
-    End If
-    
+    'check option for contract
     If sOptionStock = "OPTION" Then
     
         Set aOpt = aUnd.FindOption(sOptionRoot, IIf(sOptionType = "C", 1, 0), dStrike, dtExpirationDate)
@@ -798,6 +818,7 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
         dPrice = dOptionMark
         dUndPrice = dUnderlierStockMark
     ElseIf sOptionStock = "FUTOPT" Then
+    
         Set aFop = aFut.FindFutureOption(IIf(sOptionType = "C", 1, 0), dStrike, dtExpirationDate)
         If (aFop Is Nothing) Then
             m_frmEOD.LogMsg "Position skipped. Option not in database: " & sOptionRoot & UCase(Format$(dtExpirationDate, "YYMMM")) & Format$(Int(dStrike)) & sOptionType & ", future " & sStockSymbol & ". Please update market structure."
@@ -810,9 +831,11 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
     Else
         dPrice = dUnderlierStockMark
     End If
+        
+    'Add positon from file to collection
+    AddPositionFromText aOpt, aUnd, aFop, aFut, aTrader, nPosition, dPrice, nContractMultiplier, sImportSymbol, sStrategy
     
-    AddPositionFromText aOpt, aUnd, aFop, aFut, aTrader, nPosition, dPrice, nContractMultiplier, sImportSymbol, ""
-    
+    'load price from file
     AddPriceFromText aOpt, aUnd, aFop, aFut, dPrice, dUndPrice
     
     If sOptionStock = "OPTION" Then
@@ -937,7 +960,7 @@ Private Function ParseLineOfFileFormatGoldmanSachs(ByVal nLineNumber As Long, By
             bStructureExist = False
             Exit Function
         End If
-        CheckTraderContract aTrader.ID, aFut.IndexId
+        CheckTraderContract aTrader.ID, aFut.IndexID
         sImportSymbol = aFut.Symbol
     ElseIf (sSeqType = "EQUITY" Or sSeqType = "OPTION") Then
         Set aUnd = m_collUnd(sUnderlyingSymbol)
@@ -1515,7 +1538,7 @@ Private Function ParseLineOfFileFormatNew(ByVal nLineNumber As Long, ByRef sLine
             bStructureExist = False
             Exit Function
         End If
-        CheckTraderContract aTrader.ID, aFut.IndexId
+        CheckTraderContract aTrader.ID, aFut.IndexID
     ElseIf (sSeqType = "O" Or sSeqType = "S") Then
         Set aUnd = m_collUnd(sUndSymbol)
         If aUnd Is Nothing Then
@@ -2008,7 +2031,7 @@ Public Function ShowPositionsReport() As Boolean
     m_frmEOD.pbProgress.Value = 0
     On Error GoTo Herr
     
-    If frmPosReconcile.Execute(m_collPos, m_btFileFormat, m_frmEOD, m_collStrategyByName) Then
+    If frmPosReconcile.Execute(m_collPos, m_btFileFormat, m_frmEOD, m_collStrategyByName, m_bStrategySupport) Then
         ShowPositionsReport = True
     End If
     
@@ -2019,7 +2042,8 @@ Public Function ShowPositionsReport() As Boolean
     For i = 1 To nCount
         Set aPos = m_collPos(i)
         If aPos.PosValidNew <> aPos.PosValidOld Or aPos.QtyNew <> aPos.QtyOld _
-            Or (m_btFileFormat = 3 And (aPos.PriceNew <> aPos.PriceOld Or aPos.StrategyOld <> aPos.StrategyNew)) Then
+            Or ((m_btFileFormat = 3) And (aPos.PriceNew <> aPos.PriceOld Or aPos.StrategyOld <> aPos.StrategyNew)) _
+            Or (m_btFileFormat = 1 And m_bStrategySupport And aPos.StrategyOld <> aPos.StrategyNew) Then
             
             If m_btFileFormat <> 3 Then sLogMsg = Str$(aPos.bFix) & vbTab
             sLogMsg = sLogMsg & aPos.Trader.Acronym & vbTab
@@ -2122,17 +2146,27 @@ Public Function SavePositionsToDatabase(ByVal bIsSaveHistory As Boolean) As Long
             
             If aPos.bFix And aPos.PosValidNew Or Not aPos.bFix And aPos.PosValidOld Then
                 
-                If (m_btFileFormat = 3 Or m_btFileFormat = 5) And aPos.StrategyForTradeID = 0 And Len(aPos.StrategyForTrade) > 0 Then
+                If (m_btFileFormat = 3 Or m_btFileFormat = 5 Or (m_btFileFormat = 1 And m_bStrategySupport)) And aPos.StrategyForTradeID = 0 And Len(aPos.StrategyForTrade) > 0 Then
                     aPos.StrategyForTradeID = SaveStrategy(aPos.StrategyForTrade)
-                ElseIf (m_btFileFormat <> 3 And m_btFileFormat <> 5) Then
+                ElseIf (Not m_bStrategySupport) Then
                     aPos.StrategyForTradeID = 0
+                End If
+                
+                If (Not aPos.bFix And aPos.PosValidOld And m_btFileFormat = 1 And m_bStrategySupport) Then
+                    If (aPos.StrategyForTradeID = 0 And aPos.StrategyOldID <> 0) Then
+                        aPos.StrategyForTradeID = aPos.StrategyOldID
+                    End If
+                ElseIf (aPos.bFix And aPos.PosValidNew And m_btFileFormat = 1 And m_bStrategySupport) Then
+                    If (aPos.StrategyForTradeID = 0 And aPos.StrategyNewID <> 0) Then
+                        aPos.StrategyForTradeID = aPos.StrategyNewID
+                    End If
                 End If
                 
                 Dim iUndID As Long
                 If (Not aPos.Und Is Nothing) Then
                     iUndID = aPos.Und.ID
                 Else
-                    iUndID = aPos.Fut.IndexId
+                    iUndID = aPos.Fut.IndexID
                 End If
                 
                 nSeqNum = gDBW.usp_Trade_New(nId, _

@@ -2007,10 +2007,11 @@ STDMETHODIMP CMmQvUndAtom::get_AtmStrike(DOUBLE dUndPriceTolerance, enum EtsPric
 		IMmQvQuoteAtomPtr spUndQuote;
 		_CHK(m_spQuote->get_Item(m_nPrimaryExchangeID, &spUndQuote));
 		//_CHK(m_spQuote->get_Item(0L, &spUndQuote));
-		DOUBLE dSpotBid = 0., dSpotAsk = 0., dSpotLast = 0.;
+		//DOUBLE dSpotBid = 0., dSpotAsk = 0., dSpotLast = 0.;
 		EtsReplacePriceStatusEnum enMidPriceStatus = enRpsNone;
+		VARIANT_BOOL bDriverUsed = VARIANT_FALSE;
 
-		_CHK(spUndQuote->get_PriceBid(&dSpotBid));
+		/*_CHK(spUndQuote->get_PriceBid(&dSpotBid));
 		_CHK(spUndQuote->get_PriceAsk(&dSpotAsk));
 		_CHK(spUndQuote->get_PriceLast(&dSpotLast));
 
@@ -2020,7 +2021,9 @@ STDMETHODIMP CMmQvUndAtom::get_AtmStrike(DOUBLE dUndPriceTolerance, enum EtsPric
 			dSpotLast, 
 			dUndPriceTolerance, 
 			enPriceRoundingRule, 
-			&enMidPriceStatus, ManualEdit);
+			&enMidPriceStatus, ManualEdit);*/
+
+		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, &bDriverUsed, dStrike));
 
 	}
 	catch (_com_error& e) 

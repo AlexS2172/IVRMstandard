@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "Vsflex7.ocx"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
 Begin VB.Form frmPosReconcile 
    BorderStyle     =   3  'Fixed Dialog
@@ -92,7 +92,7 @@ Begin VB.Form frmPosReconcile
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -296,16 +296,18 @@ Public result As VbMsgBoxResult
 Private m_collPos As clsRecPosColl
 Private m_collStrategyByName As clsStrategyColl
 Private m_btFileFormat As Byte
+Private m_bStrategySupport As Boolean
 
 Private m_bBaseStrategyComboList$
 
 Public Function Execute(ByRef collPos As clsRecPosColl, ByVal btFileFormat As Byte, _
-                    ByRef frmEOD As frmEndOfDay, ByRef collStrategyByName As clsStrategyColl) As Boolean
+                    ByRef frmEOD As frmEndOfDay, ByRef collStrategyByName As clsStrategyColl, Optional bStrategySupport As Boolean = False) As Boolean
     On Error GoTo Herr
     Screen.MousePointer = vbHourglass
     Set m_collPos = collPos
     Set m_collStrategyByName = collStrategyByName
     m_btFileFormat = btFileFormat
+    m_bStrategySupport = bStrategySupport
     
     Execute = False
     If LoadData Then
@@ -358,9 +360,9 @@ Public Function LoadData() As Boolean
     
     For i = 1 To nCount
         Set aPos = m_collPos(i)
-        If aPos.PosValidNew <> aPos.PosValidOld Or aPos.QtyNew <> aPos.QtyOld _
-            Or (m_btFileFormat = 3 And (Abs(aPos.PriceNew - aPos.PriceOld) >= DBL_EPSILON _
-                                        Or aPos.StrategyOld <> aPos.StrategyNew)) Then
+        If (aPos.PosValidNew <> aPos.PosValidOld Or aPos.QtyNew <> aPos.QtyOld) _
+            Or (m_btFileFormat = 3 And (Abs(aPos.PriceNew - aPos.PriceOld) >= DBL_EPSILON Or aPos.StrategyOld <> aPos.StrategyNew)) _
+            Or (m_btFileFormat = 1 And aPos.StrategyOld <> aPos.StrategyNew And m_bStrategySupport) Then
             
             fgPos.AddItem ""
             nRow = fgPos.Rows - 1
@@ -653,13 +655,13 @@ Private Sub InitGrid()
         .TextMatrix(0, i) = "Cur Strategy"
         .ColDataType(i) = flexDTString
         .ColFormat(i) = ""
-        .ColHidden(i) = m_btFileFormat <> 3 And m_btFileFormat <> 5
+        .ColHidden(i) = m_btFileFormat <> 3 And m_btFileFormat <> 5 And Not (m_btFileFormat = 1 And m_bStrategySupport)
         
         i = POS_IMP_STRATEGY
         .TextMatrix(0, i) = "Imp Strategy"
         .ColDataType(i) = flexDTString
         .ColFormat(i) = ""
-        .ColHidden(i) = m_btFileFormat <> 3 And m_btFileFormat <> 5
+        .ColHidden(i) = m_btFileFormat <> 3 And m_btFileFormat <> 5 And Not (m_btFileFormat = 1 And m_bStrategySupport)
         
         i = POS_TRADE_STRATEGY
         .TextMatrix(0, i) = "New Strategy"

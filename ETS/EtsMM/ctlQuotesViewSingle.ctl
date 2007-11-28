@@ -409,7 +409,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61276161
+      Format          =   63897601
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -4396,7 +4396,7 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             bNeedRecalc = True
                         End If
                     ElseIf (m_Aux.Grp.ContractType = enCtIndex And m_Aux.Grp.Und.Dividend.DivType = enDivIndexYield) Then
-                        dValue = ReadDbl(sValue)
+                        dValue = ReadDbl(sValue) / 100#
                         If (dValue >= 0) Then
                             m_Aux.Grp.Und.Yield = dValue
                             If (Not g_Underlying(m_Aux.Grp.Und.ID) Is Nothing) Then

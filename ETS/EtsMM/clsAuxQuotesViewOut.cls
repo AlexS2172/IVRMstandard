@@ -1753,7 +1753,7 @@ Public Sub DivsUpdate()
                 Case enDivIndexYield
                     .TextMatrix(1, QDC_DIV) = "4"
                     nDivFreq = 0
-                    dDivAmt = m_Aux.Grp.Und.Yield
+                    dDivAmt = m_Aux.Grp.Und.Yield * 100#
                     dtDivDate = 0
                     
             End Select

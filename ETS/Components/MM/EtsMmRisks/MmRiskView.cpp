@@ -411,12 +411,12 @@ STDMETHODIMP CMmRiskView::SaveTheoPricesAsClose(IMmTradeInfoColl* pTradesColl)
 										dTheoClosePrice = pPosQuote->m_pPrice->m_dActivePrice;
 								}
 								
-								if (dTheoClosePrice <= DBL_EPSILON)
+								if (dTheoClosePrice == BAD_DOUBLE_VALUE || dTheoClosePrice < 0.0)
 								{
-									dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceClose;
+									dTheoClosePrice = pPosQuote->m_pPrice->m_dPriceTheoClose;
 								}
 
-								if (dTheoClosePrice != BAD_DOUBLE_VALUE && dTheoClosePrice > 0.0)
+								if (dTheoClosePrice != BAD_DOUBLE_VALUE && !(dTheoClosePrice < 0.0))
 								{
 									bstrXPath += L"<contract id=\"" + _bstr_t(lContractID) + "\" ";
 									bstrXPath += L"price=\"" + _bstr_t(dTheoClosePrice) + "\" ";
