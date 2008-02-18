@@ -25,9 +25,13 @@ struct __MmQvOptAtom
 	LONG				m_nRootID;
 	LONG				m_nIsFlex;
 
+	DATE				m_dtExpiryOV;
+	DATE				m_dtTradingClose;
+
 	__MmQvOptAtom()
 		: m_nID(0L), m_dtExpiry(0.), m_enOptType(enOtPut), m_dStrike(0.),
-		m_dVola(0.), m_nQty(BAD_LONG_VALUE), m_nQtyInShares(BAD_LONG_VALUE),m_nRootID(0L), m_nIsFlex(0)
+		m_dVola(0.), m_nQty(BAD_LONG_VALUE), m_nQtyInShares(BAD_LONG_VALUE),m_nRootID(0L), m_nIsFlex(0),
+		m_dtExpiryOV(0), m_dtTradingClose(0)
 	{
 	}
 
@@ -119,6 +123,9 @@ public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmQvQuoteColl*, Quote, m_spQuote)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmQvQuoteAtom*, DefQuote, m_spDefQuote)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, RootID, m_nRootID)
+
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
 
 	STDMETHOD(put_Qty)(long nQty);
 

@@ -19,7 +19,9 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   61800449
+      CheckBox        =   -1  'True
+      CustomFormat    =   "MM/d/yyyy hh:mm tt"
+      Format          =   61669379
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -451,7 +453,14 @@ Option Explicit
 Public Event OnSetCaption()
 Public Event OnStateChange()
 Public Event OnSetRefreshHint(ByVal bSet As Boolean, ByRef strHint$)
-'Public Event OnManualPriceChanged(ByVal nUndID As Long, ByVal nContractID As Long, ByVal dPrice As Double, ByVal enStatus As Long)
+Public Event OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+
+
+Public Event OnRefreshComplete()
+Public Event OnRefreshError()
+Public Event OnRefreshEmpty()
+Public Event OnRefreshCancel()
+
 
 Private m_gdFlt As clsGridDef
 Private m_gdTot As clsGridDef
@@ -632,7 +641,7 @@ Public Function Init() As Boolean
     
     Set VolaSource = g_VolaSource
     InitColumns
-    fgFlt.TextMatrix(1, RFC_SIM_DATE) = Date
+    fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
     
     'm_Aux.Grp = New EtsMmRisksLib.MmRvGrpAtom
     'm_Aux.Idx = New EtsMmRisksLib.MmRvUndAtom
@@ -723,6 +732,7 @@ Public Function Init() As Boolean
     Exit Function
 EH:
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to initialize risk view."
+    RaiseEvent OnRefreshError
 
 ' ********************* This is version from 1.12 *************************
 '    On Error GoTo EH
@@ -1089,6 +1099,7 @@ Ex:
 EH:
     m_bInProc = False
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load positions."
+    RaiseEvent OnRefreshError
     GoTo Ex
 End Function
 
@@ -1248,7 +1259,7 @@ Private Sub dtPick_Change()
        fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
        dtPick.Visible = False
        m_bDateChanged = True
-    
+   
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Vola Filter changed date. New date: " & dtPick.Value, m_frmOwner.GetCaption
 End Sub
@@ -1256,21 +1267,25 @@ End Sub
 Private Sub dtPick_KeyDown(KeyCode As Integer, Shift As Integer)
     Select Case KeyCode
         Case vbKeyEscape
-            'fgVol = dtCalculationDate.Tag
             dtPick.Visible = False
         Case vbKeyReturn
             dtPick.Visible = False
     End Select
     Dim nUnds&, nFuts&, nOpts&
+    
+    Dim dtLocalCalcDate As Date
+    
     If m_bDateChanged And Not dtPick.Visible And Not m_Aux.RealTime And m_Aux.Grp.ID <> 0 Then
         m_bInProc = True
             fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
-            m_AuxClc.CalcDate = CDate(dtPick.Value)
+                    
+            dtLocalCalcDate = dtPick.Value
+            dtLocalCalcDate = dtLocalCalcDate - TimeSerial(0, 0, Second(dtLocalCalcDate))
+            m_AuxClc.CalcDate = GetNewYorkTime + (dtLocalCalcDate - Date - TimeSerial(Hour(Now), Minute(Now), 0))
             
             m_RiskView.SetDirty
             m_AuxClc.UnderlyingsCalc True, True
             m_AuxOut.UnderlyingsUpdate False
-            'm_AuxClc.UnderlyingsCalcWtdVega
             m_AuxOut.TotalsUpdate
             RefreshPositions
         m_bInProc = False
@@ -1282,15 +1297,18 @@ Private Sub dtPick_LostFocus()
     On Error GoTo Ex
     dtPick.Visible = False
     Dim nUnds&, nOpts&, nFuts&
+    Dim dtLocalCalcDate As Date
     If m_bDateChanged And Not dtPick.Visible And Not m_Aux.RealTime Then
         m_bInProc = True
             fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
-            m_AuxClc.CalcDate = CDate(dtPick.Value)
+            
+            dtLocalCalcDate = dtPick.Value
+            dtLocalCalcDate = dtLocalCalcDate - TimeSerial(0, 0, Second(dtLocalCalcDate))
+            m_AuxClc.CalcDate = GetNewYorkTime + (dtLocalCalcDate - Date - TimeSerial(Hour(Now), Minute(Now), 0))
         
             m_RiskView.SetDirty
             m_AuxClc.UnderlyingsCalc True, True
             m_AuxOut.UnderlyingsUpdate False
-            'm_AuxClc.UnderlyingsCalcWtdVega
             m_AuxOut.TotalsUpdate
             RefreshPositions
         m_bInProc = False
@@ -1299,31 +1317,6 @@ Private Sub dtPick_LostFocus()
 Ex:
     m_bInProc = False
 End Sub
-
-
-
-'Private Sub dtPick_CloseUp()
-'
-'    m_bDateChanged = True
-'
-'    If dtPick.Visible Then
-'        fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
-'
-'        m_AuxClc.DateShift = IIf(m_Aux.RealTime, 0, CDate(dtPick.Value) - Date)
-'        m_AuxClc.m_dtCalcDateShift = CDate(dtPick.Value)
-'        dtPick.Visible = False
-'    End If
-'
-'    If m_bDateChanged And Not (m_Aux.RealTime) And m_Aux.Grp.ID <> 0 Then
-'        m_bInProc = True
-'            m_AuxClc.UnderlyingsCalc True, True
-'            m_AuxOut.UnderlyingsUpdate False
-'            m_AuxOut.TotalsUpdate
-'            RefreshPositions
-'        m_bInProc = False
-'    End If
-'
-'End Sub
 
 Private Sub fgFlt_DblClick()
     On Error Resume Next
@@ -1346,13 +1339,10 @@ Private Sub fgFlt_DblClick()
 
 End Sub
 
-
 Private Sub fgPos_AfterRowColChange(ByVal OldRow As Long, ByVal OldCol As Long, ByVal NewRow As Long, ByVal NewCol As Long)
     nSelectedRow = NewRow
     SetLastRowSelected
 End Sub
-
-
 
 Private Sub fgPos_AfterSelChange(ByVal OldRowSel As Long, ByVal OldColSel As Long, ByVal NewRowSel As Long, ByVal NewColSel As Long)
     nSelectedRow = NewRowSel
@@ -1516,6 +1506,8 @@ Private Sub imgStop_Click()
         m_bInProc = False
         AdjustState
     End If
+    
+    RaiseEvent OnRefreshCancel
 End Sub
 
 Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
@@ -1723,27 +1715,8 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         m_AuxOut.TotalsUpdate
                         m_bInProc = False
                         
-                    'ach_start
                     Case RFC_SIM_DATE
-                    
-                    '    If dtPick.Value < Date Then
-                    '        fgFlt.TextMatrix(1, RFC_SIM_DATE) = Date
-                    '        'm_Aux.SimulationDate = Date
-                    '        m_AuxClc.DateShift = Date
-                    '    Else
-                    '        fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
-                    '        'm_Aux.SimulationDate = dtPick.Value
-                    '        m_AuxClc.DateShift = dtPick.Value
-                    '    End If
-                    '
-                    '    'tmrShow.Enabled = True
-                    '    m_bInProc = True
-                    '    m_AuxClc.UnderlyingsCalc True, True
-                    '    m_AuxOut.UnderlyingsUpdate False
-                    '    m_AuxOut.TotalsUpdate
-                    '    m_bInProc = False
-                    '    'ach_end
-                    
+                   
                     Case RFC_INDEX
                         m_Aux.Filter(RFC_INDEX) = nValue
                         .AutoSize 0, .Cols - 1, , 100
@@ -1982,55 +1955,32 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         Select Case aPos.ContractType
                                             Case enCtOption, enCtFutOption
                                                 If dValue > 0 Then
-                                                    aPos.Quote.price.Active = dValue
-                                                    PubManualPrice dValue, aPos.ID, aPos.UndID, aPos.ContractType, enUsAdd
+                                                    UpdatePosOptManualPrice aPos, dValue, enUsAdd
                                                 End If
                                                 bCalcPos = True
                                                 
                                             Case enCtFuture
                                                 If dValue > 0 Then
-                                                    aPos.Fut.price.Active = dValue
-                                                    If (Not g_ContractAll(aPos.Fut.ID) Is Nothing) Then
-                                                        If (Not g_ContractAll(aPos.Fut.ID).Fut Is Nothing) Then
-                                                            g_ContractAll(aPos.Fut.ID).Fut.manualActivePrice = dValue
-                                                            gDBW.usp_MmManualPrice_Save aFut.ID, dValue
-                                                            PubManualPrice dValue, aPos.Fut.ID, aPos.Fut.UndID, enCtFuture, enUsAdd
-                                                        End If
-                                                    End If
-                                                                                                        
+                                                    UpdateFutManualPrice aPos.Fut, dValue, enUsAdd
                                                     If (Not aPos.Quote Is Nothing) Then
                                                         aPos.Quote.IsDirty = True
                                                     End If
-                                                                                                       
                                                 End If
                                                 
                                                 bCalcUnd = True
                                                 
                                             Case Else
                                                 If dValue > 0 Then
-                                                    aUnd.price.Active = dValue
-                                                    aUnd.price.IsUseManualActive = True
-                                                    
-                                                    If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
-                                                        If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
-                                                            g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
-                                                            gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
-                                                            PubManualPrice dValue, aUnd.ID, aUnd.ID, aUnd.ContractType, enUsAdd
-                                                        End If
-                                                    End If
-                                                    
+                                                    UpdateUndManualPrice aUnd, dValue, enUsAdd
                                                     If (Not aPos.Quote Is Nothing) Then
                                                         aPos.Quote.IsDirty = True
                                                     End If
-                                                    
                                                 End If
                                                 
                                                 bCalcUnd = True
                                                 
                                                 If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Active = aUndData.price.Active
                                         End Select
-                                                                                                                      
-                                        gDBW.usp_MmManualPrice_Save aRowData.Pos.ID, aPos.Quote.price.Active
                                               
                             ElseIf aSynthGreeks Is Nothing Then
                                 If Not g_PerformanceLog Is Nothing Then _
@@ -2042,23 +1992,15 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                   
                                          If Not aFut Is Nothing Then
                                              If dValue > 0 Then
-                                                 If (Not g_ContractAll(aFut.ID) Is Nothing) Then
-                                                    If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
-                                                        g_ContractAll(aFut.ID).Fut.manualActivePrice = dValue
-                                                        gDBW.usp_MmManualPrice_Save aFut.ID, dValue
-                                                        aFut.price.IsDirty = True
-                                                        PubManualPrice dValue, aFut.ID, aFut.UndID, enCtFuture, enUsAdd
-                                                    End If
-                                                 End If
+                                                UpdateFutManualPrice aFut, dValue, enUsAdd
+                                                aFut.price.IsDirty = True
                                              End If
                                          Else
                                              If dValue > 0 Then
                                                  If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
                                                     If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
-                                                        g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
-                                                        gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
+                                                        UpdateUndManualPrice aUnd, dValue, enUsAdd
                                                         aUnd.price.IsDirty = True
-                                                        PubManualPrice dValue, aUnd.ID, aUnd.ID, aUnd.ContractType, enUsAdd
                                                         If (Not m_Aux.Und(aUnd.ID) Is Nothing) Then
                                                             m_Aux.Und(aUnd.ID).price.Active = dValue
                                                             m_Aux.Und(aUnd.ID).price.IsDirty = True
@@ -2081,14 +2023,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 If dValue > 0 Then
                                     aUnd.price.Active = dValue
                                     aUnd.price.IsDirty = True
-                                    If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
-                                        If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
-                                                g_ContractAll(aUnd.ID).Und.manualActivePrice = dValue
-                                                gDBW.usp_MmManualPrice_Save aUnd.ID, dValue
-                                                aUnd.price.IsDirty = True
-                                                PubManualPrice dValue, aUnd.ID, aUnd.ID, aUnd.ContractType, enUsAdd
-                                        End If
-                                    End If
+                                    UpdateUndManualPrice aUnd, dValue, enUsAdd
                                 End If
                                 bCalcSynthUnd = True
                                     
@@ -2679,6 +2614,8 @@ Private Sub fgPos_AfterCollapse(ByVal Row As Long, ByVal State As Integer)
     Dim aRowData As EtsMmRisksLib.MmRvRowData
     
     m_RiskView.IsRowExpanded(Row) = State = flexOutlineExpanded
+    RefreshPositions
+    
     If Not m_bCurUndChanging Then m_nCurUnd = 0
 End Sub
 
@@ -3700,6 +3637,7 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
                 
                 RefreshPositions
                 
+                RaiseEvent OnRefreshComplete
             End If
         End If
     
@@ -3907,6 +3845,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         
         RefreshPositions
         
+        RaiseEvent OnRefreshComplete
     End If
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -4969,6 +4908,8 @@ On Error GoTo EH
             lblProcess.Visible = False
             imgStop.Visible = False
             imgStopDis.Visible = False
+            
+            RaiseEvent OnRefreshEmpty
         End If
     Else
         pbProgress.Visible = False
@@ -4996,6 +4937,8 @@ EH:
     AdjustState
     
     PriceProvider.CancelLastQuote
+    
+    RaiseEvent OnRefreshError
 
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_REQUESTQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
@@ -5450,7 +5393,7 @@ Private Sub ClearViewAndData()
     
     m_Aux.FormatPosGrid
     m_Aux.FilterUpdateAll
-    'm_Aux.FilterUpdateCalculationDate True, m_AuxClc.m_dtCalcDateShift
+    
     AdjustCaption
     AdjustState
     
@@ -5605,9 +5548,9 @@ Public Sub ToggleRealtime()
     SetRefreshHint False
         
     'In real time day shift 0
-    m_AuxClc.CalcDate = Date
+    m_AuxClc.CalcDate = GetNewYorkTime
     'mov to date shift menu today DATE
-    fgFlt.TextMatrix(1, RFC_SIM_DATE) = Date
+    fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
     'Hide date shift menu
     'fgFlt.ColHidden(RFC_SIM_DATE) = Not m_Aux.RealTime And m_AuxClc.QuoteReqsAll.Count > 0
    
@@ -5706,6 +5649,8 @@ EH:
     If Not aIdxReq Is Nothing Then
         If aIdxReq.IndexOnly Then PriceProvider.CancelLastQuote aIdxReq.GetQuoteUpdateParam
     End If
+    
+    RaiseEvent OnRefreshError
 End Sub
 
 ' subscribe to index if view is in realtime
@@ -5784,9 +5729,7 @@ Private Function StartRealTime() As Boolean
     On Error GoTo EH
     If m_bShutDown Or m_bInProc Or m_bLastQuoteReqNow Then Exit Function
     If m_AuxClc.CantStartRealTime Then Exit Function
-    
-    m_AuxClc.SetCalcDateShift (DateTime.Now)
-    
+        
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aReq As EtsMmRisksLib.MmRvReqAtom
     Dim aParam As PRICEPROVIDERSLib.QuoteUpdateParams
     Dim nLoopCounter As Long
@@ -6038,9 +5981,9 @@ Private Sub mnuCtxRefresh_Click()
         g_PerformanceLog.LogMmInfo enLogUserAction, "Popup menu. ""RightClick -> Refresh"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
     If Not m_bShutDown Then
         'In real time day shift 0
-        m_AuxClc.CalcDate = Date
+        m_AuxClc.CalcDate = GetNewYorkTime
         'mov to date shift menu today DATE
-        fgFlt.TextMatrix(1, RFC_SIM_DATE) = Date
+        fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
         ' show this filter
         fgFlt.ColHidden(RFC_SIM_DATE) = m_Aux.RealTime
         Refresh
@@ -6862,8 +6805,31 @@ Exception:
     Debug.Print "Error while try to update dividend Type"
 End Sub
 
-Private Sub TradeChannel_ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdate)
-    On Error GoTo Exception
+Public Sub ManualPriceUpdate(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+On Error Resume Next
+Dim aData As MSGSTRUCTLib.ManualPriceUpdate
+    Set aData = New MSGSTRUCTLib.ManualPriceUpdate
+    
+    If (Not aData Is Nothing) Then
+    
+        If (Status = MPU_ADD Or Status = MPU_UPDATE) Then
+            aData.ActivePrice = price
+            aData.Status = enUsAdd
+        Else
+            aData.ActivePrice = 0#
+            aData.Status = enUsDelete
+        End If
+        
+        aData.ContractID = ID
+        aData.UndID = UndID
+        aData.ContractType = CtType
+        
+        ManualPriceUpdateEx aData
+    End If
+End Sub
+
+Public Sub ManualPriceUpdateEx(Data As MSGSTRUCTLib.ManualPriceUpdate)
+On Error GoTo Exception
         If (m_bShutDown) Then Exit Sub
         
         Dim bChange As Boolean
@@ -7026,6 +6992,11 @@ Private Sub TradeChannel_ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdat
     Exit Sub
 Exception:
     Debug.Print "Error while trying to update manual price"
+End Sub
+
+Private Sub TradeChannel_ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdate)
+On Error Resume Next
+    ManualPriceUpdateEx Data
 End Sub
 
 Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
@@ -7440,7 +7411,8 @@ EH:
     gCmn.ErrorHandler ""
 End Sub
 
-Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
+Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
+                        Optional ByVal bRefreshData As Boolean = True)
 '    On Error GoTo EH
 '    If m_bShutDown Then Exit Sub
 '    Dim i&
@@ -7482,10 +7454,11 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     m_gdTot.ReadFromStorage "RiskTotGrid" & sKey, aStorage
     m_gdPos.ReadFromStorage "RiskPosGrid" & sKey, aStorage
     
-    tmrShow.Enabled = True
+    tmrShow.Enabled = bRefreshData 'True
     Exit Sub
 EH:
     gCmn.ErrorHandler ""
+    RaiseEvent OnRefreshError
 End Sub
 
 Public Sub RefreshView()
@@ -8065,6 +8038,8 @@ On Error GoTo ErrEx
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions m_Aux.RiskView.Refresh complete", m_frmOwner.GetCaption
     
+    fgPos.Subtotal flexSTClear
+    
     fgPos.FlexDataSource = m_Aux.RiskView
     
     m_nOptPositions = m_RiskView.OptionPositions
@@ -8155,6 +8130,7 @@ On Error GoTo ErrEx
                     fgPos.IsCollapsed(i) = IIf(m_RiskView.IsRowExpanded(i) = True, flexOutlineExpanded, flexOutlineCollapsed)
                     fgPos.RowHidden(i) = False
                 End If
+                
                 enP = aRowData.GetAggregationPriceReplaceStatus
                 If Not aRowData.OutlineLevel = USD_ID Then
                     If enP = enRpsAsk Or enP = enRpsBoth Then
@@ -8620,12 +8596,16 @@ On Error GoTo Exception
         aPos.Quote.price.IsUseManualActive = True
         'save manual price to db
         ManualPriceSave dPrice, aPos.ID
+        'RaiseEvent
+        RaiseEvent OnManualPriceChanged(aPos.UndID, aPos.ID, dPrice, aPos.ContractType, MPU_UPDATE)
         'pub manual price
         PubManualPrice dPrice, aPos.ID, aPos.UndID, aPos.ContractType, enStatus
     Else
         aPos.Quote.price.IsUseManualActive = False
         'delete manu lrpice from db
         ManualPriceDel aPos.ID
+        'RaiseEvent
+        RaiseEvent OnManualPriceChanged(aPos.UndID, aPos.ID, 0#, aPos.ContractType, MPU_DELTE)
         'pub changes
         PubManualPrice 0#, aPos.ID, aPos.UndID, aPos.ContractType, enStatus
     End If
@@ -8644,26 +8624,30 @@ On Error GoTo Exception
             aFut.price.IsUseManualActive = True
             'manual price save to db
             ManualPriceSave dPrice, aFut.ID
-            'pub changes
-            PubManualPrice dPrice, aFut.ID, aFut.UndID, enCtFuture, enStatus
             'update global collection
             If (Not g_ContractAll(aFut.ID) Is Nothing) Then
                 If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
                     g_ContractAll(aFut.ID).Fut.manualActivePrice = dPrice
                 End If
             End If
+            'RaiseEvent
+            RaiseEvent OnManualPriceChanged(aFut.UndID, aFut.ID, dPrice, enCtFuture, MPU_UPDATE)
+            'pub changes
+            PubManualPrice dPrice, aFut.ID, aFut.UndID, enCtFuture, enStatus
         Else
             aFut.price.IsUseManualActive = False
             'delete manual price
             ManualPriceDel aFut.ID
-            'pub changes
-            PubManualPrice 0#, aFut.ID, aFut.UndID, enCtFuture, enStatus
             'update global colection
             If (Not g_ContractAll(aFut.ID) Is Nothing) Then
                 If (Not g_ContractAll(aFut.ID).Fut Is Nothing) Then
                     g_ContractAll(aFut.ID).Fut.manualActivePrice = 0#
                 End If
             End If
+            'RaiseEvent
+            RaiseEvent OnManualPriceChanged(aFut.UndID, aFut.ID, 0#, enCtFuture, MPU_DELTE)
+            'pub changes
+            PubManualPrice 0#, aFut.ID, aFut.UndID, enCtFuture, enStatus
         End If
         
     Exit Sub
@@ -8674,7 +8658,7 @@ End Sub
 Private Sub UpdateUndManualPrice(aUnd As MmRvUndAtom, dPrice As Double, enStatus As MANUAL_PRICE_UPDATE_STATUS)
 On Error GoTo Exception
     If (aUnd Is Nothing) Then Exit Sub
-    Dim ctType As EtsContractTypeEnum
+    Dim CtType As EtsContractTypeEnum
     
     If (enStatus = enUsAdd Or enStatus = enUsUpdate) Then
         aUnd.price.Active = dPrice
@@ -8684,12 +8668,14 @@ On Error GoTo Exception
         'update global collection
         If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
             If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
-                ctType = g_ContractAll(aUnd.ID).ContractType
+                CtType = g_ContractAll(aUnd.ID).ContractType
                 g_ContractAll(aUnd.ID).Und.manualActivePrice = dPrice
             End If
         End If
+        'RaiseEvent
+        RaiseEvent OnManualPriceChanged(aUnd.ID, aUnd.ID, dPrice, CtType, MPU_UPDATE)
         'pub changes
-        PubManualPrice dPrice, aUnd.ID, aUnd.ID, ctType, enStatus
+        PubManualPrice dPrice, aUnd.ID, aUnd.ID, CtType, enStatus
     Else
         aUnd.price.IsUseManualActive = False
         'manual price save to DB
@@ -8697,15 +8683,34 @@ On Error GoTo Exception
         'update global collection
         If (Not g_ContractAll(aUnd.ID) Is Nothing) Then
             If (Not g_ContractAll(aUnd.ID).Und Is Nothing) Then
-                ctType = g_ContractAll(aUnd.ID).ContractType
+                CtType = g_ContractAll(aUnd.ID).ContractType
                 g_ContractAll(aUnd.ID).Und.manualActivePrice = 0#
             End If
         End If
+        'RaiseEvent
+        RaiseEvent OnManualPriceChanged(aUnd.ID, aUnd.ID, 0#, CtType, MPU_DELTE)
         'pub changes
-        PubManualPrice 0#, aUnd.ID, aUnd.ID, ctType, enStatus
+        PubManualPrice 0#, aUnd.ID, aUnd.ID, CtType, enStatus
     End If
     
     Exit Sub
 Exception:
     Debug.Print "Error while trying to Upadte ManualPrice for Underlying"
 End Sub
+
+Public Sub ImmediateRefresh()
+    On Error Resume Next
+    If m_bFirstTime Then m_Aux.Grp.ID = -1
+    m_bFirstTime = False
+End Sub
+
+Public Function ExportToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
+                             ByVal bShowFilter As Boolean, ByVal bShowPositions As Boolean) As Boolean
+    On Error Resume Next
+    Screen.MousePointer = vbHourglass
+    ExportToHTML = g_ScreenExport.SaveToHTML(sFileName, sFilePath, fgPos, _
+                                            IIf(bShowFilter, fgTot, Nothing), IIf(bShowFilter, fgFlt, Nothing), bShowPositions)
+    Screen.MousePointer = vbNormal
+End Function
+
+

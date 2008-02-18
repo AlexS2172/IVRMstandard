@@ -7,7 +7,19 @@
 #include "utils.h"
 #include "optex.h"
 #include <malloc.h>
-//#include <atlutil.h>
+#include <OptionCalc\DateConverter.h>
+
+#include "boost_month_iterator.h"
+
+#include "Boost/date_time/posix_time/posix_time_types.hpp"
+#include "Boost/date_time/posix_time/posix_time.hpp"
+#include "Boost/date_time/gregorian/gregorian.hpp"
+#include "Boost/date_time/gregorian/greg_month.hpp"
+#include "Boost/date_time/c_local_time_adjustor.hpp"
+#include "boost/date_time/local_time_adjustor.hpp"
+#include "boost/date_time/compiler_config.hpp"
+
+typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
 
 #pragma warning(disable:4800)
 
@@ -28,6 +40,453 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 }
 
 
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+double OPTIONCALC_API GetDateDiff(time_t begDate, time_t endDate)
+{
+	return (endDate - begDate)/OPM::cdSecondsPerYear365;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+static time_t ConvertToTimeT(long msTime)
+{
+	time_t uxDate = -1;
+	OleDateToUnixDate(msTime, &uxDate);
+	return uxDate;
+}
+
+bool OPTIONCALC_API GetNYDateTimeAsDATE(double *pdtDate)
+{
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	if (pdtDate)
+	{
+
+		typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+		ptime ptUTCNow = second_clock::universal_time(); 
+		ptime ptNYNow = us_eastern::utc_to_local(ptUTCNow);
+		tm	  tmNYNow = to_tm(ptNYNow);
+		TmToDateEx(&tmNYNow, pdtDate);
+	}
+	return false;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+static double InterpolateRatesOld( long nCount, const RATE *pRates, long nDTE )
+{
+	// Check parameters
+	if( nCount <= 0 )
+	{
+		::SetLastError( ERROR_INVALID_PARAMETER );
+		return 0;
+	}
+	if( ::IsBadReadPtr(pRates, sizeof(RATE) * nCount) )
+	{
+		::SetLastError( ERROR_NOACCESS );
+		return 0;
+	}
+	if( nDTE < 0 )
+	{
+		::SetLastError( ERROR_INVALID_PARAMETER );
+		return 0;
+	}
+
+	const RATE *pPrevRate = NULL;
+	long  nPrevDif  = 0;
+	const RATE *pNextRate = NULL;
+	long  nNextDif  = 0;
+
+	// Find previous and next rates
+	for( int i = 0; i < nCount; i++ )
+	{
+		if( pPrevRate == NULL && pRates[i].nDTE <= nDTE )
+		{
+			pPrevRate = pRates + i;
+			nPrevDif  = nDTE - pRates[i].nDTE;
+		}
+		else 
+			if( pRates[i].nDTE <= nDTE && nDTE - pRates[i].nDTE < nPrevDif )
+			{
+				pPrevRate = pRates + i;
+				nPrevDif  = nDTE - pRates[i].nDTE;
+			}
+
+			if( pNextRate == NULL && pRates[i].nDTE > nDTE )
+			{
+				pNextRate = pRates + i;
+				nNextDif  = pRates[i].nDTE - nDTE;
+			}
+			else 
+				if( pRates[i].nDTE > nDTE && pRates[i].nDTE - nDTE < nNextDif )
+				{
+					pNextRate = pRates + i;
+					nNextDif  = pRates[i].nDTE - nDTE;
+				}
+	}
+	_ASSERT( pPrevRate || pNextRate );
+
+	// Return appropriate value
+	if( pPrevRate == NULL )	
+		return pNextRate->dRate;
+	else if( pNextRate == NULL )
+		return pPrevRate->dRate;
+	else
+	{
+		long lMDP = nDTE - pPrevRate->nDTE;
+		long lMDN = pNextRate->nDTE - pPrevRate->nDTE; 
+
+		double dPNChange      = pNextRate->dRate - pPrevRate->dRate;
+
+		double dK = dPNChange / double(lMDN);
+
+		double dRate = dK * double(lMDP) +	pPrevRate->dRate;
+		return dRate;
+	}
+
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+static double InterpolateRates2Old( long nCount, double* pRates, long* pnDTEs, long nDTE )
+{
+	// Check parameters
+	if ( nCount <= 0 )
+	{
+		::SetLastError( ERROR_INVALID_PARAMETER );
+		return 0;
+	}
+	if ( ::IsBadReadPtr(pRates, sizeof(*pRates) * nCount) ||
+		::IsBadReadPtr(pnDTEs, sizeof(*pnDTEs) * nCount) )
+	{
+		::SetLastError( ERROR_NOACCESS );
+		return 0;
+	}
+
+	std::vector<RATE> vec(nCount);
+	for (int i = 0; i < nCount; i++)
+	{
+		RATE& r = vec[i];
+		r.dRate = pRates[i];
+		r.nDTE = pnDTEs[i];
+	}
+
+	return InterpolateRatesOld(nCount, &vec.front(), nDTE);
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+static long get_div_count_etm(boost::posix_time::ptime ptimeToday, 
+							  double dYte, 
+							  boost::posix_time::ptime ptimeLastDivDate, 
+							  long nFrequency, 
+							  boost::posix_time::ptime* firstDivDate = NULL
+							  )
+{
+
+	long nCount = 0;
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	ptime ptimeCurDivDate	= ptimeLastDivDate;
+
+	long lTTEInMinutes	= static_cast<long>(OPM::cdMinutesPerYear365 * dYte);
+	ptime expiryDate	= ptimeToday + time_duration(0, lTTEInMinutes, 0);
+
+	month_adder	real_month_adder(12 / nFrequency);
+	
+	while(ptimeCurDivDate < expiryDate)
+	{	
+		if (ptimeCurDivDate >= ptimeToday){
+			++nCount;
+			if (nCount == 1 && firstDivDate){
+				*firstDivDate = ptimeCurDivDate;
+			}
+		}
+		ptimeCurDivDate = ptimeCurDivDate + real_month_adder.get_offset(ptimeCurDivDate.date());
+	}
+
+	return nCount;
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+double OPTIONCALC_API InterpolateRates(	long nCount, 
+										const RATE *pRates, 
+										double dYte)
+{
+	return ::InterpolateRatesOld(nCount, pRates, static_cast<long>(ceil(dYte * OPM::cdDaysPerYear365)));
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+double OPTIONCALC_API InterpolateRates2( long nCount, 
+										 double* pRates, 
+										 double* pdYte, 
+										 double dYte)
+{
+	long *pDTEs = (long*)_alloca(sizeof(long) * nCount);
+
+	for (long i = 0; i < nCount; ++i)
+	{
+		pDTEs[i] = static_cast<long>(pdYte[i] * OPM::cdDaysPerYear365);
+	}
+
+	return InterpolateRates2Old(nCount, pRates, pDTEs, static_cast<long>(ceil(dYte * OPM::cdDaysPerYear365)));
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+long OPTIONCALC_API  GetDividendsCount(	 time_t nToday, 
+										 double	dYte, 
+										 time_t	nLastDivDate, 
+										 long nFrequency )
+{
+	// Check parameters
+	if( nFrequency != FREQUENCY_MONTHLY		&&  nFrequency != FREQUENCY_QUATERLY &&
+		nFrequency != FREQUENCY_SEMIANNUALY &&  nFrequency != FREQUENCY_ANNUALY    )
+	{
+		return -1;
+	}
+
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	ptime ptimeToday				= local_adj::utc_to_local(from_time_t(nToday));
+	ptime ptimeCurDivDate		= local_adj::utc_to_local(from_time_t(nLastDivDate));
+
+	// Calculate dividends count
+	return get_div_count_etm( ptimeToday, dYte, ptimeCurDivDate, nFrequency );
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+long OPTIONCALC_API  GetBasketDividendsCount(	time_t	nToday, 
+												double	dYte, 
+												REGULAR_DIVIDENDS*	pDividends,
+												long	nCount)
+{
+	if (nCount < 0)
+		return -1;
+
+	if (nCount > 0 && ::IsBadWritePtr(pDividends, sizeof(double) * nCount))
+	{
+		::SetLastError( ERROR_NOACCESS );
+		return -1;
+	}
+
+	std::map<double, double>	DivMap;
+
+	for (long n = 0; n < nCount; n++)
+	{
+		long _nCount = GetDividendsCount(nToday, dYte, 
+			pDividends[n].nLastDivDate, pDividends[n].nFrequency);
+
+		if (_nCount <= 0)
+			continue;
+
+		double* pDivAmnt = (double*)_alloca(_nCount*sizeof(double));
+		double* pDivDays = (double*)_alloca(_nCount*sizeof(double));
+
+		long __nCount;
+
+		long nRes = GetDividends2(	nToday,
+			dYte,
+			pDividends[n].nLastDivDate,
+			pDividends[n].nFrequency,
+			pDividends[n].dAmount,
+			_nCount, 
+			pDivAmnt,
+			pDivDays,
+			&__nCount);		
+
+		if (nRes != 1 || __nCount != _nCount)
+			return -1;
+
+		for (long i = 0; i < _nCount; i++)
+		{
+			if (DivMap.find(pDivDays[i]) != DivMap.end())
+				DivMap[pDivDays[i]] = DivMap[pDivDays[i]] + pDivAmnt[i];
+			else
+				DivMap[pDivDays[i]] = pDivAmnt[i];
+		}
+	}
+
+	return DivMap.size();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// Fills array of dividends using given last dividend amount, last dividend day and 
+// dividend frequency. Returns 0 if failed, or value greater than zero otherwise.
+// pnCount contains number of dividends available prior expiry date.
+/////////////////////////////////////////////////////////////////////////////////////////////////
+long OPTIONCALC_API  GetDividends(	time_t nToday, 
+									double dYte, 
+									time_t nLastDivDate, 
+									long nFrequency, 
+									double dAmount, 
+									long nCount, 
+									DIVIDEND *pDividends, 
+									long *pnCount )
+{
+	// Check parameters
+	if (nCount==0)
+	{
+		*pnCount = 0;
+		return 1;
+	}
+
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	ptime ptimeCurDivDate;
+	ptime ptimeToday = local_adj::utc_to_local(from_time_t(nToday));
+	long nDividends = get_div_count_etm(ptimeToday, dYte, local_adj::utc_to_local(from_time_t(nLastDivDate)), nFrequency, &ptimeCurDivDate);
+	month_adder	real_month_adder( 12 / nFrequency );
+
+	if( nCount < nDividends )
+	{
+		*pnCount = 0;
+		return -1;
+	}
+
+	for( int i = 0; i < nDividends; i++ )
+	{
+
+		pDividends[i].dAmount				= dAmount;
+		pDividends[i].dTimeFraction = (ptimeCurDivDate - ptimeToday).total_seconds() / OPM::cdSecondsPerYear365;
+
+		ptimeCurDivDate = ptimeCurDivDate + real_month_adder.get_offset(ptimeCurDivDate.date());
+	}
+
+	return 1;
+
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+long OPTIONCALC_API  GetDividends2(	time_t nToday, 
+											double	dYte, 
+											time_t nLastDivDate, 
+											long nFrequency, 
+											double dAmount, 
+											long nCount, 
+											double* pDivAmnts, 
+											double* pDivDays,
+											long *pnCount )
+{
+	// Check parameters
+	if (nCount==0)
+	{
+		*pnCount = 0;
+		return 1;
+	}
+
+	using namespace boost::posix_time;
+	using namespace boost::gregorian;
+
+	ptime ptimeCurDivDate;
+	ptime ptimeToday = local_adj::utc_to_local(from_time_t(nToday));
+	long nDividends = get_div_count_etm(ptimeToday, dYte, local_adj::utc_to_local(from_time_t(nLastDivDate)), nFrequency, &ptimeCurDivDate);
+	month_adder	real_month_adder( 12 / nFrequency );
+
+	if( nCount < nDividends )
+	{
+		*pnCount = 0;
+		return -1;
+	}
+
+	for( int i = 0; i < nDividends; i++ )
+	{
+
+		pDivAmnts[i]				= dAmount;
+		pDivDays[i]					= (ptimeCurDivDate - ptimeToday).total_seconds() / OPM::cdSecondsPerYear365;
+
+		ptimeCurDivDate = ptimeCurDivDate + real_month_adder.get_offset(ptimeCurDivDate.date());
+	}
+
+	return 1;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+long OPTIONCALC_API  GetBasketDividends(		 time_t				nToday, 
+													 double				dYte, 
+													 REGULAR_DIVIDENDS*	pDividends,
+													 unsigned			nCount,
+													 double*			pDivAmnts,
+													 double*			pDivDays,
+													 long				nInCount,
+													 long*				pnOutCount)
+{
+	if (nCount < 0)
+		return 1;
+
+	if (nCount > 0 && ::IsBadWritePtr(pDividends, sizeof(double) * nCount))
+	{
+		::SetLastError( ERROR_NOACCESS );
+		return 1;
+	}
+
+	if (::IsBadWritePtr(pnOutCount, sizeof(long)))
+	{
+		::SetLastError( ERROR_NOACCESS );
+		return 1;
+	}
+
+	std::map<double, double>	DivMap;
+
+	for (unsigned n = 0; n < nCount; n++)
+	{
+		long _nCount = GetDividendsCount(nToday, dYte, 
+			pDividends[n].nLastDivDate, pDividends[n].nFrequency);
+
+		if (_nCount <= 0)
+			continue;
+
+		double* pDivAmnt = (double*)_alloca(_nCount*sizeof(double));
+		double* pDivDays = (double*)_alloca(_nCount*sizeof(double));
+
+		long __nCount;
+
+		long nRes = GetDividends2(	nToday,
+			dYte,
+			pDividends[n].nLastDivDate,
+			pDividends[n].nFrequency,
+			pDividends[n].dAmount,
+			_nCount, 
+			pDivAmnt,
+			pDivDays,
+			&__nCount);		
+
+		if (nRes != 1 || __nCount != _nCount)
+			return -1;
+
+		for (long i = 0; i < _nCount; i++)
+		{
+
+			if (DivMap.find(pDivDays[i]) != DivMap.end())
+				DivMap[pDivDays[i]] = DivMap[pDivDays[i]] + pDivAmnt[i];
+			else
+				DivMap[pDivDays[i]] = pDivAmnt[i];
+		}
+	}
+
+	*pnOutCount = DivMap.size();
+
+	if (nInCount < (long)DivMap.size())
+		return 0;
+
+	std::map<double, double>::iterator	it = DivMap.begin();
+
+	for (int i = 0; it != DivMap.end(); it++, i++)
+	{
+		pDivAmnts[i] = it->second;
+		pDivDays[i] = it->first;
+	}
+
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
 void PrepareDivData(const DIVIDEND *pDividends,std::vector<double> *divytes,std::vector<double> *divamts, int nCount)
 {
 	if (nCount!=0)
@@ -50,445 +509,348 @@ void PrepareDivData(const DIVIDEND *pDividends,std::vector<double> *divytes,std:
 
 // Interpolates rates. Returns 0 if failed, or value greater than 0 if succeeded.
 // nDTE must be greater that zero. Input rates array assumed to be unsorted.
-
-double OPTIONCALC_API InterpolateRates( long nCount, const RATE *pRates, long nDTE )
-{
-	// Check parameters
-	if( nCount <= 0 )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return 0;
-	}
-	if( ::IsBadReadPtr(pRates, sizeof(RATE) * nCount) )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-	if( nDTE < 0 )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return 0;
-	}
-
-	const RATE *pPrevRate = NULL;
-		  long  nPrevDif  = 0;
-	const RATE *pNextRate = NULL;
-		  long  nNextDif  = 0;
-
-	// Find previous and next rates
-	for( int i = 0; i < nCount; i++ )
-	{
-		if( pPrevRate == NULL && pRates[i].nDTE <= nDTE )
-		{
-			pPrevRate = pRates + i;
-			nPrevDif  = nDTE - pRates[i].nDTE;
-		}
-		else 
-			if( pRates[i].nDTE <= nDTE && nDTE - pRates[i].nDTE < nPrevDif )
-			{
-				pPrevRate = pRates + i;
-				nPrevDif  = nDTE - pRates[i].nDTE;
-			}
-
-		if( pNextRate == NULL && pRates[i].nDTE > nDTE )
-		{
-			pNextRate = pRates + i;
-			nNextDif  = pRates[i].nDTE - nDTE;
-		}
-		else 
-			if( pRates[i].nDTE > nDTE && pRates[i].nDTE - nDTE < nNextDif )
-			{
-				pNextRate = pRates + i;
-				nNextDif  = pRates[i].nDTE - nDTE;
-			}
-		}
-	_ASSERT( pPrevRate || pNextRate );
-
-	// Return appropriate value
-	if( pPrevRate == NULL )	
-		return pNextRate->dRate;
-	else if( pNextRate == NULL )
-		return pPrevRate->dRate;
-	else
-	{
-		long lMDP = nDTE - pPrevRate->nDTE;
-		long lMDN = pNextRate->nDTE - pPrevRate->nDTE; 
-
-		double dPNChange      = pNextRate->dRate - pPrevRate->dRate;
-		double dMaturityRatio = lMDP / double(lMDN);
-
-		double dRate = pPrevRate->dRate + dPNChange * dMaturityRatio;
-		return dRate;
-	}
-
-	return 0;
-}
-
-double OPTIONCALC_API InterpolateRates2( long nCount, double* pRates, long* pnDTEs, long nDTE )
-{
-	// Check parameters
-	if ( nCount <= 0 )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return 0;
-	}
-	if ( ::IsBadReadPtr(pRates, sizeof(*pRates) * nCount) ||
-        ::IsBadReadPtr(pnDTEs, sizeof(*pnDTEs) * nCount) )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-
-    std::vector<RATE> vec(nCount);
-    for (int i = 0; i < nCount; i++)
-    {
-        RATE& r = vec[i];
-        r.dRate = pRates[i];
-        r.nDTE = pnDTEs[i];
-    }
-
-    return InterpolateRates(nCount, &vec.front(), nDTE);
-}
-
-////////////////////////////////////////////////////////////
-// Dividends
-// 
-// All dates in functions and structures are 
-// number of days since 30 December 1899, midnight.
-////////////////////////////////////////////////////////////
-
-// 
-static void _addMonths( SYSTEMTIME& st, WORD wMonths )
-{
-	if( (st.wMonth + wMonths) <= 12 )
-		 st.wMonth += wMonths;
-	else
-	{
-		st.wYear++;
-		st.wMonth = st.wMonth + wMonths - 12;// % 12;
-	}
-}
-
-// Internal dates calculator
-static long _getDivCount(	long nToday, //Нолмер текущего дня от 30 декабря 1899 года
-							long nDTE,   //Количетсво дней до экспорации от сегоднешнего дня
-							long nLastDivDate, //Номер последнего дня когда выплачивались дивиденты от 30 декабря 1899 года
-							long nFrequency, //Частота выплат девидентов (количество раз вгод)
-						  SYSTEMTIME* pFirstDivDate = NULL ) //Первый день когда выплачиваются девиденты
-{
-	long nCount = 0;
-
-	// Convert times
-	SYSTEMTIME stToday, stDivDate, stExpiry;
-	if( !::VariantTimeToSystemTime( nToday, &stToday ) )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return -1;
-	}
-	if( !::VariantTimeToSystemTime( nLastDivDate, &stDivDate ) )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return -1;
-	}
-	if( !::VariantTimeToSystemTime( nToday + nDTE, &stExpiry ) )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return -1;
-	}
-
-
-	// Count dividends
-	while( true )
-	{
-		//if dividends date more then today
-		if (stToday < stDivDate && nCount==0)
-		{	
-			if( stExpiry < stDivDate )
-				break;
-
-			nCount++;
-			if( pFirstDivDate != NULL && nCount == 1 )
-				memcpy( pFirstDivDate, &stDivDate, sizeof(SYSTEMTIME) );
-			continue;
-		}	
-		_addMonths( stDivDate, WORD(12/nFrequency) );
-
-		if( stDivDate < stToday )
-			continue;
-		else if( stDivDate < stExpiry )
-		{
-			nCount++;
-			if( pFirstDivDate != NULL && nCount == 1 )
-				memcpy( pFirstDivDate, &stDivDate, sizeof(SYSTEMTIME) );
-		}
-		else
-			break;
-	}
-
-	return nCount;
-}
-
-// Returns number of dividends or -1 if error occured.
-long OPTIONCALC_API GetDividendsCount( long nToday, long nDTE, 
-									   long nLastDivDate, long nFrequency )
-{
-	// Check parameters
-	if( nFrequency != FREQUENCY_MONTHLY		&&  nFrequency != FREQUENCY_QUATERLY &&
-		nFrequency != FREQUENCY_SEMIANNUALY &&  nFrequency != FREQUENCY_ANNUALY    )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return -1;
-	}
-
-	// Calculate dividends count
-	return _getDivCount( nToday, nDTE, nLastDivDate, nFrequency );
-}
-
-
-// Fills array of dividends using given last dividend amount, last dividend day and 
-// dividend frequency. Returns 0 if failed, or value greater than zero otherwise.
-// pnCount contains number of dividends available prior expiry date.
-long OPTIONCALC_API GetDividends( long nToday, long nDTE, 
-								  long nLastDivDate, long nFrequency, double dAmount, 
-								  long nCount, DIVIDEND *pDividends, long *pnCount )
-{
-	// Check parameters
-	if (nCount==0)
-	{
-		*pnCount = 0;
-		return 1;
-	}
-		
-	if( ::IsBadWritePtr(pDividends, sizeof(DIVIDEND) * nCount) )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-	if( pnCount == NULL )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return 0;
-	}
-
-	SYSTEMTIME stDivDate;
-	DATE	   dDivDate;
-
-	long nDividends = _getDivCount( nToday, nDTE, nLastDivDate, nFrequency, &stDivDate );
-	if( nDividends == -1 )
-		return 0;	// Last error is still available
-	*pnCount = nDividends;
-
-	if( nCount < nDividends )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-
-	// Fill array of dividends
-	for( int i = 0; i < nDividends; i++ )
-	{
-		::SystemTimeToVariantTime( &stDivDate, &dDivDate );
-
-		pDividends[i].dAmount		= dAmount;
-		pDividends[i].dTimeFraction = (floor(dDivDate) - nToday) / OPM::cdDaysPerYear365;
-
-		_addMonths( stDivDate, WORD(12/nFrequency) );
-	}
-
-	return 1;
-}
-
-long OPTIONCALC_API GetDividends2( long nToday, long nDTE, 
-								  long nLastDivDate, long nFrequency, double dAmount, 
-								  long nCount, double* pDivAmnts, double* pDivDays,
-								  long *pnCount )
-{
-	// Check parameters
-	if (nCount==0)
-	{
-		*pnCount = 0;
-		return 1;
-	}
-		
-	if( ::IsBadWritePtr(pDivAmnts, sizeof(double) * nCount) )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-	if( ::IsBadWritePtr(pDivDays, sizeof(double) * nCount) )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-
-	if( pnCount == NULL )
-	{
-		::SetLastError( ERROR_INVALID_PARAMETER );
-		return 0;
-	}
-
-	SYSTEMTIME stDivDate;
-	DATE	   dDivDate;
-
-	long nDividends = _getDivCount( nToday, nDTE, nLastDivDate, nFrequency, &stDivDate );
-	if( nDividends == -1 )
-		return 0;	// Last error is still available
-	*pnCount = nDividends;
-
-	if( nCount < nDividends )
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 0;
-	}
-
-	// Fill array of dividends
-	for( int i = 0; i < nDividends; i++ )
-	{
-		::SystemTimeToVariantTime( &stDivDate, &dDivDate );
-
-		pDivAmnts[i] = dAmount;
-		pDivDays[i] = (floor(dDivDate) - nToday) / OPM::cdDaysPerYear365;
-
-//		ATLTRACE("DivArr = %u:, ", (ULONG)(floor(dDivDate) - nToday));
-
-
-		_addMonths( stDivDate, WORD(12/nFrequency) );
-	}
-
-	return 1;
-}
-
-long OPTIONCALC_API GetBasketDividendsCount(long				nToday, 
-											long				nDTE, 
-											REGULAR_DIVIDENDS*	pDividends,
-											long				nCount)
-{
-	if (nCount < 0)
-		return -1;
-
-	if (nCount > 0 && ::IsBadWritePtr(pDividends, sizeof(double) * nCount))
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return -1;
-	}
-
-	std::map<double, double>	DivMap;
-
-	for (long n = 0; n < nCount; n++)
-	{
-		long _nCount = GetDividendsCount(nToday, nDTE, 
-										pDividends[n].nLastDivDate, pDividends[n].nFrequency);
-
-		if (_nCount <= 0)
-			continue;
-
-		double* pDivAmnt = (double*)_alloca(_nCount*sizeof(double));
-		double* pDivDays = (double*)_alloca(_nCount*sizeof(double));
-
-		long __nCount;
-
-		long nRes = GetDividends2(	nToday,
-									nDTE,
-									pDividends[n].nLastDivDate,
-									pDividends[n].nFrequency,
-									pDividends[n].dAmount,
-									_nCount, 
-									pDivAmnt,
-									pDivDays,
-									&__nCount);		
-
-		if (nRes != 1 || __nCount != _nCount)
-			return -1;
-
-		for (long i = 0; i < _nCount; i++)
-		{
-			if (DivMap.find(pDivDays[i]) != DivMap.end())
-				DivMap[pDivDays[i]] = DivMap[pDivDays[i]] + pDivAmnt[i];
-			else
-				DivMap[pDivDays[i]] = pDivAmnt[i];
-		}
-	}
-	
-	return DivMap.size();
-}
-
-long OPTIONCALC_API GetBasketDividends(	long				nToday, 
-										long				nDTE, 
-										REGULAR_DIVIDENDS*	pDividends,
-										unsigned			nCount,
-										double*				pDivAmnts,
-										double*				pDivDays,
-										long				nInCount,
-										long*				pnOutCount)
-{
-	if (nCount < 0)
-		return 1;
-
-	if (nCount > 0 && ::IsBadWritePtr(pDividends, sizeof(double) * nCount))
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 1;
-	}
-
-	if (::IsBadWritePtr(pnOutCount, sizeof(long)))
-	{
-		::SetLastError( ERROR_NOACCESS );
-		return 1;
-	}
-
-	std::map<double, double>	DivMap;
-
-	for (unsigned n = 0; n < nCount; n++)
-	{
-		long _nCount = GetDividendsCount(nToday, nDTE, 
-										pDividends[n].nLastDivDate, pDividends[n].nFrequency);
-
-		if (_nCount <= 0)
-			continue;
-
-		double* pDivAmnt = (double*)_alloca(_nCount*sizeof(double));
-		double* pDivDays = (double*)_alloca(_nCount*sizeof(double));
-
-		long __nCount;
-
-		long nRes = GetDividends2(	nToday,
-									nDTE,
-									pDividends[n].nLastDivDate,
-									pDividends[n].nFrequency,
-									pDividends[n].dAmount,
-									_nCount, 
-									pDivAmnt,
-									pDivDays,
-									&__nCount);		
-
-		if (nRes != 1 || __nCount != _nCount)
-			return -1;
-
-		for (long i = 0; i < _nCount; i++)
-		{
-
-			if (DivMap.find(pDivDays[i]) != DivMap.end())
-				DivMap[pDivDays[i]] = DivMap[pDivDays[i]] + pDivAmnt[i];
-			else
-				DivMap[pDivDays[i]] = pDivAmnt[i];
-		}
-	}
-	
-	*pnOutCount = DivMap.size();
-	
-	if (nInCount < (long)DivMap.size())
-		return 0;
-
-	std::map<double, double>::iterator	it = DivMap.begin();
-
-	for (int i = 0; it != DivMap.end(); it++, i++)
-	{
-		pDivAmnts[i] = it->second;
-		pDivDays[i] = it->first;
-	}
-
-	return 0;
-}
+//
+//
+//////////////////////////////////////////////////////////////
+//// Dividends
+//// 
+//// All dates in functions and structures are 
+//// number of days since 30 December 1899, midnight.
+//////////////////////////////////////////////////////////////
+//
+//// 
+//static void _addMonths( SYSTEMTIME& st, WORD wMonths )
+//{
+//	if( (st.wMonth + wMonths) <= 12 )
+//		 st.wMonth += wMonths;
+//	else
+//	{
+//		st.wYear++;
+//		st.wMonth = st.wMonth + wMonths - 12;// % 12;
+//	}
+//}
+//
+//// Internal dates calculator
+//static long _getDivCount(	long nToday, //Нолмер текущего дня от 30 декабря 1899 года
+//							long nDTE,   //Количетсво дней до экспорации от сегоднешнего дня
+//							long nLastDivDate, //Номер последнего дня когда выплачивались дивиденты от 30 декабря 1899 года
+//							long nFrequency, //Частота выплат девидентов (количество раз вгод)
+//						  SYSTEMTIME* pFirstDivDate = NULL ) //Первый день когда выплачиваются девиденты
+//{
+//	long nCount = 0;
+//
+//	// Convert times
+//	SYSTEMTIME stToday, stDivDate, stExpiry;
+//	if( !::VariantTimeToSystemTime( nToday, &stToday ) )
+//	{
+//		::SetLastError( ERROR_INVALID_PARAMETER );
+//		return -1;
+//	}
+//	if( !::VariantTimeToSystemTime( nLastDivDate, &stDivDate ) )
+//	{
+//		::SetLastError( ERROR_INVALID_PARAMETER );
+//		return -1;
+//	}
+//	if( !::VariantTimeToSystemTime( nToday + nDTE, &stExpiry ) )
+//	{
+//		::SetLastError( ERROR_INVALID_PARAMETER );
+//		return -1;
+//	}
+//
+//
+//	// Count dividends
+//	while( true )
+//	{
+//		//if dividends date more then today
+//		if (stToday < stDivDate && nCount==0)
+//		{	
+//			if( stExpiry < stDivDate )
+//				break;
+//
+//			nCount++;
+//			if( pFirstDivDate != NULL && nCount == 1 )
+//				memcpy( pFirstDivDate, &stDivDate, sizeof(SYSTEMTIME) );
+//			continue;
+//		}	
+//		_addMonths( stDivDate, WORD(12/nFrequency) );
+//
+//		if( stDivDate < stToday )
+//			continue;
+//		else if( stDivDate < stExpiry )
+//		{
+//			nCount++;
+//			if( pFirstDivDate != NULL && nCount == 1 )
+//				memcpy( pFirstDivDate, &stDivDate, sizeof(SYSTEMTIME) );
+//		}
+//		else
+//			break;
+//	}
+//
+//	return nCount;
+//}
+//
+//
+//// Returns number of dividends or -1 if error occured.
+//long OPTIONCALC_API GetDividendsCount( long nToday, long nDTE, 
+//									   long nLastDivDate, long nFrequency )
+//{
+//	// Check parameters
+//	if( nFrequency != FREQUENCY_MONTHLY		&&  nFrequency != FREQUENCY_QUATERLY &&
+//		nFrequency != FREQUENCY_SEMIANNUALY &&  nFrequency != FREQUENCY_ANNUALY    )
+//	{
+//		::SetLastError( ERROR_INVALID_PARAMETER );
+//		return -1;
+//	}
+//
+//	// Calculate dividends count
+//	return _getDivCount( nToday, nDTE, nLastDivDate, nFrequency );
+//}
+//
+//
+//// Fills array of dividends using given last dividend amount, last dividend day and 
+//// dividend frequency. Returns 0 if failed, or value greater than zero otherwise.
+//// pnCount contains number of dividends available prior expiry date.
+//long OPTIONCALC_API GetDividends( long nToday, long nDTE, 
+//								  long nLastDivDate, long nFrequency, double dAmount, 
+//								  long nCount, DIVIDEND *pDividends, long *pnCount )
+//{
+//	// Check parameters
+//	if (nCount==0)
+//	{
+//		*pnCount = 0;
+//		return 1;
+//	}
+//		
+//	if( ::IsBadWritePtr(pDividends, sizeof(DIVIDEND) * nCount) )
+//	{
+//		::SetLastError( ERROR_NOACCESS );
+//		return 0;
+//	}
+//	if( pnCount == NULL )
+//	{
+//		::SetLastError( ERROR_INVALID_PARAMETER );
+//		return 0;
+//	}
+//
+//	SYSTEMTIME stDivDate;
+//	DATE	   dDivDate;
+//
+//	long nDividends = _getDivCount( nToday, nDTE, nLastDivDate, nFrequency, &stDivDate );
+//	if( nDividends == -1 )
+//		return 0;	// Last error is still available
+//	*pnCount = nDividends;
+//
+//	if( nCount < nDividends )
+//	{
+//		::SetLastError( ERROR_NOACCESS );
+//		return 0;
+//	}
+//
+//	// Fill array of dividends
+//	for( int i = 0; i < nDividends; i++ )
+//	{
+//		::SystemTimeToVariantTime( &stDivDate, &dDivDate );
+//
+//		pDividends[i].dAmount		= dAmount;
+//		pDividends[i].dTimeFraction = (floor(dDivDate) - nToday) / OPM::cdDaysPerYear365;
+//
+//		_addMonths( stDivDate, WORD(12/nFrequency) );
+//	}
+//
+//	return 1;
+//}
+//
+//long OPTIONCALC_API GetDividends2( long nToday, long nDTE, 
+//								  long nLastDivDate, long nFrequency, double dAmount, 
+//								  long nCount, double* pDivAmnts, double* pDivDays,
+//								  long *pnCount )
+//{
+//	// Check parameters
+//	if (nCount==0)
+//	{
+//		*pnCount = 0;
+//		return 1;
+//	}
+//		
+//	if( ::IsBadWritePtr(pDivAmnts, sizeof(double) * nCount) )
+//	{
+//		::SetLastError( ERROR_NOACCESS );
+//		return 0;
+//	}
+//	if( ::IsBadWritePtr(pDivDays, sizeof(double) * nCount) )
+//	{
+//		::SetLastError( ERROR_NOACCESS );
+//		return 0;
+//	}
+//
+//	if( pnCount == NULL )
+//	{
+//		::SetLastError( ERROR_INVALID_PARAMETER );
+//		return 0;
+//	}
+//
+//	SYSTEMTIME stDivDate;
+//	DATE	   dDivDate;
+//
+//	long nDividends = _getDivCount( nToday, nDTE, nLastDivDate, nFrequency, &stDivDate );
+//	if( nDividends == -1 )
+//		return 0;	// Last error is still available
+//	*pnCount = nDividends;
+//
+//	if( nCount < nDividends )
+//	{
+//		::SetLastError( ERROR_NOACCESS );
+//		return 0;
+//	}
+//
+//	// Fill array of dividends
+//	for( int i = 0; i < nDividends; i++ )
+//	{
+//		::SystemTimeToVariantTime( &stDivDate, &dDivDate );
+//
+//		pDivAmnts[i] = dAmount;
+//		pDivDays[i] = (floor(dDivDate) - nToday) / OPM::cdDaysPerYear365;
+//
+////		ATLTRACE("DivArr = %u:, ", (ULONG)(floor(dDivDate) - nToday));
+//
+//
+//		_addMonths( stDivDate, WORD(12/nFrequency) );
+//	}
+//
+//	return 1;
+//}
+//
+//long OPTIONCALC_API GetBasketDividendsCount(long				nToday, 
+//											long				nDTE, 
+//											REGULAR_DIVIDENDS*	pDividends,
+//											long				nCount)
+//{
+//	if (nCount < 0)
+//		return -1;
+//
+//	if (nCount > 0 && ::IsBadWritePtr(pDividends, sizeof(double) * nCount))
+//	{
+//		::SetLastError( ERROR_NOACCESS );
+//		return -1;
+//	}
+//
+//	std::map<double, double>	DivMap;
+//
+//	for (long n = 0; n < nCount; n++)
+//	{
+//		long _nCount = GetDividendsCount(nToday, nDTE, 
+//										pDividends[n].nLastDivDate, pDividends[n].nFrequency);
+//
+//		if (_nCount <= 0)
+//			continue;
+//
+//		double* pDivAmnt = (double*)_alloca(_nCount*sizeof(double));
+//		double* pDivDays = (double*)_alloca(_nCount*sizeof(double));
+//
+//		long __nCount;
+//
+//		long nRes = GetDividends2(	nToday,
+//									nDTE,
+//									pDividends[n].nLastDivDate,
+//									pDividends[n].nFrequency,
+//									pDividends[n].dAmount,
+//									_nCount, 
+//									pDivAmnt,
+//									pDivDays,
+//									&__nCount);		
+//
+//		if (nRes != 1 || __nCount != _nCount)
+//			return -1;
+//
+//		for (long i = 0; i < _nCount; i++)
+//		{
+//			if (DivMap.find(pDivDays[i]) != DivMap.end())
+//				DivMap[pDivDays[i]] = DivMap[pDivDays[i]] + pDivAmnt[i];
+//			else
+//				DivMap[pDivDays[i]] = pDivAmnt[i];
+//		}
+//	}
+//	
+//	return DivMap.size();
+//}
+//
+//long OPTIONCALC_API GetBasketDividends(	long				nToday, 
+//										long				nDTE, 
+//										REGULAR_DIVIDENDS*	pDividends,
+//										unsigned			nCount,
+//										double*				pDivAmnts,
+//										double*				pDivDays,
+//										long				nInCount,
+//										long*				pnOutCount)
+//{
+	//if (nCount < 0)
+	//	return 1;
+
+	//if (nCount > 0 && ::IsBadWritePtr(pDividends, sizeof(double) * nCount))
+	//{
+	//	::SetLastError( ERROR_NOACCESS );
+	//	return 1;
+	//}
+
+	//if (::IsBadWritePtr(pnOutCount, sizeof(long)))
+	//{
+	//	::SetLastError( ERROR_NOACCESS );
+	//	return 1;
+	//}
+
+	//std::map<double, double>	DivMap;
+
+	//for (unsigned n = 0; n < nCount; n++)
+	//{
+	//	long _nCount = GetDividendsCount(nToday, nDTE, 
+	//									pDividends[n].nLastDivDate, pDividends[n].nFrequency);
+
+	//	if (_nCount <= 0)
+	//		continue;
+
+	//	double* pDivAmnt = (double*)_alloca(_nCount*sizeof(double));
+	//	double* pDivDays = (double*)_alloca(_nCount*sizeof(double));
+
+	//	long __nCount;
+
+	//	long nRes = GetDividends2(	nToday,
+	//								nDTE,
+	//								pDividends[n].nLastDivDate,
+	//								pDividends[n].nFrequency,
+	//								pDividends[n].dAmount,
+	//								_nCount, 
+	//								pDivAmnt,
+	//								pDivDays,
+	//								&__nCount);		
+
+	//	if (nRes != 1 || __nCount != _nCount)
+	//		return -1;
+
+	//	for (long i = 0; i < _nCount; i++)
+	//	{
+
+	//		if (DivMap.find(pDivDays[i]) != DivMap.end())
+	//			DivMap[pDivDays[i]] = DivMap[pDivDays[i]] + pDivAmnt[i];
+	//		else
+	//			DivMap[pDivDays[i]] = pDivAmnt[i];
+	//	}
+	//}
+	//
+	//*pnOutCount = DivMap.size();
+	//
+	//if (nInCount < (long)DivMap.size())
+	//	return 0;
+
+	//std::map<double, double>::iterator	it = DivMap.begin();
+
+	//for (int i = 0; it != DivMap.end(); it++, i++)
+	//{
+	//	pDivAmnts[i] = it->second;
+	//	pDivDays[i] = it->first;
+	//}
+
+	//return 0;
+//}
 
 ////////////////////////////////////////////////////////////
 // Implied volatility
@@ -497,7 +859,7 @@ long OPTIONCALC_API GetBasketDividends(	long				nToday,
 // Calculates volatility. Returns -1 if error occured.
 double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 									  double dSpotPrice, double dOptionPrice, double dStrike, 
-	 								  long nDTE, long nIsCall, long nIsAmerican,
+	 								  double dYTE, long nIsCall, long nIsAmerican,
 									  long nCount, const DIVIDEND *pDividends, long nSteps )
 {
 	// Check parameters
@@ -519,7 +881,7 @@ double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 	
 	double VPrec    = 0.0001;
 	double volleft  = 0.01;
-	double volright = 2.5;
+	double volright = 4.0;	// 2.5;
 
 	double ImpVol = -1;
 	double Delta  = VPrec + 1;
@@ -528,13 +890,13 @@ double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 	double OptValmid;
 
 	// Calculate boundary values
-	double OptValmin = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, volleft,
-										nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+	double OptValmin = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, volleft,
+										dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 	if(OPM::IsBadValue(OptValmin))
 		OptValmin = 0.;
 
-	double OptValmax = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, volright,
-										nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+	double OptValmax = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, volright,
+										dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 	if(OPM::IsBadValue(OptValmax))
 		OptValmax = 0.;
 
@@ -550,8 +912,8 @@ double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 		Count++;
 	
 		volmed    = 0.5 * ( volleft + volright );
-		OptValmid = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, volmed,
-									 nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+		OptValmid = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, volmed,
+									 dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 
 		if(OPM::IsBadValue(OptValmid))
 			OptValmid = 0.;
@@ -579,7 +941,7 @@ double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 
 double OPTIONCALC_API CalcVolatilityCustDivs( double dDomesticRate, double dForeignRate,
 									  double dSpotPrice, double dOptionPrice, double dStrike, 
-	 								  long nDTE, long nIsCall, long nIsAmerican,
+	 								  double dYTE, long nIsCall, long nIsAmerican,
 									  long nCount,double * pDivAmnts, double * pDivYears, long nSteps )
 {
 	// Check parameters
@@ -597,7 +959,7 @@ double OPTIONCALC_API CalcVolatilityCustDivs( double dDomesticRate, double dFore
 	
 	double VPrec    = 0.0001;
 	double volleft  = 0.01;
-	double volright = 2.5;
+	double volright = 4.0;	// 2.5;
 
 	double ImpVol = -1;
 	double Delta  = VPrec + 1;
@@ -606,13 +968,13 @@ double OPTIONCALC_API CalcVolatilityCustDivs( double dDomesticRate, double dFore
 	double OptValmid;
 
 	// Calculate boundary values
-	double OptValmin = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, volleft,
-										nDTE, nIsCall, nIsAmerican, pDivAmnts, pDivYears, nCount );
+	double OptValmin = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, volleft,
+										dYTE, nIsCall, nIsAmerican, pDivAmnts, pDivYears, nCount );
 	if(OPM::IsBadValue(OptValmin))
 		OptValmin = 0.;
 
-	double OptValmax = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, volright,
-										nDTE, nIsCall, nIsAmerican, pDivAmnts, pDivYears, nCount );
+	double OptValmax = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, volright,
+										dYTE, nIsCall, nIsAmerican, pDivAmnts, pDivYears, nCount );
 	if(OPM::IsBadValue(OptValmax))
 		OptValmax = 0.;
 
@@ -628,8 +990,8 @@ double OPTIONCALC_API CalcVolatilityCustDivs( double dDomesticRate, double dFore
 		Count++;
 	
 		volmed    = 0.5 * ( volleft + volright );
-		OptValmid = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, volmed,
-									 nDTE, nIsCall, nIsAmerican, pDivAmnts, pDivYears, nCount );
+		OptValmid = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, volmed,
+									 dYTE, nIsCall, nIsAmerican, pDivAmnts, pDivYears, nCount );
 
 		if(OPM::IsBadValue(OptValmid))
 			OptValmid = 0.;
@@ -660,7 +1022,7 @@ double OPTIONCALC_API CalcVolatilityCustDivs( double dDomesticRate, double dFore
 // Calculates greeks. Returns 0 if failed, or value greater than zero otherwise.
 long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRate, 
 								double dSpotPrice, double dStrike, double dVolatility, 
-								long nDTE, long nIsCall, long nIsAmerican, 
+								double dYTE, long nIsCall, long nIsAmerican, 
 								long nCount, double * pDivAmts, double * pDivYtes, long nSteps, 
 								/*out*/GREEKS *pGreeks )
 {
@@ -700,8 +1062,8 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 //	PrepareDivData(pDividends,&divytes,&divamts,nCount);
 
 	// Calculate option price
-	pGreeks->dTheoPrice = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-										 nDTE, nIsCall, nIsAmerican, pDivAmts, pDivYtes, nCount);
+	pGreeks->dTheoPrice = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility,
+										 dYTE, nIsCall, nIsAmerican, pDivAmts, pDivYtes, nCount);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice) || !OPM::ValueNEQZero(pGreeks->dTheoPrice))
 	{
@@ -721,8 +1083,8 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 
 	if( pGreeks->nMask & GT_DELTA && OPM::ValueNEQZero(dS) )
 	{
-		double op = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice + dS, dStrike, dVolatility,
-									 nDTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
+		double op = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice + dS, dStrike, dVolatility,
+									 dYTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op))
 		{
@@ -733,10 +1095,10 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 
 	if( pGreeks->nMask & GT_GAMMA && OPM::ValueNEQZero(dS)  )
 	{
-		double op1 = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice + dS, dStrike, dVolatility,
-									  nDTE, nIsCall, nIsAmerican, pDivAmts, pDivYtes, nCount );
-		double op2 = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice - dS, dStrike, dVolatility,
-									  nDTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
+		double op1 = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice + dS, dStrike, dVolatility,
+									  dYTE, nIsCall, nIsAmerican, pDivAmts, pDivYtes, nCount );
+		double op2 = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice - dS, dStrike, dVolatility,
+									  dYTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
 
 		if(!OPM::IsBadValue(op1) && OPM::ValueNEQZero(op1) && !OPM::IsBadValue(op2) && OPM::ValueNEQZero(op2))
 		{
@@ -747,8 +1109,8 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 
 	if( pGreeks->nMask & GT_THETA )
 	{
-		double op = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-								     nDTE - 1, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
+		double op = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility,
+			dYTE - (1.0 / OPM::cdDaysPerYear365), nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op))
 		{
@@ -759,8 +1121,8 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 
 	if( pGreeks->nMask & GT_VEGA )
 	{
-		double op = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility + OPM::cdDeltaVolatility,
-								     nDTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount  );
+		double op = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility + OPM::cdDeltaVolatility,
+								     dYTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount  );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op))
 		{
@@ -771,12 +1133,12 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 
 	if( pGreeks->nMask & GT_RHO )
 	{
-		double op = CO_BlackScholes( dDomesticRate + OPM::cdDeltaRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-								     nDTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
+		double op = CO_BlackScholes( dDomesticRate + OPM::cdDeltaRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility,
+								     dYTE, nIsCall, nIsAmerican,  pDivAmts, pDivYtes, nCount );
 
 
 		// Calc continuous rate 
-		double R = OPM::RateDiscToCont( dDomesticRate, nDTE );
+		double R = OPM::RateDiscToCont( dDomesticRate, dYTE * OPM::cdDaysPerYear365);
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op) && OPM::ValueNEQZero(R))
 		{
@@ -806,7 +1168,7 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 // Calculates greeks. Returns 0 if failed, or value greater than zero otherwise.
 long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate, 
 								double dSpotPrice, double dStrike, double dVolatility, 
-								long nDTE, long nIsCall, long nIsAmerican, 
+								double dYTE, long nIsCall, long nIsAmerican, 
 								long nCount, const DIVIDEND *pDividends, long nSteps, 
 								/*out*/GREEKS *pGreeks )
 {
@@ -844,8 +1206,8 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 	PrepareDivData(pDividends,&divytes,&divamts,nCount);
 
 	// Calculate option price
-	pGreeks->dTheoPrice = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-										 nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount);
+	pGreeks->dTheoPrice = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility,
+										 dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice) || !OPM::ValueNEQZero(pGreeks->dTheoPrice))
 	{
@@ -865,8 +1227,8 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 
 	if( pGreeks->nMask & GT_DELTA && OPM::ValueNEQZero(dS) )
 	{
-		double op = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice + dS, dStrike, dVolatility,
-									 nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+		double op = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice + dS, dStrike, dVolatility,
+									 dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op))
 		{
@@ -877,10 +1239,10 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 
 	if( pGreeks->nMask & GT_GAMMA && OPM::ValueNEQZero(dS)  )
 	{
-		double op1 = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice + dS, dStrike, dVolatility,
-									  nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
-		double op2 = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice - dS, dStrike, dVolatility,
-									  nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+		double op1 = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice + dS, dStrike, dVolatility,
+									  dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+		double op2 = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice - dS, dStrike, dVolatility,
+									  dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 
 		if(!OPM::IsBadValue(op1) && OPM::ValueNEQZero(op1) && !OPM::IsBadValue(op2) && OPM::ValueNEQZero(op2))
 		{
@@ -891,8 +1253,8 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 
 	if( pGreeks->nMask & GT_THETA )
 	{
-		double op = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-								     nDTE - 1, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+		double op = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility,
+			dYTE - (1.0 / OPM::cdDaysPerYear365), nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op))
 		{
@@ -903,8 +1265,8 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 
 	if( pGreeks->nMask & GT_VEGA )
 	{
-		double op = CO_BlackScholes( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility + OPM::cdDeltaVolatility,
-								     nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount  );
+		double op = CO_BlackScholes( dDomesticRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility + OPM::cdDeltaVolatility,
+								     dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount  );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op))
 		{
@@ -915,12 +1277,12 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 
 	if( pGreeks->nMask & GT_RHO )
 	{
-		double op = CO_BlackScholes( dDomesticRate + OPM::cdDeltaRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-								     nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
+		double op = CO_BlackScholes( dDomesticRate + OPM::cdDeltaRate, dForeignRate, OPM::BadDoubleValue, dSpotPrice, dStrike, dVolatility,
+								     dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount );
 
 
 		// Calc continuous rate 
-		double R = OPM::RateDiscToCont( dDomesticRate, nDTE );
+		double R = OPM::RateDiscToCont( dDomesticRate, dYTE * OPM::cdDaysPerYear365 );
 
 		if(!OPM::IsBadValue(op) && OPM::ValueNEQZero(op) && OPM::ValueNEQZero(R))
 		{
@@ -951,7 +1313,7 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 // Uses alternative algorithm to calculate Greeks.
 long OPTIONCALC_API CalcGreeksEx( double dDomesticRate, double dForeignRate, 
 								  double dSpotPrice, double dStrike, double dVolatility, 
-								  long nDTE, long nIsCall, long nIsAmerican, 
+								  double dYTE, long nIsCall, long nIsAmerican, 
 								  long nCount, const DIVIDEND *pDividends, long nSteps, 
 								  /*out*/GREEKS *pGreeks )
 {
@@ -987,11 +1349,11 @@ long OPTIONCALC_API CalcGreeksEx( double dDomesticRate, double dForeignRate,
 	PrepareDivData(pDividends,&divytes,&divamts,nCount);
 
 	// Calc continuous rate 
-	double R = OPM::RateDiscToCont( dDomesticRate, nDTE );
+	double R = OPM::RateDiscToCont( dDomesticRate, dYTE * OPM::cdDaysPerYear365);
 
 	// Calculate option price
 	pGreeks->dTheoPrice = CalculateOptionEx( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-										     nDTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount, nSteps, pGreeks );
+										     dYTE, nIsCall, nIsAmerican, &divamts.front(), &divytes.front(), nCount, nSteps, pGreeks );
 	if(OPM::IsBadValue(pGreeks->dTheoPrice) || !OPM::ValueNEQZero(pGreeks->dTheoPrice))
 	{
 		pGreeks->dTheoPrice = 0.;
@@ -1006,7 +1368,7 @@ long OPTIONCALC_API CalcGreeksEx( double dDomesticRate, double dForeignRate,
 // Uses alternative algorithm to calculate Greeks.
 long OPTIONCALC_API CalcGreeksExCustDivs( double dDomesticRate, double dForeignRate, 
 								  double dSpotPrice, double dStrike, double dVolatility, 
-								  long nDTE, long nIsCall, long nIsAmerican, 
+								  double dYTE, long nIsCall, long nIsAmerican, 
 								  long nCount,  double*	pDivAmts, double* pDivYtes, long nSteps, 
 								  /*out*/GREEKS *pGreeks )
 {
@@ -1047,11 +1409,11 @@ long OPTIONCALC_API CalcGreeksExCustDivs( double dDomesticRate, double dForeignR
 //	PrepareDivData(pDividends,&divytes,&divamts,nCount);
 
 	// Calc continuous rate 
-	double R = OPM::RateDiscToCont( dDomesticRate, nDTE );
+	double R = OPM::RateDiscToCont( dDomesticRate, dYTE * OPM::cdDaysPerYear365 );
 
 	// Calculate option price
 	pGreeks->dTheoPrice = CalculateOptionEx( dDomesticRate, dForeignRate, dSpotPrice, dStrike, dVolatility,
-										     nDTE, nIsCall, nIsAmerican, pDivAmts, pDivYtes, nCount, nSteps, pGreeks );
+										     dYTE, nIsCall, nIsAmerican, pDivAmts, pDivYtes, nCount, nSteps, pGreeks );
 	if(OPM::IsBadValue(pGreeks->dTheoPrice) || !OPM::ValueNEQZero(pGreeks->dTheoPrice))
 	{
 		pGreeks->dTheoPrice = 0.;
@@ -1066,7 +1428,7 @@ long OPTIONCALC_API CalcGreeksExCustDivs( double dDomesticRate, double dForeignR
 ////////////////////////////////////////////////////////////
 
 double OPTIONCALC_API CalcForwardPrice( double dSpotPrice, 
-	                                    long nDTE, /*date of option expiration*/
+	                                    double dYTE, /*date of option expiration*/
 	                                    long nDivCount, /* size of dividends array*/
 	                                    double* pDivAmnts, /* array of dividends amounts*/
 	                                    double* pDivYears, /* array of time to dividends payments*/
@@ -1093,7 +1455,7 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
 		return -1;
 	}
 
-	if( nDTE < 0 )
+	if( dYTE < 0 )
 	{
 		::SetLastError( ERROR_INVALID_PARAMETER );
 		return -1;
@@ -1101,7 +1463,7 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
 
     double dPrice = 0;
     double dRate = 0;
-    double dDTEYears = nDTE / OPM::cdDaysPerYear365;
+    double dDTEYears = dYTE;
 
     if (nDivCount > 0)
     {
@@ -1113,7 +1475,7 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
 
             if (nRateCount > 0)
             {
-                dRate = InterpolateRates(nRateCount, pRates, (long)(pDivYears[i] * OPM::cdDaysPerYear365));
+                dRate = InterpolateRates(nRateCount, pRates, pDivYears[i]);
                 if (dRate == 0) return -1;
             }
 
@@ -1124,7 +1486,7 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
 
         if (nRateCount > 0)
         {
-            dRate = InterpolateRates(nRateCount, pRates, nDTE);
+			dRate = InterpolateRates(nRateCount, pRates, dYTE );
             if (dRate == 0) return -1;
         }
     }
@@ -1133,7 +1495,7 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
         dPrice = dSpotPrice;
         if (nRateCount > 0)
         {
-            dRate = InterpolateRates(nRateCount, pRates, nDTE);
+			dRate = InterpolateRates(nRateCount, pRates, dYTE);
             if (dRate == 0) return -1;
         }
         dRate -=  dForeignRate;
@@ -1145,21 +1507,21 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
 }
 
 double OPTIONCALC_API CalcForwardPrice2( double dSpotPrice, 
-	                                     long nDTE, /*date of option expiration*/
+	                                     double dYTE, /*date of option expiration*/
 	                                     long nDivCount, /* size of dividends array*/
 	                                     double* pDivAmnts, /* array of dividends amounts*/
 	                                     double* pDivYears, /* array of time to dividends payments*/
 	                                     double dForeignRate, /*yield for index option */
 	                                     long nRateCount, /*size of rates array*/
 	                                     double* pRates, /*array of rates*/
-                                         long* pnDTEs /*array of time to rates*/ )
+                                         double* pdYTEs /*array of time to rates*/ )
 {
 	// Check parameters
     std::vector<RATE> vec(nRateCount);
     if (nRateCount > 0)
     {
     	if( ::IsBadReadPtr(pRates, sizeof(*pRates) * nRateCount) ||
-            ::IsBadReadPtr(pnDTEs, sizeof(*pnDTEs) * nRateCount) )
+            ::IsBadReadPtr(pdYTEs, sizeof(*pdYTEs) * nRateCount) )
 	    {
 		    ::SetLastError( ERROR_NOACCESS );
 		    return 0;
@@ -1169,11 +1531,11 @@ double OPTIONCALC_API CalcForwardPrice2( double dSpotPrice,
         {
             RATE& r = vec[i];
             r.dRate = pRates[i];
-            r.nDTE = pnDTEs[i];
+			r.nDTE =  static_cast<long>(pdYTEs[i] * OPM::cdDaysPerYear365);
         }
     }
 
-    return CalcForwardPrice(dSpotPrice, nDTE, nDivCount, pDivAmnts,
+    return CalcForwardPrice(dSpotPrice, dYTE, nDivCount, pDivAmnts,
         pDivYears, dForeignRate, nRateCount, nRateCount > 0 ? &vec.front() : NULL);
 }
 

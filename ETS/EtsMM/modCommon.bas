@@ -22,6 +22,12 @@ Public Enum FilterTypeEnum
     TYPE_POSITION = 12
 End Enum
 
+Public Enum ManualPriceUpdateEnum
+    MPU_DELTE = 1
+    MPU_ADD = 2
+    MPU_UPDATE = 3
+End Enum
+
 Public Const DEFAULT_TRADER_HEDGE_STATUS& = EtsMmStockHedgeLib.enMmShGroupStatusAll
 
 Public Const NO_STRATEGY_ID& = -2
@@ -1487,6 +1493,14 @@ Private Function CheckDBVersion() As Boolean
     End If
 End Function
 
+Public Function GetNewYorkTime() As Date
+    On Error Resume Next
+    Dim dtNY As Double
+    Dim bOk As Boolean
+    bOk = GetNYDateTimeAsDATE(dtNY)
+    GetNewYorkTime = CDate(dtNY)
+End Function
+
 Public Function GmtToLocal(ByVal dtGmtTime As Date) As Date
     On Error Resume Next
     GmtToLocal = DateAdd("n", -g_Params.TimeZoneBias, dtGmtTime)
@@ -1927,9 +1941,63 @@ Public Function GetSystemInfoString() As String
     GetSystemInfoString = Msg
 End Function
 
+Public Function MAPI_SendMail(sTo As String, sSubject As String, sMessage As String, sFilePath As String)
+    On Error Resume Next
+    
+    g_Main.SendMail sTo, g_Params.MailAddress, sSubject, sMessage, g_Params.SMTPServer, sFilePath
+    
+    
+'    Dim Rtn As Long '-- return value For api calls
+'    Dim objMsg As MAPIMessage '-- message object
+'    Dim objRec() As MapiRecip '-- recipient object array
+'    Dim objFile() As MapiFile '-- file object array
+'    Dim hMAPI As Long '-- session handle
+'    ReDim objRec(1)
+'    ReDim objFile(1)
+'    '-- file object *************************************************
+'    ' *************
+'    objFile(0).Reserved = 0
+'    objFile(0).Flags = 0
+'    objFile(0).Position = -1
+'    objFile(0).PathName = sFilePath
+'    objFile(0).FileName = ""
+'    objFile(0).FileType = ""
+'    '-- recipient object ********************************************
+'    ' *************
+'    objRec(0).Reserved = 0
+'    objRec(0).RecipClass = 1
+'    objRec(0).Name = sTo
+'    '-- values not used for recipient
+'    'objRec.Address
+'    'objRec.EIDSize
+'    'objRec.EntryID
+'    '-- message object **********************************************
+'    ' *************
+'    objMsg.Reserved = 0
+'    objMsg.Subject = sSubject
+'    objMsg.RecipCount = 1
+'    objMsg.FileCount = 1
+'    objMsg.NoteText = sMessage
+'    '-- values not used for message
+'    'objMsg.MessageType
+'    'objMsg.DateReceived
+'    'objMsg.ConversationID
+'    'objMsg.Flags
+'    '-- make api calls to send mail *********************************
+'    ' **************
+'    '-- logon to MAPI application
+'    '-- default profile is set in user name parameter of Logon
+'    Rtn = MAPILogon(0, "MS Exchange Settings", "", MAPI_LOGON_UI, 0, hMAPI)
+'    '-- send mail message through MAPI
+'    Rtn = MAPISendMail(hMAPI, 0, objMsg, objRec, objFile, 0, 0)
+'    '-- logoff MAPI application
+'    Rtn = MAPILogoff(hMAPI, 0, 0, 0)
+    Exit Function
+End Function
+
 Public Sub SendMailToSupport(ByVal sSubject$, ByVal sBody$, Optional ByVal sAttachFile$ = "")
     On Error Resume Next
-    Dim aFile(0 To 0) As Mapifile, aMessage As MapiMessage
+    Dim aFile(0 To 0) As MapiFile, aMessage As MAPIMessage
     Dim nRes&, aRecipient(1 To 1) As MapiRecip
     
     'aMessage.Reserved = 0

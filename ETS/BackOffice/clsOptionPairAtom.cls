@@ -21,6 +21,8 @@ Public fCallTheo As Double
 Public sCallImportSymbol As String
 Public fStrike As Double
 Public dExpiry As Date
+Public dExpiryOV As Date
+Public dTradingClose As Date
 Public iPutID As Variant
 Public bPutManual As Boolean
 Public sPutSymbol As String

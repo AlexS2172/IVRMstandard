@@ -400,6 +400,8 @@ Private m_frmCustDivs As New frmCustomDivs
 
 Private m_sComboList(NLC_TYPE To NLC_DIV_FREQ) As String
 
+Private m_sDivTypeComboList(1 To 2) As String
+
 Public m_frmOwner As Form
 Private WithEvents aParams As clsParams
 Attribute aParams.VB_VarHelpID = -1
@@ -630,7 +632,13 @@ Private Sub InitFltData()
         .TextMatrix(1, NFC_OPT_PROFILE) = sValue
         m_nFilter(NFC_OPT_PROFILE) = nValue
     
-        m_sComboList(NLC_DIVS) = "#0;Market|#1;Custom Periodical|#2;Custom Stream"
+        'Stock Div Type Combo List
+        m_sDivTypeComboList(1) = "#0;Market|#1;Custom Periodical|#2;Custom Stream"
+        'Index Div Type Combo List
+        m_sDivTypeComboList(2) = "#0;Market|#1;Custom Periodical|#2;Custom Stream|#3;Stock Basket|#4;Index Yield"
+        
+        m_sComboList(NLC_DIVS) = "#0;Market|#1;Custom Periodical|#2;Custom Stream|#3;Stock Basket|#4;Index Yield"
+        
         m_sComboList(NLC_DIV_FREQ) = "#0;<No Divs>|#1;Annually|#2;Semiannually|#4;Quarterly|#12;Monthly"
         .ColComboList(NFC_DIVS) = "#0;<All>|#1;With Dividends|#2;Without Dividends|#3;With Market Dividends|#4;With Custom Periodical|#5;With Custom Stream"
         .TextMatrix(1, NFC_DIVS) = "0"
@@ -693,10 +701,7 @@ Private Sub UnderlyingsShow(ByVal bReload As Boolean)
             
             For Each aContract In g_ContractAll
                 Set aUnd = New clsUvUndAtom
-'                If aContract.ContractType = enCtFuture Then
-'                    Dim stp&
-'                    stp = 5
-'                End If
+                
                 If aUnd.Init(aContract) Then
                     m_Und.Add CStr(aContract.ID), aUnd
                     
@@ -894,7 +899,7 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
                         dDate = arDate(0)
                         dAmount = arAmount(0)
                         dFreq = 0
-                                                Else
+                    Else
                         Set m_rs = gDBW.usp_MmCustomDividend_Get(aUnd.ID)
                         If Not m_rs.EOF Then
                             Do
@@ -929,8 +934,6 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
             Set aTmpDiv = Nothing
             Set aTmpUnd = Nothing
             
-            
-            
             Dim i&, nIdx&
             i = 0
             nIdx = m_gdUnd.Idx(0)
@@ -962,38 +965,37 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
                         
                     
                     Case NLC_DIVS
-                        If aUnd.UndType = enCtStock Or enCtIndex Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             .TextMatrix(nRow, nCol) = aUnd.UseCustDivsName
                         Else
                             .TextMatrix(nRow, nCol) = ""
                         End If
                     
                     Case NLC_DIV_FREQ
-                        If aUnd.UndType = enCtStock Or enCtIndex Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             .TextMatrix(nRow, nCol) = aUnd.DivFreqName
                         Else
                             .TextMatrix(nRow, nCol) = ""
                         End If
                     
                     Case NLC_DIV_DATE
-                        If aUnd.UndType = enCtStock Or enCtIndex Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             .TextMatrix(nRow, nCol) = IIf(bValidDivs, dDate, STR_NA)
                             If dDate = 0 Then
                                 .TextMatrix(nRow, nCol) = STR_NA
-                             End If
+                            End If
                         Else
                             .TextMatrix(nRow, nCol) = ""
                         End If
                     
                     Case NLC_DIV_AMT
-                        If aUnd.UndType = enCtStock Or enCtIndex Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             .TextMatrix(nRow, nCol) = IIf(bValidDivs, dAmount, STR_NA)
                         Else
                             .TextMatrix(nRow, nCol) = ""
                         End If
                     
                     Case NLC_YIELD
-                    
                         If (aUnd.UndType <> enCtIndex) Then
                             .TextMatrix(nRow, nCol) = ""
                         Else
@@ -1795,15 +1797,25 @@ Private Sub fgUnd_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boo
                 Select Case nIdx
                         
                     Case NLC_DIVS
-                        If aUnd.UndType = enCtStock Or enCtIndex Then .ComboList = m_sComboList(nIdx)
+                        If (aUnd.UndType = enCtStock) Then
+                            .ComboList = m_sDivTypeComboList(1)
+                        ElseIf (aUnd.UndType = enCtIndex) Then
+                            .ComboList = m_sDivTypeComboList(2)
+                        End If
                     Case NLC_DIV_FREQ
-                         If aUnd.Dividend.DivType = enDivCustomStream Or enDivStockBasket Or enDivIndexYield Then
-                          Cancel = True
-                         Else
+                        If aUnd.Dividend.DivType = enDivCustomStream _
+                           Or aUnd.Dividend.DivType = enDivStockBasket _
+                           Or aUnd.Dividend.DivType = enDivIndexYield Then
+                               Cancel = True
+                        Else
                             If aUnd.UndType = enCtStock Or enCtIndex Then .ComboList = m_sComboList(nIdx)
-                         End If
+                        End If
                     Case NLC_DIV_DATE, NLC_DIV_AMT
-                         If aUnd.Dividend.DivType = enDivCustomStream Or enDivStockBasket Or enDivIndexYield Then Cancel = True
+                        If aUnd.Dividend.DivType = enDivCustomStream _
+                           Or aUnd.Dividend.DivType = enDivStockBasket _
+                           Or aUnd.Dividend.DivType = enDivIndexYield Then
+                               Cancel = True
+                        End If
                     Case NLC_SOQ
                         If aUnd.UndType = enCtIndex Then
                             .TextMatrix(Row, Col) = aUnd.SOQ
@@ -1838,10 +1850,10 @@ Private Sub fgUnd_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
             If Not aUnd Is Nothing Then
                 Select Case nIdx
                     Case NLC_DIVS, NLC_DIV_FREQ
-                        Cancel = (aUnd.UndType <> enCtStock)
+                        Cancel = (aUnd.UndType <> enCtStock And aUnd.UndType <> enCtIndex)
                     
                     Case NLC_DIV_DATE, NLC_DIV_AMT
-                        If aUnd.UndType = enCtStock Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             Cancel = Not aUnd.IsValidDivs
                         End If
                     Case NLC_HEDGE_SYMBOL
@@ -1909,10 +1921,9 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         End If
                         
                     Case NLC_DIVS
-                        If aUnd.UndType = enCtStock Or enCtIndex Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             nValue = .ComboData
                             If aDiv.DivType <> nValue Then
-                            
                                 If (aDiv.DivType = enDivMarket) And (nValue = 1) Then
                                     If (aDiv.DivAmtCust = 0) Then
                                         aDiv.DivAmtCust = aDiv.DivAmt
@@ -1928,13 +1939,12 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 End If
                                 
                                 aDiv.DivType = nValue
-                                    
                             End If
                         End If
                         
                     Case NLC_DIV_FREQ
                         
-                        If aUnd.UndType = enCtStock Or enCtIndex Then
+                        If aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             nValue = .ComboData
                             If aDiv.DivType = enDivCustomPeriodical Then
                                 If aDiv.DivFreqCust <> nValue Then
@@ -1944,7 +1954,6 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                             aDiv.DivDateCust = Date
                                         End If
                                     End If
-                                
                                 End If
                             End If
                             
@@ -1960,7 +1969,6 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                             aDiv.DivDateCust = Date
                                         End If
                                     End If
-                                
                                 End If
                             End If
                         
@@ -1968,7 +1976,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                 
                     Case NLC_DIV_DATE
                         dtValue = CDate(sValue)
-                        If dtValue > 0 And aUnd.UndType = enCtStock Or enCtIndex Then
+                        If dtValue > 0 And aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             
                             If aDiv.DivType = enDivCustomPeriodical Then
                                 If aDiv.DivDateCust <> dtValue Then
@@ -1988,15 +1996,13 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                             aDiv.DivDateCust = Date
                                         End If
                                     End If
-                                
                                 End If
                             End If
-                            
                         End If
                         
                     Case NLC_DIV_AMT
                         dValue = .ValueMatrix(Row, Col)
-                        If dValue > 0 And aUnd.UndType = enCtStock Or enCtIndex Then
+                        If dValue > 0 And aUnd.UndType = enCtStock Or aUnd.UndType = enCtIndex Then
                             
                             If aDiv.DivType = enDivCustomPeriodical Then
                                 If aDiv.DivAmtCust <> dValue Then
@@ -2016,11 +2022,8 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                             aDiv.DivDateCust = Date
                                         End If
                                     End If
-                                
                                 End If
                             End If
-                            
-                            
                         End If
                         
                     Case NLC_YIELD

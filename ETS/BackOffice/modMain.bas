@@ -1,9 +1,9 @@
 Attribute VB_Name = "modMain"
 Option Explicit
 
-Public Const DB_VERSION_COMPATIBLE_MAJOR& = 3
+Public Const DB_VERSION_COMPATIBLE_MAJOR& = 4
 Public Const DB_VERSION_COMPATIBLE_MINOR& = 46
-Public Const DB_VERSION_COMPATIBLE_BUILD& = 123
+Public Const DB_VERSION_COMPATIBLE_BUILD& = 158
 Global g_frmOwner As Form
 
 ' option variables

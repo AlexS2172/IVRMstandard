@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "Vsflex7.ocx"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Begin VB.UserControl ctlVolaMonitor 
    ClientHeight    =   7635
    ClientLeft      =   0
@@ -1939,6 +1939,7 @@ Private Function UnderlyingsLoad() As Boolean
     Dim rsUnd As ADODB.Recordset
     Dim rsOpt As ADODB.Recordset
     Dim dtExpiry As Date, sExpiryKey$, dStrike#, sStrikeKey$
+    Dim dtExpiryOV, dtTradingClose As Date
     Dim nOptType&, sKey$, vPos As Variant, nUndCount&, nCurUndNum&
     Dim aGUnd As EtsGeneralLib.UndAtom, nRootID&
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
@@ -2118,6 +2119,8 @@ Private Function UnderlyingsLoad() As Boolean
             Set aUnd = m_Und(CStr(nUndID))
             If Not aUnd Is Nothing Then
                 dtExpiry = ReadDate(rsOpt!dtExpiry)
+                dtExpiryOV = ReadDate(rsOpt!dtExpiryOV)
+                dtTradingClose = ReadDate(rsOpt!dtTradingClose)
                 nExpiryMonth = DateSerial(Year(dtExpiry), Month(dtExpiry), Day(dtExpiry))
                 sExpiryKey = CStr(CLng(nExpiryMonth))
                 dStrike = Round(ReadDbl(rsOpt!fStrike), STRIKE_DECIMALS_COUNT)
@@ -2129,6 +2132,8 @@ Private Function UnderlyingsLoad() As Boolean
                     Set aExpiry = aUnd.Expiry.Add(sExpiryKey)
                     aExpiry.ExpiryMonth = nExpiryMonth
                     aExpiry.Expiry = dtExpiry
+                    aExpiry.ExpiryOV = dtExpiryOV
+                    aExpiry.TradingClose = dtTradingClose
                 End If
     
                 Set aStrike = aExpiry.Strike(sStrikeKey)
@@ -2143,12 +2148,14 @@ Private Function UnderlyingsLoad() As Boolean
                     aOpt.Symbol = ReadStr(rsOpt!vcSymbol)
                     aOpt.OptType = nOptType
                     aOpt.Expiry = dtExpiry
+                    aOpt.ExpiryOV = dtExpiryOV
+                    aOpt.TradingClose = dtTradingClose
                     aOpt.Strike = dStrike
                     aOpt.LotSize = ReadLng(rsOpt!iLotSize)
     
                     Set aOpt.Exp = aExpiry
     
-                    aOpt.Vola = aUnd.VolaSrv.OptionVola(dtExpiry, dStrike)
+                    aOpt.Vola = aUnd.VolaSrv.OptionVola(dtExpiryOV, dStrike)
                     If aOpt.Vola < 0 Then
                         aOpt.Vola = BAD_DOUBLE_VALUE
                     End If
@@ -2897,6 +2904,9 @@ Private Function UnderlyingAdjustRates(ByRef aUnd As clsVmUndAtom, ByVal bForceR
     On Error Resume Next
     Dim aExp As clsVmExpiryAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+        
     UnderlyingAdjustRates = False
     If aUnd Is Nothing Then Exit Function
     
@@ -2919,15 +2929,15 @@ Private Function UnderlyingAdjustRates(ByRef aUnd As clsVmUndAtom, ByVal bForceR
         For Each aExp In aUnd.Expiry
             If bUseMidRates Then
                 If Not aUnd.IsHTB Then
-                    aExp.Rate = GetNeutralRate(Date, aExp.Expiry)
+                    aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
                 Else
-                    aExp.Rate = GetNeutralHTBRate(Date, aExp.Expiry)
+                    aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
                 End If
             Else
                 If Not aUnd.IsHTB Then
-                    aExp.Rate = IIf(dPos < 0#, GetShortRate(Date, aExp.Expiry), GetLongRate(Date, aExp.Expiry))
+                    aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
                 Else
-                    aExp.Rate = IIf(dPos < 0#, GetHTBRate(Date, aExp.Expiry), GetLongRate(Date, aExp.Expiry))
+                    aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
                 End If
             End If
         Next
@@ -2947,8 +2957,11 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
     Dim aBasketDivs As EtsGeneralLib.EtsIndexDivColl
-
-
+    Dim dtNow As Date, dYTE As Double
+    
+    
+    dtNow = GetNewYorkTime
+    dYTE = (aOpt.ExpiryOV - dtNow) / 365#
     
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
@@ -2957,19 +2970,17 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
     nModel = g_Params.CalcModel
     dSpotPrice = 0#
     dYield = 0#
-'    dSpotPrice = PriceMidEx(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, g_Params.UseLastPriceForCalcs)
+
     Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
     dSpotPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, dToleranceValue, enRoundingRule)
     aOpt.ClearValues
     
-    aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.Expiry, aOpt.Strike)
-    aOpt.TargVola = aUnd.VolaSrv.OptionTargetVola(aOpt.Expiry, aOpt.Strike)
+    aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.ExpiryOV, aOpt.Strike)
+    aOpt.TargVola = aUnd.VolaSrv.OptionTargetVola(aOpt.ExpiryOV, aOpt.Strike)
         
     If dSpotPrice >= 0 Then
-        
         nIsAmerican = IIf(aUnd.IsAmerican, 1, 0)
-        
-'        dOptPrice = PriceMidEx(aOpt.PriceBid, aOpt.PriceAsk, aOpt.PriceLast, g_Params.UseLastPriceForCalcs)
+
         Debug.Assert (Not aUnd.OptPriceProfile Is Nothing)
         dOptPrice = aUnd.OptPriceProfile.GetOptPriceMid(aOpt.PriceBid, aOpt.PriceAsk, aOpt.PriceLast, enRoundingRule, g_Params.UseTheoVolatility, 0)
         
@@ -2981,24 +2992,20 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
             If aUnd.UndType = enCtStock Then
                 Set aDiv = aUnd.Dividend
                 If Not aDiv Is Nothing Then
-                    aDiv.GetDividendCount Date, aOpt.Expiry, nDivCount
+                    aDiv.GetDividendCount2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount
                         If nDivCount > 0 Then
-                            aDiv.GetDividends Date, aOpt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
+                            aDiv.GetDividends2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount, dDivAmts, dDivDte, RetCount
                         End If
-
                 End If
             Else
                 If Not aUnd.BasketIndex Is Nothing Then
                     Set aBasketDivs = aUnd.BasketIndex.BasketDivs
                     If Not aBasketDivs Is Nothing Then
-                        aBasketDivs.GetDividendCount Date, aOpt.Expiry, nDivCount
+                        aBasketDivs.GetDividendCount2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount
                         If nDivCount > 0 Then
-                            aBasketDivs.GetDividends Date, aOpt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
+                            aBasketDivs.GetDividends2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount, dDivAmts, dDivDte, RetCount
                         End If
                     End If
-
-
-
                     Erase aBaskDivs
                 End If
                 
@@ -3015,7 +3022,7 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
             If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aOpt.PriceBid > 0# Then
                 If dOptPrice > 0# Then
                     nFlag = VF_OK
-                    div = CalcVolatilityMM3(dRate, dYield, dSpotPrice, dOptPrice, aOpt.Strike, aOpt.Expiry - Date, _
+                    div = CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPrice, dOptPrice, aOpt.Strike, dYTE, _
                                         aOpt.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                                         
                     If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
@@ -3044,7 +3051,7 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
             RetCount = 0&
             
             If aGreeks.nMask <> GM_NONE Then
-                RetCount = CalcGreeksMM2(dRate, dYield, dSpotPrice, aOpt.Strike, dVola, aOpt.Expiry - Date, _
+                RetCount = CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPrice, aOpt.Strike, dVola, dYTE, _
                                     aOpt.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
                 If g_Params.UseTheoVolatility And (dOptPrice <= 0# Or aOpt.PriceAsk <= 0# Or aOpt.PriceBid <= 0# Or aOpt.PriceLast <= 0#) Then
                     dOptPrice = aUnd.OptPriceProfile.GetOptPriceMid(aOpt.PriceBid, aOpt.PriceAsk, aOpt.PriceLast, enRoundingRule, g_Params.UseTheoVolatility, aGreeks.dTheoPrice)
@@ -3052,7 +3059,7 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
               If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aOpt.PriceBid > 0# Then
                 If dOptPrice > 0# Then
                     nFlag = VF_OK
-                    div = CalcVolatilityMM3(dRate, dYield, dSpotPrice, dOptPrice, aOpt.Strike, aOpt.Expiry - Date, _
+                    div = CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPrice, dOptPrice, aOpt.Strike, dYTE, _
                                         aOpt.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                                         
                         If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then

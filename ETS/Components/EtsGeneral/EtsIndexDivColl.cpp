@@ -113,7 +113,7 @@ STDMETHODIMP CEtsIndexDivColl::SetWeight(LONG nKey, DOUBLE dWeight)
 	return hr;
 }
 
-STDMETHODIMP CEtsIndexDivColl::GetDividends( LONG nToday,  LONG nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates,  LONG* pnCount)
+STDMETHODIMP CEtsIndexDivColl::GetDividends( DATE nToday,  DATE nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates,  LONG* pnCount)
 {
 
 	__CHECK_POINTER(psaDivAmounts);
@@ -143,7 +143,7 @@ STDMETHODIMP CEtsIndexDivColl::GetDividends( LONG nToday,  LONG nExpiry,  LONG n
 }
 
 
-STDMETHODIMP CEtsIndexDivColl::GetNearest( LONG nToday,  LONG nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
+STDMETHODIMP CEtsIndexDivColl::GetNearest( DATE nToday,  DATE nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
 {
 	HRESULT hr = S_OK;
 	try
@@ -168,7 +168,7 @@ STDMETHODIMP CEtsIndexDivColl::GetNearest( LONG nToday,  LONG nExpiry,  DOUBLE* 
 }
 
 
-IEtsDivCollPtr CEtsIndexDivColl::GetCachedDividends(long nToday, long nExpiry)
+IEtsDivCollPtr CEtsIndexDivColl::GetCachedDividends(DATE nToday, DATE nExpiry)
 {
 	if(m_spCustomDivsCache == NULL || nToday != m_nTodayCache || nExpiry != m_nExpiryCache)
 	{
@@ -229,7 +229,7 @@ IEtsDivCollPtr CEtsIndexDivColl::GetCachedDividends(long nToday, long nExpiry)
 	return m_spCustomDivsCache;
 }
 
-STDMETHODIMP CEtsIndexDivColl::GetDividendCount( LONG nToday,  LONG nExpiry,  LONG* pnCount)
+STDMETHODIMP CEtsIndexDivColl::GetDividendCount( DATE nToday,  DATE nExpiry,  LONG* pnCount)
 {
 	__CHECK_POINTER(pnCount);
 	HRESULT hr = S_OK;
@@ -255,3 +255,137 @@ STDMETHODIMP CEtsIndexDivColl::GetDividendCount( LONG nToday,  LONG nExpiry,  LO
 }
 
 
+
+//////////////////////////////////////////////////////////////////////////
+STDMETHODIMP CEtsIndexDivColl::GetDividends2(DATE dtNow,  DATE dtExpiryOV, DATE tmCloseTime, LONG nCount, SAFEARRAY ** psaDivAmounts, SAFEARRAY ** psaDivDates,  LONG* pnCount)
+{
+	__CHECK_POINTER(psaDivAmounts);
+	__CHECK_POINTER(psaDivDates);
+	__CHECK_POINTER(pnCount);
+	HRESULT hr = S_OK;
+	try
+	{
+		LONG nDivCount = 0;
+		IEtsDivCollPtr spTmpDivColl = GetCachedDividends2(dtNow, dtExpiryOV, tmCloseTime);
+
+		spTmpDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
+		if ((nCount == 0)||(nDivCount <= nCount))
+			spTmpDivColl->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, psaDivAmounts, psaDivDates, pnCount);
+		else
+			hr = E_FAIL;
+	}
+	catch (_com_error& e) 
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsIndexDivAtom, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error( _T("Unhanded exception handled at GetDividends2"), IID_IEtsIndexDivAtom, E_FAIL);
+	}
+	return hr;
+}
+STDMETHODIMP CEtsIndexDivColl::GetNearest2(DATE dtNow,  DATE dtExpiryOV, DATE tmCloseTime,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
+{
+	HRESULT hr = S_OK;
+	try
+	{
+		IEtsDivCollPtr spTmpDivColl = GetCachedDividends2(dtNow, dtExpiryOV, tmCloseTime);
+		if(spTmpDivColl!=NULL)
+			spTmpDivColl->GetNearest2(dtNow, dtExpiryOV, tmCloseTime, pdDivAmount, pdDivDate);
+
+	}
+	catch (_com_error& e) 
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsIndexDivAtom, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error( _T("Unhanded exception handled at GetNearest2"), IID_IEtsIndexDivAtom, E_FAIL);
+	}
+	return hr;
+
+}
+STDMETHODIMP CEtsIndexDivColl::GetDividendCount2(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime,  LONG* pnCount)
+{
+	__CHECK_POINTER(pnCount);
+	HRESULT hr = S_OK;
+	try
+	{
+		*pnCount = 0;
+
+		IEtsDivCollPtr spTmpDivColl = GetCachedDividends2(dtNow, dtExpiryOV, tmCloseTime);
+		if(spTmpDivColl!=NULL)
+			spTmpDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, pnCount);
+
+	}
+	catch (_com_error& e) 
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsIndexDivAtom, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error( _T("Unhanded exception handled at GetDividends2"), IID_IEtsIndexDivAtom, E_FAIL);
+	}
+	return hr;
+}
+
+IEtsDivCollPtr CEtsIndexDivColl::GetCachedDividends2(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime)
+{
+	if(m_spCustomDivsCache == NULL || fabs(dtNow - m_nTodayCache) > OneMinute  || fabs(dtExpiryOV - m_nExpiryCache) > OneMinute )
+	{
+		m_spCustomDivsCache = NULL;
+		m_nTodayCache = 0;
+		m_nTodayCache = 0;
+
+		IEtsIndexDivAtomPtr spDivAtom;
+		EnumIterType iter = m_coll.begin();
+		EnumIterType iterEnd = m_coll.end();
+
+		LONG lRawTotal = 0;
+		LONG lCurrent = 0;
+		LONG lTotal = 0;
+		DOUBLE dDivAmount = 0;
+		DOUBLE dDivDate = 0;
+		LONG   lDivFreq = 0;
+
+		IEtsDivCollPtr spTmpDivColl;
+
+		IEtsDivCollPtr spCustomDivs;
+
+		CComObject<CEtsDivColl>* pTmpDivColl; 
+		_CHK(CComObject<CEtsDivColl>::CreateInstance(&pTmpDivColl),  _T("Fail to create temp dividend coll object."));
+		spTmpDivColl.Attach(pTmpDivColl, TRUE);
+
+		for (; iter != iterEnd; ++iter)
+		{
+			LONG nDivCount = 0;
+			LONG nRetCount = 0;
+
+			spDivAtom = iter->second;
+			if (spDivAtom != NULL)
+			{
+
+				spDivAtom->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
+
+				if(nDivCount > 0L) 
+				{
+					CSafeArrayWrapper<double> saTmpDates;
+					CSafeArrayWrapper<double> saTmpAmounts;
+					LPSAFEARRAY psaTmpDates = NULL;
+					LPSAFEARRAY psaTmpAmounts = NULL;
+
+					spDivAtom->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaTmpAmounts, &psaTmpDates, &nRetCount);
+					saTmpDates.Attach(psaTmpDates);
+					saTmpAmounts.Attach(psaTmpAmounts);
+
+					for (long i =0;  i<nDivCount; i++)
+						pTmpDivColl->AddNonUnique(floor(double(saTmpDates.GetPlainData()[i]*365.0)+dtNow), saTmpAmounts.GetPlainData()[i]*m_collWeights[iter->first]);
+				}
+			}
+		}
+		m_spCustomDivsCache = pTmpDivColl;
+		m_nTodayCache  = dtNow;
+		m_nExpiryCache = dtExpiryOV;
+	}
+	return m_spCustomDivsCache;
+}

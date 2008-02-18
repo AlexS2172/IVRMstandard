@@ -56,6 +56,9 @@ Private m_Step(RMA_HORZ To RMA_VERT) As Double
 Private m_Units(RMA_HORZ To RMA_VERT) As RmUnitTypeEnum
 Private m_VolaShiftType As RmVolaShiftTypeEnum
 
+Private m_Hour(RMA_HORZ To RMA_VERT) As Long
+Private m_Minute(RMA_HORZ To RMA_VERT) As Long
+
 Public Property Get Axis(enType As RmAxisEnum) As RmAxisTypeEnum
     On Error Resume Next
     Axis = m_Axis(enType)
@@ -99,6 +102,28 @@ Public Property Let Step(enType As RmAxisEnum, aValue As Double)
     On Error Resume Next
     Dirty = Dirty Or (m_Step(enType) <> aValue)
     m_Step(enType) = aValue
+End Property
+
+Public Property Get Hour(enType As RmAxisEnum) As Long
+    On Error Resume Next
+    Hour = m_Hour(enType)
+End Property
+
+Public Property Let Hour(enType As RmAxisEnum, aValue As Long)
+    On Error Resume Next
+    Dirty = Dirty Or (m_Hour(enType) <> aValue)
+    m_Hour(enType) = aValue
+End Property
+
+Public Property Get Minute(enType As RmAxisEnum) As Long
+    On Error Resume Next
+    Minute = m_Minute(enType)
+End Property
+
+Public Property Let Minute(enType As RmAxisEnum, aValue As Long)
+    On Error Resume Next
+    Dirty = Dirty Or (m_Minute(enType) <> aValue)
+    m_Minute(enType) = aValue
 End Property
 
 Public Property Get Units(enType As RmAxisEnum) As RmUnitTypeEnum
@@ -236,11 +261,15 @@ Public Sub CopyTo(aDest As clsRmScenarioAtom)
     aDest.Axis(RMA_HORZ) = m_Axis(RMA_HORZ)
     aDest.Points(RMA_HORZ) = m_Points(RMA_HORZ)
     aDest.Step(RMA_HORZ) = m_Step(RMA_HORZ)
+    aDest.Hour(RMA_HORZ) = m_Hour(RMA_HORZ)
+    aDest.Minute(RMA_HORZ) = m_Minute(RMA_HORZ)
     aDest.Units(RMA_HORZ) = m_Units(RMA_HORZ)
     
     aDest.Axis(RMA_VERT) = m_Axis(RMA_VERT)
     aDest.Points(RMA_VERT) = m_Points(RMA_VERT)
     aDest.Step(RMA_VERT) = m_Step(RMA_VERT)
+    aDest.Hour(RMA_VERT) = m_Hour(RMA_VERT)
+    aDest.Minute(RMA_VERT) = m_Minute(RMA_VERT)
     aDest.Units(RMA_VERT) = m_Units(RMA_VERT)
     
     aDest.VolaShiftType = m_VolaShiftType
@@ -258,11 +287,15 @@ Public Sub Clear()
     m_Axis(RMA_HORZ) = RMAT_SPOT
     m_Points(RMA_HORZ) = 5
     m_Step(RMA_HORZ) = 1
+    m_Hour(RMA_HORZ) = 0
+    m_Minute(RMA_HORZ) = 0
     m_Units(RMA_HORZ) = RMUT_PERC
     
     m_Axis(RMA_VERT) = RMAT_VOLA
     m_Points(RMA_VERT) = 5
     m_Step(RMA_VERT) = 1
+    m_Hour(RMA_VERT) = 0
+    m_Minute(RMA_VERT) = 0
     m_Units(RMA_VERT) = RMUT_PERC
     
     m_VolaShiftType = RMVS_COMMON

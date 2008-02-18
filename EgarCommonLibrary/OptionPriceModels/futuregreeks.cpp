@@ -14,15 +14,14 @@ namespace OPM
 
 bool SpotGreeksFromForward(
 				double	dRateDomestic,	// Domestic continuos risk free rate
-				long	nDte,			// Days till expiration
+				double	dYte,			// Days till expiration
 				GREEKS*	pGreeks			// in, out params
 				)				//returns true if success
 {
 	if(!pGreeks)
 		return false;
 
-	double	dYte	= nDte / cdDaysPerYear365;
-	double	dContRd	= RateDiscToCont(dRateDomestic, nDte);
+	double	dContRd	= RateDiscToCont(dRateDomestic, dYte * cdDaysPerYear365);
 
 	const double dExpRT = exp(dContRd * dYte);
 	const double dExp2RT = exp(2 * dContRd * dYte);
@@ -55,7 +54,7 @@ bool SpotGreeksFromForward2(
 							double	dSpotPrice,
 							double	dRateDomestic,	// Domestic continuos risk free rate
 							double	dYield,			// Domestic continuos risk free rate
-							long	nDte,			// Days till expiration
+							double	dYte,			// Days till expiration
 							double*	pDivAmnts,		// Dividend amounts
 							double*	pDivYears,		// Dividend dates
 							long	nCount,			// Dividend quantity
@@ -69,8 +68,7 @@ bool SpotGreeksFromForward2(
 
 	double dExpRT = 0;
 	double dExp2RT = 0;
-	double	dYte	= nDte / cdDaysPerYear365;
-	double	dContRd	= RateDiscToCont(dRateDomestic, nDte);
+	double	dContRd	= RateDiscToCont(dRateDomestic, dYte * cdDaysPerYear365);
 
 	/// legacy ones
 	//const double dExpRT = exp(dContRd * dYte);
@@ -83,7 +81,7 @@ bool SpotGreeksFromForward2(
 		if (dSpotPrice == 0)
 			return false;
 		double dNPV = 0;
-		dNPV = DividendNPV(dSpotPrice, dContRd, pDivAmnts, pDivYears, nCount, dYte);
+		dNPV = DividendNPV(dSpotPrice, dContRd, 0, pDivAmnts, pDivYears, nCount, dYte);
 		dExpRT = exp(dContRd*dYte)*(1 - dNPV/dSpotPrice);
 		dExp2RT = exp(2*dContRd*dYte)*(1 - dNPV/dSpotPrice);
 

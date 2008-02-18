@@ -4,7 +4,7 @@
 namespace OPM
 {
 
-double RateDiscToCont(double dDiscRate, unsigned int nDays);
+double RateDiscToCont(double dDiscRate, double dDays);
 
 }
 

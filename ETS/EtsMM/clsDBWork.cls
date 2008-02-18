@@ -594,19 +594,19 @@ End Function
 
 Public Function usp_Option_Import(ByVal UnderlyingContractID As Long, ByVal Symbol As String, _
                                     ByVal IsCall As Boolean, ByVal Strike As Double, _
-                                    ByVal Expiry As Date, ByVal LotSize As Long, _
-                                    Optional ByVal iMsCacheOptID As Variant = Null) As Boolean
+                                    ByVal Expiry As Date, ByVal ExpiryOV As Date, ByVal TradingClose As Date, _
+                                    ByVal LotSize As Long, Optional ByVal iMsCacheOptID As Variant = Null) As Boolean
                                     
     usp_Option_Import = (0 = Execute(False, "usp_Option_Import", UnderlyingContractID, Symbol, _
-                                    IIf(IsCall, 1, 0), Strike, Expiry, LotSize, iMsCacheOptID))
+                                    IIf(IsCall, 1, 0), Strike, Expiry, ExpiryOV, TradingClose, LotSize, iMsCacheOptID))
 End Function
 
-Public Function usp_EodMsOptionCache_Save(ByVal UnderlyingContractID As Long, _
-                                    ByVal Symbol As String, ByVal Expiry As Date, _
+Public Function usp_EodMsOptionCache_Save(ByVal UnderlyingContractID As Long, ByVal Symbol As String, _
+                                    ByVal Expiry As Date, ByVal ExpiryOV As Date, ByVal TradingClose As Date, _
                                     ByVal Strike As Double, ByVal IsCall As Boolean, _
                                     ByVal LotSize As Long) As Boolean
-    usp_EodMsOptionCache_Save = (0 = Execute(False, "usp_EodMsOptionCache_Save", UnderlyingContractID, _
-                                                                Symbol, Expiry, Strike, IsCall, LotSize))
+    usp_EodMsOptionCache_Save = (0 = Execute(False, "usp_EodMsOptionCache_Save", UnderlyingContractID, Symbol, _
+                                                               Expiry, ExpiryOV, TradingClose, Strike, IsCall, LotSize))
 End Function
 
 Public Function usp_MmIndex_Get() As ADODB.Recordset
@@ -1295,13 +1295,16 @@ Public Function usp_RMScenario_Save(ByVal iRMScenarioID As Variant, _
                                     ByVal fStep2 As Double, _
                                     ByVal tiIsAbs2 As Integer, _
                                     ByVal tiType2 As Integer, _
-                                    ByVal tiVolaShift As Integer) As Long
+                                    ByVal tiVolaShift As Integer, _
+                                    ByVal iHours As Integer, _
+                                    ByVal iMinutes As Integer) As Long
     
     Dim iResult As Long
     Dim iNewScenarioNumber As Long
     iResult = Execute(False, "usp_RMScenario_Save", iRMScenarioID, vcScenarioName, _
                                                     vcDescription, iPoints1, fStep1, tiIsAbs1, _
-                                                     tiType1, iPoints2, fStep2, tiIsAbs2, tiType2, tiVolaShift)
+                                                     tiType1, iPoints2, fStep2, tiIsAbs2, tiType2, tiVolaShift, _
+                                                     iHours, iMinutes)
     If iResult > 0 Then
         usp_RMScenario_Save = iResult
     Else
@@ -1964,4 +1967,88 @@ End Function
 Public Function usp_AssetGroupElement_Save(ByVal iHeadId As Long, ByVal iElementID As Long, ByVal bUseHead As Long, ByVal fCoeff As Double) As Long
 On Error Resume Next
     usp_AssetGroupElement_Save = Execute(False, "usp_AssetGroupElement_Save", iHeadId, iElementID, bUseHead, fCoeff)
+End Function
+
+'Public Function usp_ProjectionShedule_Get(Optional ByVal vcUserName As String = STR_NA, _
+'                                          Optional ByVal iSheduleID As Long = BAD_LONG_VALUE) As ADODB.Recordset
+'    Set usp_ProjectionShedule_Get = Execute(True, "usp_ProjectionShedule_Get", IIf(vcUserName <> STR_NA, vcUserName, Null), _
+'                                                                               IIf(iSheduleID <> BAD_LONG_VALUE, iSheduleID, Null))
+'End Function
+'
+'Public Function usp_ProjectionShedule_Del(ByVal iSheduleID As Long) As Long
+'    usp_ProjectionShedule_Del = Execute(False, "usp_ProjectionShedule_Del", iSheduleID)
+'End Function
+'
+'Public Function usp_ProjectionShedule_Save(ByVal vcUserName As String, _
+'                                           Optional ByVal iSheduleID As Long = BAD_LONG_VALUE, _
+'                                           Optional ByVal vcProjectionFile As String = STR_NA, _
+'                                           Optional ByVal vcLayoutFile As String = STR_NA, _
+'                                           Optional ByVal tiEnabled As Boolean = False, _
+'                                           Optional ByVal dtStartTime As Date, _
+'                                           Optional ByVal tiDaily As Boolean = False) As Long
+'    usp_ProjectionShedule_Save = Execute(False, "usp_ProjectionShedule_Save", IIf(iSheduleID <> BAD_LONG_VALUE, iSheduleID, Null), _
+'                                                                              vcUserName, _
+'                                                                              vcProjectionFile, _
+'                                                                              vcLayoutFile, _
+'                                                                              tiEnabled, _
+'                                                                              dtStartTime, _
+'                                                                              tiDaily)
+'End Function
+'
+'Public Function usp_ProjectionShedule_CalcComplete(ByVal iSheduleID As Long, ByVal dtCalcDate As Date, ByVal sFileName As String) As Long
+'    usp_ProjectionShedule_CalcComplete = Execute(False, "usp_ProjectionShedule_CalcComplete", iSheduleID, dtCalcDate, sFileName)
+'End Function
+
+Public Function usp_BR_Reports_Get(Optional ByVal iReportID As Long = BAD_LONG_VALUE) As ADODB.Recordset
+    Set usp_BR_Reports_Get = Execute(True, "usp_BR_Reports_Get", IIf(iReportID <> BAD_LONG_VALUE, iReportID, Null))
+End Function
+
+Public Function usp_BR_Report_Del(ByVal iReportID As Long) As Long
+    usp_BR_Report_Del = Execute(False, "usp_BR_Report_Del", iReportID)
+End Function
+
+Public Function usp_BR_Report_Save(ByVal vcUserName As String, _
+                                   ByVal tiStatus As Boolean, _
+                                   ByVal vcLayoutFile As String, _
+                                   ByVal iGroupID As Long, _
+                                   ByVal iTraderID As Long, _
+                                   ByVal iStrategyID As Long, _
+                                   ByVal iTraderGroupID As Long, _
+                                   ByVal tiPositions As Boolean, _
+                                   ByVal vcResultFilePath As String, _
+                                   Optional ByVal iReportID As Long = BAD_LONG_VALUE) As Long
+    usp_BR_Report_Save = Execute(False, "usp_BR_Report_Save", IIf(iReportID <> BAD_LONG_VALUE, iReportID, Null), _
+                                                                vcUserName, _
+                                                                tiStatus, _
+                                                                vcLayoutFile, _
+                                                                iGroupID, _
+                                                                iTraderID, _
+                                                                iStrategyID, _
+                                                                iTraderGroupID, _
+                                                                tiPositions, _
+                                                                vcResultFilePath)
+End Function
+
+Public Function usp_BR_Report_Complete(ByVal iReportID As Long, ByVal dtDate As Date, ByVal vcFileName As String) As Long
+    usp_BR_Report_Complete = Execute(False, "usp_BR_Report_Complete", iReportID, dtDate, vcFileName)
+End Function
+
+Public Function usp_BR_Shedule_Get() As ADODB.Recordset
+    Set usp_BR_Shedule_Get = Execute(True, "usp_BR_Shedule_Get")
+End Function
+
+Public Function usp_BR_Shedule_Del(ByVal iID As Long) As Long
+    usp_BR_Shedule_Del = Execute(False, "usp_BR_Shedule_Del", iID)
+End Function
+
+Public Function usp_BR_Shedule_Save(ByVal dtTime As Date, _
+                                    ByVal tiStatus As Boolean, _
+                                   Optional ByVal iID As Long = BAD_LONG_VALUE) As Long
+    usp_BR_Shedule_Save = Execute(False, "usp_BR_Shedule_Save", IIf(iID <> BAD_LONG_VALUE, iID, Null), _
+                                                                dtTime, _
+                                                                tiStatus)
+End Function
+
+Public Function usp_BR_Shedule_Complete(ByVal iSheduleID As Long, ByVal dtDate As Date) As Long
+    usp_BR_Shedule_Complete = Execute(False, "usp_BR_Shedule_Complete", iSheduleID, dtDate)
 End Function

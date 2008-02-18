@@ -228,6 +228,7 @@ Public IndexHedgeSlice#
 Public IndexHedgeLotSize&
 Public IndexHedgeMaxSize&
 
+Public UserName As String
 Public CurrentUserPrivateFolder$
 Public ScannersLogin As String
 Public ScanStrategyName As String
@@ -238,6 +239,18 @@ Public ScanStrategyWindClass As String
 Public ScanOptionsWindClass As String
 Public ShowMessageUnableToEdit As Boolean
 Public UseTheoCloseForPNL As Boolean
+
+Public SMTPServer As String
+Public MailAddress As String
+
+Private m_BatchReports As Collection
+Private m_BatchReportingShedules As Collection
+
+Public BR_Email As String
+Public BR_SendEmail As Boolean
+Public BR_FilterDisplay As Boolean
+
+Public ExecuteBatchReporting As Boolean
 
 Public Property Get IsVSCalcEnabled() As Boolean
     IsVSCalcEnabled = m_VSCalcEnabled
@@ -686,6 +699,19 @@ Public Sub LoadSettings()
         ScanOptionsPath = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Scanners", "ScanOptionsPath", "")
         ScanOptionsWindClass = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Scanners", "ScanOptionsWindClass", "")
         ScanStrategyWindClass = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Scanners", "ScanStrategyWindClass", "")
+        
+        
+    BR_FilterDisplay = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\BatchReporting", "FilterDisplay", 0) <> 0)
+    BR_SendEmail = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\BatchReporting", "SendEmail", 0) <> 0)
+    BR_Email = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\BatchReporting", "Email", "")
+    
+    SMTPServer = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\SMTPSettings", "SMTPServer", "")
+    MailAddress = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\SMTPSettings", "SenderAddress", "")
+    
+    ExecuteBatchReporting = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "ExecuteBatchReporting", 0) <> 0)
+        
+    UserName = CurrentNtUserName
+    
 EH:
     gCmn.ErrorHandler "Fail to load application settings."
 End Sub
@@ -781,6 +807,16 @@ Public Sub SaveSettings()
     
     'Save USD/CAD Rate
     g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\ExchangeRates", CAN_REGION, CStr(ExchangeRate)
+    
+    g_aMainXMLParams.SetLongValue PRODUCT_XML_KEY & "Asp\BatchReporting", "FilterDisplay", BR_FilterDisplay
+    g_aMainXMLParams.SetLongValue PRODUCT_XML_KEY & "Asp\BatchReporting", "SendEmail", BR_SendEmail
+    g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\BatchReporting", "Email", BR_Email
+    
+    g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\SMTPSettings", "SMTPServer", SMTPServer
+    g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\SMTPSettings", "SenderAddress", MailAddress
+    
+    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ExecuteBatchReporting", ExecuteBatchReporting
+    
 End Sub
 
 Public Function IsMultiScreenSupported() As Boolean
@@ -852,6 +888,9 @@ End Sub
 Private Sub Class_Terminate()
     On Error Resume Next
     'Set EtsSettings = Nothing
+'    Set m_ProjectionsShedule = Nothing
+    Set m_BatchReports = Nothing
+    Set m_BatchReportingShedules = Nothing
 End Sub
 
 Public Property Get DbConnection() As String
@@ -1637,4 +1676,137 @@ End Sub
 
 Public Sub Terminate()
     FreeResource
+End Sub
+
+Public Property Get BatchReports() As Collection
+    Set BatchReports = m_BatchReports
+End Property
+
+Public Property Let BatchReports(aSrc As Collection)
+    Set m_BatchReports = aSrc
+End Property
+
+Public Property Get BatchReportingShedules() As Collection
+    Set BatchReportingShedules = m_BatchReportingShedules
+End Property
+
+Public Property Let BatchReportingShedules(aSrc As Collection)
+    Set m_BatchReportingShedules = aSrc
+End Property
+
+Public Sub LoadBatchShedule()
+    On Error Resume Next
+    
+    Set m_BatchReportingShedules = Nothing
+    Set m_BatchReportingShedules = New Collection
+    
+    Dim rs As ADODB.Recordset
+    Set rs = gDBW.usp_BR_Shedule_Get()
+    
+    If rs Is Nothing Then Exit Sub
+    
+    Dim aShedule As clsBatchReportingShedule
+    While Not rs.EOF
+        Set aShedule = New clsBatchReportingShedule
+        
+        aShedule.ID = ReadLng(rs!iID)
+        aShedule.ExecTime = CDate(rs!dtTime)
+        aShedule.Enabled = CBool(ReadByte(rs!tiStatus))
+        aShedule.LastRun = CDate(rs!dtLastRun)
+        
+        m_BatchReportingShedules.Add aShedule, CStr(aShedule.ID)
+        Set aShedule = Nothing
+    
+        rs.MoveNext
+    Wend
+    
+End Sub
+
+Public Sub SaveBatchShedule()
+    On Error Resume Next
+
+    Dim aShedule As clsBatchReportingShedule
+    Dim rs As ADODB.Recordset
+    Dim dtLastRun As Date
+
+    For Each aShedule In m_BatchReportingShedules
+        gDBW.usp_BR_Shedule_Save aShedule.ExecTime, aShedule.Enabled, aShedule.ID
+        gDBW.usp_BR_Shedule_Complete aShedule.ID, dtLastRun
+    Next
+End Sub
+
+Public Sub LoadBatchReports()
+    On Error Resume Next
+    
+    Set m_BatchReports = Nothing
+    Set m_BatchReports = New Collection
+    
+    Dim rs As ADODB.Recordset
+    Set rs = gDBW.usp_BR_Reports_Get()
+    
+    If rs Is Nothing Then Exit Sub
+    
+    Dim aReport As clsBatchReport
+    While Not rs.EOF
+        Set aReport = New clsBatchReport
+        
+        aReport.ID = ReadLng(rs!iID)
+        aReport.UserName = ReadStr(rs!vcUserName)
+        aReport.IsActive = CBool(ReadByte(rs!tiStatus))
+        aReport.LayoutFilePath = ReadStr(rs!vcLayoutFile)
+        aReport.GroupID = ReadLng(rs!iGroupID)
+        aReport.TraderID = ReadLng(rs!iTraderID)
+        aReport.strategyID = ReadLng(rs!iStrategyID)
+        aReport.TraderGroupID = ReadLng(rs!iTraderGroupID)
+        aReport.IsPosExpanded = CBool(ReadByte(rs!tiPositions))
+        aReport.LastRun = CDate(rs!dtLastRun)
+        aReport.ResultFile = ReadStr(rs!vcResultFile)
+        aReport.ResultFilePath = ReadStr(rs!vcFilePath)
+        
+        aReport.Init
+        
+        m_BatchReports.Add aReport, CStr(aReport.ID)
+        Set aReport = Nothing
+    
+        rs.MoveNext
+    Wend
+    
+End Sub
+
+Public Sub SaveBatchReports()
+    On Error Resume Next
+
+    Dim aReport As clsBatchReport
+    Dim rs As ADODB.Recordset
+
+    For Each aReport In m_BatchReports
+        Select Case aReport.Status
+            Case SS_NEW
+                gDBW.usp_BR_Report_Save aReport.UserName, _
+                                        aReport.IsActive, _
+                                        aReport.LayoutFilePath + aReport.LayoutFile, _
+                                        aReport.GroupID, _
+                                        aReport.TraderID, _
+                                        aReport.strategyID, _
+                                        aReport.TraderGroupID, _
+                                        aReport.IsPosExpanded, _
+                                        aReport.ResultFilePath
+                aReport.Status = SS_COMMON
+            Case SS_UPDATED
+                gDBW.usp_BR_Report_Save aReport.UserName, _
+                                        aReport.IsActive, _
+                                        aReport.LayoutFilePath + aReport.LayoutFile, _
+                                        aReport.GroupID, _
+                                        aReport.TraderID, _
+                                        aReport.strategyID, _
+                                        aReport.TraderGroupID, _
+                                        aReport.IsPosExpanded, _
+                                        aReport.ResultFilePath, _
+                                        aReport.ID
+                aReport.Status = SS_COMMON
+            Case SS_DELETED
+                gDBW.usp_BR_Report_Del aReport.ID
+        End Select
+    Next
+
 End Sub

@@ -167,7 +167,7 @@ void CMsUnd::_CalcOptionGreeks(CMsOptionPtr pOpt,  CMsOptRootPtr pOptRoot, CMsUn
 
 			dVola = m_spVolaSource->Vola(dUndClose,spOpt->m_dtExpiration,spOpt->m_dStrike);
 
-			nRetCount = CalcGreeksMM2(dRate, dYield, dUndClose, spOpt->m_dStrike,
+			nRetCount = CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dUndClose, spOpt->m_dStrike,
 					dVola, nDTE, spOpt->m_bIsCall, nIsAmerican, nDivCount, pdDivAmt, pdDivDte,
 					100L, dSkew, dKurt, nModel, &aGreeks);
 

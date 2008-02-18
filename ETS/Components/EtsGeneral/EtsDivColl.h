@@ -5,6 +5,7 @@
 
 #include "EtsGeneral.h"
 #include "EtsDivAtom.h"
+#include "EtsHolidayAtom.h"
 
 _COM_SMARTPTR_TYPEDEF(IEtsDivColl, IID_IEtsDivColl);
 
@@ -22,6 +23,7 @@ public:
 		,m_lExpryCache(0)
 		,m_lQuantityCache(0)
 		,m_bDivCacheInit(false)
+		,m_spHolidays(NULL)
 	{
 	}
 
@@ -52,24 +54,26 @@ END_COM_MAP()
 	}
 
 public:
-	STDMETHOD(GetDividends)( LONG nToday, LONG nExpiry, LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates, LONG* pnCount);
-	STDMETHOD(GetNearest)(LONG nToday, LONG nExpiry, DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
-	STDMETHOD(GetDividendCount)( LONG nToday, LONG nExpiry, LONG* pnCount);
+	STDMETHOD(GetDividends)(DATE nToday, DATE nExpiry, LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates, LONG* pnCount);
+	STDMETHOD(GetNearest)(DATE nToday, DATE nExpiry, DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
+	STDMETHOD(GetDividendCount)( DATE nToday, DATE nExpiry, LONG* pnCount);
 private:
 	typedef		std::map<LONG, DOUBLE>		EnumCollType;
 	typedef		EnumCollType::iterator		EnumIterType;
 	typedef		std::pair<DOUBLE,DOUBLE>	EnumItemType;
-	typedef     std::map<LONG, LONG>      EnumQuantityCacheType;
+	typedef     std::map<LONG, LONG>		EnumQuantityCacheType;
 
 	EnumCollType							m_DivColl;
 
-	long                                    m_nTodayCache;
-	long                                    m_lExpryCache;
+	DATE                                    m_nTodayCache;
+	DATE                                    m_lExpryCache;
 	long                                    m_lQuantityCache;
 	bool                                    m_bDivCacheInit;
 
 	CComSafeArray<double>					m_spDatesCache;
 	CComSafeArray<double>					m_spAmountCache;
+
+	IEtsHolidayAtomPtr						m_spHolidays;
 
 	void ClearCache()
 	{
@@ -85,7 +89,11 @@ public:
 	STDMETHOD(Clear)(void);
 	STDMETHOD(CopyToWithWeight)( DOUBLE dWeight, IEtsDivColl* pDest , IEtsDivColl** ppVal);
 	STDMETHOD(Clone)(IEtsDivColl** ppVal);
-
+	//ETM MODE//
+	IMPLEMENT_OBJECT_PROPERTY(IEtsHolidayAtom*, Holidays, m_spHolidays);
+	STDMETHOD(GetDividendCount2)(DATE dtNow, DATE dtExpiryOV, DATE	dtCloseTime, LONG* pnCount);
+	STDMETHOD(GetDividends2)(DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime, LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates, LONG* pnCount);
+	STDMETHOD(GetNearest2)( DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(EtsDivColl), CEtsDivColl)

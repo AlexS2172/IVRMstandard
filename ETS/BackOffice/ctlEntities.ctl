@@ -442,7 +442,7 @@ Begin VB.UserControl ctlEntities
          _ExtentX        =   2143
          _ExtentY        =   450
          _Version        =   393216
-         Format          =   60686337
+         Format          =   25493505
          CurrentDate     =   36936
       End
       Begin VB.Image imgProp 

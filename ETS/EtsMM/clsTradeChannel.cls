@@ -420,6 +420,8 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
             aDst.OptionRootID = aSrc.OptRoot.ID
             
             aDst.Expiry = aSrc.Opt.Expiry
+            aDst.ExpiryOV = aSrc.Opt.ExpiryOV
+            aDst.TradingClose = aSrc.Opt.TradingClose
             aDst.IsCall = aSrc.Opt.OptType
             aDst.Strike = aSrc.Opt.Strike
             aDst.PriceClose = aSrc.Opt.PriceClose
@@ -441,6 +443,8 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
             aDst.FutRootID = aSrc.FutRoot.ID
             
             aDst.Expiry = aSrc.FutOpt.Expiry
+            aDst.ExpiryOV = aSrc.FutOpt.ExpiryOV
+            aDst.TradingClose = aSrc.FutOpt.TradingClose
             aDst.IsCall = aSrc.FutOpt.OptType
             aDst.Strike = aSrc.FutOpt.Strike
             aDst.PriceClose = aSrc.FutOpt.PriceClose
@@ -506,6 +510,8 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
                 aDst.Opt.RootID = aDst.OptRoot.ID
                 aDst.Opt.OptType = aSrc.IsCall
                 aDst.Opt.Expiry = aSrc.Expiry
+                aDst.Opt.ExpiryOV = aSrc.ExpiryOV
+                aDst.Opt.TradingClose = aSrc.TradingClose
                 aDst.Opt.Strike = Round(aSrc.Strike, STRIKE_DECIMALS_COUNT)
                 aDst.Opt.PriceClose = aSrc.PriceClose
                 aDst.Opt.PriceTheoclose = aSrc.PriceTheoclose
@@ -529,6 +535,8 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
                         aDst.FutOpt.FutID = aDst.Fut.ID
                         aDst.FutOpt.OptType = aSrc.IsCall
                         aDst.FutOpt.Expiry = aSrc.Expiry
+                        aDst.FutOpt.ExpiryOV = aSrc.ExpiryOV
+                        aDst.FutOpt.TradingClose = aSrc.TradingClose
                         aDst.FutOpt.Strike = Round(aSrc.Strike, STRIKE_DECIMALS_COUNT)
                         aDst.FutOpt.PriceClose = aSrc.PriceClose
                         aDst.FutOpt.PriceTheoclose = aSrc.PriceTheoclose
@@ -1165,7 +1173,9 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     Dim aBasketDivs As EtsGeneralLib.EtsIndexDivColl
     Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
     Dim nFlag As Long
-    
+    Dim dtNow As Date, dYTE As Double
+        
+    dtNow = GetNewYorkTime
     dYield = 0#
     
     If aTrd.ContractType = enCtOption Then
@@ -1185,12 +1195,14 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     enDivType = aDiv.DivType
                 End If
                 
+                dYTE = (aTrd.Opt.ExpiryOV - dtNow) / 365#
+                
                 Select Case enDivType
                         Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
                             If Not aDiv Is Nothing Then
-                                aDiv.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
+                                aDiv.GetDividendCount2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount
                                 If nDivCount > 0 Then
-                                    aDiv.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                                    aDiv.GetDividends2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                                 End If
                                 Set aDiv = Nothing
                             End If
@@ -1198,9 +1210,9 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                             If Not aUnd.BasketIndex Is Nothing Then
                                 Set aBasketDivs = aUnd.BasketIndex.BasketDivs
                                 If Not aBasketDivs Is Nothing Then
-                                    aBasketDivs.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
+                                    aBasketDivs.GetDividendCount2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount
                                     If nDivCount > 0 Then
-                                            aBasketDivs.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                                            aBasketDivs.GetDividends2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                                     End If
                                 End If
                                 Set aBasketDivs = Nothing
@@ -1208,45 +1220,14 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                         Case enDivIndexYield
                             dYield = aUnd.Yield
                 End Select
-                
-'                If aTrd.Und.UndType = enCtStock Then
-'                    Set aUnd = aTrd.Und
-'                    Set aDiv = aUnd.Dividend
-'                    If Not aDiv Is Nothing Then
-'                        aDiv.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
-'                        If nDivCount > 0 Then
-'                           aDiv.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
-'                        End If
-'                End If
-'                Else
-'                    Set aIdx = g_Index(aTrd.UndID)
-'                    If Not aIdx Is Nothing Then
-'                        If aIdx.IsBasket Then
-'                            Set aBasketDivs = aIdx.BasketDivs
-'                            If Not aBasketDivs Is Nothing Then
-'                                aBasketDivs.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
-'                                If nDivCount > 0 Then
-'                                    aBasketDivs.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
-'                                End If
-'                            End If
-'                            Erase aBaskDivs
-'                        End If
-'                        Set aIdx = Nothing
-'                    End If
-'
-'                    If Not aIdx.IsBasket And nDivCount <= 0 Then
-'                        nDivCount = 0
-'                        dYield = aTrd.Und.Yield
-'                    End If
-'                End If
-                
+                               
                 If Not aTrd.Und.IsHTB Then
                     dRate = GetNeutralRate(Date, aTrd.Opt.Expiry)
                 Else
                     dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
                 End If
                 
-                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
+                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, BAD_DOUBLE_VALUE, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, dYTE, _
                                         aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
                 
                 Erase dDivDte
@@ -1270,9 +1251,9 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     Set aBasketDiv = aSynthRoot.BasketDivs
                     
                     If Not aBasketDiv Is Nothing Then
-                        aBasketDiv.GetDividendCount Date, aTrd.Opt.Expiry, nBaskDivCount
+                        aBasketDiv.GetDividendCount2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nBaskDivCount
                         If nBaskDivCount > 0 Then _
-                            aBasketDiv.GetDividends Date, aTrd.Opt.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+                            aBasketDiv.GetDividends2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
                     End If
                     Set aBasketDiv = Nothing
                 
@@ -1289,7 +1270,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
                 End If
                 
-                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
+                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, dYTE, _
                                         aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
                 
                 Erase dDivDte
@@ -1318,7 +1299,8 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                 dRate = GetNeutralHTBRate(Date, aTrd.FutOpt.Expiry)
             End If
             
-            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, aTrd.SpotReference, aTrd.price, aTrd.FutOpt.Strike, aTrd.FutOpt.Expiry - Date, _
+            dYTE = (aTrd.FutOpt.ExpiryOV - dtNow) / 365#
+            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, BAD_DOUBLE_VALUE, aTrd.SpotReference, aTrd.price, aTrd.FutOpt.Strike, dYTE, _
                                     aTrd.FutOpt.OptType, 1, nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
             
             Erase dDivDte

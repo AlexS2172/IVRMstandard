@@ -147,6 +147,27 @@ bool CMmQvRowData::GetField(MmQvOptColumnEnum enCol, _variant_t& vtRet, bool bFo
 			else 
 				vtRet = STR_MISSING;
 		break;
+	case QOC_C_EXPIRY_OV:
+		if(m_pExp) {
+			vt_date dtExpiryOV(m_pExp->m_dtExpiryOV);
+			typedef boost::date_time::c_local_adjustor<ptime> local_time;
+			typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+			ptime	ptExpiryOV( date( dtExpiryOV.get_year(), dtExpiryOV.get_month(), dtExpiryOV.get_day() ), 
+				hours( dtExpiryOV.get_hour() ) + minutes( dtExpiryOV.get_minute() ) );
+			ptExpiryOV = us_eastern::local_to_utc(ptExpiryOV);
+			ptime	ptLocalExpiryOV = local_time::utc_to_local(ptExpiryOV);
+			tm		tmLocalExpiryOV = to_tm(ptLocalExpiryOV);
+			vt_date dtLocalExpiryOV(tmLocalExpiryOV.tm_year + 1900, tmLocalExpiryOV.tm_mon + 1, tmLocalExpiryOV.tm_mday,
+				tmLocalExpiryOV.tm_hour, tmLocalExpiryOV.tm_min);
+
+			vtRet = (DATE)dtLocalExpiryOV;
+		}
+		else
+			if(bForSorting) 
+				vtRet = (DATE)0.; 
+			else 
+				vtRet = STR_MISSING;
+		break;
 	case QOC_C_STRIKE:
 		if(pOptAtom)
 			vtRet = static_cast<DOUBLE>(pOptAtom->m_dStrike);
@@ -675,13 +696,27 @@ bool CMmQvRowData::GetField(MmQvOptColumnEnum enCol, _variant_t& vtRet, bool bFo
 				case QOC_DTE:
 					{
 						if ( m_spExp ) {
-							DATE expiryDate, todayDate;
 
-							_CHK(m_spExp->get_Expiry(&expiryDate));
-							todayDate = (DATE)((LONG)COleDateTime::GetCurrentTime());
-							expiryDate = (DATE)((LONG)expiryDate);
-							LONG nDTE = (LONG)expiryDate - (LONG)todayDate;
-							vtRet = nDTE;
+							DATE expiryDateOV = 0;
+							_CHK(m_spExp->get_ExpiryOV(&expiryDateOV));
+
+							typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+							ptime	ptNYNow = us_eastern::utc_to_local(second_clock::universal_time());
+							tm		tmNYNow = to_tm(ptNYNow);
+							vt_date dtToday(tmNYNow.tm_year + 1900, tmNYNow.tm_mon + 1, tmNYNow.tm_mday,
+											tmNYNow.tm_hour, tmNYNow.tm_min);
+
+							vt_date dtTimeToExp( expiryDateOV - (DATE)dtToday > 0 ? expiryDateOV - (DATE)dtToday : 0 );
+
+							std::wstring wsFormat;
+							wchar_t buffer[1024];
+							if( dtTimeToExp < 2 )
+								wsFormat = L"%d day %02d:%02d";
+							else
+								wsFormat = L"%d days %02d:%02d";
+
+							_snwprintf_s(buffer, sizeof(buffer), wsFormat.c_str(), static_cast<LONG>((DATE)dtTimeToExp), dtTimeToExp.get_hour(), dtTimeToExp.get_minute() );
+							vtRet =(wchar_t*)buffer;
 						}
 						else
 							vtRet = bForSorting?_variant_t(0):STR_NA;

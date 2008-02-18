@@ -7,8 +7,6 @@ GO
 SET ANSI_NULLS ON 
 GO
 
-
-
 Create  View dbo.BookView
 as
 	Select 
@@ -21,13 +19,13 @@ as
 	from Book
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[BrokerView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[BrokerView]
@@ -37,8 +35,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE View dbo.BrokerView
 as
@@ -52,13 +48,13 @@ as
 	from Broker
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[CommissionView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[CommissionView]
@@ -68,8 +64,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.CommissionView
 as
@@ -83,13 +77,13 @@ as
 	from Commission
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[ContractGroupView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[ContractGroupView]
@@ -99,8 +93,6 @@ SET QUOTED_IDENTIFIER OFF
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 Create  View dbo.ContractGroupView
 as
@@ -113,13 +105,13 @@ as
 	from ContractGroup
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[ContractInGroupView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[ContractInGroupView]
@@ -129,8 +121,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.ContractInGroupView
 as
@@ -142,13 +132,13 @@ as
 	from ContractInGroup
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[ContractView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[ContractView]
@@ -158,8 +148,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.ContractView
 as
@@ -176,13 +164,13 @@ as
 	from Contract
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[CustomStrikeSkewPointView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[CustomStrikeSkewPointView]
@@ -192,8 +180,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE View dbo.CustomStrikeSkewPointView
 as
@@ -210,13 +196,13 @@ as
 	from CustomStrikeSkewPoint
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[ExchangeHolidayView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[ExchangeHolidayView]
@@ -226,8 +212,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.ExchangeHolidayView
 as
@@ -239,13 +223,13 @@ as
 	from ExchangeHoliday
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[ExchangeView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[ExchangeView]
@@ -255,8 +239,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.ExchangeView
 as
@@ -270,13 +252,13 @@ as
 	from Exchange
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[ExpiryView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[ExpiryView]
@@ -286,8 +268,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.ExpiryView
 as
@@ -299,13 +279,13 @@ as
 	from Expiry
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[HolidayView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[HolidayView]
@@ -315,8 +295,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.HolidayView
 as
@@ -329,13 +307,13 @@ as
 	from Holiday
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[IndexDefinitionView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[IndexDefinitionView]
@@ -345,8 +323,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View dbo.IndexDefinitionView
 as
@@ -362,13 +338,13 @@ as
 	from IndexDefinition
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[IndexView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[IndexView]
@@ -378,8 +354,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE    View dbo.IndexView
 as
@@ -396,13 +370,13 @@ as
 	from [Index]
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[IRCurveView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[IRCurveView]
@@ -412,8 +386,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 Create View IRCurveView
 as
@@ -428,13 +400,13 @@ as
 	from IRCurve
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[IRPointView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[IRPointView]
@@ -444,8 +416,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 Create View IRPointView
 as
@@ -462,13 +432,13 @@ as
 	from IRPoint
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[OptionView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[OptionView]
@@ -479,10 +449,6 @@ GO
 SET ANSI_NULLS ON 
 GO
 
-
-
-
-
 CREATE  View dbo.OptionView
 as
 	Select 
@@ -492,17 +458,19 @@ as
 		strike,
 		expiryID,
 		actionID,
-		actionDate
+		actionDate,
+		ExpiryOV, 
+		TradingClose
 	from [Option]
 	where actionID < 3
-
-
 
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[RMScenarioView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[RMScenarioView]
@@ -512,8 +480,6 @@ SET QUOTED_IDENTIFIER OFF
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 Create  View dbo.RMScenarioView
 as
@@ -534,13 +500,13 @@ as
 	from RMScenario
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[StockView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[StockView]
@@ -550,8 +516,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE    View dbo.StockView
 as
@@ -576,12 +540,13 @@ as
 	from Stock
 	where actionID < 3
 
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[StrategyView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[StrategyView]
@@ -591,8 +556,6 @@ SET QUOTED_IDENTIFIER OFF
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 Create  View dbo.StrategyView
 as
@@ -605,13 +568,13 @@ as
 	from Strategy
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TraderContractView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[TraderContractView]
@@ -622,21 +585,19 @@ GO
 SET ANSI_NULLS ON 
 GO
 
-
-
 CREATE VIEW dbo.TraderContractView
 AS
 SELECT     traderID, contractID, actionID, actionDate
 FROM         dbo.TraderContract
 WHERE     (actionID < 3)
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TraderRoleView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[TraderRoleView]
@@ -646,8 +607,6 @@ SET QUOTED_IDENTIFIER OFF
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 Create  View dbo.TraderRoleView
 as
@@ -659,13 +618,13 @@ as
 	from TraderRole
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TraderView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[TraderView]
@@ -675,8 +634,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE  View TraderView
 as
@@ -692,13 +649,13 @@ as
 	from Trader
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TradeView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[TradeView]
@@ -708,7 +665,6 @@ SET QUOTED_IDENTIFIER OFF
 GO
 SET ANSI_NULLS ON 
 GO
-
 
 CREATE view dbo.TradeView
 AS
@@ -740,12 +696,13 @@ AS
 		tradedIV, spotReference,isPosition,lotSize,isSimulated
 	HAVING  (MIN(actionID) = 1)
 
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[vALLStockEOD]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[vALLStockEOD]
@@ -755,8 +712,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 CREATE          view dbo.vALLStockEOD
 AS
@@ -798,15 +753,13 @@ SELECT 	C.contractID AS iContractID,
 	FROM Contract C (nolock), IndexView I (nolock)
 	WHERE I.indexID = C.contractID
 
-
-
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
+
+
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[VolaSurfaceDataView]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[VolaSurfaceDataView]
@@ -816,8 +769,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON 
 GO
-
-
 
 create View VolaSurfaceDataView
 as
@@ -839,12 +790,8 @@ as
 	from VolaSurfaceData
 	where actionID < 3
 
-
-
 GO
 SET QUOTED_IDENTIFIER OFF 
 GO
 SET ANSI_NULLS ON 
 GO
-
-

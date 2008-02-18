@@ -7,7 +7,7 @@ double CFO_BlackScholes(
 						double	S,
 						double	K,
 						double	V,
-						int		Dte, 
+						double	Yte, 
                         bool	Call,
 						bool	American,
 						double*	pDivAmnts,
@@ -23,17 +23,15 @@ double CFO_BlackScholes(
 		pGreeks->nMask |=  ~GT_RHO;
 	}
 
-	double dTheoPrice = CO_BlackScholes(R, R, S, K, V, Dte, Call, American, pDivAmnts, pDivYears, nCount, pGreeks);
+	double dTheoPrice = CO_BlackScholes(R, R, OPM::BadDoubleValue, S, K, V, Yte, Call, American, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	if(!OPM::IsBadValue(dTheoPrice) && bCalcRho && pGreeks)
 	{
-		double dYte	= Dte / OPM::cdDaysPerYear365;
-	
-		pGreeks->dRho = - dYte *  dTheoPrice * OPM::cdDeltaRate;
+		pGreeks->dRho = - Yte *  dTheoPrice * OPM::cdDeltaRate;
 		pGreeks->nMask |= GT_RHO;
 	}
 
-	if(!OPM::SpotGreeksFromForward(R, Dte, pGreeks) && pGreeks)
+	if(!OPM::SpotGreeksFromForward(R, Yte, pGreeks) && pGreeks)
 		pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 
 	return dTheoPrice;
@@ -44,7 +42,7 @@ double CFO_VskLog(
 					    double	S,
 					    double	K,
 					    double	V,
-					    int		Dte, 
+					    double	Yte, 
                         bool	Call,
 					    bool	American,						 
 						double	Skew,
@@ -63,7 +61,7 @@ double CFO_VskLog(
 		pGreeks->nMask |=  ~GT_RHO;
 	}
 
-	double dTheoPrice = CO_VskLog(R, R, S, K, V, Dte, Call, American, pDivAmnts, pDivYears, nCount, Skew, Kurtosis, pGreeks);
+	double dTheoPrice = CO_VskLog(R, R, S, K, V, Yte, Call, American, pDivAmnts, pDivYears, nCount, Skew, Kurtosis, pGreeks);
 
 	if(!OPM::IsBadValue(dTheoPrice) && bCalcRho && pGreeks)
 	{
@@ -74,7 +72,7 @@ double CFO_VskLog(
 						R + OPM::cdDeltaRate,
 						R + OPM::cdDeltaRate,
 						V,
-						Dte,
+						Yte,
 						Call,
 						Skew,
 						Kurtosis, 
@@ -89,7 +87,7 @@ double CFO_VskLog(
 		}
 	}
 
-	if(!OPM::SpotGreeksFromForward(R, Dte, pGreeks) && pGreeks)
+	if(!OPM::SpotGreeksFromForward(R, Yte, pGreeks) && pGreeks)
 		pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 
 	return dTheoPrice;
@@ -101,7 +99,7 @@ double CFO_CoxRossWithBlackScholes(
 						    double	S,
 						    double	K,
 						    double	V,
-						    int		Dte, 
+						    double	Yte, 
                             bool	Call,
 						    bool	American,
 						    long	Steps,
@@ -120,10 +118,11 @@ double CFO_CoxRossWithBlackScholes(
 
 	double dTheoPrice = CO_CoxRossWithBlackScholes(	R, 
 													R, 
+													OPM::BadDoubleValue,
 													S, 
 													K, 
 													V, 
-													Dte, 
+													Yte, 
 													Call, 
 													American, 
 													pDivAmnts,
@@ -138,10 +137,11 @@ double CFO_CoxRossWithBlackScholes(
 		GREEKS plGreeks = *pGreeks;
 		double dTheoPricePlusDr = CO_CoxRossWithBlackScholes(	R + OPM::cdDeltaRate, 
 																R + OPM::cdDeltaRate, 
+																OPM::BadDoubleValue,
 																S, 
 																K, 
 																V, 
-																Dte, 
+																Yte, 
 																Call, 
 																American, 
 																pDivAmnts,
@@ -157,7 +157,7 @@ double CFO_CoxRossWithBlackScholes(
 		}
 	}
 
-	if(!OPM::SpotGreeksFromForward(R, Dte, pGreeks) && pGreeks)
+	if(!OPM::SpotGreeksFromForward(R, Yte, pGreeks) && pGreeks)
 		pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 
 	return dTheoPrice;
@@ -170,7 +170,7 @@ double CFO_BlackScholes2(
 						bool	bSpotPrice,
 						double	K,
 						double	V,
-						int		Dte, 
+						double	Yte, 
 						bool	Call,
 						bool	American,
 						double*	pDivAmnts,
@@ -186,19 +186,17 @@ double CFO_BlackScholes2(
 		pGreeks->nMask |=  ~GT_RHO;
 	}
 
-	double dTheoPrice = CO_BlackScholes(R, R, S, K, V, Dte, Call, American, pDivAmnts, pDivYears, nCount, pGreeks);
+	double dTheoPrice = CO_BlackScholes(R, R, OPM::BadDoubleValue, S, K, V, Yte, Call, American, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	if(!OPM::IsBadValue(dTheoPrice) && bCalcRho && pGreeks)
 	{
-		double dYte	= Dte / OPM::cdDaysPerYear365;
-
-		pGreeks->dRho = - dYte *  dTheoPrice * OPM::cdDeltaRate;
+		pGreeks->dRho = - Yte *  dTheoPrice * OPM::cdDeltaRate;
 		pGreeks->nMask |= GT_RHO;
 	}
 
 	if (bSpotPrice)
 	{
-		if(!OPM::SpotGreeksFromForward(R, Dte, pGreeks) && pGreeks)
+		if(!OPM::SpotGreeksFromForward(R, Yte, pGreeks) && pGreeks)
 			pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 	
 	}
@@ -212,7 +210,7 @@ double CFO_VskLog2(
 				  bool		bSpotPrice,
 				  double	K,
 				  double	V,
-				  int		Dte, 
+				  double	Yte, 
 				  bool	Call,
 				  bool	American,						 
 				  double	Skew,
@@ -231,7 +229,7 @@ double CFO_VskLog2(
 		pGreeks->nMask |=  ~GT_RHO;
 	}
 
-	double dTheoPrice = CO_VskLog(R, R, S, K, V, Dte, Call, American, pDivAmnts, pDivYears, nCount, Skew, Kurtosis, pGreeks);
+	double dTheoPrice = CO_VskLog(R, R, S, K, V, Yte, Call, American, pDivAmnts, pDivYears, nCount, Skew, Kurtosis, pGreeks);
 
 	if(!OPM::IsBadValue(dTheoPrice) && bCalcRho && pGreeks)
 	{
@@ -242,7 +240,7 @@ double CFO_VskLog2(
 			R + OPM::cdDeltaRate,
 			R + OPM::cdDeltaRate,
 			V,
-			Dte,
+			Yte,
 			Call,
 			Skew,
 			Kurtosis, 
@@ -259,7 +257,7 @@ double CFO_VskLog2(
 
 	if (bSpotPrice)
 	{
-		if(!OPM::SpotGreeksFromForward(R, Dte, pGreeks) && pGreeks)
+		if(!OPM::SpotGreeksFromForward(R, Yte, pGreeks) && pGreeks)
 			pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 	}
 
@@ -273,7 +271,7 @@ double CFO_CoxRossWithBlackScholes2(
 								   bool		bSpotPrice,
 								   double	K,
 								   double	V,
-								   int		Dte, 
+								   double	Yte, 
 								   bool	Call,
 								   bool	American,
 								   long	Steps,
@@ -292,10 +290,11 @@ double CFO_CoxRossWithBlackScholes2(
 
 	double dTheoPrice = CO_CoxRossWithBlackScholes(	R, 
 		R, 
+		OPM::BadDoubleValue,
 		S, 
 		K, 
 		V, 
-		Dte, 
+		Yte, 
 		Call, 
 		American, 
 		pDivAmnts,
@@ -310,10 +309,11 @@ double CFO_CoxRossWithBlackScholes2(
 		GREEKS plGreeks = *pGreeks;
 		double dTheoPricePlusDr = CO_CoxRossWithBlackScholes(	R + OPM::cdDeltaRate, 
 			R + OPM::cdDeltaRate, 
+			OPM::BadDoubleValue,
 			S, 
 			K, 
 			V, 
-			Dte, 
+			Yte, 
 			Call, 
 			American, 
 			pDivAmnts,
@@ -331,7 +331,7 @@ double CFO_CoxRossWithBlackScholes2(
 
 	if (bSpotPrice)
 	{
-		if(!OPM::SpotGreeksFromForward(R, Dte, pGreeks) && pGreeks)
+		if(!OPM::SpotGreeksFromForward(R, Yte, pGreeks) && pGreeks)
 			pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 	}
 
@@ -352,7 +352,7 @@ double CFO_BlackScholes3(
 						 double	S,
 						 double	K,
 						 double	V,
-						 int		Dte, 
+						 double Yte, 
 						 bool	Call,
 						 bool	American,
 						 double*	pDivAmnts,
@@ -368,19 +368,17 @@ double CFO_BlackScholes3(
 		pGreeks->nMask |=  ~GT_RHO;
 	}
 
-	double dTheoPrice = CO_BlackScholes(R, R, S, K, V, Dte, Call, American, NULL, NULL, 0, pGreeks);
+	double dTheoPrice = CO_BlackScholes(R, R, OPM::BadDoubleValue, S, K, V, Yte, Call, American, NULL, NULL, 0, pGreeks);
 
 	if(!OPM::IsBadValue(dTheoPrice) && bCalcRho && pGreeks)
 	{
-		double dYte	= Dte / OPM::cdDaysPerYear365;
-
-		pGreeks->dRho = - dYte *  dTheoPrice * OPM::cdDeltaRate;
+		pGreeks->dRho = - Yte *  dTheoPrice * OPM::cdDeltaRate;
 		pGreeks->nMask |= GT_RHO;
 	}
 
 	if (bSpotPrice)
 	{
-		if(!OPM::SpotGreeksFromForward2(S, R, dYield, Dte, pDivAmnts, pDivYears, nCount, pGreeks) && pGreeks)
+		if(!OPM::SpotGreeksFromForward2(S, R, dYield, Yte, pDivAmnts, pDivYears, nCount, pGreeks) && pGreeks)
 			pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 	}
 
@@ -395,7 +393,7 @@ double CFO_VskLog3(
 				   double	S,
 				   double	K,
 				   double	V,
-				   int		Dte, 
+				   double	Yte, 
 				   bool	Call,
 				   bool	American,						 
 				   double	Skew,
@@ -414,7 +412,7 @@ double CFO_VskLog3(
 		pGreeks->nMask |=  ~GT_RHO;
 	}
 
-	double dTheoPrice = CO_VskLog(R, R, S, K, V, Dte, Call, American,  NULL, NULL, 0, Skew, Kurtosis, pGreeks);
+	double dTheoPrice = CO_VskLog(R, R, S, K, V, Yte, Call, American,  NULL, NULL, 0, Skew, Kurtosis, pGreeks);
 
 	if(!OPM::IsBadValue(dTheoPrice) && bCalcRho && pGreeks)
 	{
@@ -425,7 +423,7 @@ double CFO_VskLog3(
 			R + OPM::cdDeltaRate,
 			R + OPM::cdDeltaRate,
 			V,
-			Dte,
+			Yte,
 			Call,
 			Skew,
 			Kurtosis, 
@@ -442,7 +440,7 @@ double CFO_VskLog3(
 
 	if (bSpotPrice)
 	{
-		if(!OPM::SpotGreeksFromForward2(S, R, dYield, Dte, pDivAmnts, pDivYears, nCount, pGreeks) && pGreeks)
+		if(!OPM::SpotGreeksFromForward2(S, R, dYield, Yte, pDivAmnts, pDivYears, nCount, pGreeks) && pGreeks)
 			pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 	}
 
@@ -457,7 +455,7 @@ double CFO_CoxRossWithBlackScholes3(
 									double	S,
 									double	K,
 									double	V,
-									int		Dte, 
+									double  Yte, 
 									bool	Call,
 									bool	American,
 									long	Steps,
@@ -475,11 +473,12 @@ double CFO_CoxRossWithBlackScholes3(
 	}
 
 	double dTheoPrice = CO_CoxRossWithBlackScholes(	R, 
-		R, 
+		R,
+		OPM::BadDoubleValue,
 		S, 
 		K, 
 		V, 
-		Dte, 
+		Yte, 
 		Call, 
 		American, 
 		NULL,
@@ -494,10 +493,11 @@ double CFO_CoxRossWithBlackScholes3(
 		GREEKS plGreeks = *pGreeks;
 		double dTheoPricePlusDr = CO_CoxRossWithBlackScholes(	R + OPM::cdDeltaRate, 
 			R + OPM::cdDeltaRate, 
+			OPM::BadDoubleValue,
 			S, 
 			K, 
 			V, 
-			Dte, 
+			Yte, 
 			Call, 
 			American, 
 			NULL,
@@ -515,7 +515,7 @@ double CFO_CoxRossWithBlackScholes3(
 
 	if (bSpotPrice)
 	{
-		if(!OPM::SpotGreeksFromForward2(S, R, dYield, Dte, pDivAmnts, pDivYears, nCount, pGreeks) && pGreeks)
+		if(!OPM::SpotGreeksFromForward2(S, R, dYield, Yte, pDivAmnts, pDivYears, nCount, pGreeks) && pGreeks)
 			pGreeks->nMask = OPM::IsBadValue(dTheoPrice) ? GT_NOTHING : GT_THEOPRICE;
 	}
 

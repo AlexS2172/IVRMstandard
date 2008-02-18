@@ -12,6 +12,8 @@ struct __MmRvExpAtom
 {
 	LONG					m_nExpiryMonth;
 	DATE					m_dtExpiry;
+	DATE					m_dtExpiryOV;
+	DATE					m_dtTradingClose;
 	DOUBLE					m_dRate;
 	IMmRvPosCollPtr			m_spPos;
 	IMmRvSynthGreeksCollPtr m_spSynthGreek;
@@ -32,7 +34,7 @@ struct __MmRvExpAtom
 	DOUBLE					m_dRhoInShares;
 
 	__MmRvExpAtom()
-		: m_nExpiryMonth(0L), m_dtExpiry(0.), m_dRate(0.),
+		: m_nExpiryMonth(0L), m_dtExpiry(0.), m_dRate(0.), m_dtExpiryOV(0), m_dtTradingClose(0),
 		m_dDeltaInShares(BAD_DOUBLE_VALUE), m_dDeltaEq(BAD_DOUBLE_VALUE),
 		m_dGammaInShares(BAD_DOUBLE_VALUE), m_dGammaEq(BAD_DOUBLE_VALUE),
 		m_dVegaInShares(BAD_DOUBLE_VALUE), m_dTimeValueInShares(BAD_DOUBLE_VALUE),
@@ -131,6 +133,8 @@ public:
 
 		IMPLEMENT_SIMPLE_PROPERTY(LONG, ExpiryMonth, m_nExpiryMonth)
 		IMPLEMENT_SIMPLE_PROPERTY(DATE, Expiry, m_dtExpiry)
+		IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+		IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
 		IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvPosColl*, Pos, m_spPos)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, DeltaInShares, m_dDeltaInShares)

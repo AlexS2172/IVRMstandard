@@ -12,7 +12,7 @@ namespace EODMS
 	{
 	public:
 		CMsFutureOption(void) : m_bIsCall(true), m_dStrike(0.), m_dtExpiration(BAD_DOUBLE_VALUE), 
-			m_dPriceTheo(BAD_DOUBLE_VALUE), m_dRate(BAD_DOUBLE_VALUE), m_bUsed(false)
+			m_dPriceTheo(BAD_DOUBLE_VALUE), m_dRate(BAD_DOUBLE_VALUE), m_bUsed(false), m_dtExpiryOV(BAD_DOUBLE_VALUE), m_dtCloseTime(0.)
 		{
 		}
 
@@ -29,6 +29,8 @@ namespace EODMS
 		bool			m_bIsCall;
 		double			m_dStrike;
 		DATE			m_dtExpiration;
+		DATE			m_dtExpiryOV;
+		DATE			m_dtCloseTime;
 		double			m_dRate;
 		double			m_dPriceTheo;
 		bool			m_bUsed;

@@ -425,6 +425,9 @@ library EtsMmReportsLib
 		ETSGENERAL_PROP_DEF(18,		enum EtsContractTypeEnum,	ContractType)
 		ETSGENERAL_PROPPUTREF_DEF(19,		IMmRpFutAtom*,					Fut)
 		ETSGENERAL_PROPPUTREF_DEF(20,		IMMRpPrice*,					Price)
+
+		ETSGENERAL_PROP_DEF(21,		DATE,						ExpiryOV)
+		ETSGENERAL_PROP_DEF(22,		DATE,						TradingClose)
 	};
 	
 	[
@@ -768,7 +771,7 @@ library EtsMmReportsLib
 		[id(60), helpstring("method CalcGreeksSummary")] 
 		HRESULT CalcGreeksSummary([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -780,7 +783,7 @@ library EtsMmReportsLib
 		[id(41), helpstring("method CalcGreeksByMonth")] 
 		HRESULT CalcGreeksByMonth([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -792,7 +795,7 @@ library EtsMmReportsLib
 		[id(62), helpstring("method CalcGreeksByMonthExt")] 
 		HRESULT CalcGreeksByMonthExt([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -805,7 +808,7 @@ library EtsMmReportsLib
 		[id(42), helpstring("method CalcPnLs")] 
 		HRESULT CalcPnLs([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -817,7 +820,7 @@ library EtsMmReportsLib
 		[id(43), helpstring("method CalcRiskMatrix")] 
 		HRESULT CalcRiskMatrix([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -829,7 +832,7 @@ library EtsMmReportsLib
 		[id(44), helpstring("method CalcPosWithEarlyExercise")] 
 		HRESULT CalcPosWithEarlyExercise([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -852,7 +855,7 @@ library EtsMmReportsLib
 		[id(46), helpstring("method CalcSynthetics")] 
 		HRESULT CalcSynthetics([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
-					[in] SAFEARRAY(LONG) * psaDTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket,

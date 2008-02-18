@@ -21,17 +21,75 @@
 extern "C" {
 
 #include "DataTypes.h"
+#include "DateConverter.h"
 
 double OPTIONCALC_API NormalC(double X);
+
+// returns difference between 2 dates in years
+double OPTIONCALC_API GetDateDiff(time_t begDate, time_t endDate);
+bool OPTIONCALC_API OleDateToUnixDate(double dateIn, time_t* uxDate);
+bool OPTIONCALC_API TmToDATE( struct tm* pTm, double *pDateOut );
+bool OPTIONCALC_API TmToDateEx( struct tm* pTm, double *pDateOut );
+
+bool OPTIONCALC_API GetNYDateTimeAsDATE(double *pdtDate);
+
+double OPTIONCALC_API  InterpolateRates(	long nCount, 
+											const RATE *pRates, 
+											double dYte);
+
+double OPTIONCALC_API  InterpolateRates2(	long nCount, 
+											double* pRates, 
+											double* pdYte, 
+											double dYte);
+
+long OPTIONCALC_API  GetDividendsCount(		time_t nToday, 
+											double	dYte, 
+											time_t	nLastDivDate, 
+											long nFrequency ); 
+
+long OPTIONCALC_API  GetBasketDividendsCount(	time_t	nToday, 
+												double	dYte, 
+												REGULAR_DIVIDENDS*	pDividends,
+												long				nCount); 
+
+// Fills array of dividends using given last dividend amount, last dividend day and 
+// dividend frequency. Returns 0 if failed, or value greater than zero otherwise.
+// pnCount contains number of dividends available prior expiry date.
+long OPTIONCALC_API GetDividends(		time_t nToday, 
+										double dYte, 
+										time_t nLastDivDate, 
+										long nFrequency, 
+										double dAmount, 
+										long nCount, 
+										DIVIDEND *pDividends, 
+										long *pnCount );
+
+long OPTIONCALC_API  GetDividends2(		 time_t nToday, 
+										 double	dYte, 
+										 time_t nLastDivDate, 
+										 long nFrequency, 
+										 double dAmount, 
+										 long nCount, 
+										 double* pDivAmnts, 
+										 double* pDivDays,
+										 long *pnCount );
+
+long OPTIONCALC_API  GetBasketDividends(	  time_t				nToday, 
+											  double				dYte, 
+											  REGULAR_DIVIDENDS*	pDividends,
+											  unsigned				nCount,
+											  double*				pDivAmnts,
+											  double*				pDivDays,
+											  long					nInCount,
+											  long*					pnOutCount);
 
 ////////////////////////////////////////////////////////////
 // Rates
 ////////////////////////////////////////////////////////////
-
 // Interpolates rates. Returns 0 if failed, or value greater than 0 if succeeded
 // nDTE must be greater that zero. Input rates array assumed to be unsorted.
-double OPTIONCALC_API InterpolateRates( long nCount, const RATE *pRates, long nDTE );
-double OPTIONCALC_API InterpolateRates2( long nCount, double* pRates, long* pnDTEs, long nDTE );
+//double OPTIONCALC_API InterpolateRates( long nCount, const RATE *pRates, long nDTE );
+//double OPTIONCALC_API InterpolateRates2( long nCount, double* pRates, long* pnDTEs, long nDTE );
 
 ////////////////////////////////////////////////////////////
 // Dividends
@@ -41,34 +99,34 @@ double OPTIONCALC_API InterpolateRates2( long nCount, double* pRates, long* pnDT
 ////////////////////////////////////////////////////////////
 
 // Returns number of dividends or -1 if error occured.
-long OPTIONCALC_API GetDividendsCount( long nToday, long nDTE, 
+/*long OPTIONCALC_API GetDividendsCount( long nToday, long nDTE, 
 									   long nLastDivDate, long nFrequency ); 
 
 long OPTIONCALC_API GetBasketDividendsCount(long				nToday, 
 											long				nDTE, 
 											REGULAR_DIVIDENDS*	pDividends,
-											long				nCount); 
+											long				nCount);*/ 
 
 // Fills array of dividends using given last dividend amount, last dividend day and 
 // dividend frequency. Returns 0 if failed, or value greater than zero otherwise.
 // pnCount contains number of dividends available prior expiry date.
-long OPTIONCALC_API GetDividends( long nToday, long nDTE, 
-								  long nLastDivDate, long nFrequency, double dAmount, 
-								  long nCount, DIVIDEND *pDividends, long *pnCount );
-
-long OPTIONCALC_API GetDividends2( long nToday, long nDTE, 
-								  long nLastDivDate, long nFrequency, double dAmount, 
-								  long nCount, double* pDivAmnts, double* pDivDays,
-								  long *pnCount );
-
-long OPTIONCALC_API GetBasketDividends(	long				nToday, 
-										long				nDTE, 
-										REGULAR_DIVIDENDS*	pDividends,
-										unsigned			nCount,
-										double*				pDivAmnts,
-										double*				pDivDays,
-										long				nInCount,
-										long*				pnOutCount);
+//long OPTIONCALC_API GetDividends( long nToday, long nDTE, 
+//								  long nLastDivDate, long nFrequency, double dAmount, 
+//								  long nCount, DIVIDEND *pDividends, long *pnCount );
+//
+//long OPTIONCALC_API GetDividends2( long nToday, long nDTE, 
+//								  long nLastDivDate, long nFrequency, double dAmount, 
+//								  long nCount, double* pDivAmnts, double* pDivDays,
+//								  long *pnCount );
+//
+//long OPTIONCALC_API GetBasketDividends(	long				nToday, 
+//										long				nDTE, 
+//										REGULAR_DIVIDENDS*	pDividends,
+//										unsigned			nCount,
+//										double*				pDivAmnts,
+//										double*				pDivDays,
+//										long				nInCount,
+//										long*				pnOutCount);
 
 
 void PrepareDivData(const DIVIDEND *pDividends,std::vector<double> *divytes,std::vector<double> *divamts, int nCount);
@@ -83,14 +141,14 @@ void PrepareDivData(const DIVIDEND *pDividends,std::vector<double> *divytes,std:
 // Calculates volatility. Returns -1 if error occured.
 double OPTIONCALC_API CalcVolatilityCustDivs( double dDomesticRate, double dForeignRate,
 									  double dSpotPrice, double dOptionPrice, double dStrike, 
-	 								  long nDTE, long nIsCall, long nIsAmerican,
+	 								  double dYTE, long nIsCall, long nIsAmerican,
 									  long nCount,  double*	pDivAmnts, double* pDivYears, long nSteps );
 
 
 // Calculates volatility. Returns -1 if error occured.
 double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 									  double dSpotPrice, double dOptionPrice, double dStrike, 
-	 								  long nDTE, long nIsCall, long nIsAmerican,
+	 								  double dYTE, long nIsCall, long nIsAmerican,
 									  long nCount, const DIVIDEND *pDividends, long nSteps );
 
 ////////////////////////////////////////////////////////////
@@ -102,7 +160,7 @@ double OPTIONCALC_API CalcVolatility( double dDomesticRate, double dForeignRate,
 // Calculates greeks. Returns 0 if failed, or value greater than zero otherwise.
 long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRate, 
 									double dSpotPrice, double dStrike, double dVolatility, 
-									long nDTE, long nIsCall, long nIsAmerican, 
+									double dYTE, long nIsCall, long nIsAmerican, 
 									long nCount, double*	pDivAmnts, double* pDivYears, long nSteps, 
 									/*out*/GREEKS *pGreeks );
 
@@ -110,7 +168,7 @@ long OPTIONCALC_API CalcGreeksCustDivs( double dDomesticRate, double dForeignRat
 // Calculates greeks. Returns 0 if failed, or value greater than zero otherwise.
 long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate, 
 								double dSpotPrice, double dStrike, double dVolatility, 
-								long nDTE, long nIsCall, long nIsAmerican, 
+								double dYTE, long nIsCall, long nIsAmerican, 
 								long nCount, const DIVIDEND *pDividends, long nSteps, 
 								/*out*/GREEKS *pGreeks );
 
@@ -118,7 +176,7 @@ long OPTIONCALC_API CalcGreeks( double dDomesticRate, double dForeignRate,
 // Uses alternative algorithm to calculate Delta and Gamma.
 long OPTIONCALC_API CalcGreeksEx( double dDomesticRate, double dForeignRate, 
 								  double dSpotPrice, double dStrike, double dVolatility, 
-								  long nDTE, long nIsCall, long nIsAmerican, 
+								  double dYTE, long nIsCall, long nIsAmerican, 
 								  long nCount, const DIVIDEND *pDividends, long nSteps, 
 								  /*out*/GREEKS *pGreeks );
 
@@ -127,17 +185,18 @@ long OPTIONCALC_API CalcGreeksEx( double dDomesticRate, double dForeignRate,
 // Uses alternative algorithm to calculate Delta and Gamma.
 long OPTIONCALC_API CalcGreeksExCustDivs( double dDomesticRate, double dForeignRate, 
 								  double dSpotPrice, double dStrike, double dVolatility, 
-								  long nDTE, long nIsCall, long nIsAmerican, 
+								  double dYTE, long nIsCall, long nIsAmerican, 
 								  long nCount, double*	pDivAmnts, double* pDivYears, long nSteps, 
 								  /*out*/GREEKS *pGreeks );
 
 								  
 double OPTIONCALC_API CalcVolatilityMM2(double	dDomesticRate,	
-										double	dForeignRate, 
+										double	dForeignRate,
+										double	dHTBRate,
 										double	dSpotPrice,
 										double	dOptionPrice,
 										double	dStrike,
-										long	nDTE,
+										double	dYTE,
 										long	nIsCall,
 										long	nIsAmerican,
 										long	nCount, 
@@ -150,10 +209,11 @@ double OPTIONCALC_API CalcVolatilityMM2(double	dDomesticRate,
 
 double OPTIONCALC_API CalcVolatilityMM3(double	dDomesticRate,	
 										double	dForeignRate, 
+										double	dHTBRate,
 										double	dSpotPrice,
 										double	dOptionPrice,
 										double	dStrike,
-										long	nDTE,
+										double	dYTE,
 										long	nIsCall,
 										long	nIsAmerican,
 										long	nCount, 
@@ -167,10 +227,11 @@ double OPTIONCALC_API CalcVolatilityMM3(double	dDomesticRate,
 
 long OPTIONCALC_API CalcGreeksMM2(	double	dDomesticRate,
 									double	dForeignRate,		
+									double	dHTBRate,
 									double	dSpotPrice,
 									double	dStrike,
 									double	dVolatility, 
-									long	nDTE,
+									double	dYTE,
 									long	nIsCall,
 									long	nIsAmerican,		
 									long	nCount, 
@@ -183,7 +244,7 @@ long OPTIONCALC_API CalcGreeksMM2(	double	dDomesticRate,
 									GREEKS*	pGreeks);
 								  
 double OPTIONCALC_API CalcForwardPrice( double dSpotPrice, 
-	                                    long nDTE, /*date of option expiration*/
+	                                    double dYTE, /*date of option expiration*/
 	                                    long nDivCount, /* size of dividends array*/
 	                                    double* pDivAmnts, /* array of dividends amounts*/
 	                                    double* pDivYears, /* array of time to dividends payments*/
@@ -192,20 +253,20 @@ double OPTIONCALC_API CalcForwardPrice( double dSpotPrice,
 	                                    const RATE *pRates /*array of rates*/ );
 
 double OPTIONCALC_API CalcForwardPrice2( double dSpotPrice, 
-	                                     long nDTE, /*date of option expiration*/
+	                                     double dYTE, /*date of option expiration*/
 	                                     long nDivCount, /* size of dividends array*/
 	                                     double* pDivAmnts, /* array of dividends amounts*/
 	                                     double* pDivYears, /* array of time to dividends payments*/
 	                                     double dForeignRate, /*yield for index option */
 	                                     long nRateCount, /*size of rates array*/
 	                                     double* pRates, /*array of rates*/ 
-                                         long* pnDTEs /*array of time to rates*/ );
+                                         double* pdYTEs /*array of time to rates*/ );
 
 double OPTIONCALC_API CalcFutureOptionVolatility(double	dDomesticRate,	
 										double	dFuturePrice,
 										double	dOptionPrice,
 										double	dStrike,
-										long	nDTE,
+										double	dYTE,
 										long	nIsCall,
 										long	nIsAmerican,
 										long	nSteps,
@@ -218,7 +279,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks(	double	dDomesticRate,
 										   double	dFuturePrice,
 										   double	dStrike,
 										   double	dVolatility, 
-										   long	nDTE,
+										   double	dYTE,
 										   long	nIsCall,
 										   long	nIsAmerican,
 										   long	nSteps,
@@ -233,7 +294,7 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs(	double	dDomesticRate,
 									double	dFuturePrice,
 									double	dStrike,
 									double	dVolatility, 
-									long	nDTE,
+									double	dYTE,
 									long	nIsCall,
 									long	nIsAmerican,
 									long	nSteps,				
@@ -251,7 +312,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks2(	double	dDomesticRate,
 										   bool		bSpotPrice,
 										   double	dStrike,
 										   double	dVolatility, 
-										   long	nDTE,
+										   double	dYTE,
 										   long	nIsCall,
 										   long	nIsAmerican,
 										   long	nSteps,
@@ -267,7 +328,7 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs2(	double	dDomesticRate,
 												   bool		bSpotPrice,
 												   double	dStrike,
 												   double	dVolatility, 
-												   long	nDTE,
+												   double	dYTE,
 												   long	nIsCall,
 												   long	nIsAmerican,
 												   long	nSteps,				
@@ -286,10 +347,10 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs2(	double	dDomesticRate,
 long OPTIONCALC_API CalcFutureOptionGreeks3(	double	dDomesticRate,
 												double	dYield,
 												double	dFuturePrice,
-												bool		bSpotPrice,
+												bool	bSpotPrice,
 												double	dStrike,
 												double	dVolatility, 
-												long	nDTE,
+												double	dYTE,
 												long	nIsCall,
 												long	nIsAmerican,
 												long	nSteps,				

@@ -4,6 +4,106 @@
 namespace EOD
 {
 
+DATE	GetTime(long lHour, long lMinute, long lSecond = 0)
+{
+	return	static_cast<double>(lHour)  * (1. / 24.)	+
+			static_cast<double>(lMinute)* (1. / (24.* 60.))	+
+			static_cast<double>(lSecond) * (1. / (24. * 60. * 60.));
+}
+//---------------------------------------------------------------------------------------------------------------
+EgLib::vt_date CEodLoadMarketStructureUpdates::GetDefaultValuationParams(const EgLib::vt_date &dtExpiry,
+																		 const SYMBOL_TYPE stBaseType,
+																		 const SYMBOL_TYPE stOptionType,
+																		 const PP::SettlementTypeEnum stType,
+																		 long lExpirationType,
+																		 EgLib::vt_date &dtTradingClose)
+{
+	DATE	dtExpiryOV = (DATE)dtExpiry;
+
+	if (stBaseType == enStStock || stBaseType == enStIndex)
+	{
+		switch(lExpirationType)
+		{
+		case 0:
+			dtExpiryOV--;
+			if (stType == PP::enSTAM)	
+				dtExpiryOV += GetTime(9, 30);
+			else if (stType == PP::enSTPM)	
+				dtExpiryOV += GetTime(16, 15);
+			else // undefined
+				dtExpiryOV += GetTime(16, 0);
+			break;
+		case 7:
+			dtExpiryOV += GetTime(16, 0);
+			break;
+		case 6:
+			if (stType == PP::enSTAM)	
+				dtExpiryOV += GetTime(9, 30);
+			else
+				dtExpiryOV += GetTime(16, 15);
+		    break;
+		default:
+			if (stType == PP::enSTAM)	
+				dtExpiryOV += GetTime(9, 30);
+			else
+				dtExpiryOV += GetTime(16, 15);
+		    break;
+		}
+		if (stBaseType == enStStock)
+			dtTradingClose	=	EgLib::vt_date(1900, 1, 1, 16, 0);
+		else
+			dtTradingClose	=	EgLib::vt_date(1900, 1, 1, 16, 15);
+	}
+	else if (stBaseType == enStFuture) 
+	{
+		if (stOptionType == enStFutureOption)
+			dtExpiryOV += GetTime(16, 15);
+		dtTradingClose	=	EgLib::vt_date(1900, 1, 1, 16, 15);
+	}
+	else if (stBaseType == enStFutUnd)
+	{
+		if (stOptionType == enStFutureOption)
+			dtExpiryOV += GetTime(14, 0);
+		dtTradingClose	=	EgLib::vt_date(1900, 1, 1, 16, 0);
+	}
+	return dtExpiryOV;
+}
+
+//---------------------------------------------------------------------------------------------------------------
+EgLib::vt_date	CEodLoadMarketStructureUpdates::GetDefaultValuationParams(  const EgLib::vt_date &dtDate,
+																			const SYMBOL_TYPE stContractType,
+																			const PP::SettlementTypeEnum stType,
+																			long lExpirationType)
+{
+	DATE	dtExpiryOV = (DATE)dtDate;
+	if (stContractType == enStOption){
+		switch(lExpirationType)
+		{
+		case 1:
+		case 2:
+		case 4:
+		case 5:
+			if(stType == PP::enSTPM)	dtExpiryOV++;
+			break;
+		case 7:
+			dtExpiryOV++;
+			break;
+		case 0:
+		default:
+			if(stType == PP::enSTAM)	dtExpiryOV--;
+			break;
+		}
+	}
+	else if (stContractType == enStFutureOption){
+		dtExpiryOV++;
+	}
+	else if (stContractType == enStFuture){
+		dtExpiryOV++;
+	}
+
+	return EgLib::vt_date(dtExpiryOV);
+}
+//---------------------------------------------------------------------------------------------------------------
 void CEodLoadMarketStructureUpdates::CheckMktStrUpdates(bool bOnlyActive)
 {
 	Report(StepMask(),enRpMtMessage,_T("Check updates of underlyings market structure on IVolatility"));

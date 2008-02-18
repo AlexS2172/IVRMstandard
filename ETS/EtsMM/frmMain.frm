@@ -1,11 +1,11 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMain 
    Appearance      =   0  'Flat
    Caption         =   "ETS"
    ClientHeight    =   870
    ClientLeft      =   165
-   ClientTop       =   855
+   ClientTop       =   735
    ClientWidth     =   6495
    Icon            =   "frmMain.frx":0000
    LinkTopic       =   "Form1"
@@ -13,11 +13,17 @@ Begin VB.Form frmMain
    ScaleHeight     =   870
    ScaleWidth      =   6495
    StartUpPosition =   3  'Windows Default
+   Begin VB.Timer tmrNoConnection 
+      Enabled         =   0   'False
+      Interval        =   30000
+      Left            =   3360
+      Top             =   360
+   End
    Begin VB.Timer tmrTradeUpdate 
       Enabled         =   0   'False
       Interval        =   1000
       Left            =   2880
-      Top             =   240
+      Top             =   360
    End
    Begin VB.Timer tmrPerformance 
       Enabled         =   0   'False
@@ -164,6 +170,12 @@ Begin VB.Form frmMain
          Shortcut        =   ^V
       End
       Begin VB.Menu mnuFileSeparator44 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuFileBatchReporting 
+         Caption         =   "Batch reporting..."
+      End
+      Begin VB.Menu mnuFileSeparator45 
          Caption         =   "-"
       End
       Begin VB.Menu mnuFileOTCOptionCalc 
@@ -377,7 +389,7 @@ Private m_enCurArrange As ArrangeEnum
 
 Public Event OnActiveFuturesChange(ByVal aUndID As Long, ByVal iActiveFutID As Long)
 Public Event OnFuturesParamsChange(ByVal aUndID As Long, ByVal iFutID As Long, ByVal dRatio As Double, ByVal dBasis As Double)
-
+Public Event OnManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
 
 Private Sub Form_Load()
     On Error Resume Next
@@ -416,7 +428,7 @@ Private Sub Form_Load()
     mnuToolsShowEventsLog.Checked = g_Params.ShowEventLog
     mnuToolsAlwaysOnTop.Checked = g_Params.MainWinAlwaysOnTop
     
-    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
     
     mnuFileOrderView.Visible = g_Params.OrdersVisible
     mnuFileOrderView.Enabled = g_Params.OrdersEnabled
@@ -437,7 +449,7 @@ Private Sub Form_Load()
     InitMessaging
     g_Params.SetIcon WND_MAIN, Me.hWnd, True
 
- 
+    tmrNoConnection.Enabled = True
 End Sub
 
 Public Sub InitMessaging()
@@ -706,6 +718,10 @@ Private Sub mnuExerciseScreen_Click()
     ShowExerciseScreen
 End Sub
 
+Private Sub mnuFileBatchReporting_Click()
+    On Error Resume Next
+    g_frmProjections.ShowData
+End Sub
 
 Private Sub mnuFileExit_Click()
     On Error Resume Next
@@ -1496,7 +1512,7 @@ Public Sub WindowsShowInTaskBar(ByVal bShow As Boolean)
     Dim i&, nCount&
     
     g_Params.ShowWindowsInTaskbar = bShow
-    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
     
     nCount = g_ViewFrm.Count
     For i = 1 To nCount
@@ -1797,10 +1813,30 @@ Private Sub ShowView(aFrm As Form, ByVal nType As Long, ByVal nValue As Long, _
     g_ViewFrmID = g_ViewFrmID + 1
     
     Set aForm.Frm = aFrm
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowView : Add form to collection ", "frmMain"
+    
     g_ViewFrm.Add aForm, CStr(g_ViewFrmID)
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowView : Load form ", "frmMain"
+        
     Load aForm.Frm
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowView : Init form ", "frmMain"
+        
     aForm.Frm.Init CStr(g_ViewFrmID)
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowData : Form Show Data ", "frmMain"
+        
     aForm.Frm.ShowData nType, nValue
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowData : Show In TaskBar ", "frmMain"
+        
     If Not g_Params.ShowWindowsInTaskbar Then
         aForm.Frm.ShowWindowInTaskbar False, False
     End If
@@ -1810,7 +1846,14 @@ Private Sub ShowView(aFrm As Form, ByVal nType As Long, ByVal nValue As Long, _
         aForm.Frm.Height = g_ptDefWindowSize.Y
     End If
     
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowData : Form Self Show  ", "frmMain"
+    
     aForm.Frm.Show
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "frmMain : ShowData : Reload Windows List  ", "frmMain"
+        
     ReloadWindowsList
     Screen.MousePointer = vbDefault
     
@@ -1898,6 +1941,29 @@ EH:
     On Error GoTo 0
     Screen.MousePointer = vbDefault
 End Sub
+    
+Private Sub tmrNoConnection_Timer()
+    Dim iTimeRest As Long
+
+    On Error Resume Next
+'    If m_bConnection_OK = True Or m_bFirstConnection = True Then
+'        LogEvent EVENT_WARNING, "Connection to ETS VME could not be established"
+'        m_bConnection_OK = False
+'    End If
+'    m_bFirstConnection = False
+'    RaiseEvent OnNoVmeConnection
+
+    If g_bOldData And CheckEODUpdate(iTimeRest, False) And iTimeRest = 0 Then
+        Dim frmWarn As frmWarning
+        g_bOldData = False
+
+        LogEvent EVENT_INFO, "EOD procedure is over. Please restart application to see updated data."
+        Set frmWarn = New frmWarning
+        frmWarn.Caption = "EOD procedure is over."
+        frmWarn.lblWarning = vbCrLf & "Please restart application to see updated data."
+        frmWarn.Show vbModal
+    End If
+End Sub
 
 Private Sub tmrPerformance_Timer()
     On Error Resume Next
@@ -1939,7 +2005,6 @@ Public Sub StopExtraRT()
             Set aForm = Nothing
         End If
     Loop
-    
 
 End Sub
 Public Sub ShowFixForm(aFrm As Form, ByVal sWindowName As String, frmAtom As clsFormAtom)
@@ -2077,5 +2142,8 @@ On Error Resume Next
     End If
 End Function
 
-
-
+Public Function ManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+On Error Resume Next
+    'Notify Other Screen's
+    RaiseEvent OnManualPriceChange(UndID, ID, price, CtType, Status)
+End Function

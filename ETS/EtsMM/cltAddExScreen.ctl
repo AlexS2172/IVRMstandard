@@ -1440,7 +1440,7 @@ Public Function ExecteTrade() As Boolean
               clsaTrd.Trd.IsBuy = IIf(sBS = "B", True, False)
               
               If bExec Then
-                  clsaTrd.Trd.Price = CDbl(fgExerScr.TextMatrix(nRow, ESC_OPT_PRICE))
+                  clsaTrd.Trd.price = CDbl(fgExerScr.TextMatrix(nRow, ESC_OPT_PRICE))
                   clsaTrd.UndTradePrice = CDbl(fgExerScr.TextMatrix(nRow, ESC_STRIKE))
               End If
               On Error GoTo ExLoop1
@@ -1493,7 +1493,7 @@ Public Function ExecteTrade() As Boolean
                 End If
               End If
     ''Exesuze
-              g_TradeChannel.ProcessTradeExec clsaTrd, bExec, IIf(aPriceOfIndex > 0, aPriceOfIndex, 0), clsaTrd.Trd.Price
+              g_TradeChannel.ProcessTradeExec clsaTrd, bExec, IIf(aPriceOfIndex > 0, aPriceOfIndex, 0), clsaTrd.Trd.price
             Else
                 ExecteTrade = False
             End If

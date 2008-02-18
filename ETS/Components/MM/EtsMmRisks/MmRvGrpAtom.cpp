@@ -55,9 +55,6 @@ HRESULT CMmRvGrpAtom::CalcGroup( CMmRvUndColl* pUndColl,
 		LONG nIdxID = pIdx->m_nID;
 		DOUBLE activeFuturePrice = 0.;
 
-		LONG nCalcDate = static_cast<LONG>(dtCalcDate);
-		dtCalcDate = static_cast<DATE>(nCalcDate);
-
 		if(nIdxID != 0L)
 		{
 			EtsReplacePriceStatusEnum enPriceStatusMid = enRpsNone;

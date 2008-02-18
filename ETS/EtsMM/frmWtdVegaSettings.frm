@@ -314,7 +314,7 @@ Private Sub btnCancel_Click()
     Unload Me
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub btnOk_Click()
     On Error Resume Next
     If m_bInProc Then Exit Sub
     
@@ -324,7 +324,7 @@ Private Sub btnOK_Click()
         txtMaturity.Enabled = False
         fgData.Enabled = False
         btnCancel.Enabled = False
-        btnOK.Enabled = False
+        btnOk.Enabled = False
         btnRecalculate.Enabled = False
         
         SaveData
@@ -338,13 +338,16 @@ Private Sub btnRecalculate_Click()
     On Error Resume Next
     Dim nRow&, dValue#
     Dim aExpMonth As EtsGeneralLib.EtsExpMonthAtom
-
+    
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     m_bInProc = True
 
     txtMaturity.Enabled = False
     fgData.Enabled = False
     btnRecalculate.Enabled = False
-    btnOK.Enabled = False
+    btnOk.Enabled = False
 
     pbProgress.Min = 0
     pbProgress.Value = 0
@@ -362,7 +365,7 @@ Private Sub btnRecalculate_Click()
             If Not aExpMonth Is Nothing Then
 
                 If aExpMonth.Expiry > Date Then
-                    dValue = Sqr(m_nMaturity / (aExpMonth.Expiry - Date))
+                    dValue = Sqr(m_nMaturity / Abs(DateDiff("d", aExpMonth.Expiry, dtNow)))
                     .TextMatrix(nRow, 1) = dValue
 
                     If aExpMonth.VegaWeight <> dValue Then
@@ -387,7 +390,7 @@ Ex:
     fgData.Redraw = flexRDBuffered
     pbProgress.Visible = False
     btnRecalculate.Enabled = True
-    btnOK.Enabled = True
+    btnOk.Enabled = True
     txtMaturity.Enabled = True
     fgData.Enabled = True
 

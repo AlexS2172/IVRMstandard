@@ -96,8 +96,10 @@ library EtsMmQuotesLib
 		[helpstring("QDC_DATE")]			QDC_DATE			= 8,
 		[helpstring("QDC_AMT")]				QDC_AMT				= 9,
 		[helpstring("QDC_RATE")]			QDC_RATE			= 10,
-		[helpstring("QDC_RATE_VAL")]		QDC_RATE_VAL		= 11,		
-		[helpstring("QDC_COLUMN_COUNT")]	QDC_COLUMN_COUNT	= 12,
+		[helpstring("QDC_RATE_VAL")]		QDC_RATE_VAL		= 11,
+		[helpstring("QDC_DATECALC")]		QDC_DATECALC		= 12,
+		[helpstring("QDC_VOLA_IS_MANUAL")]	QDC_VOLA_IS_MANUAL	= 13,
+		[helpstring("QDC_COLUMN_COUNT")]	QDC_COLUMN_COUNT	= 14,
 		[helpstring("QDC_LAST_COLUMN")]		QDC_LAST_COLUMN		= QDC_COLUMN_COUNT - 1,
 	}MmQvDivColumnEnum;
 //-----------------------------------------------------------------------------------
@@ -110,9 +112,7 @@ library EtsMmQuotesLib
 	{
 		[helpstring("QVC_VOLA")]			QVC_VOLA			= 0,
 		[helpstring("QVC_VOLA_VAL")]		QVC_VOLA_VAL		= 1,
-		[helpstring("QVC_VOLA_DATECALC")]	QVC_VOLA_DATECALC	= 2,
-		[helpstring("QVC_VOLA_IS_MANUAL")]	QVC_VOLA_IS_MANUAL	= 3,
-		[helpstring("QVC_COLUMN_COUNT")]	QVC_COLUMN_COUNT	= 4,
+		[helpstring("QVC_COLUMN_COUNT")]	QVC_COLUMN_COUNT	= 2,
 		[helpstring("QVC_LAST_COLUMN")]		QVC_LAST_COLUMN		= QVC_COLUMN_COUNT - 1
 
 	} MmQvVolaColumnEnum;
@@ -190,81 +190,83 @@ library EtsMmQuotesLib
 
 		[helpstring("QOC_C_SERIES")]			QOC_C_SERIES		= 4,
 		[helpstring("QOC_C_EXPIRY")]			QOC_C_EXPIRY		= 5,
-		[helpstring("QOC_C_STRIKE")]			QOC_C_STRIKE		= 6,
-		[helpstring("QOC_C_BID")]				QOC_C_BID			= 7,
-		[helpstring("QOC_C_ASK")]				QOC_C_ASK			= 8,
-		[helpstring("QOC_C_LAST")]				QOC_C_LAST			= 9,
+		[helpstring("QOC_C_EXPIRY_OV")]			QOC_C_EXPIRY_OV		= 6,
+		[helpstring("QOC_C_STRIKE")]			QOC_C_STRIKE		= 7,
+		[helpstring("QOC_C_BID")]				QOC_C_BID			= 8,
+		[helpstring("QOC_C_ASK")]				QOC_C_ASK			= 9,
+		[helpstring("QOC_C_LAST")]				QOC_C_LAST			= 10,
 
-		[helpstring("QOC_C_VOLUME")]			QOC_C_VOLUME		= 10,
-		[helpstring("QOC_C_QTY")]				QOC_C_QTY			= 11,
-		[helpstring("QOC_C_VOLA")]				QOC_C_VOLA			= 12,
-		[helpstring("QOC_C_THEO_PRICE")]		QOC_C_THEO_PRICE	= 13,
-		[helpstring("QOC_C_IV")]				QOC_C_IV			= 14,
-		[helpstring("QOC_C_IV_BID")]			QOC_C_IV_BID		= 15,
-		[helpstring("QOC_C_IV_ASK")]			QOC_C_IV_ASK		= 16,
-		[helpstring("QOC_C_OPEN_INTEREST")]		QOC_C_OPEN_INTEREST	= 17,
-		[helpstring("QOC_C_DELTA")]				QOC_C_DELTA		= 18,
-		[helpstring("QOC_C_GAMMA")]				QOC_C_GAMMA		= 19,
-		[helpstring("QOC_C_VEGA")]				QOC_C_VEGA		= 20,
-		[helpstring("QOC_C_THETA")]				QOC_C_THETA		= 21,
-		[helpstring("QOC_C_RHO")]				QOC_C_RHO		= 22,
-		[helpstring("QOC_C_VEGA_DELTA")]		QOC_C_VEGA_DELTA		= 23,
-		[helpstring("QOC_C_VEGA_GAMMA")]		QOC_C_VEGA_GAMMA		= 24,
-		[helpstring("QOC_C_THETA_DELTA")]		QOC_C_THETA_DELTA		= 25,
-		[helpstring("QOC_C_THETA_GAMMA")]		QOC_C_THETA_GAMMA		= 26,
-		[helpstring("QOC_C_GAMMA_PER_THETA")]	QOC_C_GAMMA_PER_THETA	= 27,
+		[helpstring("QOC_C_VOLUME")]			QOC_C_VOLUME		= 11,
+		[helpstring("QOC_C_QTY")]				QOC_C_QTY			= 12,
+		[helpstring("QOC_C_VOLA")]				QOC_C_VOLA			= 13,
+		[helpstring("QOC_C_THEO_PRICE")]		QOC_C_THEO_PRICE	= 14,
+		[helpstring("QOC_C_IV")]				QOC_C_IV			= 15,
+		[helpstring("QOC_C_IV_BID")]			QOC_C_IV_BID		= 16,
+		[helpstring("QOC_C_IV_ASK")]			QOC_C_IV_ASK		= 17,
+		[helpstring("QOC_C_OPEN_INTEREST")]		QOC_C_OPEN_INTEREST	= 18,
+		[helpstring("QOC_C_DELTA")]				QOC_C_DELTA		= 19,
+		[helpstring("QOC_C_GAMMA")]				QOC_C_GAMMA		= 20,
+		[helpstring("QOC_C_VEGA")]				QOC_C_VEGA		= 21,
+		[helpstring("QOC_C_THETA")]				QOC_C_THETA		= 22,
+		[helpstring("QOC_C_RHO")]				QOC_C_RHO		= 23,
+		[helpstring("QOC_C_VEGA_DELTA")]		QOC_C_VEGA_DELTA		= 24,
+		[helpstring("QOC_C_VEGA_GAMMA")]		QOC_C_VEGA_GAMMA		= 25,
+		[helpstring("QOC_C_THETA_DELTA")]		QOC_C_THETA_DELTA		= 26,
+		[helpstring("QOC_C_THETA_GAMMA")]		QOC_C_THETA_GAMMA		= 27,
+		[helpstring("QOC_C_GAMMA_PER_THETA")]	QOC_C_GAMMA_PER_THETA	= 28,
 
-		[helpstring("QOC_C_NET_CHANGE")]		QOC_C_NET_CHANGE	= 28,
-		[helpstring("QOC_C_BID_SIZE")]			QOC_C_BID_SIZE	= 29,
-		[helpstring("QOC_C_ASK_SIZE")]			QOC_C_ASK_SIZE	= 30,
-		[helpstring("QOC_C_IV_SPREAD")]			QOC_C_IV_SPREAD	= 31,
-		[helpstring("QOC_C_BA_EXCHANGE")]		QOC_C_BA_EXCHANGE	= 32,
-		[helpstring("QOC_C_UPDATE_TIME")]		QOC_C_UPDATE_TIME	= 33,
+		[helpstring("QOC_C_NET_CHANGE")]		QOC_C_NET_CHANGE	= 29,
+		[helpstring("QOC_C_BID_SIZE")]			QOC_C_BID_SIZE	= 30,
+		[helpstring("QOC_C_ASK_SIZE")]			QOC_C_ASK_SIZE	= 31,
+		[helpstring("QOC_C_IV_SPREAD")]			QOC_C_IV_SPREAD	= 32,
+		[helpstring("QOC_C_BA_EXCHANGE")]		QOC_C_BA_EXCHANGE	= 33,
+		[helpstring("QOC_C_UPDATE_TIME")]		QOC_C_UPDATE_TIME	= 34,
 
 
-		[helpstring("QOC_P_SYMBOL")]			QOC_P_SYMBOL		= 34,
-		[helpstring("QOC_P_EXCHANGE")]			QOC_P_EXCHANGE		= 35,
+		[helpstring("QOC_P_SYMBOL")]			QOC_P_SYMBOL		= 35,
+		[helpstring("QOC_P_EXCHANGE")]			QOC_P_EXCHANGE		= 36,
 
-		[helpstring("QOC_P_SERIES")]			QOC_P_SERIES		= 36,
-		[helpstring("QOC_P_EXPIRY")]			QOC_P_EXPIRY		= 37,
-		[helpstring("QOC_P_STRIKE")]			QOC_P_STRIKE		= 38,
-		[helpstring("QOC_P_BID")]				QOC_P_BID			= 39,
-		[helpstring("QOC_P_ASK")]				QOC_P_ASK			= 40,
-		[helpstring("QOC_P_LAST")]				QOC_P_LAST			= 41,
+		[helpstring("QOC_P_SERIES")]			QOC_P_SERIES		= 37,
+		[helpstring("QOC_P_EXPIRY")]			QOC_P_EXPIRY		= 38,
+		[helpstring("QOC_P_EXPIRY_OV")]			QOC_P_EXPIRY_OV		= 39,
+		[helpstring("QOC_P_STRIKE")]			QOC_P_STRIKE		= 40,
+		[helpstring("QOC_P_BID")]				QOC_P_BID			= 41,
+		[helpstring("QOC_P_ASK")]				QOC_P_ASK			= 42,
+		[helpstring("QOC_P_LAST")]				QOC_P_LAST			= 43,
 
-		[helpstring("QOC_P_VOLUME")]			QOC_P_VOLUME		= 42,
-		[helpstring("QOC_P_QTY")]				QOC_P_QTY			= 43,
-		[helpstring("QOC_P_VOLA")]				QOC_P_VOLA			= 44,
-		[helpstring("QOC_P_THEO_PRICE")]		QOC_P_THEO_PRICE	= 45,
-		[helpstring("QOC_P_IV")]				QOC_P_IV			= 46,
-		[helpstring("QOC_P_IV_BID")]			QOC_P_IV_BID		= 47,
-		[helpstring("QOC_P_IV_ASK")]			QOC_P_IV_ASK		= 48,
-		[helpstring("QOC_P_OPEN_INTEREST")]		QOC_P_OPEN_INTEREST	= 49,
-		[helpstring("QOC_P_DELTA")]				QOC_P_DELTA		= 50,
-		[helpstring("QOC_P_GAMMA")]				QOC_P_GAMMA		= 51,
-		[helpstring("QOC_P_VEGA")]				QOC_P_VEGA		= 52,
-		[helpstring("QOC_P_THETA")]				QOC_P_THETA		= 53,
-		[helpstring("QOC_P_RHO")]				QOC_P_RHO		= 54,
-		[helpstring("QOC_P_VEGA_DELTA")]		QOC_P_VEGA_DELTA		= 55,
-		[helpstring("QOC_P_VEGA_GAMMA")]		QOC_P_VEGA_GAMMA		= 56,
-		[helpstring("QOC_P_THETA_DELTA")]		QOC_P_THETA_DELTA		= 57,
-		[helpstring("QOC_P_THETA_GAMMA")]		QOC_P_THETA_GAMMA		= 58,
-		[helpstring("QOC_P_GAMMA_PER_THETA")]	QOC_P_GAMMA_PER_THETA	= 59,
+		[helpstring("QOC_P_VOLUME")]			QOC_P_VOLUME		= 44,
+		[helpstring("QOC_P_QTY")]				QOC_P_QTY			= 45,
+		[helpstring("QOC_P_VOLA")]				QOC_P_VOLA			= 46,
+		[helpstring("QOC_P_THEO_PRICE")]		QOC_P_THEO_PRICE	= 47,
+		[helpstring("QOC_P_IV")]				QOC_P_IV			= 48,
+		[helpstring("QOC_P_IV_BID")]			QOC_P_IV_BID		= 49,
+		[helpstring("QOC_P_IV_ASK")]			QOC_P_IV_ASK		= 50,
+		[helpstring("QOC_P_OPEN_INTEREST")]		QOC_P_OPEN_INTEREST	= 51,
+		[helpstring("QOC_P_DELTA")]				QOC_P_DELTA		= 52,
+		[helpstring("QOC_P_GAMMA")]				QOC_P_GAMMA		= 53,
+		[helpstring("QOC_P_VEGA")]				QOC_P_VEGA		= 54,
+		[helpstring("QOC_P_THETA")]				QOC_P_THETA		= 55,
+		[helpstring("QOC_P_RHO")]				QOC_P_RHO		= 56,
+		[helpstring("QOC_P_VEGA_DELTA")]		QOC_P_VEGA_DELTA		= 57,
+		[helpstring("QOC_P_VEGA_GAMMA")]		QOC_P_VEGA_GAMMA		= 58,
+		[helpstring("QOC_P_THETA_DELTA")]		QOC_P_THETA_DELTA		= 59,
+		[helpstring("QOC_P_THETA_GAMMA")]		QOC_P_THETA_GAMMA		= 60,
+		[helpstring("QOC_P_GAMMA_PER_THETA")]	QOC_P_GAMMA_PER_THETA	= 61,
 
-		[helpstring("QOC_P_NET_CHANGE")]		QOC_P_NET_CHANGE	= 60,
-		[helpstring("QOC_P_BID_SIZE")]			QOC_P_BID_SIZE	= 61,
-		[helpstring("QOC_P_ASK_SIZE")]			QOC_P_ASK_SIZE	= 62,
-		[helpstring("QOC_P_IV_SPREAD")]			QOC_P_IV_SPREAD	= 63,
-		[helpstring("QOC_P_BA_EXCHANGE")]		QOC_P_BA_EXCHANGE	= 64,
-		[helpstring("QOC_P_UPDATE_TIME")]		QOC_P_UPDATE_TIME	= 65,
+		[helpstring("QOC_P_NET_CHANGE")]		QOC_P_NET_CHANGE	= 62,
+		[helpstring("QOC_P_BID_SIZE")]			QOC_P_BID_SIZE	= 63,
+		[helpstring("QOC_P_ASK_SIZE")]			QOC_P_ASK_SIZE	= 64,
+		[helpstring("QOC_P_IV_SPREAD")]			QOC_P_IV_SPREAD	= 65,
+		[helpstring("QOC_P_BA_EXCHANGE")]		QOC_P_BA_EXCHANGE	= 66,
+		[helpstring("QOC_P_UPDATE_TIME")]		QOC_P_UPDATE_TIME	= 67,
 
-		[helpstring("QOC_ROOT")]				QOC_ROOT		= 66,
-		[helpstring("QOC_IS_SYNTH")]			QOC_IS_SYNTH	= 67,
-		[helpstring("QOC_DPC")]					QOC_DPC			= 68,
-		[helpstring("QOC_SU_PRICE")]			QOC_SU_PRICE	= 69,
-		[helpstring("QOC_DTE")]				QOC_DTE	= 70,
-		[helpstring("QOC_FUT_MATURITY")]		QOC_FUT_MATURITY= 71,
-		[helpstring("QOC_COLUMN_COUNT")]		QOC_COLUMN_COUNT	= 72,
+		[helpstring("QOC_ROOT")]				QOC_ROOT		= 68,
+		[helpstring("QOC_IS_SYNTH")]			QOC_IS_SYNTH	= 69,
+		[helpstring("QOC_DPC")]					QOC_DPC			= 70,
+		[helpstring("QOC_SU_PRICE")]			QOC_SU_PRICE	= 71,
+		[helpstring("QOC_DTE")]				QOC_DTE	= 72,
+		[helpstring("QOC_FUT_MATURITY")]		QOC_FUT_MATURITY= 73,
+		[helpstring("QOC_COLUMN_COUNT")]		QOC_COLUMN_COUNT	= 74,
 		[helpstring("QOC_LAST_COLUMN")]		QOC_LAST_COLUMN	= QOC_COLUMN_COUNT - 1
 
 	}MmQvOptColumnEnum;
@@ -508,6 +510,9 @@ library EtsMmQuotesLib
 		ETSGENERAL_PROPPUTREF_DEF(10,	IMmQvQuoteAtom*,		DefQuote)
 		ETSGENERAL_PROP_DEF(11,			LONG,					RootID)
 
+		ETSGENERAL_PROP_DEF(13,			DATE,					ExpiryOV)
+		ETSGENERAL_PROP_DEF(14,			DATE,					TradingClose)
+
 		[id(12), helpstring("CalcMarketDepth")]
 		HRESULT CalcMarketDepth([in, out] SAFEARRAY(struct MmQvMarketDepthAtom)* BidMarketDepth,
 								[in, out] SAFEARRAY(struct MmQvMarketDepthAtom)* AskMarketDepth
@@ -621,8 +626,13 @@ library EtsMmQuotesLib
 		ETSGENERAL_PROPREADONLY_DEF(8,	DOUBLE,				NearAtmVola)
 		ETSGENERAL_PROP_DEF(9,			BSTR,				RootNames)
 
+		ETSGENERAL_PROP_DEF(11,			DATE,				ExpiryOV)
+		ETSGENERAL_PROP_DEF(12,			DATE,				TradingClose)
+
 		[id(10), helpstring("method FindAtmStrike")]
 		HRESULT FindAtmStrike([in] DOUBLE UnderlyingSpot);
+
+		[propget, id(16), helpstring("property Vola")]   HRESULT Vola([in] DOUBLE Strike, [in] DOUBLE SpotPrice, [out, retval] DOUBLE* pVola);
 	};
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -756,7 +766,7 @@ library EtsMmQuotesLib
 								[in] DOUBLE dUndPriceTolerance,
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
-								[in, defaultvalue(0)] long lDayShift,
+								[in] DOUBLE dtCalcDate,
 								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
 
 		[id(62), helpstring("method CalcFutureOptionGreeks")]
@@ -773,7 +783,7 @@ library EtsMmQuotesLib
 								[in] DOUBLE dUndPriceTolerance,
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
-								[in, defaultvalue(0)] long lDayShift,
+								[in] DOUBLE dtCalcDate,
 								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
 
 		[id(63), helpstring("method CalcAllOptions")]
@@ -792,7 +802,7 @@ library EtsMmQuotesLib
 								[in] VARIANT_BOOL bUseCustomRates,
 								[in, defaultvalue(0)] LONG nCalcSleepFreq,
 								[in, defaultvalue(0)] LONG nCalcSleepAmt,
-								[in, defaultvalue(0)] long lDayShift,
+								[in, defaultvalue(0)] DOUBLE dtCalcDate,
 								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit,
 								[in, defaultvalue(0)] VARIANT_BOOL bForceRecalc);
 
@@ -917,7 +927,7 @@ library EtsMmQuotesLib
 								[in] DOUBLE dUndPriceTolerance,
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
-								[in, defaultvalue(0)] long lDayShift,
+								[in] DOUBLE dtCalcDate,
 								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
 
 		[id(62), helpstring("method CalcAllOptions")]
@@ -936,7 +946,7 @@ library EtsMmQuotesLib
 								[in] VARIANT_BOOL bUseCustomRates,
 								[in, defaultvalue(0)] LONG nCalcSleepFreq,
 								[in, defaultvalue(0)] LONG nCalcSleepAmt,
-								[in, defaultvalue(0)] long lDayShift,
+								[in, defaultvalue(0)] DOUBLE dtCalcDate,
 								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
 
 
@@ -954,6 +964,8 @@ library EtsMmQuotesLib
 								[in, out ]	 enum EtsReplacePriceStatusEnum * penPriceStatus,
 								[out]		 VARIANT_BOOL *bFutureUsed, 
 								[out,retval] DOUBLE	*pPrice);
+
+		ETSGENERAL_PROPREADONLY_DEF(102,	IVolaControl*,				VolaSrv)
 
 	};
 

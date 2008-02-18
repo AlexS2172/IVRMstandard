@@ -1455,9 +1455,9 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 					break;
 				}
 
-				dVola = CalcVolatilityMM2 (dRate, m_contractData.m_dYield, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
+				dVola = CalcVolatilityMM2 (dRate, m_contractData.m_dYield, BAD_DOUBLE_VALUE, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
 					opt.m_bIsCall, m_contractData.m_bIsAmerican, nDivCount, pDivAmts, pDivYears, 100, 
-					m_contractData.m_dSkew,m_contractData.m_dKurt, lPrModel );
+					m_contractData.m_dSkew, m_contractData.m_dKurt, lPrModel );
 
 				if( dVola < VOLA_MIN || dVola > VOLA_MAX ) 
 				{
@@ -1528,7 +1528,7 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 					break;
 				}			
 
-				dVola = CalcVolatilityMM2 (dRate, pSynthRoot->m_dYield, dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
+				dVola = CalcVolatilityMM2 (dRate, pSynthRoot->m_dYield, BAD_DOUBLE_VALUE, dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
 					opt.m_bIsCall, m_contractData.m_bIsAmerican, nDivCount, pDivAmts, pDivYears, 100, 
 					pSynthRoot->m_dSkew,pSynthRoot->m_dKurt, lPrModel );
 
@@ -1643,7 +1643,7 @@ void CDataProcessor::CalcOptPrice( COptionData& opt )
 		}
 
 		CalcGreeksMM2( dRate, 
-					   m_contractData.m_dYield, 
+					   m_contractData.m_dYield, BAD_DOUBLE_VALUE,
 					   m_contractData.m_dPrice, 
 					   opt.m_dStrike,
 					   opt.m_dVola, 
@@ -1727,7 +1727,7 @@ void CDataProcessor::CalcOptIVola( COptionData& opt )
 		// Calc ivola
 		LONG nFlag = VF_OK;
 
-		double dVola = CalcVolatilityMM3 (dRate, m_contractData.m_dYield, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
+		double dVola = CalcVolatilityMM3 (dRate, m_contractData.m_dYield, BAD_DOUBLE_VALUE, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
 			opt.m_bIsCall , TRUE, nDivCount, pdDivAmt,pdDivDte, 100, m_contractData.m_dSkew, m_contractData.m_dKurt, 0, &nFlag); 
 
 		opt.m_dVola = dVola > 0 ? dVola : 0;

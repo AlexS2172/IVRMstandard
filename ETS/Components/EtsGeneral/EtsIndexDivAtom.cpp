@@ -6,6 +6,11 @@
 #include "OptionCalc\OptionCalc.h"
 #include "OptionPriceModels\common.h"
 
+#include "..\..\EgarCommonLibrary\OptionCalc\boost_month_iterator.h"
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include "boost/date_time/compiler_config.hpp"
 // CEtsIndexDivAtom
 
 /////////////////////////////////////////////////////////////////////////////
@@ -35,11 +40,6 @@ STDMETHODIMP CEtsIndexDivAtom::IsValidDivs(EtsDivTypeEnum enDivType, VARIANT_BOO
 	if(enDivType == enDivStockBasket)
 	{
 		*pVal = TRUE;
-	}
-
-	if(enDivType == enDivIndexYield)
-	{
-		*pVal = m_dDivAmt >= 0.;
 	}
 	
 	return S_OK;
@@ -98,7 +98,7 @@ STDMETHODIMP CEtsIndexDivAtom::CopyToWithWeight( DOUBLE dWeight, IEtsIndexDivAto
 
 }
 */
-STDMETHODIMP CEtsIndexDivAtom::GetDividends( LONG nToday,  LONG nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates,  LONG* pnCount)
+STDMETHODIMP CEtsIndexDivAtom::GetDividends( DATE nToday,  DATE nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates,  LONG* pnCount)
 {
 
 	__CHECK_POINTER(psaDivAmounts);
@@ -112,28 +112,30 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividends( LONG nToday,  LONG nExpiry,  LONG n
 		{
 			if (m_spCustomDivs != NULL)
 			{
-
 				m_spCustomDivs->GetDividends( nToday,  nExpiry, nCount,psaDivAmounts, psaDivDates, pnCount);
-
 			}
 		}
 		else
 		{
-	
+
 			DOUBLE * pdDivDates = static_cast<DOUBLE*>(_alloca(nCount * sizeof(DOUBLE)));
 			__CHECK_POINTER(pdDivDates);
 			DOUBLE * pdDivAmounts = static_cast<DOUBLE*>(_alloca(nCount * sizeof(DOUBLE)));
 			__CHECK_POINTER(pdDivAmounts);
 
+			time_t	tmToday, tmLastDivDate;
+			::OleDateToUnixDate(nToday, &tmToday);
+
 			if (m_enDivType == enDivCustomPeriodical)
 			{
-				::GetDividends2(nToday, nExpiry - nToday, static_cast<LONG>(m_dtDivDateCust), m_nDivFreqCust, m_dDivAmtCust, nCount, pdDivAmounts,   pdDivDates, pnCount);
+				::OleDateToUnixDate(m_dtDivDateCust, &tmLastDivDate);
+				::GetDividends2(tmToday, nExpiry - nToday, tmLastDivDate, m_nDivFreqCust, m_dDivAmtCust, nCount, pdDivAmounts,   pdDivDates, pnCount);
 			}
 
 			if (m_enDivType == enDivMarket)
 			{
-				::GetDividends2(nToday, nExpiry - nToday, static_cast<LONG>(m_dtDivDate), m_nDivFreq, m_dDivAmt, nCount, pdDivAmounts,   pdDivDates, pnCount);
-
+				::OleDateToUnixDate(m_dtDivDate, &tmLastDivDate);
+				::GetDividends2(tmToday, nExpiry - nToday, tmLastDivDate, m_nDivFreq, m_dDivAmt, nCount, pdDivAmounts,   pdDivDates, pnCount);
 			}
 
 			if (*pnCount > 0)
@@ -151,11 +153,11 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividends( LONG nToday,  LONG nExpiry,  LONG n
 				DOUBLE * pdDates =	 reinterpret_cast<DOUBLE *>(lpDateData);
 				DOUBLE * pdAmounts = reinterpret_cast<DOUBLE *>(lpAmountData);
 
-					for(long i = 0; i< *pnCount; i++)
-					{
-						pdDates[i] = pdDivDates[i];
-						pdAmounts[i] = pdDivAmounts[i];
-					}
+				for(long i = 0; i< *pnCount; i++)
+				{
+					pdDates[i] = pdDivDates[i];
+					pdAmounts[i] = pdDivAmounts[i];
+				}
 
 				::SafeArrayUnaccessData(pDates);
 				::SafeArrayUnaccessData(pAmounts);
@@ -165,8 +167,8 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividends( LONG nToday,  LONG nExpiry,  LONG n
 
 				*psaDivAmounts = pAmounts;
 				*psaDivDates = pDates;
-				}
 			}
+		}
 	}
 	catch (_com_error& e) 
 	{
@@ -181,7 +183,7 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividends( LONG nToday,  LONG nExpiry,  LONG n
 
 }
 
-STDMETHODIMP CEtsIndexDivAtom::GetNearest( LONG nToday,  LONG nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
+STDMETHODIMP CEtsIndexDivAtom::GetNearest( DATE nToday,  DATE nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
 {
 	HRESULT hr = S_OK;
 
@@ -208,7 +210,7 @@ STDMETHODIMP CEtsIndexDivAtom::GetNearest( LONG nToday,  LONG nExpiry,  DOUBLE* 
 
 }
 
-STDMETHODIMP CEtsIndexDivAtom::GetDividendCount( LONG nToday,  LONG nExpiry,  LONG* pnCount)
+STDMETHODIMP CEtsIndexDivAtom::GetDividendCount( DATE nToday,  DATE nExpiry,  LONG* pnCount)
 {
 	__CHECK_POINTER(pnCount);
 	HRESULT hr = S_OK;
@@ -218,7 +220,8 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividendCount( LONG nToday,  LONG nExpiry,  LO
 		if(m_CacheToday == nToday && m_CacheExpiry ==  nExpiry)
 			*pnCount = m_lCacheDivCount;
 		else
-		{
+		{	time_t	t_today, t_lastDivDate;
+			::OleDateToUnixDate(nToday, &t_today);
 			switch(m_enDivType)
 			{
 			case enDivStockBasket:
@@ -227,10 +230,12 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividendCount( LONG nToday,  LONG nExpiry,  LO
 					m_spCustomDivs->GetDividendCount(  nToday,  nExpiry,  pnCount);
 				break;
 			case enDivCustomPeriodical:
-				*pnCount = ::GetDividendsCount(nToday, nExpiry - nToday, static_cast<LONG>(m_dtDivDateCust), m_nDivFreqCust );
+				::OleDateToUnixDate(m_dtDivDateCust, &t_lastDivDate);
+				*pnCount = ::GetDividendsCount(t_today, nExpiry - nToday, t_lastDivDate, m_nDivFreqCust );
 				break;
 			case enDivMarket:
-				*pnCount = ::GetDividendsCount(nToday, nExpiry - nToday, static_cast<LONG>(m_dtDivDate), m_nDivFreq );
+				::OleDateToUnixDate(m_dtDivDate, &t_lastDivDate);
+				*pnCount = ::GetDividendsCount(t_today, nExpiry - nToday, t_lastDivDate, m_nDivFreq );
 			}
 			m_CacheToday     = nToday;
 			m_CacheExpiry    = nExpiry;
@@ -303,6 +308,163 @@ STDMETHODIMP CEtsIndexDivAtom::Clone(IEtsIndexDivAtom** pDestination)
 	}
 	return hr;
 }
+//////////////////////////////////////////////////////////////////////////
+STDMETHODIMP CEtsIndexDivAtom::GetDividendCount2(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime, LONG *pnCount)
+{
+
+	if (!pnCount) return E_POINTER;
+
+	using namespace boost::gregorian;
+	using namespace boost::posix_time;
+
+	time_t	ttDivDate;
+	ptime	ptDivDate;
+	tm		tmDivDate;
+	DATE	dtCurDivDate, dtCurWorkDate;
+	*pnCount	=	0;
+	LONG	nCount = 0;
+
+	if (m_enDivType == enDivCustomPeriodical || m_enDivType == enDivMarket)
+	{
+		LONG	nDivFreq	=	m_nDivFreqCust;
+		DATE	dtDivDate	=	m_dtDivDateCust;
+		
+		if (m_enDivType == enDivMarket){
+			nDivFreq  = m_nDivFreq;
+			dtDivDate =	m_dtDivDate;
+		}
+
+		::OleDateToUnixDate(dtDivDate, &ttDivDate);
+		ptDivDate = from_time_t(ttDivDate);
+		month_adder	real_month_adder(12 / nDivFreq);
+
+		while(true){
+			tmDivDate = to_tm(ptDivDate);
+			::TmToDateEx(&tmDivDate, &dtCurDivDate);
+			dtCurWorkDate = dtCurDivDate;
+
+			if (m_spHolidays)
+				m_spHolidays->GetPreviousWorkingDate(dtCurDivDate, &dtCurWorkDate);
+
+			dtCurWorkDate += tmCloseTime;
+
+			if (dtCurWorkDate >= dtExpiryOV) break;
+			if (dtCurWorkDate >= dtNow)	nCount++;
+
+			ptDivDate = ptDivDate + real_month_adder.get_offset(ptDivDate.date());
+		}
+		*pnCount = nCount;
+	}
+	else if (m_enDivType == enDivCustomStream)
+	{
+		if (m_spCustomDivs != NULL)
+				m_spCustomDivs->GetDividendCount2( dtNow, dtExpiryOV, tmCloseTime, pnCount);
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CEtsIndexDivAtom::GetDividends2(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime, LONG nCount, SAFEARRAY **psaDivAmounts, SAFEARRAY **psaDivDates, LONG *pnCount)
+{
+	__CHECK_POINTER(psaDivAmounts);
+	__CHECK_POINTER(psaDivDates);
+	__CHECK_POINTER(pnCount);
+	HRESULT hr = S_OK;
+
+	using namespace boost::gregorian;
+	using namespace boost::posix_time;
+
+	try
+	{
+		time_t	ttDivDate;
+		ptime	ptDivDate;
+		tm		tmDivDate;
+		DATE	dtCurDivDate, dtCurWorkDate;
+
+		if (m_enDivType == enDivCustomStream)
+		{
+			if (m_spCustomDivs != NULL)
+				m_spCustomDivs->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nCount, psaDivAmounts, psaDivDates, pnCount);
+		}
+		else
+		{
+			*pnCount	=	0;
+
+			LONG	nDivFreq	=	m_nDivFreqCust;
+			DATE	dtDivDate	=	m_dtDivDateCust;
+			DOUBLE	dAmount		=	m_dDivAmtCust;
+			DOUBLE	dDivDate;
+			LONG	lCurDiv		=	0;
+
+			CComSafeArray<double> spDates(nCount);
+			CComSafeArray<double> spAmount(nCount);
+
+			if (m_enDivType == enDivMarket){
+				nDivFreq  = m_nDivFreq;
+				dtDivDate =	m_dtDivDate;
+				dAmount	  = m_dDivAmt;
+			}
+
+			::OleDateToUnixDate(dtDivDate, &ttDivDate);
+			ptDivDate = from_time_t(ttDivDate);
+			month_adder	real_month_adder(12 / nDivFreq);
+
+			while(true){
+				tmDivDate = to_tm(ptDivDate);
+				::TmToDateEx(&tmDivDate, &dtCurDivDate);
+				dtCurWorkDate = dtCurDivDate;
+
+				if (m_spHolidays)
+					m_spHolidays->GetPreviousWorkingDate(dtCurDivDate, &dtCurWorkDate);
+
+				dtCurWorkDate += tmCloseTime;
+
+				if (dtCurWorkDate >= dtExpiryOV) break;
+				if (dtCurWorkDate >= dtNow)	{
+					dDivDate = (dtCurWorkDate - dtNow) / OPM::cdDaysPerYear365;
+					spDates[lCurDiv]	= dDivDate;
+					spAmount[lCurDiv]	= dAmount;
+					++lCurDiv;
+				}
+				*pnCount	=	lCurDiv;
+				ptDivDate	=	ptDivDate + real_month_adder.get_offset(ptDivDate.date());
+			}
+
+			*psaDivAmounts	= spAmount.Detach();
+			*psaDivDates	= spDates.Detach();
+		}
+	}
+	catch (_com_error& e) 
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsIndexDivAtom, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error( _T("Unhanded exception handled at GetDividends2"), IID_IEtsIndexDivAtom, E_FAIL);
+	}
+	return hr;
 
 
+	return S_OK;
+}
 
+STDMETHODIMP CEtsIndexDivAtom::GetNearest2(DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime, DOUBLE *pdDivAmount, DOUBLE *pdDivDate)
+{
+	HRESULT hr = S_OK;
+
+	try
+	{
+		if (m_enDivType == enDivCustomStream || m_enDivType == enDivStockBasket)
+			m_spCustomDivs->GetNearest2(dtNow, dtExpiryOV, dtCloseTime, pdDivAmount, pdDivDate);
+		else
+			hr = E_NOTIMPL;
+	}
+	catch (_com_error& e) 
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsIndexDivAtom, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error( _T("Unhandled exception handled at GetNearest2"), IID_IEtsIndexDivAtom, E_FAIL);
+	}
+	return hr;
+}

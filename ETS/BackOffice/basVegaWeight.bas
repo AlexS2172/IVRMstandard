@@ -51,7 +51,7 @@ Dim rsExpiry As ADODB.Recordset
         If .RecordCount > 0 Then
             .MoveFirst
             Do While Not .EOF
-                dtExpiry = DBRead(rsExpiry!dtExpiryDate, 0#)
+                dtExpiry = DBRead(rsExpiry!dtExpiryOV, 0#)
                 ExpiryDateMax = Max(ExpiryDateMax, dtExpiry)
                 If dtExpiry > Date Then
                     If g_WtdVega.Count > 0 Then

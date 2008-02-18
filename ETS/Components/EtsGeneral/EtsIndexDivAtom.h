@@ -6,6 +6,7 @@
 #include "EtsGeneral.h"
 #include "EtsDivAtom.h"
 #include "EtsDivColl.h"
+#include "EtsHolidayAtom.h"
 
 struct _IndexDivAtomBaseTypes
 {
@@ -30,7 +31,8 @@ struct _IndexDivAtomBaseTypes
 
 struct _IndexDivAtom: public _IndexDivAtomBaseTypes
 {
-	IEtsDivCollPtr m_spCustomDivs;
+	IEtsDivCollPtr		m_spCustomDivs;
+	IEtsHolidayAtomPtr	m_spHolidays;
 };
 
 // CEtsIndexDivAtom
@@ -78,11 +80,12 @@ END_COM_MAP()
 	void FinalRelease() 
 	{
 		m_spCustomDivs = NULL;
+		m_spHolidays = NULL;
 	}
 
 private:
-	long  m_CacheToday;
-	long  m_CacheExpiry;
+	DATE  m_CacheToday;
+	DATE  m_CacheExpiry;
 	long  m_lCacheDivCount;
 
 public:
@@ -96,12 +99,16 @@ public:
 	IMPLEMENT_OBJECT_PROPERTY(IEtsDivColl*, CustomDivs, m_spCustomDivs)
 	STDMETHOD(IsValidDivs)(EtsDivTypeEnum enDivType, VARIANT_BOOL* pVal);
 	//STDMETHOD(CopyToWithWeight)( DOUBLE dWeight, IEtsIndexDivAtom* pDest , IEtsIndexDivAtom** ppVal);
-	STDMETHOD(GetDividends)( LONG nToday,  LONG nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates,  LONG* pnCount);
-	STDMETHOD(GetNearest)( LONG nToday,  LONG nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
-	STDMETHOD(GetDividendCount)( LONG nToday,  LONG nExpiry,  LONG* pnCount);
+	STDMETHOD(GetDividends)( DATE nToday,  DATE nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates,  LONG* pnCount);
+	STDMETHOD(GetNearest)( DATE nToday,  DATE nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
+	STDMETHOD(GetDividendCount)( DATE nToday,  DATE nExpiry,  LONG* pnCount);
 	STDMETHOD(Clear)(void);
 	STDMETHOD(Clone)(IEtsIndexDivAtom** pDestination);
-  STDMETHOD(ResetInternalCache)(void);
+	STDMETHOD(ResetInternalCache)(void);
+	IMPLEMENT_OBJECT_PROPERTY(IEtsHolidayAtom*, Holidays, m_spHolidays);
+	STDMETHOD(GetDividends2)(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime, LONG nCount, SAFEARRAY ** psaDivAmounts, SAFEARRAY ** psaDivDates, LONG* pnCount);
+	STDMETHOD(GetDividendCount2)(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime, LONG* pnCount);
+	STDMETHOD(GetNearest2)(DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime, DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(EtsIndexDivAtom), CEtsIndexDivAtom)

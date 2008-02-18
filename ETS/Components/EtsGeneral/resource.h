@@ -64,6 +64,7 @@
 #define IDR_ETSMMFILTERATOMCOLL         160
 #define IDR_ETSMMENTITYATOMCOLL         161
 #define IDR_ETSFILTERDATA               162
+#define IDR_ETSHOLIDAYATOM              163
 #define IDR_REGISTRY1                   201
 
 // Next default values for new objects
@@ -73,6 +74,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        202
 #define _APS_NEXT_COMMAND_VALUE         32768
 #define _APS_NEXT_CONTROL_VALUE         201
-#define _APS_NEXT_SYMED_VALUE           163
+#define _APS_NEXT_SYMED_VALUE           164
 #endif
 #endif

@@ -66,14 +66,10 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         ContractName = Trim$(m_Und.ContractName)
         UndType = m_Und.UndType
     
-'        If UndType = enCtStock Then
-            Set Dividend = m_Und.Dividend.Clone
-            If Not Dividend Is Nothing Then
-                CorrectDivs
-            End If
-'        Else
-'            Yield = m_Und.Yield
-'        End If
+        Set Dividend = m_Und.Dividend.Clone
+        If Not Dividend Is Nothing Then
+            CorrectDivs
+        End If
 
         If UndType = enCtIndex Then
             Yield = m_Und.Yield
@@ -132,16 +128,6 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         
         InAsset = False
         IsHead = False
-'        If Not m_Und Is Nothing Then
-'            IsHead = m_Und.IsHead
-'            InAsset = IsHead Or (Not m_Und.HeadComponent Is Nothing)
-'            If Not m_Und.HeadComponent Is Nothing Then
-'                HeadComp = m_Und.HeadComponent.Symbol
-'            End If
-'            Coeff = m_Und.Coeff
-'            UseHead = m_Und.PriceByHead Or m_Und.IsHead
-'        End If
-        
         Init = True
     End If
 
@@ -194,34 +180,34 @@ Public Property Get DivFreqName() As String
         Exit Sub
     End If
     
-    If UndType = enCtStock Then
+    If UndType = enCtStock Or UndType = enCtIndex Then
         enType = Dividend.DivType
-        If enType = enDivCustomStream Then
-            DivFreqName = ""
+            
+        If enType = enDivMarket Then
+            lFreq = Dividend.DivFreq
+        ElseIf (enType = enDivCustomPeriodical) Then
+            lFreq = Dividend.DivFreqCust
         Else
-            If enType = enDivMarket Then
-                lFreq = Dividend.DivFreq
-            Else
-                lFreq = Dividend.DivFreqCust
-                                        
-            End If
-             
-            Select Case lFreq
-                Case 1
-                    DivFreqName = "Annually"
-                Case 2
-                    DivFreqName = "Semiannually"
-                Case 4
-                    DivFreqName = "Quarterly"
-                Case 12
-                    DivFreqName = "Monthly"
-                Case Else
-                    DivFreqName = "<No Divs>"
-            End Select
+            lFreq = -1
         End If
-    Else
-        DivFreqName = ""
+             
+        Select Case lFreq
+            Case 1
+                DivFreqName = "Annually"
+            Case 2
+                DivFreqName = "Semiannually"
+            Case 4
+                DivFreqName = "Quarterly"
+            Case 12
+                DivFreqName = "Monthly"
+            Case 0
+                DivFreqName = "<No Divs>"
+            Case Else
+                DivFreqName = "--"
+        End Select
+        
     End If
+    
 End Property
 
 Public Property Get UseCustDivsName() As String
@@ -329,14 +315,14 @@ Public Sub AdjustDirty()
     If UndType = enCtStock Or UndType = enCtIndex Then
         If ID <> m_Und.ID Then Exit Sub
         If ContractName <> Trim$(m_Und.ContractName) Then Exit Sub
-    
-        If UndType <> enCtStock Then
+        
+        If UndType = enCtIndex Then
             If Yield <> m_Und.Yield Then Exit Sub
         End If
-'        Else
-            If Dividend.DivType <> m_Und.Dividend.DivType Then Exit Sub
-            If Dividend.DivType = enDivCustomPeriodical And (Dividend.DivFreq <> m_Und.Dividend.DivFreq Or Dividend.DivAmt <> m_Und.Dividend.DivAmt) Then Exit Sub
-'        End If
+        
+        If Dividend.DivType <> m_Und.Dividend.DivType Then Exit Sub
+        If Dividend.DivType = enDivCustomPeriodical And (Dividend.DivFreqCust <> m_Und.Dividend.DivFreqCust Or Dividend.DivAmtCust <> m_Und.Dividend.DivAmtCust Or Dividend.DivDateCust <> m_Und.Dividend.DivDateCust) Then Exit Sub
+
     
         If IsAmerican <> m_Und.IsAmerican Then Exit Sub
         If UndPriceProfile.ID <> m_Und.UndPriceProfile.ID Then Exit Sub
@@ -375,11 +361,11 @@ Public Sub SaveChanges()
     If UndType = enCtStock Or UndType = enCtIndex Then
         m_Und.ContractName = Trim$(ContractName)
     
-        If UndType = enCtStock Then
-            Set m_Und.Dividend = Dividend
-        Else
+        If UndType = enCtIndex Then
             m_Und.Yield = Yield
         End If
+        
+        Set m_Und.Dividend = Dividend.Clone
     
         m_Und.IsAmerican = IsAmerican
         Set m_Und.UndPriceProfile = UndPriceProfile
@@ -401,6 +387,8 @@ Public Sub SaveChanges()
         aData.DivFreq = m_Und.Dividend.DivFreq
         aData.DivFreqCust = m_Und.Dividend.DivFreqCust
         aData.DivType = m_Und.Dividend.DivType
+        aData.Yield = m_Und.Yield
+        
         
         aData.UndID = m_Und.ID
         aData.UpdStatus = enUndDividendUpdate

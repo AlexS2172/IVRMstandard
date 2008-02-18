@@ -15,7 +15,7 @@ namespace OPM
 
 bool SpotGreeksFromForward(
 				double	dRateDomestic,	// Domestic continuos risk free rate
-				long	nDte,			// Days till expiration
+				double	dYte,			// Days till expiration
 				GREEKS*	pGreeks			// in, out params
 				);						//returns true if success
 
@@ -27,7 +27,7 @@ bool SpotGreeksFromForward2(
 							double	dSpotPrice,
 							double	dRateDomestic,	// Domestic continuos risk free rate
 							double	dYield,			// Domestic continuos risk free rate
-							long	nDte,			// Days till expiration
+							double	dYte,			// Days till expiration
 							double*	pDivAmnts,		// Dividend amounts
 							double*	pDivYears,		// Dividend dates
 							long	nCount,			// Dividend quantity

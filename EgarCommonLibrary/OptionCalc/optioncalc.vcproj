@@ -84,6 +84,7 @@
 				OutputFile="$(CommonProgramFiles)\Egar\OptionCalcD.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories=""
 				ModuleDefinitionFile=".\OptionCalc.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/OptionCalcD.pdb"
@@ -188,6 +189,7 @@
 				OutputFile="$(CommonProgramFiles)\Egar\OptionCalc.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories=""
 				ModuleDefinitionFile=".\OptionCalc.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(CommonProgramFiles)\Egar\OptionCalc.pdb"
@@ -229,6 +231,10 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
+			<File
+				RelativePath="..\Include\OptionCalc\DateConverter.cpp"
+				>
+			</File>
 			<File
 				RelativePath="FutureModels.cpp"
 				>
@@ -465,7 +471,15 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
+				RelativePath=".\boost_month_iterator.h"
+				>
+			</File>
+			<File
 				RelativePath="..\Include\OptionCalc\DataTypes.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Include\OptionCalc\DateConverter.h"
 				>
 			</File>
 			<File

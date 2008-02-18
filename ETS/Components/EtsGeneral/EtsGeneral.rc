@@ -149,6 +149,7 @@ IDR_ETSMMFILTERATOM     REGISTRY                "EtsMmFilterAtom.rgs"
 IDR_ETSMMFILTERATOMCOLL REGISTRY                "EtsMmFilterAtomColl.rgs"
 IDR_ETSMMENTITYATOMCOLL REGISTRY                "EtsMmEntityAtomColl.rgs"
 IDR_ETSFILTERDATA       REGISTRY                "EtsFilterData1.rgs"
+IDR_ETSHOLIDAYATOM      REGISTRY                "EtsHolidayAtom.rgs"
 
 /////////////////////////////////////////////////////////////////////////////
 //

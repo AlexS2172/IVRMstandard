@@ -47,6 +47,8 @@ struct __TradeUpdateData
 		FIELD_ENTRY(m_sImportID)
 		FIELD_ENTRY(m_nOrderID)
 		FIELD_ENTRY(m_nExecStatus)
+		FIELD_ENTRY(m_dtExpiryOV)
+		FIELD_ENTRY(m_dtTradingClose)
 	END_PACKING
 
 	// trade data
@@ -87,6 +89,8 @@ struct __TradeUpdateData
 	StringF							m_sImportID;
 	LongF							m_nOrderID;
 	LongF							m_nExecStatus;
+	DateF							m_dtExpiryOV;
+	DateF							m_dtTradingClose;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -152,6 +156,8 @@ public:
 	IMPLEMENT_VARCHAR_PROP(ImportID, m_sImportID)
 	IMPLEMENT_LONG_PROP(OrderID, m_nOrderID)
 	IMPLEMENT_LONG_PROP(ExecStatus, m_nExecStatus)
+	IMPLEMENT_DATE_PROP(ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_DATE_PROP(TradingClose, m_dtTradingClose)
 };
 
 #endif //__TRADEUPDATE_H_

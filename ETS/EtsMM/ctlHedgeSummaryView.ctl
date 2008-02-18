@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "Vsflex7.ocx"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Begin VB.UserControl ctlHedgeSummaryView 
    ClientHeight    =   8460
    ClientLeft      =   0
@@ -2754,6 +2754,10 @@ Private Function PositionsLoad() As Boolean
                                 Set aOpt = aUnd.Opt.Add(sKey)
                                 aOpt.ID = aTrd.ContractID
                                 aOpt.Expiry = aTrd.Opt.Expiry
+                                
+                                aOpt.ExpiryOV = aTrd.Opt.ExpiryOV
+                                aOpt.TradingClose = aTrd.Opt.TradingClose
+                                
                                 aOpt.LotSize = aTrd.LotSize
                                 aOpt.OptType = aTrd.Opt.OptType
                                 aOpt.Qty = 0
@@ -2761,9 +2765,9 @@ Private Function PositionsLoad() As Boolean
                                 aOpt.Strike = aTrd.Opt.Strike
                                 aOpt.Symbol = aTrd.Opt.Symbol
                                 If aTrd.Opt.Flex = 1 Then
-                                    aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.Expiry)
+                                    aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.ExpiryOV)
                                 Else
-                                    aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.Expiry)
+                                    aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.ExpiryOV)
                                 End If
     
                                 'aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aTrd.Und.ExpCalendarID, aOpt.Expiry)
@@ -2774,7 +2778,7 @@ Private Function PositionsLoad() As Boolean
                             Set aOpt = Nothing
                         Else
                             aUnd.Qty = aUnd.Qty + aTrd.Quantity * IIf(aTrd.IsBuy, 1, -1)
-                            aUnd.Pos = aUnd.Pos + aTrd.Price * aTrd.Quantity * aTrd.LotSize * IIf(aTrd.IsBuy, 1, -1)
+                            aUnd.Pos = aUnd.Pos + aTrd.price * aTrd.Quantity * aTrd.LotSize * IIf(aTrd.IsBuy, 1, -1)
                         End If
                     Else
                         LogEvent EVENT_INFO, aTrd.Symbol & ": Has been removed from calculation due to synthetic option type"
@@ -3154,6 +3158,9 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmHedgeLib.MmHsUndAtom, ByVal
     Dim aOpt As EtsMmHedgeLib.MmHsOptAtom, aOptions As EtsMmHedgeLib.MmHsOptColl
     Dim aGUnd As EtsGeneralLib.UndAtom, dPos#, bIsHTB
     
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     If aUnd Is Nothing Then Exit Sub
     
     Set aGUnd = g_UnderlyingAll(aUnd.ID)
@@ -3175,19 +3182,19 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmHedgeLib.MmHsUndAtom, ByVal
         For Each aOpt In aOptions
             If bUseMidRates Then
                 If Not bIsHTB Then
-                    aOpt.Rate = GetNeutralRate(Date, aOpt.Expiry)
+                    aOpt.Rate = GetNeutralRate(dtNow, aOpt.ExpiryOV)
                 Else
-                    aOpt.Rate = GetNeutralHTBRate(Date, aOpt.Expiry)
+                    aOpt.Rate = GetNeutralHTBRate(dtNow, aOpt.ExpiryOV)
                 End If
             Else
                 If dPos < 0 Then
                     If Not bIsHTB Then
-                        aOpt.Rate = GetShortRate(Date, aOpt.Expiry)
+                        aOpt.Rate = GetShortRate(dtNow, aOpt.ExpiryOV)
                     Else
-                        aOpt.Rate = GetHTBRate(Date, aOpt.Expiry)
+                        aOpt.Rate = GetHTBRate(dtNow, aOpt.ExpiryOV)
                     End If
                 Else
-                    aOpt.Rate = GetLongRate(Date, aOpt.Expiry)
+                    aOpt.Rate = GetLongRate(dtNow, aOpt.ExpiryOV)
                 End If
             End If
         Next

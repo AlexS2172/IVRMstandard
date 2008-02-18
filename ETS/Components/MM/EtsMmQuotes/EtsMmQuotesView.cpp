@@ -598,7 +598,12 @@ HRESULT CEtsMmQuotesView::LoadFuturesOptions(long lUnderlutingID)
 
 						if(pFut!=NULL)
 						{
-							vt_date dtExpiry = spFutures[L"dtExpiry"];
+							vt_date dtExpiry		= spFutures[L"dtExpiry"];
+							vt_date dtExpiryOV		= spFutures[L"dtExpiryOV"];
+							vt_date dtTC			= spFutures[L"dtTradingClose"];
+							DOUBLE	dTradingClose	= (DATE)(dtTC);
+							vt_date dtTradingClose	= vt_date(dTradingClose - floor(dTradingClose));
+
 							vt_date dtExpiryMonth(dtExpiry.get_year(), dtExpiry.get_month(), dtExpiry.get_day());
 							IMmQvExpAtomPtr spExpiry =  pFut->m_pExp->GetExpiry(dtExpiryMonth);
 							CComObject<CMmQvExpAtom>* pExpAtom = NULL;
@@ -608,6 +613,8 @@ HRESULT CEtsMmQuotesView::LoadFuturesOptions(long lUnderlutingID)
 								if(pExpAtom)
 								{
 									pExpAtom->m_dtExpiry = dtExpiry;
+									pExpAtom->m_dtExpiryOV		= dtExpiryOV;
+									pExpAtom->m_dtTradingClose	= dtTradingClose;
 
 									IEtsMmEntityAtomPtr spEnt = m_spCustRates->Item[_bstr_t(static_cast<long>((DATE)dtExpiryMonth))];
 									if(spEnt != NULL)
@@ -625,7 +632,9 @@ HRESULT CEtsMmQuotesView::LoadFuturesOptions(long lUnderlutingID)
 								spExpAll = m_pGrp->m_pFutExpAll->AddNew(dtExpiryMonth, &pExpAll);
 								if(pExpAll)
 								{
-									pExpAll->m_dtExpiry = dtExpiry;
+									pExpAll->m_dtExpiry			= dtExpiry;
+									pExpAll->m_dtExpiryOV		= dtExpiryOV;
+									pExpAll->m_dtTradingClose	= dtTradingClose;
 									if (!m_bInitializeFutOpt && m_spVisibleExp->Item[_bstr_t(static_cast<long>(pExpAll->m_dtExpiry))] == NULL)
 										pExpAll->m_bVisible = VARIANT_FALSE;
 								}
@@ -674,9 +683,11 @@ HRESULT CEtsMmQuotesView::LoadFuturesOptions(long lUnderlutingID)
 								pOptAtom->m_bstrSymbol	= spFutures[L"vcSymbol"];
 								pOptAtom->m_enOptType   = enOptType;
 								pOptAtom->m_dtExpiry	= dtExpiry;
+								pOptAtom->m_dtExpiryOV	= dtExpiryOV;
+								pOptAtom->m_dtTradingClose = dtTradingClose;
 								pOptAtom->m_dStrike		= dStrike;
 								pOptAtom->m_nRootID		= pFut->m_nID;
-								pOptAtom->m_dVola		= m_pGrp->m_pUnd->m_spVolaSrv->OptionVola[dtExpiry][dStrike];
+								pOptAtom->m_dVola		= m_pGrp->m_pUnd->m_spVolaSrv->OptionVola[dtExpiryOV][dStrike];
 								if(pOptAtom->m_dVola<0)
 									pOptAtom->m_dVola = BAD_DOUBLE_VALUE;
 
@@ -852,7 +863,13 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 						break;
 
 
-					vt_date dtExpiry = rsOpt[L"dtExpiry"];
+					vt_date dtExpiry		= rsOpt[L"dtExpiry"];
+					vt_date dtExpiryOV		= rsOpt[L"dtExpiryOV"];
+					vt_date dtTC			= rsOpt[L"dtTradingClose"];
+					DOUBLE	dTradingClose	= (DATE)(dtTC);
+					vt_date dtTradingClose	= vt_date(dTradingClose - floor(dTradingClose));
+
+
 					vt_date	dtExpiryMonth(dtExpiry.get_year(), dtExpiry.get_month(), dtExpiry.get_day());
 					vt_date	dtExpiryMonthWODay(dtExpiry.get_year(), dtExpiry.get_month(), 1);
 
@@ -862,8 +879,11 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 					if(spExpiry == NULL)
 					{
 						spExpiry = pUndAtom->GetExp()->AddNew(dtExpiryMonth, &pExpAtom);
-						if(pExpAtom)
+						if(pExpAtom) {
 							pExpAtom->m_dtExpiry = dtExpiry;
+							pExpAtom->m_dtExpiryOV		= dtExpiryOV;
+							pExpAtom->m_dtTradingClose	= dtTradingClose;
+						}
 					}
 					else
 						pExpAtom = static_cast<CComObject<CMmQvExpAtom>*>((IMmQvExpAtom*)spExpiry);
@@ -1130,6 +1150,8 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 						if(pExpAtom)
 						{
 							pExpAtom->m_dtExpiry = dtExpiry;
+							pExpAtom->m_dtExpiryOV = dtExpiryOV;
+							pExpAtom->m_dtTradingClose = dtTradingClose;
 							if (!m_bInitializeUndOpt && m_spVisibleExp->Item[_bstr_t(static_cast<long>(pExpAtom->m_dtExpiry))] == NULL)
 								pExpAtom->m_bVisible = VARIANT_FALSE;
 						}
@@ -1174,6 +1196,8 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 						pOptionAtom->m_nIsFlex	  = rsOpt[L"iIsFlex"];
 						pOptionAtom->m_enOptType  = enOptType;
 						pOptionAtom->m_dtExpiry   = dtExpiry;
+						pOptionAtom->m_dtExpiryOV = dtExpiryOV;
+						pOptionAtom->m_dtTradingClose = dtTradingClose;
 						pOptionAtom->m_dStrike    = dStrike;
 						pOptionAtom->m_nRootID    =	pOptRootAtom->m_nID;
 						
@@ -1181,7 +1205,7 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 							pOptionAtom->m_dVola = pPairAtom->GetVola();
 						else
 						{
-							pOptionAtom->m_dVola  = pUndAtom->m_spVolaSrv->OptionVola[dtExpiry][dStrike];
+							pOptionAtom->m_dVola  = pUndAtom->m_spVolaSrv->OptionVola[dtExpiryOV][dStrike];
 							if(pOptionAtom->m_dVola<0.)
 								pOptionAtom->m_dVola = BAD_DOUBLE_VALUE;
 							pPairAtom->SetVola(pOptionAtom->m_dVola);

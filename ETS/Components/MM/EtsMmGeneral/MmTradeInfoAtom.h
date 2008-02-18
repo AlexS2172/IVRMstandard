@@ -6,6 +6,13 @@
 #include "resource.h"       // main symbols
 #include "EtsMmGeneral.h"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/local_time_adjustor.hpp>
+#include <boost/date_time/c_local_time_adjustor.hpp>
+
+using namespace boost::posix_time;
+using namespace boost::gregorian;
+
 _COM_SMARTPTR_TYPEDEF(IMmTradeInfoAtom, IID_IMmTradeInfoAtom);
 
 struct __MmTradeInfoAtom

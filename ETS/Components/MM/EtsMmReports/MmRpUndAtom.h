@@ -164,12 +164,12 @@ END_COM_MAP()
 						EtsPriceRoundingRuleEnum enPriceRoundingRule, GREEKS &aGreeks, 
 						DOUBLE dUndPrice =0.0, EtsOptionTypeEnum*	_penOptType = NULL, 
 						bool useFuture = true, DOUBLE dUndPriceShift = 0.) throw();
-	DOUBLE	_InterpolateRate(LONG nDTE, SAFEARRAY* psaRates, SAFEARRAY* psaDTEs) throw();
+	DOUBLE	_InterpolateRate(DOUBLE dYTE, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw();
 	void	_GetBasketIndexDividends(REGULAR_DIVIDENDS* pDivs, LONG nMaxCount) throw();
 	void	_GetSyntheticRootBasketDividends(ISynthRootAtomPtr& spSynthRoot, REGULAR_DIVIDENDS* pDivs, 
 										LONG nMaxCount) throw();
-	DOUBLE	_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, LONG nToday, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaDTEs) throw();	
-	DOUBLE	_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUBLE dSpotPrice, LONG nExpiry, LONG nToday, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaDTEs) throw();
+	DOUBLE	_CalcRegularForwardPrice(DOUBLE dSpotPrice, DATE dtExpiryOV, DATE tmCloseTime, DATE dtNow, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw();	
+	DOUBLE	_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUBLE dSpotPrice, DATE dtExpiryOV, DATE tmCloseTime, DATE dtNow, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw();
 
 public:
 
@@ -207,7 +207,7 @@ public:
 
 	STDMETHOD(CalcGreeksSummary)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -218,7 +218,7 @@ public:
 
 	STDMETHOD(CalcGreeksByMonth)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -229,7 +229,7 @@ public:
 
 	STDMETHOD(CalcGreeksByMonthExt)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -241,7 +241,7 @@ public:
 
 	STDMETHOD(CalcPnLs)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -252,7 +252,7 @@ public:
 
 	STDMETHOD(CalcRiskMatrix)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -263,7 +263,7 @@ public:
 
 	STDMETHOD(CalcPosWithEarlyExercise)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -284,7 +284,7 @@ public:
 
 	STDMETHOD(CalcSynthetics)(EtsCalcModelTypeEnum enCalcModel,
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 

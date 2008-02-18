@@ -208,7 +208,7 @@ public:
 		bool						bCalculateOption,
 		bool						bVisible,
 		bool						bIsDirtyUnderlying,
-		long						lDte,
+		DATE						dtCalcDate,
 		VARIANT_BOOL				bManualEdit, 
 		VARIANT_BOOL				bUseTheoVolaNoBid,
 		VARIANT_BOOL				bUseTheoVolaBadMarket)
@@ -228,7 +228,7 @@ public:
 		m_bIsDirtyUnderlying	=bIsDirtyUnderlying;
 		m_bIsRootSynthetic		=bIsRootSynthetic;
 		m_bCalculateOption		=bCalculateOption;
-		m_lDte					=lDte;
+		m_dtCalcDate			=dtCalcDate;
 		m_bManualEdit			=bManualEdit; 
 		m_bUseTheoVolaNoBid		=bUseTheoVolaNoBid;
 		m_bUseTheoVolaBadMarket	=bUseTheoVolaBadMarket;
@@ -298,7 +298,7 @@ public:
 	bool						m_bCalculateOption;
 	bool						m_bVisible;
 	bool						m_bIsDirtyUnderlying;
-	long						m_lDte;
+	DATE						m_dtCalcDate;
 	VARIANT_BOOL				m_bManualEdit; 
 	VARIANT_BOOL				m_bUseTheoVolaNoBid;
 	VARIANT_BOOL				m_bUseTheoVolaBadMarket;
@@ -481,7 +481,7 @@ public:
 									VARIANT_BOOL bUseTheoVolaBadMarket, VARIANT_BOOL bRecalcGreeks, 
 									DOUBLE dUndPriceTolerance, 
 									EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-									LONG nCalcSleepFreq, LONG nCalcSleepAmt, long lDaySift, VARIANT_BOOL ManualEdit, VARIANT_BOOL bForceRecalc);
+									LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit, VARIANT_BOOL bForceRecalc);
 
 	HRESULT CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask, MmQvIvCalcEnum enCallCalcIV,
 								MmQvIvCalcEnum enPutCalcIV, EtsCalcModelTypeEnum enCalcModel,
@@ -489,7 +489,7 @@ public:
 								VARIANT_BOOL bUseTheoVolaBadMarket, VARIANT_BOOL bRecalcGreeks, 
 								IMmQvOptRootColl* collSynthRoots, DOUBLE dUndPriceTolerance, 
 								EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-								LONG nCalcSleepFreq, LONG nCalcSleepAmt, long lDaySift, VARIANT_BOOL ManualEdit,
+								LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
 								VARIANT_BOOL bForceRecalc);
 
 public:
@@ -554,13 +554,13 @@ public:
 								EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility, 
 								VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket, 
 								DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
-								VARIANT_BOOL bUseCustomRates, long lDaySift, VARIANT_BOOL ManualEdit);
+								VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit);
 	STDMETHOD(CalcFutureOptionGreeks)(IMmQvOptAtom* aOpt, IMmQvQuoteAtom* aQuote, IMmQvExpAtom* aExp, 
 								LONG nGreekMask, MmQvIvCalcEnum enCalcIV, 
 								EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility, 
 								VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket, 
 								DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
-								VARIANT_BOOL bUseCustomRates, long lDaySift, VARIANT_BOOL ManualEdit);
+								VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit);
 
 	STDMETHOD(CalcAllOptions)(LONG nCallGreekMask, LONG nPutGreekMask, MmQvIvCalcEnum enCallCalcIV,
 							MmQvIvCalcEnum enPutCalcIV, EtsCalcModelTypeEnum enCalcModel,
@@ -568,7 +568,7 @@ public:
 							VARIANT_BOOL bUseTheoVolaBadMarket, VARIANT_BOOL bRecalcGreeks,
 							IMmQvOptRootColl* collSynthRoots, DOUBLE dUndPriceTolerance, 
 							EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-							LONG nCalcSleepFreq, LONG nCalcSleepAmt, long lDayShift, VARIANT_BOOL ManualEdit, VARIANT_BOOL bForceRecalc);
+							LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit, VARIANT_BOOL bForceRecalc);
 
 	STDMETHOD(IsValidDivs)(VARIANT_BOOL CheckCustom, VARIANT_BOOL* pVal);
 	STDMETHOD(StopCalc)();
@@ -619,8 +619,8 @@ public:
 		DOUBLE					   dSkew,
 		DOUBLE					   dKurt,
 		bool                       bCalcDelta,
-		long lDTE,
-		CVolasMapPtr		   mapVolaCache,
+		DATE					   dtCalcDate,
+		CVolasMapPtr			   mapVolaCache,
 		VARIANT_BOOL ManualEdit = VARIANT_TRUE
 		);
 };

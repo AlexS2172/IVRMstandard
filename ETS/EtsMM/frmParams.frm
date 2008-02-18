@@ -523,7 +523,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":0018
                font            =   "frmParams.frx":0036
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin EtsMM.ctlEditEx txtOrdOptIncrQty 
                Height          =   315
@@ -535,7 +535,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":005A
                font            =   "frmParams.frx":0078
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin EtsMM.ctlEditEx txtOrdOptIncrPriceExpensive 
                Height          =   315
@@ -547,7 +547,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":009C
                font            =   "frmParams.frx":00BA
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin VB.Label lblOrdOptIncrPriceExpensive 
                Alignment       =   1  'Right Justify
@@ -610,7 +610,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":00DE
                font            =   "frmParams.frx":00FC
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin EtsMM.ctlEditEx txtCrdIncrPriceCheap 
                Height          =   315
@@ -622,7 +622,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":0120
                font            =   "frmParams.frx":013E
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin EtsMM.ctlEditEx txtCrdIncrPriceExpensive 
                Height          =   315
@@ -634,7 +634,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":0162
                font            =   "frmParams.frx":0180
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin VB.Label lblCrdIncrPriceExpensive 
                Alignment       =   1  'Right Justify
@@ -681,7 +681,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":01A4
                font            =   "frmParams.frx":01C2
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin EtsMM.ctlEditEx txtOrdStkIncrPrice 
                Height          =   315
@@ -693,7 +693,7 @@ Begin VB.Form frmParams
                _extenty        =   556
                mouseicon       =   "frmParams.frx":01E6
                font            =   "frmParams.frx":0204
-               hideselection   =   -1
+               hideselection   =   -1  'True
             End
             Begin VB.Label lblOrdStkIncrPrice 
                Alignment       =   1  'Right Justify

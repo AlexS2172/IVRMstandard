@@ -47,6 +47,8 @@ library EtsMmIndexHedgeLib
 		ETSGENERAL_PROP_DEF(23,			DOUBLE,					PriceLast)
 		
 		ETSGENERAL_PROP_DEF(31,			DOUBLE,					Delta)
+		ETSGENERAL_PROP_DEF(33,			DATE,					ExpiryOV)
+		ETSGENERAL_PROP_DEF(34,			DATE,					TradingClose)
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

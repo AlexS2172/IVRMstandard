@@ -225,17 +225,17 @@ namespace OTCOptionCalc
 			public int iCurveType;
 			public double dPosThreshold;
 			public int iPointsCount;
-			public int[] irShortRateDTE;
+			public double[] irShortRateYTE;
 			public double[] drShortRateValue;
-			public int[] irLongRateDTE;
+			public double[] irLongRateYTE;
 			public double[] drLongRateValue;
-			public int[] NeutralRateDTE;
+			public double[] NeutralRateYTE;
 			public double[] drNeutralRateValue;
-			public int[] irHTBRateDTE;
+			public double[] irHTBRateYTE;
 			public double[] drHTBRateValue;
-			public int[] irNeutralHTBRateDTE;
+			public double[] irNeutralHTBRateYTE;
 			public double[] drNeutralHTBRateValue;
-			public int[] irNeutralRateDTE;
+			public double[] irNeutralRateYTE;
 		};
 
 
@@ -3141,7 +3141,6 @@ namespace OTCOptionCalc
             this.tbDTE.Location = new System.Drawing.Point(136, 37);
             this.tbDTE.Name = "tbDTE";
             this.tbDTE.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.tbDTE.Properties.Mask.EditMask = "d";
             this.tbDTE.Properties.Mask.MaskType = DevExpress.XtraEditors.Mask.MaskType.Numeric;
             this.tbDTE.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.tbDTE.Size = new System.Drawing.Size(88, 20);
@@ -3172,14 +3171,19 @@ namespace OTCOptionCalc
             // 
             // dtpExpirationDate
             // 
-            this.dtpExpirationDate.EditValue = new System.DateTime(2005, 12, 7, 0, 0, 0, 0);
-            this.dtpExpirationDate.Location = new System.Drawing.Point(137, 12);
+            this.dtpExpirationDate.EditValue = new System.DateTime(2008, 2, 15, 17, 37, 9, 0);
+            this.dtpExpirationDate.Location = new System.Drawing.Point(93, 12);
             this.dtpExpirationDate.Name = "dtpExpirationDate";
             this.dtpExpirationDate.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
             this.dtpExpirationDate.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
             new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
+            this.dtpExpirationDate.Properties.DisplayFormat.FormatString = "d/M/yyyy hh:mm:ss tt";
+            this.dtpExpirationDate.Properties.DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
+            this.dtpExpirationDate.Properties.EditFormat.FormatString = "d/M/yyyy hh:mm:ss tt";
+            this.dtpExpirationDate.Properties.EditFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
+            this.dtpExpirationDate.Properties.Mask.EditMask = "d/M/yyyy hh:mm:ss tt";
             this.dtpExpirationDate.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.dtpExpirationDate.Size = new System.Drawing.Size(88, 20);
+            this.dtpExpirationDate.Size = new System.Drawing.Size(156, 20);
             this.dtpExpirationDate.TabIndex = 3;
             this.dtpExpirationDate.Leave += new System.EventHandler(this.dtpExpirationDate_Leave);
             this.dtpExpirationDate.EditValueChanged += new System.EventHandler(this.dtpExpirationDate_EditValueChanged);
@@ -3667,12 +3671,10 @@ namespace OTCOptionCalc
 			double	dForeignRate;
 			double	dSkew;
 			double	dKurtosis;
-			long	lDTE;
 			long	lIsAmerican;
 			long	lDivCount	= 1;
 			long	lSteps		= 100;
-			int		iRet = 0;
-			int		lLastDivDate;
+			int	iRet = 0;
 			int		lDivFrequency;
 			double	dAmount;
 			double  dCIV; 
@@ -3680,28 +3682,46 @@ namespace OTCOptionCalc
 			string	sResStatus = "";
 			bool	bCalculatingFuture = false;
 			OCWrapper.DIVIDEND [] oDivs = new OCWrapper.DIVIDEND[0];
-			bool bSpotGreeks = true;
-
+			bool bSpotGreeks = true;        
 
 			if (cbSymbolType.SelectedIndex == 1)
 				bCalculatingFuture = true;
 			
 			bSpotGreeks = cbUseSpotPrice.Checked;
+
 			long	lModel		= 3;	// Optimized binomial
 			if (rbStandart.Checked )
 				lModel		= 2;		// standard binomial
-			int lDateTimeNow;
-			try
+
+			DateTime    dtNow, dtLastDivDate, dtCloseTime;
+            long        uxNow, uxLastDivDate;
+
+            double dDTE = System.Convert.ToDouble(tbDTE.Text);
+            double dYTE = dDTE / 365.0;
+            dtCloseTime = Convert.ToDateTime("1900/01/01 00:00:00.000");
+			
+            try
 			{
-				lDateTimeNow = Convert.ToInt32(Math.Floor(DateTime.Now.ToOADate()));
+                dtNow = DateTime.Now.ToLocalTime();
+                oOCWrapper.OCWOleDateToUnixDate(dtNow.ToOADate(), out uxNow);
 			}
 			catch
 			{
 				barStatusText.Caption = "Wrong date, nothing calculated";
 				return;
 			}
-			
-			
+
+            try
+            {
+                dtLastDivDate = dtpDivDate.DateTime.Date;
+                oOCWrapper.OCWOleDateToUnixDate(dtLastDivDate.ToOADate(), out uxLastDivDate);
+            }
+            catch
+            {
+                barStatusText.Caption = "Wrong Expiry Date, nothing calculated";
+                return;
+            }
+
 
 			OCWrapper.GREEKS refResults;
 			refResults = new OCWrapper.GREEKS();
@@ -3797,7 +3817,6 @@ namespace OTCOptionCalc
 
 			dSkew = 0.0;
 			dKurtosis = 0.0;
-			lDTE = System.Convert.ToInt32(tbDTE.Text);
 			lIsAmerican = System.Convert.ToInt32(rbAmerican.Checked);
 
 			int iGotCount = 0;
@@ -3854,22 +3873,12 @@ namespace OTCOptionCalc
 						barStatusText.Caption = "Wrong dividend amount, nothing calculated";
 						return;
 					}			
-					
+							
 
 					try
 					{
-						double dTmp = System.Convert.ToDouble(dtpDivDate.DateTime.ToOADate());				
-						lLastDivDate = System.Convert.ToInt32(Math.Floor(dTmp));
-					}
-					catch
-					{
-						barStatusText.Caption = "Wrong dividend date, nothing calculated";
-						return;
-					}			
 
-					try
-					{
-						lDivCount = oOCWrapper.OCWGetDividendsCount( lDateTimeNow, (int)lDTE, lLastDivDate,lDivFrequency  );
+						lDivCount = oOCWrapper.OCWGetDividendsCount(uxNow, dYTE, uxLastDivDate, lDivFrequency);
 					}
 					catch(Exception /*ex*/)
 					{
@@ -3883,14 +3892,14 @@ namespace OTCOptionCalc
 						dAmount = 0;
 					}
 
-					if (((lDivCount > 0)&&( dAmount > 0 ))&&(lLastDivDate > 0))
+					if (((lDivCount > 0)&&( dAmount > 0 ))&&(uxLastDivDate > 0))
 					{
 						iGotCount = (int)lDivCount;
 						Array.Clear(dAmounts, 0, dAmounts.Length );
 						Array.Clear(dYears, 0, dYears.Length );
 						dAmounts = new double[lDivCount];
 						dYears	= new double[lDivCount];
-						oOCWrapper.OCWGetDividends(lDateTimeNow, (int)lDTE, lLastDivDate, lDivFrequency, dAmount, (int)lDivCount, ref dAmounts, ref dYears, out iGotCount);
+						oOCWrapper.OCWGetDividends(uxNow, dYTE, uxLastDivDate, lDivFrequency, dAmount, (int)lDivCount, ref dAmounts, ref dYears, out iGotCount);
 					
 					}
 					
@@ -3907,8 +3916,9 @@ namespace OTCOptionCalc
 					Array.Clear(dAmounts, 0, dAmounts.Length );
 					Array.Clear(dYears, 0, dYears.Length);
 
-					double dToday = Math.Floor(DateTime.Now.ToOADate());
-					int nToday = Convert.ToInt32(dToday);
+                    dtLastDivDate = dtNow;
+                    dtLastDivDate = dtLastDivDate.AddDays(dDTE); //= System.Convert.ToDateTime(dDTE + dNow);
+
 					int nRetCount = 0;
 					int iCount = 0;
 					System.Array arTmpAmounts = new double[0];
@@ -3929,13 +3939,12 @@ namespace OTCOptionCalc
 						}
 					}
 					
-
-					m_CustDivs.GetDividendCount((int)nToday, (int)(nToday + lDTE), out iCount);
+					m_CustDivs.GetDividendCount2(dtNow, dtLastDivDate, dtCloseTime, out iCount);
 					if (iCount > 0)
 					{
 						dAmounts = new double[iCount];
 						dYears = new double[iCount];
-						m_CustDivs.GetDividends((int)nToday, (int)(nToday + lDTE), (int)iCount, out arTmpAmounts, out arTmpDates, out (int)nRetCount);
+						m_CustDivs.GetDividends2(dtNow, dtLastDivDate, dtCloseTime, iCount, out arTmpAmounts, out arTmpDates, out nRetCount);
 						
 						arTmpAmounts.CopyTo(dAmounts, 0);
 						arTmpDates.CopyTo(dYears, 0);
@@ -3988,7 +3997,7 @@ namespace OTCOptionCalc
 						iGotCount = 0;
 
 						//dCIV = oOCWrapper.OCWCalcFutureOptionVolatilityMM( dDomesticRate, dSpotPrice, dCOptionPrice, dStrikePrice , (int)lDTE, 1 /* Call */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis ,(int)lDivCount, ref dAmounts  ,  ref dYears , (int)lModel, out iGotCount);
-						dCIV = oOCWrapper.OCWCalcFutureOptionVolatility( dDomesticRate, dSpotPrice, dCOptionPrice, dStrikePrice , (int)lDTE, 1 /* Call */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis , (int)lModel, out iGotCount);
+						dCIV = oOCWrapper.OCWCalcFutureOptionVolatility( dDomesticRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis , (int)lModel, out iGotCount);
 					}
 					catch
 					{
@@ -3999,7 +4008,7 @@ namespace OTCOptionCalc
 				{
 					try
 					{
-						dCIV = oOCWrapper.OCWCalcVolatilityMM( dDomesticRate, dForeignRate, dSpotPrice, dCOptionPrice, dStrikePrice , (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
+						dCIV = oOCWrapper.OCWCalcVolatilityMM( dDomesticRate, dForeignRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
 					}
 					catch
 					{
@@ -4025,7 +4034,7 @@ namespace OTCOptionCalc
 					//	iRet = oOCWrapper.OCWCalcFutureOptionGreeksMM(dDomesticRate,dForeignRate,  dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts  ,  ref dYears ,  refResults);			
 					//	else
 					//	iRet = oOCWrapper.OCWCalcFutureOptionGreeks(dDomesticRate, dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel,  refResults);							
-					iRet = oOCWrapper.OCWCalcFutureOptionGreeks3(dDomesticRate, dForeignRate, dSpotPrice, bSpotGreeks,   dStrikePrice , dVolatility, (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts, ref dYears , refResults);
+					iRet = oOCWrapper.OCWCalcFutureOptionGreeks3(dDomesticRate, dForeignRate, dSpotPrice, bSpotGreeks,   dStrikePrice , dVolatility, dYTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts, ref dYears , refResults);
 				}
 				catch(Exception /*ex*/)
 				{
@@ -4037,7 +4046,7 @@ namespace OTCOptionCalc
 			{
 				try
 				{
-					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel, refResults);			
+					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, dSpotPrice, dStrikePrice , dVolatility, dYTE, 1 /* Call */, lIsAmerican, lDivCount, ref dAmounts  ,  ref dYears , lSteps , dSkew,  dKurtosis , lModel, refResults);			
 				}
 				catch
 				{
@@ -4121,7 +4130,7 @@ namespace OTCOptionCalc
 					try
 					{
 						iGotCount = 0;
-						dPIV = oOCWrapper.OCWCalcFutureOptionVolatility( dDomesticRate, dSpotPrice, dPOptionPrice, dStrikePrice , (int)lDTE, 0 /* Put */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis , (int)lModel, out iGotCount);
+						dPIV = oOCWrapper.OCWCalcFutureOptionVolatility( dDomesticRate, dSpotPrice, dPOptionPrice, dStrikePrice , dYTE, 0 /* Put */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis , (int)lModel, out iGotCount);
 					}
 					catch
 					{
@@ -4132,7 +4141,7 @@ namespace OTCOptionCalc
 				{
 					try
 					{
-						dPIV = oOCWrapper.OCWCalcVolatilityMM(dDomesticRate, dForeignRate, dSpotPrice, dPOptionPrice, dStrikePrice , (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
+						dPIV = oOCWrapper.OCWCalcVolatilityMM(dDomesticRate, dForeignRate, dSpotPrice, dPOptionPrice, dStrikePrice , dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
 					}
 					catch
 					{
@@ -4160,7 +4169,7 @@ namespace OTCOptionCalc
 				{
 					//iRet = oOCWrapper.OCWCalcFutureOptionGreeksMM(dDomesticRate,dForeignRate,  dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts  ,  ref dYears ,  refResults);			
 					//iRet = oOCWrapper.OCWCalcFutureOptionGreeks(dDomesticRate, dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel,  refResults);			
-					iRet = oOCWrapper.OCWCalcFutureOptionGreeks3(dDomesticRate, dForeignRate, dSpotPrice, bSpotGreeks,   dStrikePrice , dVolatility, (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts, ref dYears , refResults);
+					iRet = oOCWrapper.OCWCalcFutureOptionGreeks3(dDomesticRate, dForeignRate, dSpotPrice, bSpotGreeks,   dStrikePrice , dVolatility, dYTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts, ref dYears , refResults);
 				}
 				catch
 				{
@@ -4172,7 +4181,7 @@ namespace OTCOptionCalc
 			{
 				try
 				{
-					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel, refResults);
+					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, dSpotPrice, dStrikePrice , dVolatility, dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel, refResults);
 				}
 				catch
 				{
@@ -4292,27 +4301,27 @@ namespace OTCOptionCalc
 		private void tbDTE_Leave(object sender, System.EventArgs e)
 		{
 			bPreventCheckDate = true;
-			int iDte;
+			double dDte;
 			try
 			{
-				iDte = System.Convert.ToInt32(tbDTE.Text);
+				dDte = System.Convert.ToDouble(tbDTE.Text);
 			}
 			catch
 			{
 				barStatusText.Caption = "Wrong DTE";
-				iDte = 0;
+				dDte = 0;
 			}
 			
-			if (iDte < 0)
+			if (dDte < 0)
 			{
 				tbDTE.Text = "0";
-				iDte = 0;
+				dDte = 0;
 				dtpExpirationDate.DateTime = DateTime.Now;
 			}
 			else
 			{
 				dtpExpirationDate.DateTime = DateTime.Now;
-				dtpExpirationDate.DateTime = dtpExpirationDate.DateTime.AddDays(iDte);
+				dtpExpirationDate.DateTime = dtpExpirationDate.DateTime.AddDays(dDte);
 			}
 			
 			bPreventCheckDate = false;
@@ -4324,7 +4333,7 @@ namespace OTCOptionCalc
 		{
 			if (bPreventCheckDate)
 				return -1;
-			if (dtpExpirationDate.DateTime.Date  < DateTime.Now.Date  )
+			if (dtpExpirationDate.DateTime.ToOADate()  < DateTime.Now.ToOADate()  )
 			{
 				dtpExpirationDate.DateTime = DateTime.Now;
 				tbDTE.Text = "0";
@@ -4332,15 +4341,16 @@ namespace OTCOptionCalc
 				return 0;
 			}
 			
-			if (dtpExpirationDate.DateTime.Date  == DateTime.Now.Date  )
+			if (dtpExpirationDate.DateTime.ToOADate()  == DateTime.Now.ToOADate()  )
 			{
 				tbDTE.Text = "0";
 				tbDomesticRate.Text = "0.00";
 				return 0;
 			}
 
-			TimeSpan dtTmp = dtpExpirationDate.DateTime.Subtract(DateTime.Now);
-			tbDTE.Text = Convert.ToString((int)dtTmp.Days + 1);
+			//TimeSpan dtTmp = dtpExpirationDate.DateTime.Subtract(DateTime.Now);
+            double dDTE = dtpExpirationDate.DateTime.ToOADate() - DateTime.Now.ToOADate();
+			tbDTE.Text = Convert.ToString(dDTE);
 			TryGetRates();
 
 			return 0;
@@ -4401,26 +4411,26 @@ namespace OTCOptionCalc
 			{
 				e.Handled=true;
 				bPreventCheckDate = true;
-				int iDte;
+				double dDte;
 				try
 				{
-					iDte = System.Convert.ToInt32(tbDTE.Text);
+					dDte = System.Convert.ToDouble(tbDTE.Text);
 				}
 				catch
 				{
 					barStatusText.Caption = "Wrong DTE";
-					iDte = 0;
+					dDte = 0;
 				}
-				if (iDte <= 0)
+				if (dDte <= 0)
 				{
 					tbDTE.Text = "0";
-					iDte = 0;
+					dDte = 0;
 					dtpExpirationDate.DateTime = DateTime.Now;
 				}
 				else
 				{
 					dtpExpirationDate.DateTime = DateTime.Now;
-					dtpExpirationDate.DateTime = dtpExpirationDate.DateTime.AddDays(iDte);
+					dtpExpirationDate.DateTime = dtpExpirationDate.DateTime.AddDays(dDte);
 
 					TryGetRates();
 
@@ -4801,8 +4811,9 @@ namespace OTCOptionCalc
 			
 			if (oIRCurve.iPointsCount > 0)
 			{
-				TimeSpan tsTmp = dtDate.Subtract(dtToday);
-				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drShortRateValue, ref oIRCurve.irShortRateDTE, (int)tsTmp.Days);
+				//TimeSpan tsTmp = dtDate.Subtract(dtToday);
+                double dYTE = (dtDate.ToOADate() - dtToday.ToOADate()) / 365.0;
+				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drShortRateValue, ref oIRCurve.irShortRateYTE, dYTE);
 			}
 			else
 				dRet = 0;
@@ -4817,8 +4828,9 @@ namespace OTCOptionCalc
 			
 			if (oIRCurve.iPointsCount > 0)
 			{
-				TimeSpan tsTmp = dtDate.Subtract(dtToday);
-				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drLongRateValue, ref oIRCurve.irLongRateDTE, (int)tsTmp.Days);
+				//TimeSpan tsTmp = dtDate.Subtract(dtToday);
+                double dYTE = (dtDate.ToOADate() - dtToday.ToOADate()) / 365.0;
+				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drLongRateValue, ref oIRCurve.irLongRateYTE, dYTE);
 			}
 			else
 				dRet = 0;
@@ -4833,8 +4845,9 @@ namespace OTCOptionCalc
 			
 			if (oIRCurve.iPointsCount > 0)
 			{
-				TimeSpan tsTmp = dtDate.Subtract(dtToday);
-				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drNeutralRateValue, ref oIRCurve.irNeutralRateDTE, (int)tsTmp.Days);
+				//TimeSpan tsTmp = dtDate.Subtract(dtToday);
+                double dYTE = (dtDate.ToOADate() - dtToday.ToOADate()) / 365.0;
+				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drNeutralRateValue, ref oIRCurve.irNeutralRateYTE, dYTE);
 			}
 			else
 				dRet = 0;
@@ -4849,8 +4862,9 @@ namespace OTCOptionCalc
 			
 			if (oIRCurve.iPointsCount > 0)
 			{
-				TimeSpan tsTmp = dtDate.Subtract(dtToday);
-				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drHTBRateValue, ref oIRCurve.irHTBRateDTE, (int)tsTmp.Days);
+				//TimeSpan tsTmp = dtDate.Subtract(dtToday);
+                double dYTE = (dtDate.ToOADate() - dtToday.ToOADate()) / 365.0;
+				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drHTBRateValue, ref oIRCurve.irHTBRateYTE, dYTE);
 			}
 			else
 				dRet = 0;
@@ -4865,8 +4879,9 @@ namespace OTCOptionCalc
 			
 			if (oIRCurve.iPointsCount > 0)
 			{
-				TimeSpan tsTmp = dtDate.Subtract(dtToday);
-				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drNeutralHTBRateValue, ref oIRCurve.irNeutralHTBRateDTE, (int)tsTmp.Days);
+				//TimeSpan tsTmp = dtDate.Subtract(dtToday);
+                double dYTE = (dtDate.ToOADate() - dtToday.ToOADate()) / 365.0;
+				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drNeutralHTBRateValue, ref oIRCurve.irNeutralHTBRateYTE, dYTE);
 			}
 			else
 				dRet = 0;
@@ -4903,6 +4918,12 @@ namespace OTCOptionCalc
 			return iRet;
 		}
 
+        private double GetYTE(int iNum, int iPeriodType)
+        {
+            double dRet = Convert.ToDouble(GetDTE(iNum, iPeriodType));
+            return dRet / (double)365.0;
+        }
+
 		private int LoadInterestRates()
 		{
 			int iRet = 0;
@@ -4935,11 +4956,11 @@ namespace OTCOptionCalc
 			oIRCurve.iPointsCount = iCount;
 			ReadRateCurves.Close();
 
-			oIRCurve.irHTBRateDTE = new int[iCount];
-			oIRCurve.irLongRateDTE = new int[iCount];
-			oIRCurve.irShortRateDTE  = new int[iCount];
-			oIRCurve.irNeutralHTBRateDTE  = new int[iCount];
-			oIRCurve.irNeutralRateDTE =  new int[iCount];
+			oIRCurve.irHTBRateYTE = new double[iCount];
+			oIRCurve.irLongRateYTE = new double[iCount];
+			oIRCurve.irShortRateYTE  = new double[iCount];
+			oIRCurve.irNeutralHTBRateYTE  = new double[iCount];
+			oIRCurve.irNeutralRateYTE =  new double[iCount];
 				
 			oIRCurve.drHTBRateValue = new double[iCount];
 			oIRCurve.drLongRateValue  = new double[iCount];
@@ -4950,7 +4971,7 @@ namespace OTCOptionCalc
 
 			ReadRateCurves = ReadCurveCommand.ExecuteReader();
 			int iCur = 0;
-			int nDTE = 0;
+            double dYTE = 0;
 			int iPeriodTypeID = 0;
 			int iNum = 0;
 			double dShortRate = 0.0;
@@ -4962,13 +4983,13 @@ namespace OTCOptionCalc
 			{
 				iNum = Convert.ToInt32(ReadRateCurves["iNum"].ToString());
 				iPeriodTypeID = Convert.ToInt32(ReadRateCurves["iPeriodTypeID"].ToString());
-				nDTE = GetDTE(iNum, iPeriodTypeID);
+				dYTE = GetYTE(iNum, iPeriodTypeID);
 
-				oIRCurve.irHTBRateDTE[iCur] = nDTE;
-				oIRCurve.irLongRateDTE[iCur] = nDTE;
-				oIRCurve.irShortRateDTE[iCur] = nDTE;
-				oIRCurve.irNeutralHTBRateDTE[iCur] = nDTE;
-				oIRCurve.irNeutralRateDTE[iCur] = nDTE;
+				oIRCurve.irHTBRateYTE[iCur] = dYTE;
+				oIRCurve.irLongRateYTE[iCur] = dYTE;
+				oIRCurve.irShortRateYTE[iCur] = dYTE;
+				oIRCurve.irNeutralHTBRateYTE[iCur] = dYTE;
+				oIRCurve.irNeutralRateYTE[iCur] = dYTE;
 				
 				dShortRate		= Convert.ToDouble(ReadRateCurves["fShortRate"].ToString());
 				dLongRate		= Convert.ToDouble(ReadRateCurves["fLongRate"].ToString());
@@ -5827,6 +5848,7 @@ public enum	GREEK_TYPE:int
 	GT_VEGA			= 0x00000010,
 	GT_THETA		= 0x00000020,
 	GT_RHO			= 0x00000040,
+    GT_VOLGA        = 0x00000080,
 
 	GT_DELTA_VEGA	= 0x00000100,
 	GT_DELTA_THETA	= 0x00000200,

@@ -22,7 +22,7 @@
 
 STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -104,7 +104,6 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 		/***********************************************************************************/}
 		
 		DOUBLE	dStockPos = dFutPos + dQtyDailyPrevDateBuy + dQtyDailyTodayBuy - dQtyDailyPrevDateSell - dQtyDailyTodaySell;		
-		//DOUBLE	dSpotPrice = m_spUndPriceProfile->GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dUndPriceTolerance, enPriceRoundingRule, NULL);
 		DOUBLE	dSpotPrice;
 		VARIANT_BOOL futureUsed = VARIANT_FALSE;
 		__CHECK_HRESULT3(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, NULL, &futureUsed, &dSpotPrice) );
@@ -124,7 +123,7 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 		DOUBLE	dStrike = 0.;
 		LONG	nOptID = 0L;
 		LONG	nOptRootID = 0L;
-		DATE	dtExpiry = 0.;
+		DATE	dtExpiryOV = 0., tmCloseTime = 0., dYTE = 0.;
 
 		EtsOptionTypeEnum	enOptType = enOtPut;
 
@@ -133,7 +132,8 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 		DOUBLE	dPriceLast = 0.;
 		DOUBLE	dPrice = 0.;
 
-		LONG	nToday = (LONG)(DATE)COleDateTime::GetCurrentTime();
+		DATE	dtNow;
+		GetNYDateTimeAsDATE(&dtNow);
 
 		IUnknownPtr		spOptUnk;
 		_variant_t		varItem;
@@ -181,9 +181,11 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 				__CHECK_HRESULT3(spOptAtom->get_ID(&nOptID));
 				__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 				__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
-				__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
-				__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));				
+				__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+				__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
+				__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
 
+				dYTE = (dtExpiryOV - dtNow) / 365.;
 
 				dStrike = _AdjustFractionalDigits(dStrike, 4);
 
@@ -268,12 +270,12 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 				GREEKS	aGreeks;
 				memset(&aGreeks, 0, sizeof(GREEKS));
 				LONG nRetCount = 0L;
-				if (nToday <= (LONG)dtExpiry)
+				if (dtNow <= dtExpiryOV)
 				{
 					aGreeks.nMask = GT_ALL;
 					nRetCount = _CalcOptionGreeks(	enCalcModel, 
 													spOptAtom, 
-													_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+													_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 													bUseTheoVolatility, 
 													bUseTheoVolaNoBid, 
 													bUseTheoVolaBadMarket, 
@@ -335,7 +337,7 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 
 							if (_finite(aGreeks.dGamma))
 							{
-								dNetGamma += aGreeks.dGamma * dOptPos * dSpotPrice* dSpotPrice / 100.0;
+								dNetGamma += aGreeks.dGamma * dOptPos * dSpotPrice * dSpotPrice / 100.0;
 							}
 
 						}
@@ -345,13 +347,13 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 						if (dCashValue > 0. && nRetCount > 0)
 						{
 							if (_finite(aGreeks.dDelta))
-								dOptionsDelta +=  aGreeks.dDelta * dOptPos *dCashValue;
+								dOptionsDelta +=  aGreeks.dDelta * dOptPos * dCashValue;
 
 							if (_finite(aGreeks.dGamma))
 								dTotalGamma += aGreeks.dGamma * dOptPos * dCashValue;
 								
 							if (_finite(aGreeks.dGamma))
-								dNetGamma += aGreeks.dGamma * dOptPos * dSpotPrice* dSpotPrice / 100.0;
+								dNetGamma += aGreeks.dGamma * dOptPos * dSpotPrice * dSpotPrice / 100.0;
 						}
 
 						__CHECK_HRESULT(spSynthEnum->Reset(), _T("Fail to reset synthetic roots components collection."));
@@ -373,7 +375,7 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 								if (_finite(aGreeks.dGamma))
 								{
 									dTotalGamma += aGreeks.dGamma * dOptPos * dSynthWeight;
-									dNetGamma += aGreeks.dGamma * dOptPos * dSynthWeight * dSpotPrice* dSpotPrice / 100.0;
+									dNetGamma += aGreeks.dGamma * dOptPos * dSynthWeight * dSpotPrice * dSpotPrice / 100.0;
 								}
 							}
 						} 
@@ -400,12 +402,12 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 						if (bIsRootSynthetic)
 						{
 							dYield = spSynthRootAtom->Yield;
-							dStockPricePoP = _CalcSyntheticForwardPrice(spSynthRootAtom, dStockPricePoP, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+							dStockPricePoP = _CalcSyntheticForwardPrice(spSynthRootAtom, dStockPricePoP, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 						}
 						else
 						{
 							dYield = m_dYield;
-							dStockPricePoP = _CalcRegularForwardPrice(dStockPricePoP, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+							dStockPricePoP = _CalcRegularForwardPrice(dStockPricePoP, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 						}
 					}
 
@@ -525,9 +527,11 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 					__CHECK_HRESULT3(spOptAtom->get_ID(&nOptID));
 					__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 					__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
-					__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+					__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+					__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 					__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
 					
+					dYTE = (dtExpiryOV - dtNow) / 365.;
 
 					bool					bIsRootSynthetic = false;
 					ISynthRootAtomPtr		spSynthRootAtom;
@@ -595,12 +599,6 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 									dStockPricePoP += m_spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk, dPriceLast, 
 										dUndPriceTolerance, enPriceRoundingRule, NULL, VARIANT_FALSE) * dSynthWeight * (1. + dShift / 100.);
 								}
-							//}
-							//else
-							//{
-							//	dStockPricePoP += m_spUndPriceProfile->GetUndPriceMid(m_dPriceBid, m_dPriceAsk, m_dPriceLast, 
-							//			dUndPriceTolerance, enPriceRoundingRule, NULL) * (1. + dShift / 100.);
-							//}
 						}
 					}
 
@@ -609,12 +607,12 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 					LONG nRetCount = 0L;
 					EtsContractTypeEnum optionType;
 					_CHK(spOptAtom->get_ContractType(&optionType) );
-					if (nToday <= (LONG)dtExpiry)
+					if (dtNow <= dtExpiryOV)
 					{
 						aGreeks.nMask = GT_ALL;
 						nRetCount = _CalcOptionGreeks(	enCalcModel, 
 														spOptAtom, 
-														_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+														_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 														bUseTheoVolatility, 
 														bUseTheoVolaNoBid, 
 														bUseTheoVolaBadMarket, 
@@ -732,12 +730,12 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrix(EtsCalcModelTypeEnum enCalcModel,
 							if (bIsRootSynthetic)
 							{
 								dYield = spSynthRootAtom->Yield;
-								dStockPricePoP = _CalcSyntheticForwardPrice(spSynthRootAtom, dStockPricePoP, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+								dStockPricePoP = _CalcSyntheticForwardPrice(spSynthRootAtom, dStockPricePoP, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 							}
 							else
 							{
 								dYield = m_dYield;
-								dStockPricePoP = _CalcRegularForwardPrice(dStockPricePoP, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+								dStockPricePoP = _CalcRegularForwardPrice(dStockPricePoP, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 							}
 						}
 
@@ -1034,7 +1032,7 @@ STDMETHODIMP CMmRpUndAtom::CalcRiskMatrixTotals(IMmRpRiskMatrixColl* pVal)
 
 STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcModel, 
 													SAFEARRAY** psaRates, 
-													SAFEARRAY** psaDTEs, 
+													SAFEARRAY** psaYTEs, 
 													VARIANT_BOOL bUseTheoVolatility, 
 													VARIANT_BOOL bUseTheoVolaNoBid, 
 													VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -1161,7 +1159,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 		DOUBLE	d_Strike = 0.;
 		LONG	nOptID = 0L;
 		LONG	nOptRootID = 0L;
-		DATE	dtExpiry = 0.;
+		DATE	dtExpiry = 0., dtExpiryOV = 0., tmCloseTime = 0.;
 
 		EtsOptionTypeEnum	enOptType;
 
@@ -1169,7 +1167,9 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 		DOUBLE	dOptPutPos = 0.;
 		DOUBLE	dOptionsDelta = 0.;
 
-		LONG	nToday = (LONG)(DATE)COleDateTime::GetCurrentTime();
+		//DATE	nToday = (DATE)COleDateTime::GetCurrentTime();
+		DATE dtNow = 0.0, dYTE = 0.0;
+		GetNYDateTimeAsDATE(&dtNow);
 
 		__SynthTotalValuesMap	__SynthTotalValues;
 
@@ -1212,7 +1212,11 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 			__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 			__CHECK_HRESULT3(spOptAtom->get_Strike(&d_Strike));
 			__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+			__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+			__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 			__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
+
+			dYTE =	static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.0;
 
 			d_Strike = _AdjustFractionalDigits(d_Strike, 4);
 			
@@ -1306,21 +1310,21 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 			}
 			LONG nRetCount = 0L;
 
-			if (nToday <= (LONG)dtExpiry && !DoubleEQZero(dOptPosInShares))
+			if (dtNow <= dtExpiryOV && !DoubleEQZero(dOptPosInShares))
 			{
 				memset(&aGreeks, 0, sizeof(aGreeks));
 				aGreeks.nMask = GT_DELTA;
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 					spOptAtom, 
-					_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+					_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 					bUseTheoVolatility, 
 					bUseTheoVolaNoBid, 
 					bUseTheoVolaBadMarket, 
 					sp_UndColl, 
 					dUndPriceTolerance,
 					enPriceRoundingRule, 
-															aGreeks,0, NULL, false);
+					aGreeks,0, NULL, false);
 			}
 
 			if (!bIsRootSynthetic)
@@ -1424,7 +1428,6 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 			}
 
 			// check
-
 			VARIANT_BOOL bCallEarlyExer = VARIANT_FALSE;
 			VARIANT_BOOL bPutEarlyExer = VARIANT_FALSE;
 			DOUBLE dPutPrice = 0. , dCallPrice = 0. , dInterest = 0. ;
@@ -1432,8 +1435,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 			
 			if ( (enOptType == enOtCall && d_Price <= d_Strike) || (enOptType == enOtPut && d_Price >= d_Strike)  )//IS ATM
 			{
-				
-				if (nToday < (LONG)dtExpiry )
+				if (dtNow < dtExpiryOV )
 				{	
 					DOUBLE	dYield = 0.;
 
@@ -1449,13 +1451,13 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 							IEtsIndexDivCollPtr spBasketDivs;
 							spSynthRootAtom->get_BasketDivs(&spBasketDivs);
 							nDivCount = 0;
-							spBasketDivs->GetDividendCount(nToday, static_cast<long>(dtExpiry), &nDivCount);
+							spBasketDivs->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 							if(nDivCount > 0L) 
 							{
 								LPSAFEARRAY psaDates = NULL;
 								LPSAFEARRAY psaAmounts = NULL;
 
-								spBasketDivs->GetDividends(nToday, static_cast<long>(dtExpiry), nDivCount, &psaAmounts, &psaDates, &nDivCount);
+								spBasketDivs->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 								saDates.Attach(psaDates);
 								saAmounts.Attach(psaAmounts);
@@ -1480,7 +1482,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 								if (m_spDividend != NULL)
 								{
 									nDivCount = 0;
-									m_spDividend->GetDividendCount(nToday, (LONG)dtExpiry, &nDivCount);
+									m_spDividend->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 									if (nDivCount<= 0)
 										nDivCount = 0;
 									else
@@ -1488,7 +1490,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 										LPSAFEARRAY psaDates = NULL;
 										LPSAFEARRAY psaAmounts = NULL;
 
-										m_spDividend->GetDividends(nToday, (LONG)dtExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+										m_spDividend->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 										saDates.Attach(psaDates);
 										saAmounts.Attach(psaAmounts);
@@ -1511,13 +1513,13 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 
 									if (bIsBasket && spDivColl != NULL)
 									{
-										spDivColl->GetDividendCount(nToday, (LONG)dtExpiry, &nDivCount);
+										spDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 										if(nDivCount > 0L)
 										{
 											LPSAFEARRAY psaDates = NULL;
 											LPSAFEARRAY psaAmounts = NULL;
 
-											spDivColl->GetDividends(nToday, (LONG)dtExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+											spDivColl->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 											saDates.Attach(psaDates);
 											saAmounts.Attach(psaAmounts);
@@ -1538,7 +1540,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 							if (m_spDividend != NULL)
 							{
 								nDivCount = 0;
-								m_spDividend->GetDividendCount(nToday, (LONG)dtExpiry, &nDivCount);
+								m_spDividend->GetDividendCount(nToday, (LONG)dtExpiryOV, &nDivCount);
 								if (nDivCount<= 0)
 									nDivCount = 0;
 								else
@@ -1546,7 +1548,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 									LPSAFEARRAY psaDates = NULL;
 									LPSAFEARRAY psaAmounts = NULL;
 
-									m_spDividend->GetDividends(nToday, (LONG)dtExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+									m_spDividend->GetDividends(nToday, (LONG)dtExpiryOV, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 									saDates.Attach(psaDates);
 									saAmounts.Attach(psaAmounts);
@@ -1567,13 +1569,13 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 
 								if (bIsBasket && spDivColl != NULL)
 								{
-									spDivColl->GetDividendCount(nToday, (LONG)dtExpiry, &nDivCount);
+									spDivColl->GetDividendCount(nToday, (LONG)dtExpiryOV, &nDivCount);
 									if(nDivCount > 0L)
 									{
 										LPSAFEARRAY psaDates = NULL;
 										LPSAFEARRAY psaAmounts = NULL;
 
-										spDivColl->GetDividends(nToday, (LONG)dtExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+										spDivColl->GetDividends(nToday, (LONG)dtExpiryOV, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 										saDates.Attach(psaDates);
 										saAmounts.Attach(psaAmounts);
@@ -1590,7 +1592,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 					DOUBLE dRate = 0 ;
 					if ( *psaRates ) 
 					{
-						dRate = _InterpolateRate((LONG)dtExpiry - nToday , *psaRates, *psaDTEs);
+						dRate = _InterpolateRate(dYTE, *psaRates, *psaYTEs);
 					}
 					
 					bool bDividentsAre = false ;
@@ -1602,7 +1604,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 						bool bUpComDivCalc = EAUpComDivs == VARIANT_TRUE ;
 						for(INT i = 0; i < nDivCount; i++)
 						{	
-							DATE dt = floor ( saDates.GetPlainData()[i] * 365.0 ) + nToday ;
+							DATE dt = floor ( saDates.GetPlainData()[i] * 365.0 ) + dtNow ;
 							EgLib::vt_date dt1 ( dt ) ;
 
 							if ( bUpComDivCalc )
@@ -1617,7 +1619,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 									bAreDividentsTillDays = true ;
 								}
 								
-								if ( dtExpiry >= dt )
+								if ( dtExpiryOV >= dt )
 								{
 								dDivAmt += saAmounts.GetPlainData()[i];
 								bDividentsAre = true ;
@@ -1626,7 +1628,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 							}
 							else	
 							{
-								if ( dtExpiry >= dt )
+								if ( dtExpiryOV >= dt )
 								{
 								dDivAmt += saAmounts.GetPlainData()[i];
 								bDividentsAre = true ;
@@ -1637,7 +1639,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 					else
 					{
 						bDividentsAre = true ;
-						dDivAmt = d_Price * dYield * ((LONG)dtExpiry - nToday) / 360.;
+						dDivAmt = d_Price * dYield * (dtExpiryOV - dtNow) / 360.;
 					}
 					if(d_OptPrice <= 0. || d_PriceBid<=0.0 || d_PriceAsk<=0.0)
 					{
@@ -1672,11 +1674,11 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 						{	
 							dPutPrice = d_OptPrice ;
 							dCallPrice = -1 ;
-							dInterest = (d_Strike * dRate * ((LONG)dtExpiry - nToday) / 360.) ;
+							dInterest = (d_Strike * dRate * (dtExpiryOV - dtNow) / 360.) ;
 						}
 						else // put
 						{
-							dInterest = ( d_Strike * dRate * ((LONG)dtExpiry - nToday) / 360.) ;
+							dInterest = ( d_Strike * dRate * (dtExpiryOV - dtNow) / 360.) ;
 							dPutPrice = -1 ;
 							dCallPrice = d_OptPrice  ;
 						}
@@ -1690,7 +1692,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPosWithEarlyExercise(EtsCalcModelTypeEnum enCalcM
 						}
 						//else // put
 						{
-							DOUBLE dCoastOfCarry = dDivAmt - dInterest  ;
+							DOUBLE dCoastOfCarry = dDivAmt - dInterest;
 							bCallEarlyExer = dCoastOfCarry >= max ( 0, dCallPrice ) ? VARIANT_TRUE : VARIANT_FALSE;
 						}
 					}
@@ -1943,7 +1945,7 @@ STDMETHODIMP CMmRpUndAtom::CalcMatrixByStock(DOUBLE dUndPriceTolerance,
 
 STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 							SAFEARRAY** psaRates, 
-							SAFEARRAY** psaDTEs, 
+							SAFEARRAY** psaYTEs, 
 							VARIANT_BOOL bUseTheoVolatility, 
 							VARIANT_BOOL bUseTheoVolaNoBid, 
 							VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -1992,7 +1994,6 @@ STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 
 		ATLASSERT(spSyntheticAtom!=NULL);
 
-		//DOUBLE	dSpotPrice = m_spUndPriceProfile->GetUndPriceMid( dUndBid, dUndAsk, dUndLast, dUndPriceTolerance, enPriceRoundingRule, NULL );
 		DOUBLE	dSpotPrice;
 		VARIANT_BOOL	futureUsed = VARIANT_FALSE;
 		__CHECK_HRESULT3(GetUnderlyingPrice( dUndPriceTolerance, enPriceRoundingRule, NULL, &futureUsed, &dSpotPrice ) );
@@ -2063,12 +2064,15 @@ STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 		EtsOptionTypeEnum	enOptType;
 
 		DOUBLE	dStrike = 0.;
-		DATE	dtExpiry = 0.;		
+		DATE	dtExpiry = 0., dtExpiryOV = 0.;		
 		DOUBLE	dNetDelta = 0.;
         DOUBLE	dSyntheticStock = 0.;
         DOUBLE	dNetStock = 0.;
 		
-		LONG	nToday = (LONG)(DATE)COleDateTime::GetCurrentTime();
+		//DATE	nToday = (DATE)COleDateTime::GetCurrentTime();
+		DATE dtNow = 0.0;
+		DOUBLE	dYTE = 0.;
+		GetNYDateTimeAsDATE(&dtNow);
 		
 		__SynthTotalValuesMap	__SynthTotalValues;
 		__SynthTotalValuesMap	__SynthTotalValuesAll;
@@ -2116,7 +2120,10 @@ STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 			__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 			__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
 			__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+			__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
 			__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
+
+			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.0;
 
 			dStrike = _AdjustFractionalDigits(dStrike, 4);
 			
@@ -2175,14 +2182,14 @@ STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 
 			LONG nRetCount = 0L;
 
-			if (nToday <= (LONG)dtExpiry && !DoubleEQZero(dNetPosition))
+			if (dtNow <= dtExpiryOV && !DoubleEQZero(dNetPosition))
 			{
 				memset(&aGreeks, 0, sizeof(aGreeks));
 				aGreeks.nMask = GT_ALL;
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
@@ -2432,7 +2439,7 @@ STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 
 				dCompStrike = _AdjustFractionalDigits(dCompStrike,4);
 
-				if ( DoubleEQZero(dStrike-dCompStrike) && (LONG)dtExpiry == (LONG)dtCompExpiry && nOptRootID == nCompRootID )
+				if ( DoubleEQZero(dStrike-dCompStrike) && (LONG)dtExpiryOV == (LONG)dtCompExpiry && nOptRootID == nCompRootID )
 				{
 					__CHECK_HRESULT3(spSyntheticOptAtom->get_NetPos(&dCompNetPosition));
 					__CHECK_HRESULT3(spSyntheticOptAtom->put_NetPos(dCompNetPosition + dPositionN));
@@ -2506,7 +2513,7 @@ STDMETHODIMP CMmRpUndAtom::CalcSynthetics(EtsCalcModelTypeEnum enCalcModel,
 
 					dCompStrike = _AdjustFractionalDigits(dCompStrike,4);
 
-					if ( DoubleEQZero(dStrike-dCompStrike) && (LONG)dtExpiry == (LONG)dtCompExpiry && nOptRootID == nCompRootID )
+					if ( DoubleEQZero(dStrike-dCompStrike) && (LONG)dtExpiryOV == (LONG)dtCompExpiry && nOptRootID == nCompRootID )
 					{
 						__CHECK_HRESULT3(spSyntheticOptAtom->get_NetPos(&dCompNetPosition));
 						__CHECK_HRESULT3(spSyntheticOptAtom->put_NetPos(dCompNetPosition + dPositionN));
@@ -2627,41 +2634,40 @@ DOUBLE	CMmRpUndAtom::_AdjustFractionalDigits(DOUBLE dValue, UINT uDigits)
     return dNewVal/dPower;
 }
 
-DOUBLE	CMmRpUndAtom::_InterpolateRate(LONG nDTE, SAFEARRAY* psaRates, SAFEARRAY* psaDTEs) throw()
+DOUBLE	CMmRpUndAtom::_InterpolateRate(DOUBLE dYTE, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw()
 {
-	if (psaRates == NULL || psaDTEs == NULL)
+	if (psaRates == NULL || psaYTEs == NULL)
 	{
 		ATLASSERT ( !"(psaRates == NULL || psaDTEs == NULL)" ) ;
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid array pointer."));
 	}
 
 	__CHECK_HRESULT(::SafeArrayLock(psaRates), _T("Unable to lock rates array."));
-	__CHECK_HRESULT(::SafeArrayLock(psaDTEs), _T("Unable to lock DTEs array."));
+	__CHECK_HRESULT(::SafeArrayLock(psaYTEs), _T("Unable to lock YTEs array."));
 
-	if (::SafeArrayGetDim(psaRates) != 1 || ::SafeArrayGetDim(psaDTEs) != 1)
+	if (::SafeArrayGetDim(psaRates) != 1 || ::SafeArrayGetDim(psaYTEs) != 1)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid array dimension."));
 
 #ifdef _DEBUG
 	VARTYPE vType;
 	::SafeArrayGetVartype(psaRates, &vType);
 	ATLASSERT(vType == VT_R8);
-	::SafeArrayGetVartype(psaDTEs, &vType);
-	ATLASSERT(vType == VT_I4);
+	::SafeArrayGetVartype(psaYTEs, &vType);
+	ATLASSERT(vType == VT_R8);
 #endif
 	
-	if (psaRates->rgsabound[0].cElements ==0 || psaDTEs->rgsabound[0].cElements == 0)
+	if (psaRates->rgsabound[0].cElements ==0 || psaYTEs->rgsabound[0].cElements == 0)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Array has zero length."));
 
-	if (psaRates->rgsabound[0].cElements != psaDTEs->rgsabound[0].cElements)
+	if (psaRates->rgsabound[0].cElements != psaYTEs->rgsabound[0].cElements)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Arrays should have equal lengths."));
 		
-	if (nDTE < 0)
-		nDTE = 0;
+	if (dYTE < 0) dYTE = 0;
 
-	DOUBLE	dRate = ::InterpolateRates2(psaRates->rgsabound[0].cElements, (DOUBLE*)psaRates->pvData, (LONG*)psaDTEs->pvData, nDTE);
+	DOUBLE	dRate = ::InterpolateRates2(psaRates->rgsabound[0].cElements, (DOUBLE*)psaRates->pvData, (DOUBLE*)psaYTEs->pvData, dYTE);
 	
 	__CHECK_HRESULT(::SafeArrayUnlock(psaRates), _T("Unable to unlock rates array."));
-	__CHECK_HRESULT(::SafeArrayUnlock(psaDTEs), _T("Unable to unlock DTEs array."));
+	__CHECK_HRESULT(::SafeArrayUnlock(psaYTEs), _T("Unable to unlock YTEs array."));
 
 	return dRate;
 }
@@ -2715,7 +2721,6 @@ void CMmRpUndAtom::_GetSyntheticRootBasketDividends(ISynthRootAtomPtr& spSynthRo
 				bRes = dDivAmts.Alloc(nDivCount);
 				if (!bRes)
 					CComErrorWrapper::ThrowError(E_FAIL, _T("Failed to alloc dividends."));
-
 				::GetDividends2(nToday, nExpiry - nToday, nDivDate, m_nDivFreq, m_dDivAmt, nDivCount, (DOUBLE*)dDivAmts, (DOUBLE*)dDivDtes, &nRetCount);
 			}
 		}
@@ -2814,10 +2819,10 @@ void CMmRpUndAtom::_GetSyntheticRootBasketDividends(ISynthRootAtomPtr& spSynthRo
 	return nRetCount;
 }*/
 
-DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, LONG nToday,
-											   DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaDTEs) throw()
+DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, DATE dtExpiryOV, DATE tmCloseTime, DATE dtNow,
+											   DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw()
 {
-	if (psaRates == NULL || psaDTEs == NULL)
+	if (psaRates == NULL || psaYTEs == NULL)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid array pointer."));
 
 	LPSAFEARRAY psaDates = NULL;
@@ -2829,28 +2834,27 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 
 
 	__CHECK_HRESULT(::SafeArrayLock(psaRates), _T("Unable to lock rates array."));
-	__CHECK_HRESULT(::SafeArrayLock(psaDTEs), _T("Unable to lock DTEs array."));
+	__CHECK_HRESULT(::SafeArrayLock(psaYTEs), _T("Unable to lock DTEs array."));
 
-	if (::SafeArrayGetDim(psaRates) != 1 || ::SafeArrayGetDim(psaDTEs) != 1)
+	if (::SafeArrayGetDim(psaRates) != 1 || ::SafeArrayGetDim(psaYTEs) != 1)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid array dimension."));
 
 #ifdef _DEBUG
 	VARTYPE vType;
 	::SafeArrayGetVartype(psaRates, &vType);
 	ATLASSERT(vType == VT_R8);
-	::SafeArrayGetVartype(psaDTEs, &vType);
-	ATLASSERT(vType == VT_I4);
+	::SafeArrayGetVartype(psaYTEs, &vType);
+	ATLASSERT(vType == VT_R8);
 #endif
 
-	if (psaRates->rgsabound[0].cElements ==0 || psaDTEs->rgsabound[0].cElements == 0)
+	if (psaRates->rgsabound[0].cElements ==0 || psaYTEs->rgsabound[0].cElements == 0)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Array has zero length."));
 
-	if (psaRates->rgsabound[0].cElements != psaDTEs->rgsabound[0].cElements)
+	if (psaRates->rgsabound[0].cElements != psaYTEs->rgsabound[0].cElements)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Arrays should have equal lengths."));
 
-	LONG nDTE = nExpiry - nToday;
-	if (nDTE < 0)
-		nDTE = 0;
+	DOUBLE dYTE = (dtExpiryOV - dtNow) / 365.;
+	if (dYTE < 0)	dYTE = 0.;
 
 	LONG	nRetCount = 0L;
 	LONG	nDivCount = 0L;	
@@ -2860,7 +2864,7 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 
 	EtsDivTypeEnum enDivType = enDivCustomStream;
 	IEtsIndexDivAtomPtr spDiv = m_spDividend;
-	if(spDiv)
+	if (spDiv)
 		spDiv->get_DivType(&enDivType);
 
 	switch(enDivType)
@@ -2871,20 +2875,19 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 		{
 			if (m_spDividend != NULL)
 				nDivCount = 0;
-			m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
+			m_spDividend->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 			if (nDivCount< 0)
 				nDivCount = 0;
 
 			if (nDivCount> 0)
 			{
-				//m_spDividend->GetDividends(nToday, nExpiry, nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-				m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+				m_spDividend->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 				::SafeArrayLock(psaDates);
 				::SafeArrayLock(psaAmounts);
 				::SafeArrayAccessData(psaDates, &lpDateData);
 				::SafeArrayAccessData(psaAmounts, &lpAmountData);
-				pdDivDte	 =	 reinterpret_cast<DOUBLE *>(lpDateData);
-				pdDivAmt	= reinterpret_cast<DOUBLE *>(lpAmountData);
+				pdDivDte = reinterpret_cast<DOUBLE *>(lpDateData);
+				pdDivAmt = reinterpret_cast<DOUBLE *>(lpAmountData);
 			}
 		}
 		break;
@@ -2900,11 +2903,10 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 
 				if (bIsBasket && spDivColl != NULL)
 				{
-					spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+					spDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 					if(nDivCount > 0L)
 					{
-						//spDivColl->GetDividends(nToday, nExpiry,  nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-						spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+						spDivColl->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 						::SafeArrayLock(psaDates);
 						::SafeArrayLock(psaAmounts);
 						::SafeArrayAccessData(psaDates, &lpDateData);
@@ -2942,12 +2944,7 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 	//		::SafeArrayAccessData(psaAmounts, &lpAmountData);
 	//		pdDivDte	 =	 reinterpret_cast<DOUBLE *>(lpDateData);
 	//		pdDivAmt	= reinterpret_cast<DOUBLE *>(lpAmountData);
-
-
-
 	//	}
-
-
 	//}
 	//else
 	//{
@@ -2975,17 +2972,16 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 	//			}
 	//		}
 	//	}
-
 	//}
 
 	if(nDivCount < 0)
 		nDivCount = 0;
 
-	DOUBLE	dPrice = ::CalcForwardPrice2(dSpotPrice, nDTE, nDivCount, pdDivAmt, pdDivDte, 
-		dForeignRate, psaRates->rgsabound[0].cElements, (DOUBLE*)psaRates->pvData, (LONG*)psaDTEs->pvData );
+	DOUBLE	dPrice = ::CalcForwardPrice2(dSpotPrice, dYTE, nDivCount, pdDivAmt, pdDivDte, 
+		dForeignRate, psaRates->rgsabound[0].cElements, (DOUBLE*)psaRates->pvData, reinterpret_cast<DOUBLE*>(psaYTEs->pvData) );
 
 	__CHECK_HRESULT(::SafeArrayUnlock(psaRates), _T("Unable to unlock rates array."));
-	__CHECK_HRESULT(::SafeArrayUnlock(psaDTEs), _T("Unable to unlock DTEs array."));
+	__CHECK_HRESULT(::SafeArrayUnlock(psaYTEs), _T("Unable to unlock DTEs array."));
 
 	if (psaAmounts !=NULL)
 	{
@@ -3002,38 +2998,37 @@ DOUBLE	CMmRpUndAtom::_CalcRegularForwardPrice(DOUBLE dSpotPrice, LONG nExpiry, L
 	}
 	return dPrice;
 }
-DOUBLE	CMmRpUndAtom::_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUBLE dSpotPrice, 
-												 LONG nExpiry, LONG nToday, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaDTEs) throw()
+DOUBLE	CMmRpUndAtom::_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUBLE dSpotPrice, DATE dtExpiryOV, DATE tmCloseTime, 
+												 DATE dtNow, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw()
 {
 	if (!pSynthRoot)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T(""));
 
-	if (psaRates == NULL || psaDTEs == NULL)
+	if (psaRates == NULL || psaYTEs == NULL)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid array pointer."));
 
 	__CHECK_HRESULT(::SafeArrayLock(psaRates), _T("Unable to lock rates array."));
-	__CHECK_HRESULT(::SafeArrayLock(psaDTEs), _T("Unable to lock DTEs array."));
+	__CHECK_HRESULT(::SafeArrayLock(psaYTEs), _T("Unable to lock DTEs array."));
 
-	if (::SafeArrayGetDim(psaRates) != 1 || ::SafeArrayGetDim(psaDTEs) != 1)
+	if (::SafeArrayGetDim(psaRates) != 1 || ::SafeArrayGetDim(psaYTEs) != 1)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid array dimension."));
 
 #ifdef _DEBUG
 	VARTYPE vType;
 	::SafeArrayGetVartype(psaRates, &vType);
 	ATLASSERT(vType == VT_R8);
-	::SafeArrayGetVartype(psaDTEs, &vType);
-	ATLASSERT(vType == VT_I4);
+	::SafeArrayGetVartype(psaYTEs, &vType);
+	ATLASSERT(vType == VT_R8);
 #endif
 
-	if (psaRates->rgsabound[0].cElements ==0 || psaDTEs->rgsabound[0].cElements == 0)
+	if (psaRates->rgsabound[0].cElements ==0 || psaYTEs->rgsabound[0].cElements == 0)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Array has zero length."));
 
-	if (psaRates->rgsabound[0].cElements != psaDTEs->rgsabound[0].cElements)
+	if (psaRates->rgsabound[0].cElements != psaYTEs->rgsabound[0].cElements)
 		CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Arrays should have equal lengths."));
 
-	LONG nDTE = nExpiry - nToday;
-	if (nDTE < 0)
-		nDTE = 0;
+	DATE dYTE = (dtExpiryOV - dtNow) / 365.;
+	if (dYTE < 0)	dYTE = 0.;
 
 	LONG	nRetCount = 0L;
 	LONG	nDivCount = 0L;
@@ -3065,11 +3060,10 @@ DOUBLE	CMmRpUndAtom::_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUB
 		spSynthRootAtom->get_BasketDivs(&spDivColl);
 		if (spDivColl != NULL)
 		{
-			spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+			spDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 			if(nDivCount > 0L)
 			{
-				//spDivColl->GetDividends(nToday, nExpiry,  nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-				spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+				spDivColl->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 				::SafeArrayLock(psaDates);
 				::SafeArrayLock(psaAmounts);
 				::SafeArrayAccessData(psaDates, &lpDateData);
@@ -3086,11 +3080,11 @@ DOUBLE	CMmRpUndAtom::_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUB
 	if (nDivCount < 0)
 		nDivCount = 0;
 
-	DOUBLE	dPrice = ::CalcForwardPrice2(dSpotPrice, nDTE, nRetCount, pdDivAmt, pdDivDte, 
-		dForeignRate, psaRates->rgsabound[0].cElements, (DOUBLE*)psaRates->pvData, (LONG*)psaDTEs->pvData );
+	DOUBLE	dPrice = ::CalcForwardPrice2(dSpotPrice, dYTE, nRetCount, pdDivAmt, pdDivDte, 
+		dForeignRate, psaRates->rgsabound[0].cElements, (DOUBLE*)psaRates->pvData, reinterpret_cast<DOUBLE*>(psaYTEs->pvData) );
 
 	__CHECK_HRESULT(::SafeArrayUnlock(psaRates), _T("Unable to unlock rates array."));
-	__CHECK_HRESULT(::SafeArrayUnlock(psaDTEs), _T("Unable to unlock DTEs array."));
+	__CHECK_HRESULT(::SafeArrayUnlock(psaYTEs), _T("Unable to unlock DTEs array."));
 
 	if (psaAmounts !=NULL)
 	{
@@ -3105,7 +3099,6 @@ DOUBLE	CMmRpUndAtom::_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUB
 		::SafeArrayUnlock(psaDates);
 		::SafeArrayDestroy(psaDates);
 	}
-
 
 	return dPrice;
 }
@@ -3271,7 +3264,7 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 	IMmRpOptAtomPtr		spOptAtom(pOptAtom);
 	IMmRpUndCollPtr		spUndColl(pUndColl);
 
-	DOUBLE				dtExpiry		= 0.;
+	DATE				dtExpiryOV = 0., tmCloseTime = 0.;
 	DOUBLE				dStrike			= 0.;	
 	DOUBLE				dOptBid			= 0.;
 	DOUBLE				dOptAsk			= 0.;
@@ -3288,7 +3281,8 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 
 	__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
 	__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
-	__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+	__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+	__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 
 	IMMRpPricePtr spPrice ;
 	spOptAtom->get_Price( &spPrice ) ;
@@ -3304,11 +3298,10 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 	DOUBLE	dOptPrice = m_spOptPriceProfile->GetOptPriceMid(dOptBid, dOptAsk, dOptLast, 
 		enPriceRoundingRule, bUseTheoVolatility, 0., NULL);
 
-	//LONG	nDivDate = (LONG)m_dtDivDate;
-	LONG	nToday = (LONG)vt_date::GetCurrentDate(true);
-	LONG	nExpiry = (LONG)dtExpiry;
-
-
+	DATE	dtNow; 
+	::GetNYDateTimeAsDATE(&dtNow);
+	DOUBLE	dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.;
+	
 	bool				bIsRootSynthetic = false;
 	ISynthRootAtomPtr	spSynthRootAtom;
 
@@ -3318,7 +3311,6 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 		if (spSynthRootAtom != NULL) //is synthetic
 			bIsRootSynthetic = true;
 	}
-
 
 	DOUBLE	dPrice = 0.;
 	DOUBLE	dPriceForGreeks = 0.;
@@ -3350,21 +3342,8 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 				_CHK( spFut->get_UndPriceProfile(&spFutPriceProfile));
 				if ( NULL != spFutPriceProfile )
 				{
-/*					if ( !useFuture )	{
-						IMMRpPricePtr spPrice ;
-						spFut->get_Price( &spPrice ) ;
-						ATLASSERT ( spPrice ) ;
-						_CHK(spPrice->get_Bid(&futureBid));
-						_CHK(spPrice->get_Ask(&futureAsk));
-						_CHK(spPrice->get_Last(&futureLast));
-						dPrice = spFutPriceProfile->GetUndPriceMid( futureBid, futureAsk, futureLast,dUndPriceTolerance,enPriceRoundingRule, NULL);
-					}
-					else{
-						VARIANT_BOOL	futureUsed;
-						_CHK(spFut->GetFuturePrice(dUndPriceTolerance,enPriceRoundingRule, NULL, &futureUsed, &dPrice));
-					}*/
-				VARIANT_BOOL	futureUsed;
-				_CHK(spFut->GetFuturePrice(dUndPriceTolerance,enPriceRoundingRule, NULL, &futureUsed, &dPrice));
+					VARIANT_BOOL	futureUsed;
+					_CHK(spFut->GetFuturePrice(dUndPriceTolerance,enPriceRoundingRule, NULL, &futureUsed, &dPrice));
 
 					dPrice *= ( 1. + dUndPriceShift/ 100.);
 					dPriceForGreeks  = dPrice;
@@ -3380,7 +3359,6 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 
 		}
 		else{
-			// dPrice = m_spUndPriceProfile->GetUndPriceMid ( dUndBid, dUndAsk, dUndLast, dUndPriceTolerance, enPriceRoundingRule, NULL);
 			VARIANT_BOOL	futureUsed = VARIANT_FALSE;
 			__CHECK_HRESULT3(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, NULL, &futureUsed, &dPrice ));
 			if ( futureUsed && dPrice > 0. ) {
@@ -3402,14 +3380,13 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 			{
 				if (m_spDividend != NULL)
 					nDivCount = 0;
-				m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
+				m_spDividend->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 				if (nDivCount< 0)
 					nDivCount = 0;
 
 				if (nDivCount> 0)
 				{
-					//m_spDividend->GetDividends(nToday, nExpiry, nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-					m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+					m_spDividend->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 					::SafeArrayLock(psaDates);
 					::SafeArrayLock(psaAmounts);
 					::SafeArrayAccessData(psaDates, &lpDateData);
@@ -3433,11 +3410,10 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 
 					if (bIsBasket && spDivColl != NULL)
 					{
-						spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+						spDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 						if(nDivCount > 0L)
 						{
-							//spDivColl->GetDividends(nToday, nExpiry,  nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-							spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+							spDivColl->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 							::SafeArrayLock(psaDates);
 							::SafeArrayLock(psaAmounts);
 							::SafeArrayAccessData(psaDates, &lpDateData);
@@ -3539,11 +3515,10 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 			spSynthRootAtom->get_BasketDivs(&spDivColl);
 			if (spDivColl != NULL)
 			{
-				spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+				spDivColl->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 				if(nDivCount > 0L)
 				{
-					//spDivColl->GetDividends(nToday, nExpiry,  nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-					spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+					spDivColl->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 					::SafeArrayLock(psaDates);
 					::SafeArrayLock(psaAmounts);
 					::SafeArrayAccessData(psaDates, &lpDateData);
@@ -3561,39 +3536,38 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 
 	if (bUseTheoVolatility == VARIANT_TRUE)
 	{
-		dVola = m_spVolaSrv->GetOptionVola(dtExpiry, dStrike);
+		dVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
 	}
 	else 
 	{
 		if(VARIANT_TRUE == bUseTheoVolaNoBid && (DoubleEQZero(dOptBidForIv) || dOptBidForIv < 0.))
 		{
-			dVola = m_spVolaSrv->GetOptionVola(dtExpiry, dStrike);
+			dVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
 		}
 		else
 		{
 			LONG	nFlag = VF_OK;
 			if(dOptPrice > 0.)
 			{
-				dVola = isFutureOption	?  
-													::CalcFutureOptionVolatility(	dRate, dPrice, dOptPrice, dStrike, 
-																							nExpiry - nToday, futureOptionType, 
-																							futureOptionStyle, 100, 
-																							dSkew, dKurt, enCalcModel, &nFlag)
-												:  
-													::CalcVolatilityMM3(	dRate, dYield, dPrice, dOptPrice, dStrike, 
-																				nExpiry - nToday, enOptType, 
-																				m_vbIsAmerican == VARIANT_TRUE, nRetCount, 
-																				pdDivAmt, pdDivDte, 100L, dSkew, dKurt, 
-																				enCalcModel, &nFlag);
+				dVola = isFutureOption	? ::CalcFutureOptionVolatility(	dRate, dPrice, dOptPrice, dStrike, 
+																		dYTE, futureOptionType, 
+																		futureOptionStyle, 100, 
+																		dSkew, dKurt, enCalcModel, &nFlag)
+										:  
+										::CalcVolatilityMM3(	dRate, dYield, BAD_DOUBLE_VALUE, dPrice, dOptPrice, dStrike, 
+																		dYTE, enOptType, 
+																		m_vbIsAmerican == VARIANT_TRUE, nRetCount, 
+																		pdDivAmt, pdDivDte, 100L, dSkew, dKurt, 
+																		enCalcModel, &nFlag);
 			}
             else if (bUseTheoVolaBadMarket == VARIANT_TRUE)
 			{
-				dVola = m_spVolaSrv->GetOptionVola(dtExpiry, dStrike);
+				dVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
 			}
 
             if (bUseTheoVolaBadMarket == VARIANT_TRUE && nFlag != VF_OK)
 			{
-				dVola = m_spVolaSrv->GetOptionVola(dtExpiry, dStrike);
+				dVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
 			}
 		}
     }
@@ -3605,35 +3579,24 @@ LONG CMmRpUndAtom::_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptA
 			if(m_enUndType==enCtFutUnd)
 			{
 					lRet = ::CalcFutureOptionGreeks2(	dRate, dPriceForGreeks, false, dStrike, dVola, 
-																				nExpiry - nToday, futureOptionType, 
+																				dYTE, futureOptionType, 
 																				futureOptionStyle, 100L, 
 																				dSkew, dKurt,enCalcModel, &aGreeks);
 			}
 			else /*enCtIndex*/
 			{
-					lRet = ::CalcFutureOptionGreeks3(dRate, dYield, dPriceForGreeks,true/*false*/, dStrike, dVola, nExpiry - nToday,
+					lRet = ::CalcFutureOptionGreeks3(dRate, dYield, dPriceForGreeks,true/*false*/, dStrike, dVola, dYTE,
 					futureOptionType, futureOptionStyle, 100L, dSkew, dKurt, enCalcModel, lRet, pdDivAmt, pdDivDte, &aGreeks);
 			}
 	}
 	else
 	{
-			lRet = ::CalcGreeksMM2(	dRate, dYield, dPriceForGreeks, dStrike, dVola, 
-																	nExpiry - nToday, _penOptType ? *_penOptType : enOptType , 
+			lRet = ::CalcGreeksMM2(	dRate, dYield, BAD_DOUBLE_VALUE, dPriceForGreeks, dStrike, dVola, 
+																	dYTE, _penOptType ? *_penOptType : enOptType , 
 																	m_vbIsAmerican == VARIANT_TRUE, nDivCount, pdDivAmt, pdDivDte, 
-						100L, dSkew, dKurt, enCalcModel, &aGreeks);
+																	100L, dSkew, dKurt, enCalcModel, &aGreeks);
 	}
 
-
-	/*long lRet = isFutureOption	?	
-											::CalcFutureOptionGreeks2(	dRate, dPriceForGreeks, false, dStrike, dVola, 
-																				nExpiry - nToday, futureOptionType, 
-																				futureOptionStyle, 100L, 
-																				dSkew, dKurt,enCalcModel, &aGreeks)
-										:	
-											::CalcGreeksMM2(	dRate, dYield, dPriceForGreeks, dStrike, dVola, 
-																	nExpiry - nToday, _penOptType ? *_penOptType : enOptType , 
-																	m_vbIsAmerican == VARIANT_TRUE, nDivCount, pdDivAmt, pdDivDte, 
-		100L, dSkew, dKurt, enCalcModel, &aGreeks);*/
 	
 	if (psaAmounts !=NULL)
 	{

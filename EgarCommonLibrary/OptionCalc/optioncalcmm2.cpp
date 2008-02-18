@@ -17,10 +17,11 @@
 
 static double CalculateOptionMM(double	dDomesticRate,
 								double	dForeignRate, 
+								double	dHTBRate,
 								double	dSpotPrice,
 								double	dStrike,
 								double	dVolatility, 
-								long	nDTE,
+								double	dYTE,
 								bool	bIsCall,
 								bool	bIsAmerican,
 								long	nCount, 
@@ -35,17 +36,17 @@ static double CalculateOptionMM(double	dDomesticRate,
 	switch (nModel)
 	{
 	case MM_EGAR_BS			:
-        return CO_BlackScholes(dDomesticRate, dForeignRate, dSpotPrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
+        return CO_BlackScholes(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike,
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
 	case MM_EGAR_BINOMIAL	:	
-        return CO_StandardBinomial(dDomesticRate, dForeignRate, dSpotPrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, nSteps, pGreeks);
+        return CO_StandardBinomial(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike,
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, nSteps, pGreeks);
 	case MM_EGAR_OPTIMIZED	:	
-        return CO_OptimizedBinomial(dDomesticRate, dForeignRate, dSpotPrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
+        return CO_OptimizedBinomial(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike,
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
 	case MM_EGAR_VSKLOG		:	
         return CO_VskLog(dDomesticRate, dForeignRate, dSpotPrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, dSkew, dKurtosis, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, dSkew, dKurtosis, pGreeks);
 
 	default: return 0.;
 	}
@@ -55,11 +56,12 @@ static double CalculateOptionMM(double	dDomesticRate,
 	Calculates volatility. Returns -1 if error occured.
 ***************************************************************************************************/
 double OPTIONCALC_API CalcVolatilityMM2(	double	dDomesticRate,	
-											double	dForeignRate, 
+											double	dForeignRate,
+											double	dHTBRate,
 											double	dSpotPrice,
 											double	dOptionPrice,
 											double	dStrike,
-											long	nDTE,
+											double	dYTE,
 											long	nIsCall,
 											long	nIsAmerican,
 											long	nCount, 
@@ -73,10 +75,11 @@ double OPTIONCALC_API CalcVolatilityMM2(	double	dDomesticRate,
     long nFlag = VF_OK;
     double dRet = CalcVolatilityMM3(dDomesticRate,
                                     dForeignRate,
+									dHTBRate,
                                     dSpotPrice,
                                     dOptionPrice,
                                     dStrike,
-                                    nDTE,
+                                    dYTE,
                                     nIsCall,
                                     nIsAmerican,
                                     nCount,
@@ -96,10 +99,11 @@ double OPTIONCALC_API CalcVolatilityMM2(	double	dDomesticRate,
 ***************************************************************************************************/
 double OPTIONCALC_API CalcVolatilityMM3(	double	dDomesticRate,	
 											double	dForeignRate, 
+											double	dHTBRate,
 											double	dSpotPrice,
 											double	dOptionPrice,
 											double	dStrike,
-											long	nDTE,
+											double	dYTE,
 											long	nIsCall,
 											long	nIsAmerican,
 											long	nCount, 
@@ -122,144 +126,92 @@ double OPTIONCALC_API CalcVolatilityMM3(	double	dDomesticRate,
 		}
 	}
 
-	if (!pnFlag)
-	{
+    if (!pnFlag)
+    {
 		::SetLastError(ERROR_INVALID_PARAMETER);
 		return -1;
-	}
+    }
 
-	double EPS = 3.0e-8;
-	int ITMAX = 30;
+	double dVolaLeft	= 0.01;		// Left boundary of volatility value
+	double dVolaRight	= 4.0;	// 2.5;		// Right boundary of volatility value
+	double dVolaMed;
+	
+	double ImpVol = -1;
 
-	double tol = 1.0e-6;
-	double tolF = 1.0e-4;
-	double x1  = 0.01;
-	double x2  = 2.5;
+	const double cdOptValPrec = 0.0001;			// Precision of volatility search (Epsilon for option price)
+	
+	double	dOptValDelta = cdOptValPrec + 1;	// 
 
-	double dOptValMin = 0.0;
-	double dOptValMax = 0.0;
+	int	Count = -30;			// Amount of iterations to find volatility value
 
-	int iter;
-	double a=x1,b=x2,c=x2,d,e,min1,min2;
-	double fa=(dOptValMin = CalculateOptionMM(dDomesticRate, dForeignRate, dSpotPrice, dStrike, 
-		x1 , nDTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
-		max(nSteps, 5), dSkew, dKurtosis, nModel))-dOptionPrice;
+	// Calculate boundary values
+	double dOptValMin = CalculateOptionMM(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike, 
+		dVolaLeft, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
+		max(nSteps, 5), dSkew, dKurtosis, nModel);	
+	if(OPM::IsBadValue(dOptValMin))
+		dOptValMin = 0.;
 
-	double fb=(dOptValMax = CalculateOptionMM(dDomesticRate, dForeignRate, dSpotPrice, dStrike, 
-		x2 , nDTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
-		max(nSteps, 5), dSkew, dKurtosis, nModel))-dOptionPrice;
-
+	double dOptValMax = CalculateOptionMM(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike, 
+		dVolaRight, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
+		max(nSteps, 5), dSkew, dKurtosis, nModel);
+	if(OPM::IsBadValue(dOptValMax))
+		dOptValMax = 0.;
+	
+	double dOptValMid;
+	
 	if (dOptionPrice > dOptValMax)
 	{
-		*pnFlag = VF_TOOHIGH;
-		return x2;
+        *pnFlag = VF_TOOHIGH;
+		return dVolaRight;
 	}
-	else if (dOptionPrice < (dOptValMin + .005))
+    else if (dOptionPrice < (dOptValMin + .005))
+    {
+        *pnFlag = VF_TOOLOW;
+        dOptionPrice = dOptValMin + .005;
+    }
+    else
+    {
+        *pnFlag = VF_OK;
+    }
+
+	// Iterate
+	while (fabs(dOptValDelta) >= cdOptValPrec && Count != 0)
 	{
-		*pnFlag = VF_TOOLOW;
-		dOptionPrice = dOptValMin + .005;
-		fa = dOptValMin - dOptionPrice;
+		Count++;
+	
+		dVolaMed = 0.5 * (dVolaLeft + dVolaRight);	
+		dOptValMid = CalculateOptionMM(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike, 
+			dVolaMed, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
+			max(nSteps, 5), dSkew, dKurtosis, nModel);
+		if(OPM::IsBadValue(dOptValMid))
+			dOptValMid = 0.;
 
-	}
-	else
-	{
-		*pnFlag = VF_OK;
-	}
-
-	double fc,p,q,r,s,tol1,xm;
-
-	if ((fa > 0.0 && fb > 0.0) || (fa < 0.0 && fb < 0.0)) {
-		//Root must be bracketed in zbrent
-		//::SetLastError( ERROR_INVALID_PARAMETER );
-		*pnFlag = VF_UNRELIABLE;
-		return -1;
-	}
-
-	fc=fb;
-	for (iter=1;iter<=ITMAX;iter++) {
-
-		if ((fb > 0.0 && fc > 0.0) || (fb < 0.0 && fc < 0.0)) {
-			c=a;  //Rename a, b, c and adjust bounding interval. 
-			fc=fa;
-			e=d=b-a;
-		}
-
-		if (fabs(fc) < fabs(fb)) {
-			a=b;
-			b=c;
-			c=a;
-			fa=fb;
-			fb=fc;
-			fc=fa;
-		}
-
-		tol1=2.0*EPS*fabs(b)+0.5*tol; //Convergence check.
-		xm=0.5*(c-b);
-
-
-		//if (abs(fb)<= 0.005*dOptionPrice) {
-		if (fabs(fb) <= tolF || fabs(xm) <= tol1) {
-			//*pnFlag = VF_OK;
-			return b;
-		}
-
-		if (fabs(e) >= tol1 && fabs(fa) > fabs(fb)) {
-
-			s=fb/fa; //Attempt inverse quadratic interpolation.
-
-			if (a == c) {
-				p=2.0*xm*s;
-				q=1.0-s;
-			} else {
-				q=fa/fc;
-				r=fb/fc;
-				p=s*(2.0*xm*q*(q-r)-(b-a)*(r-1.0));
-				q=(q-1.0)*(r-1.0)*(s-1.0);
-			}
-
-			if (p > 0.0) q = -q; //Check whether in bounds.
-
-			p=fabs(p);
-			min1=3.0*xm*q-fabs(tol1*q);
-			min2=fabs(e*q);
-
-			if (2.0*p < (min1 < min2 ? min1 : min2)) {
-				e=d; //Accept interpolation.
-				d=p/q;
-			} else {
-				d=xm; //Interpolation failed, use bisection.
-				e=d;
-			}
-		} else { //Bounds decreasing too slowly, use bisection.
-			d=xm;
-			e=d;
-		}
-
-		a=b; //Move last best guess to a.
-		fa=fb;
-
-		if (fabs(d) > tol1) //Evaluate new trial root.
-			b +=d;
+		dOptValDelta = dOptValMid - dOptionPrice; 
+		
+		ImpVol = dVolaMed;
+		
+		if( dOptValDelta > 0.0 )
+			dVolaRight = dVolaMed;
 		else
-			b += xm>=0?tol1:-tol1;
-
-		fb=CalculateOptionMM(dDomesticRate, dForeignRate, dSpotPrice, dStrike, 
-			b , nDTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
-			max(nSteps, 5), dSkew, dKurtosis, nModel)-dOptionPrice;
+			dVolaLeft = dVolaMed;
 	}
-	//Maximum number of iterations exceeded in brent
-	//::SetLastError( ERROR_INVALID_DATA );
-	*pnFlag = VF_UNRELIABLE;
-	return -1; //Never get here.
+
+	if( Count == 0 || fabs(dOptValDelta) > cdOptValPrec)
+	{
+        *pnFlag = VF_UNRELIABLE;
+	}
+
+	return ImpVol;
 }
 
 // Calculates greeks. Returns 0 if failed, or value greater than zero otherwise.
 long OPTIONCALC_API CalcGreeksMM2(	double	dDomesticRate,
 									double	dForeignRate, 
+									double	dHTBRate,
 									double	dSpotPrice,
 									double	dStrike,
 									double	dVolatility, 
-									long	nDTE,
+									double	dYTE,
 									long	nIsCall,
 									long	nIsAmerican,
 									long	nCount, 
@@ -313,8 +265,8 @@ long OPTIONCALC_API CalcGreeksMM2(	double	dDomesticRate,
 
 	pGreeks->nMask = gt;
 
-	pGreeks->dTheoPrice = CalculateOptionMM(dDomesticRate, dForeignRate, dSpotPrice, dStrike, 
-		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
+	pGreeks->dTheoPrice = CalculateOptionMM(dDomesticRate, dForeignRate, dHTBRate, dSpotPrice, dStrike, 
+		dVolatility, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), nCount, pDivAmnts, pDivYears,
 		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))

@@ -263,28 +263,28 @@ End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Private Sub m_HttpFeeder_GotReply(ByVal Message As String)
+Private Sub m_HttpFeeder_GotReply(ByVal message As String)
     Debug.Print "m_HttpFeeder_GotReply:"
-    Debug.Print Message
+    Debug.Print message
 End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Private Sub m_HttpFeeder_GotRequest(ByVal Message As String)
+Private Sub m_HttpFeeder_GotRequest(ByVal message As String)
     Debug.Print "m_HttpFeeder_GotRequest:"
-    Debug.Print Message
+    Debug.Print message
 End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Private Sub m_HttpFeeder_LogMessage(ByVal Message As String)
+Private Sub m_HttpFeeder_LogMessage(ByVal message As String)
     Debug.Print "m_HttpFeeder_LogMessage:"
-    Debug.Print Message
+    Debug.Print message
 End Sub
 #End If
 
-Private Sub m_IVDataLoader_Status(ByVal Message As String)
-    Debug.Print Message
+Private Sub m_IVDataLoader_Status(ByVal message As String)
+    Debug.Print message
 End Sub
 
 Private Sub m_IVDataLoader_SymbolIVPoint(ByVal Symbol As String, ByVal Strike As Double, ByVal Expiration As Date, ByVal Vola As Double)
@@ -1644,6 +1644,7 @@ End Function
 
 Private Sub m_PriceProvider_OnFuturesOption(Params As PRICEPROVIDERSLib.FuturesOptionParams, Results As PRICEPROVIDERSLib.FuturesOptionResultsEx, ByVal IsLastOption As Boolean)
     Dim aFuture As clsFutureAtom, sCurrentFuture$, nCurrentFutureId&, nId&, sBadContractName$, sFutureOptionContractName$
+    Dim dExpiryOV As Date, dTradingClose As Date
     On Error GoTo EH
     If m_bCancelFlag Then
         Exit Sub
@@ -1671,10 +1672,30 @@ Private Sub m_PriceProvider_OnFuturesOption(Params As PRICEPROVIDERSLib.FuturesO
                     
     sFutureOptionContractName = GetFutureOptionContractName(sCurrentFuture, Results)
     With Results
-        nId = gDBW.usp_EodFutureOption_Import( _
-              nCurrentFutureId, _
+        dTradingClose = DateSerial(1900, 1, 1)
+        If m_enUndType = GINT_COMMODITIES Then
+                dTradingClose = dTradingClose + "14:00:00"
+        Else:   dTradingClose = dTradingClose + "16:15:00" 'GINT_STOCKS
+'        else if m_enUndType = GINT_INTEREST Then dTradingClose = DateSerial(1900, 1, 1) + "15:00:00"
+        End If
+
+        dExpiryOV = .Last
+        Select Case m_enUndType
+            Case GINT_COMMODITIES
+                dExpiryOV = dExpiryOV + "14:00:00"
+            Case GINT_FUTUREOPTIONS
+                dExpiryOV = dExpiryOV + "16:15:00"
+'           Case GINT_INTEREST
+'                dExpiryOV = dExpiryOV + "13:00:00"
+            Case Else
+                AddToLog "Wrong Underlying Type: '" & CStr(m_enUndType) & "'."
+        End Select
+        
+        nId = gDBW.usp_EodFutureOption_Import(nCurrentFutureId, _
             .StrikePrice, _
             .ExpirationDate, _
+            dExpiryOV, _
+            dTradingClose, _
             (.OptionType = enCall), _
             .Series, _
             sFutureOptionContractName, _
@@ -1704,14 +1725,14 @@ End Sub
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
 Private Sub m_PriceProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, Results As PRICEPROVIDERSLib.OptionResultsEx, ByVal IsLastOption As Boolean)
-    Dim sOptSymb$, bIsCall As Boolean, fStrike#, dExpiry As Date, LotSize&
+    Dim sOptSymb$, bIsCall As Boolean, fStrike#, dExpiry As Date, dExpiryOV As Date, dTradingClose As Date, LotSize&
     Dim sXMLString$
 
     On Error GoTo EH
     If m_bCancelFlag Then
         Exit Sub
     End If
-    
+
     If m_sUndSymbol <> Params.UnderlyingSymbol Then
         Exit Sub
     End If
@@ -1728,13 +1749,40 @@ Private Sub m_PriceProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, R
         pbOptions.Max = (pbOptions.Max * 2) + 1
         pbOptions.Value = pbOptions.Value + 1
     End If
-        
+     
     With Results
         sOptSymb = UCase(Trim(Replace(.Series, " ", "")))
         bIsCall = (.OptionType = PRICEPROVIDERSLib.OptionTypeEnum.enCall)
         fStrike = .StrikePrice
         dExpiry = .ExpirationDate
         LotSize = .LotSize
+        
+        dTradingClose = DateSerial(1900, 1, 1)
+        If m_enUndType = GINT_INDEXES Then
+                dTradingClose = dTradingClose + "16:15:00"
+        Else:   dTradingClose = dTradingClose + "16:00:00" 'GINT_STOCKS
+        End If
+
+        Select Case .ExpirationType
+            Case 0 ' Standard expiry on 3-rd Saturday
+                Select Case .SettlementType
+                    Case enSTAM
+                        dExpiryOV = dExpiry - 1 + "09:30:00"
+                    Case enSTPM
+                        dExpiryOV = dExpiry - 1 + "16:15:00"
+                    Case enSTUndefined
+                        dExpiryOV = dExpiry - 1 + "16:00:00"
+                End Select
+            Case 1, 2, 4, 5, 6 ' Weekly options below on corresponding week and 6 - Vola index option
+                If .SettlementType = enSTAM Then
+                        dExpiryOV = dExpiry + "09:30:00"
+                Else:   dExpiryOV = dExpiry + "16:15:00"
+                End If
+            Case 7 ' Quarterly option
+                dExpiryOV = dExpiry + "16:00:00"
+            Case Else
+                AddToLog "Wrong ExpirationType: '" & CStr(.ExpirationType) & "'."
+        End Select
     End With
     
 '    If Len(sOptSymb) > 2 And fStrike > 0# Then _
@@ -1743,10 +1791,11 @@ Private Sub m_PriceProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, R
 '            sOptSymb, _
 '            bIsCall, _
 '            fStrike, _
-'            dExpiry, _
-'            LotSize
-        
-        
+'            dExpiry, _            Incompatible Version
+'            LotSize, _
+'            dExpiryOV, _
+'            TradingClose
+
    If fStrike > 0 And Len(sOptSymb) > 2 Then
         If Len(m_sOptionsImportText) = 0 Then m_sOptionsImportText = "<Import>"
         If Len(sOptSymb) > 2 And fStrike > 0# Then
@@ -1755,6 +1804,8 @@ Private Sub m_PriceProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, R
                 " IsCall = " & Chr(34) & IIf(bIsCall, "1", "0") & Chr(34) & _
                 " Strike = " & Chr(34) & CStr(fStrike) & Chr(34) & _
                 " Expiry = " & Chr(34) & CStr(dExpiry) & Chr(34) & _
+                " ExpiryOV = " & Chr(34) & CStr(dExpiryOV) & Chr(34) & _
+                " TradingClose = " & Chr(34) & CStr(dTradingClose) & Chr(34) & _
                 " LotSize = " & Chr(34) & CStr(LotSize) & Chr(34) & _
                 " />"
                 m_nOptionsImportNum = m_nOptionsImportNum + 1

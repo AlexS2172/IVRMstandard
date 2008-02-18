@@ -24,6 +24,9 @@ STDMETHODIMP CEtsOptAtom::CopyTo(IEtsOptAtom* pDest)
 		_CHK(spDest->put_PriceClose(m_dPriceClose));
 		_CHK(spDest->put_PriceTheoClose(m_dPriceTheoClose));
 		_CHK(spDest->put_ImportID(m_bstrImportID));
+
+		_CHK(spDest->put_ExpiryOV(m_dtExpiryOV));
+		_CHK(spDest->put_TradingClose(m_dtTradingClose));
 	}
 	catch(const _com_error& e)
 	{

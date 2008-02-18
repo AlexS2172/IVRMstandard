@@ -1366,7 +1366,6 @@ Private Function ExecuteFinishImportMarketStructure() As Boolean
             Set rs = gDBW.usp_EodMsOptionCache_Get(aUnd.ID)
             
             If Not rs.EOF Then
-            
                 gDBW.usp_EodMsUnderlyingCache_Save aUnd.ID, aUnd.UpdateDate
     
                 While Not rs.EOF
@@ -1374,6 +1373,8 @@ Private Function ExecuteFinishImportMarketStructure() As Boolean
                     
                     aOpt.ID = gCmn.ReadLng(rs!iOptionID)
                     aOpt.ExpiryDate = gCmn.ReadDate(rs!dtExpiryDate)
+                    aOpt.ExpiryOV = gCmn.ReadDate(rs!dtExpiryOV)
+                    aOpt.TradingClose = gCmn.ReadDate(rs!dtTradingClose)
                     aOpt.IsCall = (gCmn.ReadByte(rs!tiIsCall) <> 0)
                     aOpt.Strike = gCmn.ReadDbl(rs!fStrike)
                     aOpt.Symbol = gCmn.ReadStr(rs!vcSymbol)
@@ -1592,8 +1593,8 @@ End Function
 '
 Private Sub ImportOption(ByVal UndId As Long, aOpt As clsMsOptAtom)
     On Error GoTo EH
-    
-    gDBW.usp_Option_Import UndId, aOpt.Symbol, aOpt.IsCall, aOpt.Strike, aOpt.ExpiryDate, aOpt.LotSize, aOpt.ID
+
+    gDBW.usp_Option_Import UndId, aOpt.Symbol, aOpt.IsCall, aOpt.Strike, aOpt.ExpiryDate, aOpt.ExpiryOV, aOpt.TradingClose, aOpt.LotSize, aOpt.ID
     aOpt.IsUpload = True
     Exit Sub
 EH:
@@ -3528,8 +3529,8 @@ End Function
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Public Sub DebugSave(ByVal Message As String)
-    Debug.Print Message
+Public Sub DebugSave(ByVal message As String)
+    Debug.Print message
 End Sub
 
 

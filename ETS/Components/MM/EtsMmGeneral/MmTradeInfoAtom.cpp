@@ -639,6 +639,11 @@ HRESULT CMmTradeInfoAtom::Load(EtsContractTypeEnum enType, CClientRecordset& rc)
 				m_spOpt->Flex			= rc[L"iIsFlex"];
 				m_dSpotReference		= rc[L"fSpotReference"];
 				m_dTradedIV				= rc[L"fTradedIV"];
+
+				m_spOpt->ExpiryOV		= rc[L"dtExpiryOV"];
+				m_spOpt->TradingClose	= rc[L"dtTradingClose"];
+
+				m_spOpt->TradingClose	= m_spOpt->TradingClose - floor(m_spOpt->TradingClose);
 			}
 			break;
 		case enCtFuture:
@@ -668,6 +673,11 @@ HRESULT CMmTradeInfoAtom::Load(EtsContractTypeEnum enType, CClientRecordset& rc)
 				m_spFutOpt->ImportID		= rc[L"vcImportID"];
 				m_dSpotReference			= rc[L"fSpotReference"];
 				m_dTradedIV					= rc[L"fTradedIV"];
+
+				m_spFutOpt->ExpiryOV		= rc[L"dtExpiryOV"];
+				m_spFutOpt->TradingClose	= rc[L"dtTradingClose"];
+
+				m_spFutOpt->TradingClose	= m_spFutOpt->TradingClose - floor(m_spFutOpt->TradingClose);
 			}
 		case enCtIndex:
 		case enCtStock:
@@ -735,25 +745,65 @@ bool CMmTradeInfoAtom::GetField(TradesListColumnEnum field, _variant_t& vtRet, b
 		{
 		case enCtOption:
 			{
-				if(m_spOpt!=NULL)
+				if( m_spOpt != NULL )
 				{
-					long lDTE = static_cast<long>(m_spOpt->Expiry)- static_cast<long>(vt_date::GetCurrentDate(true));
-					vtRet = _variant_t(lDTE>0?lDTE:0L);
+					DATE expiryDateOV = m_spOpt->ExpiryOV;
+
+					typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+					ptime	ptNYNow = us_eastern::utc_to_local(second_clock::universal_time());
+					tm		tmNYNow = to_tm(ptNYNow);
+					vt_date dtToday(tmNYNow.tm_year + 1900, tmNYNow.tm_mon + 1, tmNYNow.tm_mday,
+						tmNYNow.tm_hour, tmNYNow.tm_min);
+
+					vt_date dtTimeToExp( expiryDateOV - (DATE)dtToday > 0 ? expiryDateOV - (DATE)dtToday : 0 );
+
+					std::wstring wsFormat;
+					wchar_t buffer[1024];
+					if( dtTimeToExp < 2 )
+						wsFormat = L"%d day %02d:%02d";
+					else
+						wsFormat = L"%d days %02d:%02d";
+
+					_snwprintf_s(buffer, sizeof(buffer), wsFormat.c_str(), static_cast<LONG>((DATE)dtTimeToExp), dtTimeToExp.get_hour(), dtTimeToExp.get_minute() );
+					vtRet =(wchar_t*)buffer;
+
+					//long lDTE = static_cast<long>(m_spOpt->Expiry)- static_cast<long>(vt_date::GetCurrentDate(true));
+					//vtRet = _variant_t(lDTE>0?lDTE:0L);
 				}
 			}break;
 		case enCtFutOption:
 			{
-				if(m_spFutOpt!=NULL)
+				if( m_spFutOpt!= NULL )
 				{
-					long lDTE = static_cast<long>(m_spFutOpt->Expiry)- static_cast<long>(vt_date::GetCurrentDate(true));
-					vtRet = _variant_t(lDTE>0?lDTE:0L);
+					DATE expiryDateOV = m_spFutOpt->ExpiryOV;
+
+					typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+					ptime	ptNYNow = us_eastern::utc_to_local(second_clock::universal_time());
+					tm		tmNYNow = to_tm(ptNYNow);
+					vt_date dtToday(tmNYNow.tm_year + 1900, tmNYNow.tm_mon + 1, tmNYNow.tm_mday,
+						tmNYNow.tm_hour, tmNYNow.tm_min);
+
+					vt_date dtTimeToExp( expiryDateOV - (DATE)dtToday > 0 ? expiryDateOV - (DATE)dtToday : 0 );
+
+					std::wstring wsFormat;
+					wchar_t buffer[1024];
+					if( dtTimeToExp < 2 )
+						wsFormat = L"%d day %02d:%02d";
+					else
+						wsFormat = L"%d days %02d:%02d";
+
+					_snwprintf_s(buffer, sizeof(buffer), wsFormat.c_str(), static_cast<LONG>((DATE)dtTimeToExp), dtTimeToExp.get_hour(), dtTimeToExp.get_minute() );
+					vtRet =(wchar_t*)buffer;
+
+					//long lDTE = static_cast<long>(m_spFutOpt->Expiry)- static_cast<long>(vt_date::GetCurrentDate(true));
+					//vtRet = _variant_t(lDTE>0?lDTE:0L);
 				}
 			}break;
 		default:
 			if(bForCompare)
 				vtRet = _variant_t(-1L);
 			else
-			vtRet = bsEmpty;
+				vtRet = bsEmpty;
 		}
 		break;
 	case TLC_EXPIRY:

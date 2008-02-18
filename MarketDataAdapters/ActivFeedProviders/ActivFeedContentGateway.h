@@ -15,12 +15,12 @@ struct optionRootInfo
 	optionRootInfo()
 		:lotsize(0)
 		,expirationType(0)
-		,bSettlementTypeA(false){}
+		,SettlementType(-1){}
 
 	std::string rootSymbol;
 	std::string currency;
 	long lotsize;
-	bool bSettlementTypeA;
+	long SettlementType;
 	long expirationType;
 };
 

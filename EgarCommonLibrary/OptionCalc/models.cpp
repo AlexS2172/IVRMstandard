@@ -5,10 +5,11 @@
 double CO_BlackScholes(	
 						double	R,
 						double	RF,
+						double	dHTBRate,
 						double	S,
 						double	K,
 						double	V,
-						int		Dte, 
+						double	Yte, 
                         bool	Call,
 						bool	American,
 						double* DivAmnt,
@@ -17,24 +18,23 @@ double CO_BlackScholes(
 						GREEKS *pGreeks
 						)
 {
-	if (Dte < 0)
-		return 0.0;
-	if (Dte < 1) 
+	if (Yte < 0.) 
 		return max(Call ? S - K : K - S, 0.);
 
 	if (DivCount > 0)
 		RF = 0.;
     
-	return OPM::BlackAndScholes(R, RF, S, K, Dte, V, Call, DivAmnt, DivYte, DivCount, pGreeks);
+	return OPM::BlackAndScholes(R, RF, dHTBRate, S, K, Yte, V, Call, DivAmnt, DivYte, DivCount, pGreeks);
 } 
 
 double CO_StandardBinomial(
 						double	R,
 					    double	RF,
+						double	dHTBRate,
 					    double	S,
 					    double	K,
 					    double	V,
-					    int		Dte, 
+					    double	Yte, 
                         bool	Call,
 					    bool	American,						 
 						double* DivAmnt,						   
@@ -47,11 +47,12 @@ double CO_StandardBinomial(
 	   (Call && DivCount == 0) )
 		return CO_BlackScholes(
 						R,						
-						RF,						
+						RF,	
+						dHTBRate,
 						S,						
 						K,						
 						V,						
-						Dte,						
+						Yte,						
 						Call,						
 						American,						
 						DivAmnt,						
@@ -62,10 +63,11 @@ double CO_StandardBinomial(
 	return CO_CoxRossWithBlackScholes(
 						R,						 
 						RF,
+						dHTBRate,
 						S,
 						K,
 						V,
-						Dte,
+						Yte,
 						Call,
 						American,
 						DivAmnt,
@@ -80,10 +82,11 @@ double CO_StandardBinomial(
 double CO_OptimizedBinomial(
 						double	R,
 					    double	RF,
+						double	dHTBRate,
 					    double	S,
 					    double	K,
 					    double	V,
-					    int		Dte, 
+					    double	Yte, 
                         bool	Call,
 					    bool	American,						 
 						double* DivAmnt,						   
@@ -94,11 +97,12 @@ double CO_OptimizedBinomial(
 	if (!American || Call )
 		return CO_BlackScholes(
 						R,						
-						RF,						
+						RF,	
+						dHTBRate,
 						S,						
 						K,						
 						V,						
-						Dte,						
+						Yte,						
 						Call,						
 						American,						
 						DivAmnt,						
@@ -109,10 +113,11 @@ double CO_OptimizedBinomial(
 	return CO_CoxRossWithBlackScholes(
 						R,						 
 						RF,
+						dHTBRate,
 						S,
 						K,
 						V,
-						Dte,
+						Yte,
 						Call,
 						American,
 						DivAmnt,
@@ -129,7 +134,7 @@ double CO_VskLog(
 					    double	S,
 					    double	K,
 					    double	V,
-					    int		Dte, 
+					    double	Yte, 
                         bool	Call,
 					    bool	American,						 
 						double* DivAmnt,						   
@@ -142,14 +147,8 @@ double CO_VskLog(
 {	
 	// Calculated greeks mask
 	long cCalculatedGreeksMask = GT_NOTHING;
-	if (Dte < 0)
-	{
-		if(pGreeks)
-			pGreeks->nMask = GT_THEOPRICE;
-		return 0.0;
-	}
 
-	if (Dte < 1) 
+	if (Yte < 0.) 
 	{
 		if(pGreeks)
 			pGreeks->nMask = GT_THEOPRICE;
@@ -158,7 +157,7 @@ double CO_VskLog(
 	if (DivCount > 0)
 		RF = 0.;	
 
-	double dTheoPrice = OPM::VSKLog(S, K, R, RF, V, Dte, Call, Skew, Kurtosis, DivAmnt, DivYte, DivCount);
+	double dTheoPrice = OPM::VSKLog(S, K, R, RF, V, Yte, Call, Skew, Kurtosis, DivAmnt, DivYte, DivCount);
 
 	if(OPM::IsBadValue(dTheoPrice))
 	{
@@ -182,7 +181,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V,
-						Dte,
+						Yte,
 						Call,
 						Skew,
 						Kurtosis, 
@@ -196,7 +195,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V,
-						Dte,
+						Yte,
 						Call,
 						Skew,
 						Kurtosis, 
@@ -213,7 +212,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V,
-						Dte - 1,
+						Yte - (1.0/OPM::cdDaysPerYear365),
 						Call,
 						Skew,
 						Kurtosis, 
@@ -227,7 +226,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V + OPM::cdDeltaVolatility,
-						Dte,
+						Yte,
 						Call,
 						Skew,
 						Kurtosis, 
@@ -276,7 +275,7 @@ double CO_VskLog(
 							R + OPM::cdDeltaRate,
 							RF,
 							V,
-							Dte,
+							Yte,
 							Call,
 							Skew,
 							Kurtosis, 
@@ -300,7 +299,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V,
-						Dte - 1,
+						Yte - (1.0 / OPM::cdDaysPerYear365),
 						Call,
 						Skew,
 						Kurtosis, 
@@ -329,7 +328,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V,
-						Dte - 1,
+						Yte - (1.0 / OPM::cdDaysPerYear365),
 						Call,
 						Skew,
 						Kurtosis, 
@@ -360,7 +359,7 @@ double CO_VskLog(
 							R,
 							RF,
 							V + OPM::cdDeltaVolatility,
-							Dte,
+							Yte,
 							Call,
 							Skew,
 							Kurtosis, 
@@ -393,7 +392,7 @@ double CO_VskLog(
 						R,
 						RF,
 						V + OPM::cdDeltaVolatility,
-						Dte,
+						Yte,
 						Call,
 						Skew,
 						Kurtosis, 
@@ -420,10 +419,11 @@ double CO_VskLog(
 double CO_CoxRossWithBlackScholes(	
 							double	R,
 						    double	RF,
+							double	dHTBrate,
 						    double	S,
 						    double	K,
 						    double	V,
-						    int		Dte, 
+						    double	Yte, 
                             bool	Call,
 						    bool	American,
 						    double* DivAmnt,
@@ -433,10 +433,7 @@ double CO_CoxRossWithBlackScholes(
 							GREEKS *pGreeks
                             )
 {
-	if (Dte < 0)
-		return 0.0;
-
-	if (Dte < 1)
+	if (Yte < .0)
 		return max(Call ? S - K : K - S, 0.);
 
 	if (DivCount > 0)
@@ -444,10 +441,10 @@ double CO_CoxRossWithBlackScholes(
 		    
 	GREEKS GreeksBS, GreeksCR;
 	GreeksBS.nMask = pGreeks ? pGreeks->nMask : GT_NOTHING;
-	double	dResultBS = OPM::BlackAndScholes(R, RF, S, K, Dte, V, Call, DivAmnt, DivYte, DivCount, pGreeks ? &GreeksBS : NULL);
+	double	dResultBS = OPM::BlackAndScholes(R, RF, dHTBrate, S, K, Yte, V, Call, DivAmnt, DivYte, DivCount, pGreeks ? &GreeksBS : NULL);
 	
 	GreeksCR.nMask = pGreeks ? pGreeks->nMask : GT_NOTHING;
-	double dResultCR = OPM::CoxRossOddEvenAdjust(S, K, R, RF, V, Dte, Call, Steps, DivAmnt, DivYte, DivCount, pGreeks ? &GreeksCR : NULL);
+	double dResultCR = OPM::CoxRossOddEvenAdjust(S, K, R, RF, dHTBrate, V, Yte, Call, Steps, DivAmnt, DivYte, DivCount, pGreeks ? &GreeksCR : NULL);
 
 //	ATLTRACE("BS/CR: %f/%f", dResultBS, dResultCR);
 
@@ -467,6 +464,8 @@ double CO_CoxRossWithBlackScholes(
 				GreeksCRdVola.nMask |= GT_DELTA;
 			if(nMask & GT_GAMMA_VEGA && GreeksCR.nMask & GT_GAMMA)
 				GreeksCRdVola.nMask |= GT_GAMMA;
+			if(nMask & GT_VOLGA)
+				GreeksCRdVola.nMask |= GT_THEOPRICE;
 
 			if(GreeksCRdVola.nMask != GT_NOTHING)
 			{
@@ -475,12 +474,12 @@ double CO_CoxRossWithBlackScholes(
 
 				//ATLTRACE("Mask for BS model: %u\n", GreeksBSdVola.nMask);
 
-				double dResultBSdVola = OPM::BlackAndScholes(R, RF, S, K, Dte, V + OPM::cdDeltaVolatility, Call, DivAmnt, DivYte, DivCount, &GreeksBSdVola);
+				double dResultBSdVola = OPM::BlackAndScholes(R, RF, dHTBrate, S, K, Yte, V + OPM::cdDeltaVolatility, Call, DivAmnt, DivYte, DivCount, &GreeksBSdVola);
 				GreeksBSdVola.dTheoPrice = dResultBSdVola;
 
 				//ATLTRACE("TheoPr for BS model: %e\n", GreeksBSdVola.dTheoPrice);
 
-				double dResultCRdVola = OPM::CoxRossOddEvenAdjust(S, K, R, RF, V + OPM::cdDeltaVolatility, Dte, Call, Steps, DivAmnt, DivYte, DivCount, &GreeksCRdVola);
+				double dResultCRdVola = OPM::CoxRossOddEvenAdjust(S, K, R, RF, dHTBrate, V + OPM::cdDeltaVolatility, Yte, Call, Steps, DivAmnt, DivYte, DivCount, &GreeksCRdVola);
 
 				//ATLTRACE("TheoPr for CR model: %e\n", GreeksCRdVola.dTheoPrice);
 
@@ -506,13 +505,27 @@ double CO_CoxRossWithBlackScholes(
 						pGreeks->nMask |= GT_GAMMA_VEGA;
 					}
 
+					if(nMask & GT_VOLGA)
+					{
+						double dResultBSdVolaMinus = OPM::BlackAndScholes(R, RF, dHTBrate, S, K, Yte, V - OPM::cdDeltaVolatility, Call, DivAmnt, DivYte, DivCount, NULL);
+						double dResultCRdVolaMinus = OPM::CoxRossOddEvenAdjust(S, K, R, RF, dHTBrate, V - OPM::cdDeltaVolatility, Yte, Call, Steps, DivAmnt, DivYte, DivCount);
+
+						if(!OPM::IsBadValue(dResultCRdVolaMinus)) 
+						{
+							double dResultCRBSdVolaMinus = (!OPM::IsBadValue(dResultBSdVolaMinus) && dResultBSdVolaMinus>dResultCRdVolaMinus) ? dResultBSdVolaMinus : dResultCRdVolaMinus;
+
+							pGreeks->dVolga = (GreeksCRBSdVola.dTheoPrice - 2 * GreeksCR.dTheoPrice + dResultCRBSdVolaMinus) / (OPM::cdDeltaVolatility * OPM::cdDeltaVolatility);
+							pGreeks->nMask |= GT_VOLGA;
+						}
+					}
+
 				}
 			}
 
 			if(nMask & GT_RHO)
 			{
-				double dResultBSdRate = OPM::BlackAndScholes(R + OPM::cdDeltaRate, RF, S, K, Dte, V, Call, DivAmnt, DivYte, DivCount, NULL);
-				double dResultCRdRate = OPM::CoxRossOddEvenAdjust(S, K, R + OPM::cdDeltaRate, RF, V, Dte, Call, Steps, DivAmnt, DivYte, DivCount);
+				double dResultBSdRate = OPM::BlackAndScholes(R + OPM::cdDeltaRate, RF, dHTBrate, S, K, Yte, V, Call, DivAmnt, DivYte, DivCount, NULL);
+				double dResultCRdRate = OPM::CoxRossOddEvenAdjust(S, K, R + OPM::cdDeltaRate, RF, dHTBrate, V, Yte, Call, Steps, DivAmnt, DivYte, DivCount);
 
 				if(!OPM::IsBadValue(dResultCRdRate)) 
 				{

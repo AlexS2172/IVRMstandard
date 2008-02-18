@@ -81,7 +81,7 @@ Public Sub Execute(ByRef frmOwner As Form, ByVal sDescription As String, Optiona
     Dim bRestoreEnabled As Boolean, nTempMouse&
     
     Load Me
-    Caption = AppTitle() & " Error"
+    Caption = AppTitle() & " Error Date: " & Str(Date) & " Time: " & Format(Time, "h:m:s")
     nTempMouse = Screen.MousePointer
     Screen.MousePointer = vbDefault
     
@@ -149,7 +149,7 @@ Private Sub btnExtendedInfo_Click()
     End If
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub btnOk_Click()
     On Error Resume Next
     If m_hComplete <> 0 Then
         SetEvent m_hComplete

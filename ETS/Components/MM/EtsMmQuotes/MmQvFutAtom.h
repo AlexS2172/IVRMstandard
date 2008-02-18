@@ -172,6 +172,8 @@ END_COM_MAP()
 	
 	void FinalRelease()
 	{
+		StopCalc();
+
 		m_spFutExch = NULL;
 		m_spOptExch = NULL;
 		m_spQuote = NULL;
@@ -221,7 +223,7 @@ public:
 							DOUBLE dUndPriceTolerance, 
 							EtsPriceRoundingRuleEnum enPriceRoundingRule,
 							double dRate, 
-							long lDayShift, 
+							DATE dtCalcDate, 
 							VARIANT_BOOL ManualEdit);
 
 public:
@@ -277,7 +279,7 @@ public:
 							EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility,
 							VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
 							DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
-							VARIANT_BOOL bUseCustomRates, long lDayShift, VARIANT_BOOL ManualEdit);
+							VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit);
 
 	STDMETHOD(CalcAllOptions)(IMmQvUndAtom* aUnd, LONG nCallGreekMask, LONG nPutGreekMask,
 							MmQvIvCalcEnum enCallCalcIV, MmQvIvCalcEnum enPutCalcIV, 
@@ -285,7 +287,7 @@ public:
 							VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
 							VARIANT_BOOL bRecalcGreeks, DOUBLE dUndPriceTolerance,
 							EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-							LONG nCalcSleepFreq, LONG nCalcSleepAmt, long lDayShift, VARIANT_BOOL ManualEdit);
+							LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit);
 
 	STDMETHOD(GetFuturePrice)(  IMmQvUndAtom* aUnd,DOUBLE dTolerance, 
 								EtsPriceRoundingRuleEnum enPriceRound,

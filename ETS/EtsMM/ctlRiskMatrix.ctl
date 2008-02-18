@@ -377,6 +377,13 @@ Public Event OnScreenRefresh(ByRef Res() As EtsMmRisksLib.MmRvMatrixCalcResultTy
 
 Public Event OnScreenClose()
 
+
+Public Event OnRefreshComplete()
+Public Event OnRefreshError()
+Public Event OnRefreshEmpty()
+Public Event OnRefreshCancel()
+
+
 Private m_gdFlt As New clsGridDef
 Private m_gdScn As New clsGridDef
 Private m_gdVal As New clsGridDef
@@ -569,6 +576,7 @@ Public Function Init() As Boolean
     Exit Function
 EH:
     gCmn.ErrorMsgBox m_frmOwner, "Fail to initialize risk matrix."
+    RaiseEvent OnRefreshError
 End Function
 
 Public Sub ShowData(Optional ByVal nType As Long = TYPE_UNDERLYING, Optional ByVal nValue As Long = 0)
@@ -655,6 +663,8 @@ Public Sub StopNow()
         m_bInProc = False
         AdjustState
     End If
+    
+    RaiseEvent OnRefreshCancel
 End Sub
 
 Private Sub ClearValGrid(ByVal bAutosize As Boolean)
@@ -707,10 +717,14 @@ Private Sub ScenarioUpdate(ByVal bName As Boolean)
         .TextMatrix(1, MSC_HORZ_AXIS) = m_Scn.Axis(RMA_HORZ)
         .TextMatrix(1, MSC_HORZ_POINTS) = m_Scn.Points(RMA_HORZ)
         .TextMatrix(1, MSC_HORZ_STEP) = m_Scn.Step(RMA_HORZ)
+        .TextMatrix(1, MSC_HORZ_STEP_HOUR) = m_Scn.Hour(RMA_HORZ)
+        .TextMatrix(1, MSC_HORZ_STEP_MIN) = m_Scn.Minute(RMA_HORZ)
         
         .TextMatrix(1, MSC_VERT_AXIS) = m_Scn.Axis(RMA_VERT)
         .TextMatrix(1, MSC_VERT_POINTS) = m_Scn.Points(RMA_VERT)
         .TextMatrix(1, MSC_VERT_STEP) = m_Scn.Step(RMA_VERT)
+        .TextMatrix(1, MSC_VERT_STEP_HOUR) = m_Scn.Hour(RMA_VERT)
+        .TextMatrix(1, MSC_VERT_STEP_MIN) = m_Scn.Minute(RMA_VERT)
         
         
         If m_Und.Count > 1 Then
@@ -718,20 +732,36 @@ Private Sub ScenarioUpdate(ByVal bName As Boolean)
                 .ColComboList(MSC_HORZ_UNITS) = "#" & CStr(RMUT_PERC) & ";%%"
                 .ColDataType(MSC_HORZ_STEP) = flexDTDouble
                 .ColFormat(MSC_HORZ_STEP) = "#,##0.00"
+                .TextMatrix(0, MSC_HORZ_STEP) = "hStep"
+                
+                .ColHidden(MSC_HORZ_STEP_HOUR) = True
+                .ColHidden(MSC_HORZ_STEP_MIN) = True
             Else
                 .ColComboList(MSC_HORZ_UNITS) = "#" & CStr(RMUT_ABS) & ";Abs"
                 .ColDataType(MSC_HORZ_STEP) = flexDTLong
                 .ColFormat(MSC_HORZ_STEP) = "#,##0"
+                .TextMatrix(0, MSC_HORZ_STEP) = "hStep days"
+                
+                .ColHidden(MSC_HORZ_STEP_HOUR) = False
+                .ColHidden(MSC_HORZ_STEP_MIN) = False
             End If
             
             If m_Scn.Axis(RMA_VERT) <> RMAT_TIME Then
                 .ColComboList(MSC_VERT_UNITS) = "#" & CStr(RMUT_PERC) & ";%%"
                 .ColDataType(MSC_VERT_STEP) = flexDTDouble
                 .ColFormat(MSC_VERT_STEP) = "#,##0.00"
+                .TextMatrix(0, MSC_VERT_STEP) = "vStep"
+                
+                .ColHidden(MSC_VERT_STEP_HOUR) = True
+                .ColHidden(MSC_VERT_STEP_MIN) = True
             Else
                 .ColComboList(MSC_VERT_UNITS) = "#" & CStr(RMUT_ABS) & ";Abs"
                 .ColDataType(MSC_VERT_STEP) = flexDTLong
                 .ColFormat(MSC_VERT_STEP) = "#,##0"
+                .TextMatrix(0, MSC_VERT_STEP) = "vStep days"
+                
+                .ColHidden(MSC_VERT_STEP_HOUR) = False
+                .ColHidden(MSC_VERT_STEP_MIN) = False
             End If
         Else
             If m_Scn.Axis(RMA_HORZ) <> RMAT_TIME Then
@@ -739,10 +769,18 @@ Private Sub ScenarioUpdate(ByVal bName As Boolean)
                                             "|#" & CStr(RMUT_PERC) & ";%%"
                 .ColDataType(MSC_HORZ_STEP) = flexDTDouble
                 .ColFormat(MSC_HORZ_STEP) = "#,##0.00"
+                .TextMatrix(0, MSC_HORZ_STEP) = "hStep"
+                
+                .ColHidden(MSC_HORZ_STEP_HOUR) = True
+                .ColHidden(MSC_HORZ_STEP_MIN) = True
             Else
                 .ColComboList(MSC_HORZ_UNITS) = "#" & CStr(RMUT_ABS) & ";Abs"
                 .ColDataType(MSC_HORZ_STEP) = flexDTLong
                 .ColFormat(MSC_HORZ_STEP) = "#,##0"
+                .TextMatrix(0, MSC_HORZ_STEP) = "hStep days"
+                
+                .ColHidden(MSC_HORZ_STEP_HOUR) = False
+                .ColHidden(MSC_HORZ_STEP_MIN) = False
             End If
                                         
             If m_Scn.Axis(RMA_VERT) <> RMAT_TIME Then
@@ -751,10 +789,18 @@ Private Sub ScenarioUpdate(ByVal bName As Boolean)
             
                 .ColDataType(MSC_VERT_STEP) = flexDTDouble
                 .ColFormat(MSC_VERT_STEP) = "#,##0.00"
+                .TextMatrix(0, MSC_VERT_STEP) = "vStep"
+                
+                .ColHidden(MSC_VERT_STEP_HOUR) = True
+                .ColHidden(MSC_VERT_STEP_MIN) = True
             Else
                 .ColComboList(MSC_VERT_UNITS) = "#" & CStr(RMUT_ABS) & ";Abs"
                 .ColDataType(MSC_VERT_STEP) = flexDTLong
                 .ColFormat(MSC_VERT_STEP) = "#,##0"
+                .TextMatrix(0, MSC_VERT_STEP) = "vStep days"
+                
+                .ColHidden(MSC_VERT_STEP_HOUR) = False
+                .ColHidden(MSC_VERT_STEP_MIN) = False
             End If
         End If
         
@@ -1394,6 +1440,9 @@ End Sub
 Private Sub FormatValGrid()
     On Error Resume Next
     Dim i&, p&, g&, nLastCol&, nLastRow&, nCount&, sCaption$
+    Dim dtDate As Date
+    Dim dShift#, dValue#
+    Dim aUnd As EtsGeneralLib.UndAtom
     
     With fgVal
         m_GridLock(GT_MATRIX_VALUES).LockRedraw
@@ -1423,7 +1472,11 @@ Private Sub FormatValGrid()
             If m_Scn.Axis(RMA_VERT) <> RMAT_TIME Then
                 .Cell(flexcpText, (p - 1) * m_nGreeks + 1, 0, p * m_nGreeks, 0) = Format$((p - m_BasePoint(RMA_VERT)) * m_Scn.Step(RMA_VERT), "#,##0.00")
             Else
-                .Cell(flexcpText, (p - 1) * m_nGreeks + 1, 0, p * m_nGreeks, 0) = Format$(DateAdd("d", (p - m_BasePoint(RMA_VERT)) * m_Scn.Step(RMA_VERT), Date), "Short Date")
+                dtDate = DateAdd("d", (p - m_BasePoint(RMA_VERT)) * m_Scn.Step(RMA_VERT), GetNewYorkTime)
+                dtDate = DateAdd("h", (p - m_BasePoint(RMA_VERT)) * m_Scn.Hour(RMA_VERT), dtDate)
+                dtDate = DateAdd("n", (p - m_BasePoint(RMA_VERT)) * m_Scn.Minute(RMA_VERT), dtDate)
+                
+                .Cell(flexcpText, (p - 1) * m_nGreeks + 1, 0, p * m_nGreeks, 0) = Format$(dtDate, "MM/DD/YYYY hh:mm AMPM")
             End If
             
             g = 0
@@ -1438,15 +1491,30 @@ Private Sub FormatValGrid()
         
         .Cell(flexcpText, 0, 0, 0, 0) = m_Scn.AxisName(RMA_VERT)
         .Cell(flexcpText, 0, 1, 0, 1) = m_Scn.AxisName(RMA_HORZ)
-        
         '.Cell(flexcpText, 0, 0, 0, 2) = " "
+        
+        Set aUnd = g_Underlying(m_aFilter.Data(MFC_SYMBOL))
         
         nCount = m_Scn.Points(RMA_HORZ)
         For p = 1 To nCount
             If m_Scn.Axis(RMA_HORZ) <> RMAT_TIME Then
-                .Cell(flexcpText, 0, p + 1) = (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ)
+                dShift = (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ)
+                If (m_Und(aUnd.ID).price.IsUseManualActive) Then
+                    dValue = m_Und(aUnd.ID).price.Active
+                Else
+                    dValue = m_Und(aUnd.ID).UndPriceProfile.GetUndPriceMid(m_Und(aUnd.ID).price.Bid, m_Und(aUnd.ID).price.Ask, m_Und(aUnd.ID).price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                End If
+                If dShift < 0 And m_Und.Count > 0 And Abs(dShift) > dValue And dValue <> 0# Then
+                    dShift = -1 * dValue
+'                    .ColWidth(p + 1) = 2000
+                End If
+                .Cell(flexcpText, 0, p + 1) = dShift
             Else
-                .Cell(flexcpText, 0, p + 1) = Format$(DateAdd("d", (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ), Date), "Short Date")
+                dtDate = DateAdd("d", (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ), GetNewYorkTime)
+                dtDate = DateAdd("h", (p - m_BasePoint(RMA_HORZ)) * m_Scn.Hour(RMA_HORZ), dtDate)
+                dtDate = DateAdd("n", (p - m_BasePoint(RMA_HORZ)) * m_Scn.Minute(RMA_HORZ), dtDate)
+            
+                .Cell(flexcpText, 0, p + 1) = Format$(dtDate, "MM/DD/YYYY hh:mm AMPM")
             End If
         Next
         
@@ -1602,7 +1670,8 @@ EH:
     gCmn.ErrorHandler ""
 End Sub
 
-Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
+Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
+                        Optional ByVal bRefreshData As Boolean = True)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
@@ -1621,10 +1690,11 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     FilterUpdateAll
     ScenarioUpdate True
     ClearValGrid True
-    tmrShow.Enabled = True
+    tmrShow.Enabled = bRefreshData 'True
     Exit Sub
 EH:
     gCmn.ErrorHandler ""
+    RaiseEvent OnRefreshError
 End Sub
 
 Public Function Group() As EtsMmRisksLib.MmRvGrpAtom
@@ -1888,8 +1958,8 @@ Private Sub UpdateWtdVega()
     
     For Each aUnd In m_Und
         For Each aPos In aUnd.Pos
-            If aPos.ContractType = enCtOption Then
-                aPos.VegaWeight = g_ExpCalendar.GetVegaWeight(aPos.Expiry)
+            If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
+                aPos.VegaWeight = g_ExpCalendar.GetVegaWeight(aPos.ExpiryOV)
             End If
         Next
     Next
@@ -1958,7 +2028,7 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
             nValue = .ComboData
             Select Case Col
                 Case MFC_SYMBOL, MFC_GROUPS To MFC_STRATEGY
-                    If (Col = RFC_SYMBOL) Then
+                    If (Col = MFC_SYMBOL) Then
                             If (Not g_UnderlyingAll(nValue) Is Nothing) Then
                                 If (g_UnderlyingAll(nValue).IsHead) Then
                                     m_aFilter.Data(Col) = g_UnderlyingAll(nValue).ID
@@ -1971,6 +2041,8 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         m_aFilter.Data(Col) = nValue
                                     End If
                                 End If
+                            Else
+                                m_aFilter.Data(Col) = 0
                             End If
                     Else
                         m_aFilter.Data(Col) = nValue
@@ -2063,9 +2135,6 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         End If
                         
                     Else
-                        'If m_Scn.ID <> nValue Then
-                        '    m_Scn.ID = 0
-                        'End If
                         If Len(sValue) > 0 Then
                             m_Scn.ScenarioName = sValue
                             m_Scn.Dirty = True
@@ -2101,9 +2170,36 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         m_Scn.Step(RMA_HORZ) = dValue
                         m_Scn.FixSteps
                     End If
-                    .TextMatrix(1, MSC_HORZ_STEP) = m_Scn.Step(RMA_HORZ)
                     
                     If m_Scn.Step(RMA_HORZ) <> dOldValue Then
+                        SetRefreshHint True
+                        ClearValGrid True
+                    End If
+                    .AutoSize 0, .Cols - 1, , 100
+                    
+                Case MSC_HORZ_STEP_HOUR
+                    dOldValue = m_Scn.Step(RMA_HORZ)
+                    dValue = ReadDbl(sValue)
+                    If dValue >= 0# Then
+                        m_Scn.Hour(RMA_HORZ) = dValue
+                        m_Scn.FixSteps
+                    End If
+                    
+                    If m_Scn.Hour(RMA_HORZ) <> dOldValue Then
+                        SetRefreshHint True
+                        ClearValGrid True
+                    End If
+                    .AutoSize 0, .Cols - 1, , 100
+                    
+                Case MSC_HORZ_STEP_MIN
+                    dOldValue = m_Scn.Step(RMA_HORZ)
+                    dValue = ReadDbl(sValue)
+                    If dValue >= 0# Then
+                        m_Scn.Minute(RMA_HORZ) = dValue
+                        m_Scn.FixSteps
+                    End If
+                    
+                    If m_Scn.Minute(RMA_HORZ) <> dOldValue Then
                         SetRefreshHint True
                         ClearValGrid True
                     End If
@@ -2144,6 +2240,36 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     .TextMatrix(1, MSC_VERT_STEP) = m_Scn.Step(RMA_VERT)
                 
                     If m_Scn.Step(RMA_VERT) <> dOldValue Then
+                        SetRefreshHint True
+                        ClearValGrid True
+                    End If
+                    .AutoSize 0, .Cols - 1, , 100
+                    
+                Case MSC_VERT_STEP_HOUR
+                    dOldValue = m_Scn.Hour(RMA_VERT)
+                    dValue = ReadDbl(sValue)
+                    If dValue >= 0# Then
+                        m_Scn.Hour(RMA_VERT) = dValue
+                        m_Scn.FixSteps
+                    End If
+                    .TextMatrix(1, MSC_VERT_STEP_HOUR) = m_Scn.Hour(RMA_VERT)
+                
+                    If m_Scn.Hour(RMA_VERT) <> dOldValue Then
+                        SetRefreshHint True
+                        ClearValGrid True
+                    End If
+                    .AutoSize 0, .Cols - 1, , 100
+                    
+                Case MSC_VERT_STEP_MIN
+                    dOldValue = m_Scn.Minute(RMA_VERT)
+                    dValue = ReadDbl(sValue)
+                    If dValue >= 0# Then
+                        m_Scn.Minute(RMA_VERT) = dValue
+                        m_Scn.FixSteps
+                    End If
+                    .TextMatrix(1, MSC_VERT_STEP_MIN) = m_Scn.Minute(RMA_VERT)
+                
+                    If m_Scn.Minute(RMA_VERT) <> dOldValue Then
                         SetRefreshHint True
                         ClearValGrid True
                     End If
@@ -2351,8 +2477,8 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
     End If
             
     If bIsStock And Not aUnd Is Nothing Then
-        dPrice = m_Und(aUnd.ID).Price.Ask
-        If dPrice <= 0# Then dPrice = m_Und(aUnd.ID).Price.Last
+        dPrice = m_Und(aUnd.ID).price.Ask
+        If dPrice <= 0# Then dPrice = m_Und(aUnd.ID).price.Last
     End If
 End Sub
 
@@ -2459,8 +2585,7 @@ Private Sub tmrShow_Timer()
     tmrShow.Enabled = False
 
     If m_bInProc Or m_bDataLoad Then Exit Sub
-    
-    'Screen.MousePointer = vbArrow
+
     DoEvents
     
     If m_Grp.ID <> 0 And Not PriceProvider Is Nothing Then
@@ -2475,7 +2600,6 @@ Private Sub tmrShow_Timer()
     ClearViewAndData
     lblStatus.Caption = ""
 
-    'AdjustCaption
     
     lblStatus.Visible = False
     imgStop.Visible = True
@@ -2532,13 +2656,11 @@ Private Function PositionsLoad() As Boolean
     PositionsLoad = False
     
     If m_bInProc Then Exit Function
-    'If m_bInProc Or m_aFilter.Data(MFC_VALUE) = 0 Or m_aFilter.Data(MFC_GROUP) = 0 Then Exit Function
-    
+        
     Dim i&, nCount&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom, aExp As EtsGeneralLib.EtsMmEntityAtom
     Dim collExp As New EtsGeneralLib.EtsMmEntityAtomColl, arrExp() As Long
     
-   ' m_Grp.ID =  m_aFilter.Data(MFC_VALUE)
     m_Grp.GroupType = TYPE_ALL
 
     m_bInProc = True
@@ -2636,6 +2758,7 @@ Ex:
 EH:
     m_bInProc = False
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load positions."
+    RaiseEvent OnRefreshError
     GoTo Ex
 End Function
 
@@ -2643,6 +2766,9 @@ Private Sub InitResults()
     On Error Resume Next
     Dim nLastX&, nLastY&, nX&, nY&, dValue#, dShift#
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
+    Dim dtDate As Date
+    Dim dtNow As Date: dtNow = GetNewYorkTime
+    Dim aUnd As EtsGeneralLib.UndAtom
     
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
@@ -2666,18 +2792,32 @@ Private Sub InitResults()
         m_BasePoint(RMA_VERT) = 1
     End If
     
+    Set aUnd = g_Underlying(m_aFilter.Data(MFC_SYMBOL))
+    
     For nX = 0 To nLastX
         Select Case m_Scn.Axis(RMA_HORZ)
             Case RMAT_SPOT
                 dShift = (nX - nLastX \ 2) * m_Scn.Step(RMA_HORZ)
                 If m_Scn.Units(RMA_HORZ) = RMUT_PERC Then dShift = dShift / 100#
                 
+                If (m_Und(aUnd.ID).price.IsUseManualActive) Then
+                    dValue = m_Und(aUnd.ID).price.Active
+                Else
+                    dValue = m_Und(aUnd.ID).UndPriceProfile.GetUndPriceMid(m_Und(aUnd.ID).price.Bid, m_Und(aUnd.ID).price.Ask, m_Und(aUnd.ID).price.Last, dToleranceValue, enRoundingRule)
+                End If
+                If dShift < 0 And m_Und.Count > 0 And Abs(dShift * 100) > dValue And dValue <> 0# Then
+                    dShift = -1 * dValue
+                End If
+            
             Case RMAT_VOLA
                 dShift = (nX - nLastX \ 2) * m_Scn.Step(RMA_HORZ) / 100#
                 
             Case RMAT_TIME
-                dShift = nX * m_Scn.Step(RMA_HORZ)
-                
+                dtDate = DateAdd("d", nX * m_Scn.Step(RMA_HORZ), dtNow)
+                dtDate = DateAdd("h", nX * m_Scn.Hour(RMA_HORZ), dtDate)
+                dtDate = DateAdd("n", nX * m_Scn.Minute(RMA_HORZ), dtDate)
+            
+                dShift = dtDate - dtNow
         End Select
         
         For nY = 0 To nLastY
@@ -2717,8 +2857,11 @@ Private Sub InitResults()
                 dShift = (nY - nLastY \ 2) * m_Scn.Step(RMA_VERT) / 100#
                 
             Case RMAT_TIME
-                dShift = nY * m_Scn.Step(RMA_VERT)
-                
+                dtDate = DateAdd("d", nY * m_Scn.Step(RMA_VERT), dtNow)
+                dtDate = DateAdd("h", nY * m_Scn.Hour(RMA_VERT), dtDate)
+                dtDate = DateAdd("n", nY * m_Scn.Minute(RMA_VERT), dtDate)
+            
+                dShift = dtDate - dtNow
         End Select
         
         For nX = 0 To nLastX
@@ -2728,12 +2871,11 @@ Private Sub InitResults()
     
     If m_Und.Count = 1 Then
         If m_Scn.Units(RMA_HORZ) = RMUT_ABS And m_Scn.Axis(RMA_HORZ) = RMAT_SPOT Then
-'            dValue = PriceMidEx(m_Und(1).PriceBid, m_Und(1).PriceAsk, m_Und(1).PriceLast)
             Debug.Assert (Not m_Und(1).UndPriceProfile Is Nothing)
-            If (m_Und(1).Price.IsUseManualActive) Then
-                dValue = m_Und(1).Price.Active
+            If (m_Und(1).price.IsUseManualActive) Then
+                dValue = m_Und(1).price.Active
             Else
-                dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).Price.Bid, m_Und(1).Price.Ask, m_Und(1).Price.Last, dToleranceValue, enRoundingRule)
+                dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).price.Bid, m_Und(1).price.Ask, m_Und(1).price.Last, dToleranceValue, enRoundingRule)
             End If
             
             If dValue > 0# Then
@@ -2762,10 +2904,10 @@ Private Sub InitResults()
 '            dValue = PriceMidEx(m_Und(1).PriceBid, m_Und(1).PriceAsk, m_Und(1).PriceLast)
             Debug.Assert (Not m_Und(1).UndPriceProfile Is Nothing)
             
-            If (m_Und(1).Price.IsUseManualActive) Then
-                dValue = m_Und(1).Price.Active
+            If (m_Und(1).price.IsUseManualActive) Then
+                dValue = m_Und(1).price.Active
             Else
-                dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).Price.Bid, m_Und(1).Price.Ask, m_Und(1).Price.Last, dToleranceValue, enRoundingRule)
+                dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).price.Bid, m_Und(1).price.Ask, m_Und(1).price.Last, dToleranceValue, enRoundingRule)
             End If
             
             If dValue > 0# Then
@@ -2797,6 +2939,8 @@ Private Sub CalcMatrix()
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, bCorrelatedShift As Boolean, nModel As EtsGeneralLib.EtsCalcModelTypeEnum
     Dim nLastX&, nLastY&, nX&, nY&, nUndCount&, i&, nRow&, nMask&, nBadForeColor&, nForeColor&
     Dim aPos As EtsMmRisksLib.MmRvPosAtom
+    Dim dValue#, dShift#
+    Dim aUnder As EtsGeneralLib.UndAtom
     
     nUndCount = m_Und.Count
     If m_bInProc Or m_bRecalc Then Exit Sub
@@ -2908,8 +3052,16 @@ ExitFor:
     With fgVal
         m_GridLock(GT_MATRIX_VALUES).LockRedraw
         
+        Set aUnder = g_Underlying(m_aFilter.Data(MFC_SYMBOL)) 'sosed
+        If (m_Und(aUnder.ID).price.IsUseManualActive) Then
+            dValue = m_Und(aUnder.ID).price.Active
+        Else
+            dValue = m_Und(aUnder.ID).UndPriceProfile.GetUndPriceMid(m_Und(aUnder.ID).price.Bid, m_Und(aUnder.ID).price.Ask, m_Und(aUnder.ID).price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+        End If
         If m_bRecalc Then
             For nX = 0 To nLastX
+                dShift = .TextMatrix(0, nX + 2)
+                
                 For nY = 0 To nLastY
                     If nX <> m_BasePoint(RMA_HORZ) - 1 Or nY <> m_BasePoint(RMA_HORZ) - 1 Then
                         nForeColor = m_gdVal.Col(MVC_VALUE).ForeColor
@@ -2922,48 +3074,54 @@ ExitFor:
                     nRow = nY * m_nGreeks + 1
                     For i = 0 To MFC_LAST_COLUMN - MFC_PNL
                         If m_aFilter.Data(MFC_PNL + i) <> 0 Then
+                            If dShift = -dValue And dValue <> 0# Then
+                                .TextMatrix(nRow, nX + 2) = STR_NA
+                                .Cell(flexcpForeColor, nRow, nX + 2) = nBadForeColor
+                                .Cell(flexcpAlignment, nRow, nX + 2) = flexAlignCenterCenter
+'                                .ColWidth(nX + 2) = 2000
+                            Else
                             Select Case MFC_PNL + i
                                 Case MFC_PNL
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).PnL > BAD_DOUBLE_VALUE, m_Res(nX, nY).PnL, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadPnL, nBadForeColor, nForeColor)
-                                
+
                                 Case MFC_DELTA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Delta > BAD_DOUBLE_VALUE, m_Res(nX, nY).Delta, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadDelta, nBadForeColor, nForeColor)
-                                
+
                                 Case MFC_NET_DELTA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).NetDelta > BAD_DOUBLE_VALUE, m_Res(nX, nY).NetDelta, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadNetDelta, nBadForeColor, nForeColor)
-                                
+
                                 Case MFC_GAMMA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Gamma > BAD_DOUBLE_VALUE, m_Res(nX, nY).Gamma, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadGamma, nBadForeColor, nForeColor)
-                                
+
                                 Case MFC_GAMMA_PERC
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).GammaPerc > BAD_DOUBLE_VALUE, m_Res(nX, nY).GammaPerc, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadGammaPerc, nBadForeColor, nForeColor)
-                                
-                                
+
                                 Case MFC_NET_GAMMA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).NetGamma > BAD_DOUBLE_VALUE, m_Res(nX, nY).NetGamma, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadNetGamma, nBadForeColor, nForeColor)
-                                
+
                                 Case MFC_THETA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Theta > BAD_DOUBLE_VALUE, m_Res(nX, nY).Theta, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadTheta, nBadForeColor, nForeColor)
-                                
+
                                 Case MFC_VEGA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Vega > BAD_DOUBLE_VALUE, m_Res(nX, nY).Vega, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadVega, nBadForeColor, nForeColor)
-                                    
+
                                 Case MFC_RHO
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Rho > BAD_DOUBLE_VALUE, m_Res(nX, nY).Rho, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadRho, nBadForeColor, nForeColor)
-                                    
+
                                 Case MFC_WTD_VEGA
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).WtdVega > BAD_DOUBLE_VALUE, m_Res(nX, nY).WtdVega, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadWtdVega, nBadForeColor, nForeColor)
                             End Select
+                            End If
                             nRow = nRow + 1
                         End If
                     Next
@@ -3019,7 +3177,9 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     On Error Resume Next
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     If aUnd Is Nothing Then Exit Sub
-
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
     
     If GetIrRuleType = enRateBasedOnPosition Then
@@ -3035,15 +3195,15 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
         If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
             If bUseMidRates Then
                 If Not aUnd.IsHTB Then
-                    aPos.Rate = GetNeutralRate(Date, aPos.Expiry)
+                    aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
                 Else
-                    aPos.Rate = GetNeutralHTBRate(Date, aPos.Expiry)
+                    aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
                 End If
             Else
                 If Not aUnd.IsHTB Then
-                    aPos.Rate = IIf(dPos < 0, GetShortRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                    aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                 Else
-                    aPos.Rate = IIf(dPos < 0, GetHTBRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                    aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                 End If
             End If
 
@@ -3145,12 +3305,12 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
         Dim aUnd As MmRvUndAtom
         Set aUnd = m_Und(sRootComp.UndID)
         
-        If (Not aUnd.Price.IsUseManualActive And Not aUnd.PriceByHead) Then
-            dCompUndSpot = aUnd.Price.Last
-            dUndCompBid = aUnd.Price.Bid
-            dUndCompAsk = aUnd.Price.Ask
+        If (Not aUnd.price.IsUseManualActive And Not aUnd.PriceByHead) Then
+            dCompUndSpot = aUnd.price.Last
+            dUndCompBid = aUnd.price.Bid
+            dUndCompAsk = aUnd.price.Ask
         Else
-            dCompUndSpot = aUnd.Price.Active: dUndCompAsk = aUnd.Price.Active: dUndCompBid = aUnd.Price.Active
+            dCompUndSpot = aUnd.price.Active: dUndCompAsk = aUnd.price.Active: dUndCompBid = aUnd.price.Active
         End If
         
         If (aUnd.HeadComponent Is Nothing) Then
@@ -3303,10 +3463,10 @@ Private Function CalcTheoPnLCommonExercItmDailyPrevDate(ByRef aPos As EtsMmRisks
         
     'SUD-0909
     Dim dPriceClose As Double
-    dPriceClose = aPos.Quote.Price.Close
+    dPriceClose = aPos.Quote.price.Close
     If (Not g_Main Is Nothing) Then
-        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
-            dPriceClose = aPos.Quote.Price.TheoClose
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.price.TheoClose
         End If
     End If
     
@@ -3433,10 +3593,10 @@ Private Function CalcTheoPnLCommonExercOtm(ByRef aPos As EtsMmRisksLib.MmRvPosAt
     
     'SUD-0909
     Dim dPriceClose As Double
-    dPriceClose = aPos.Quote.Price.Close
+    dPriceClose = aPos.Quote.price.Close
     If (Not g_Main Is Nothing) Then
-        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
-            dPriceClose = aPos.Quote.Price.TheoClose
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.price.TheoClose
         End If
     End If
     
@@ -3603,7 +3763,6 @@ Private Sub CalcUndPnL(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aRes As Et
         Or dSpotPriceAsk > BAD_DOUBLE_VALUE And aPos.QtyLTDSell > BAD_LONG_VALUE Then
     
         If g_Params.PnLCalcType = PNLCT_LTD Then
-        'If g_Params.PnLCalcType = PNLCT_LTD And dtToday <> Date Then
             If aPos.QtyLTDBuy > BAD_LONG_VALUE Then
                 If dSpotPriceBid > BAD_DOUBLE_VALUE And aPos.PosLTDBuy > BAD_DOUBLE_VALUE Then
                     dPnlTheo = dSpotPriceBid * aPos.QtyLTDBuy - aPos.PosLTDBuy
@@ -3804,12 +3963,12 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
                 
-                If (Not aSynthUnd.Price.IsUseManualActive And Not aSynthUnd.PriceByHead) Then
-                    dUndLast = aSynthUnd.Price.Last
-                    dUndBid = aSynthUnd.Price.Bid
-                    dUndAsk = aSynthUnd.Price.Ask
+                If (Not aSynthUnd.price.IsUseManualActive And Not aSynthUnd.PriceByHead) Then
+                    dUndLast = aSynthUnd.price.Last
+                    dUndBid = aSynthUnd.price.Bid
+                    dUndAsk = aSynthUnd.price.Ask
                 Else
-                    dUndLast = aSynthUnd.Price.Active: dUndAsk = aSynthUnd.Price.Active: dUndBid = aSynthUnd.Price.Active
+                    dUndLast = aSynthUnd.price.Active: dUndAsk = aSynthUnd.price.Active: dUndBid = aSynthUnd.price.Active
                 End If
                 
                 dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
@@ -3840,12 +3999,12 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
                 
-                If (Not aSynthUnd.Price.IsUseManualActive And Not aSynthUnd.PriceByHead) Then
-                    dUndLast = aSynthUnd.Price.Last
-                    dUndBid = aSynthUnd.Price.Bid
-                    dUndAsk = aSynthUnd.Price.Ask
+                If (Not aSynthUnd.price.IsUseManualActive And Not aSynthUnd.PriceByHead) Then
+                    dUndLast = aSynthUnd.price.Last
+                    dUndBid = aSynthUnd.price.Bid
+                    dUndAsk = aSynthUnd.price.Ask
                 Else
-                    dUndLast = aSynthUnd.Price.Active: dUndAsk = aSynthUnd.Price.Active: dUndBid = aSynthUnd.Price.Active
+                    dUndLast = aSynthUnd.price.Active: dUndAsk = aSynthUnd.price.Active: dUndBid = aSynthUnd.price.Active
                 End If
                 
                 dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(dUndBid, dUndAsk, dUndLast, dToleranceValue, enRoundingRule)
@@ -3905,6 +4064,13 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Dim nFlag&
     Dim bIsBasket As Boolean
     
+    Dim dYTE As Double
+    
+    Dim dtNow As Date
+    dtNow = dtToday
+    dYTE = CDbl(aPos.ExpiryOV - dtNow) / 365#
+   
+    
     nDivCount = 0
     ReDim dDivDte(0 To 0)
     ReDim dDivAmts(0 To 0)
@@ -3922,9 +4088,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Select Case enDivType
             Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
                 If Not aDiv Is Nothing Then
-                    aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                    aDiv.GetDividendCount2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount
                     If nDivCount > 0 Then
-                        aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                        aDiv.GetDividends2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                     End If
                     Set aDiv = Nothing
                 End If
@@ -3934,9 +4100,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                     Set aBasketDiv = aUnd.BasketIndex.BasketDivs
                     bIsBasket = aUnd.BasketIndex.IsBasket
                     If Not aBasketDiv Is Nothing Then
-                        aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                        aBasketDiv.GetDividendCount2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount
                         If nDivCount > 0 Then
-                                aBasketDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                                aBasketDiv.GetDividends2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                         End If
                     End If
                     Set aBasketDiv = Nothing
@@ -3944,66 +4110,37 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
             Case enDivIndexYield
                 dYield = aUnd.Yield
     End Select
-    
-'    If aUnd.ContractType = enCtStock Then
-'        Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
-'        Set aDiv = aUnd.Dividend
-'        If Not aDiv Is Nothing Then
-'            aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
-'            If nDivCount > 0 Then
-'                aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
-'            End If
-'            Set aDiv = Nothing
-'        End If
-'    Else
-'        If Not aUnd.BasketIndex Is Nothing Then
-'            Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
-'            Set aBasketDiv = aUnd.BasketIndex.BasketDivs
-'            bIsBasket = aUnd.BasketIndex.IsBasket
-'            If Not aBasketDiv Is Nothing Then
-'                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
-'                If nBaskDivCount > 0 Then
-'                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
-'                End If
-'            End If
-'            Set aBasketDiv = Nothing
-'
-'            Erase aBaskDivs
-'        End If
-'
-'        If nDivCount <= 0 And Not bIsBasket Then dYield = aUnd.Yield
-'    End If
-    
+        
     dVola = 0#
     If g_Params.UseTheoVolatility Then
-        dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+        dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
     Else
-        If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.Price.Bid > DBL_EPSILON Then
+        If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > DBL_EPSILON Then
             
-            dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
-            If (aPos.Quote.Price.IsUseManualActive) Then
-                dOptSpot = aPos.Quote.Price.Active
+            dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+            If (aPos.Quote.price.IsUseManualActive) Then
+                dOptSpot = aPos.Quote.price.Active
             End If
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
                 If aPos.ContractType = enCtOption Then
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, dUndSpot, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, dOptSpot, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 ElseIf aPos.ContractType = enCtFutOption Then
-                    dVola = CalcFutureOptionVolatility(aPos.Rate, dFutSpot, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+                    dVola = CalcFutureOptionVolatility(aPos.Rate, dFutSpot, dOptSpot, aPos.Strike, dYTE, _
                                         aPos.OptType, nIsAmerican, 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 End If
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
             ElseIf g_Params.UseTheoBadMarketVola Then
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             End If
         Else
-            dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
         End If
     End If
     
@@ -4013,16 +4150,16 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
         Dim RetCount As Long
         RetCount = 0
         If aPos.ContractType = enCtOption Then
-            RetCount = CalcGreeksMM2(aPos.Rate, dYield, dUndSpot, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+            RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, aPos.Strike, dVola, dYTE, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
         ElseIf aPos.ContractType = enCtFutOption Then
             nIsAmericanFut = IIf(aPos.Fut.IsAmerican, 1, 0)
             Debug.Assert (dFutSpot >= 0)
             If aUnd.ContractType = enCtFutUnd Then
-                RetCount = CalcFutureOptionGreeks2(aPos.Rate, dFutSpot, False, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+                RetCount = CalcFutureOptionGreeks2(aPos.Rate, dFutSpot, False, aPos.Strike, dVola, dYTE, _
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
             Else
-                RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutSpot, True, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+                RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutSpot, True, aPos.Strike, dVola, dYTE, _
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, nDivCount, _
                             dDivAmts(0), dDivDte(0), aGreeks)
             End If
@@ -4045,6 +4182,7 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     Dim nDivCount&, RetCount&, nBaskDivCount&, dYield#, dVola#, dOptSpot#, nIsAmerican&
     Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
     Dim nFlag&
+    Dim dYTE As Double
     
     nDivCount = 0
     ReDim dDivDte(0 To 0)
@@ -4053,13 +4191,17 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     nIsAmerican = IIf(aUnd.IsAmerican, 1, 0)
     CalcGreeksSynth = False
     
+    Dim dtNow As Date
+    dtNow = dtToday
+    dYTE = CDbl(aPos.ExpiryOV - dtNow) / 365#
+    
     If aSynthRoot.Basket Then
             Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
             Set aBasketDiv = aSynthRoot.BasketDivs
             If Not aBasketDiv Is Nothing Then
-                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
+                aBasketDiv.GetDividendCount2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount
                 If nBaskDivCount > 0 Then _
-                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+                        aBasketDiv.GetDividends2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
             End If
             Set aBasketDiv = Nothing
         Erase aBaskDivs
@@ -4071,29 +4213,28 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     
     
     dVola = 0#
-    If Not g_Params.UseTheoVolatility And (Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.Price.Bid > 0#) Then
-'        dOptSpot = PriceMidEx(aPos.PriceBid, aPos.PriceAsk, aPos.PriceLast, g_Params.UseLastPriceForCalcs)
+    If Not g_Params.UseTheoVolatility And (Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > 0#) Then
         Debug.Assert (Not aUnd.OptPriceProfile Is Nothing)
-        dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+        dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
     
         If dOptSpot > 0# Then
             nFlag = VF_OK
-            dVola = CalcVolatilityMM3(aPos.Rate, dYield, dSynthUndSpotBase, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+            dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpotBase, dOptSpot, aPos.Strike, dYTE, _
                 aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
             If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             End If
         ElseIf g_Params.UseTheoBadMarketVola Then
-            dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
         End If
     Else
-        dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+        dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
     End If
     
     If dVola > 0# Then
         ShiftVola aRes, aPos.VegaWeight, dVola
         
-        RetCount = CalcGreeksMM2(aPos.Rate, dYield, dSynthUndSpot, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpot, aPos.Strike, dVola, dYTE, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, aGreeks)
         
         If RetCount <> 0 Then
@@ -4110,7 +4251,10 @@ Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, By
                         ByRef dUndSpot#, ByRef dUndBid#, ByRef dUndAsk#, _
                         ByRef dFutSpot#, ByRef dFutBid#, ByRef dFutAsk#, _
                         ByRef dtToday As Date)
-
+    
+            Dim dtNow As Date
+            dtNow = GetNewYorkTime
+    
             Select Case m_Scn.Axis(RMA_HORZ)
                 Case RMAT_SPOT
                     If dUndSpot > 0# Then
@@ -4120,7 +4264,7 @@ Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, By
                         ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight
                     End If
                 Case RMAT_TIME
-                    dtToday = DateAdd("d", m_Res(nX, nY).ShiftX, Date)
+                    dtToday = dtNow + m_Res(nX, nY).ShiftX
             End Select
             
             Select Case m_Scn.Axis(RMA_VERT)
@@ -4132,7 +4276,7 @@ Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, By
                         ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight
                     End If
                 Case RMAT_TIME
-                    dtToday = DateAdd("d", m_Res(nX, nY).ShiftY, Date)
+                    dtToday = dtNow + m_Res(nX, nY).ShiftY
             End Select
 End Sub
 
@@ -4148,23 +4292,23 @@ On Error GoTo Exception
     'Calc base price's of current underlying
     dUndSpotBase = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
     If (aUnd.IsHead) Then
-        If (bFutPriceReplaced Or aUnd.Price.IsUseManualActive) Then
+        If (bFutPriceReplaced Or aUnd.price.IsUseManualActive) Then
             dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
         Else
-            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
                 g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
         End If
     ElseIf (Not aUnd.HeadComponent Is Nothing And aUnd.PriceByHead) Then
         dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
     Else
-        If (aUnd.Price.IsUseManualActive Or bFutPriceReplaced) Then
+        If (aUnd.price.IsUseManualActive Or bFutPriceReplaced) Then
             dUndBidBase = dUndSpotBase: dUndAskBase = dUndSpotBase
         Else
-            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+            dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
                     g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+            dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
                     g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
         End If
     End If
@@ -4227,11 +4371,11 @@ On Error GoTo Exception
     
     dFutSpot = aFut.GetFuturePrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enReplaceStatus, bFutPriceReplaced)
                             
-    If (bFutPriceReplaced Or aFut.Price.IsUseManualActive) Then
+    If (bFutPriceReplaced Or aFut.price.IsUseManualActive) Then
         dFutBid = dFutSpot: dFutAsk = dFutSpot
     Else
-        dFutBid = aFut.UndPriceProfile.GetUndPriceBidForPnL(aFut.Price.Bid, aFut.Price.Ask, aFut.Price.Last, g_Params.UndPriceToleranceValue, enReplaceStatus)
-        dFutAsk = aFut.UndPriceProfile.GetUndPriceAskForPnL(aFut.Price.Bid, aFut.Price.Ask, aFut.Price.Last, g_Params.UndPriceToleranceValue, enReplaceStatus)
+        dFutBid = aFut.UndPriceProfile.GetUndPriceBidForPnL(aFut.price.Bid, aFut.price.Ask, aFut.price.Last, g_Params.UndPriceToleranceValue, enReplaceStatus)
+        dFutAsk = aFut.UndPriceProfile.GetUndPriceAskForPnL(aFut.price.Bid, aFut.price.Ask, aFut.price.Last, g_Params.UndPriceToleranceValue, enReplaceStatus)
     End If
     
     Exit Sub
@@ -4300,7 +4444,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                             GoTo NextPos
                                         End If
                                     
-                                        If aPos.Expiry >= dtToday Then
+                                        If aPos.ExpiryOV >= dtToday Then
 
                                             ClearGreeks aGreeks
 
@@ -4363,7 +4507,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                             GoTo NextPos
                                         End If
 
-                                        If aPos.Expiry >= dtToday Then
+                                        If aPos.ExpiryOV >= dtToday Then
 
                                             aGreeks.nMask = nGreeksMask
                                             If CalcGreeksSynth(aUnd, aPos, dtToday, m_Res(nX, nY), aGreeks, aSynthRoot, dSynthUndSpot, dSynthUndSpotBase, nModel) Then
@@ -4485,6 +4629,8 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
                 lblProcess.Visible = False
                 imgStop.Visible = False
                 imgStopDis.Visible = False
+                
+                RaiseEvent OnRefreshComplete
             End If
         Else
             Debug.Assert False
@@ -4544,31 +4690,31 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             If Not aReq.IndexOnly Then
             
                 If Not aReq.Pos Is Nothing Then
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Last = dPriceLast
                 End If
                 
                 If Params.Type <> enOPT Then
                     Set aReqUndData = aReq.Und
                     
                     If Params.Type = enSTK Or Params.Type = enIDX Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.Price.Last = dPriceLast
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.price.Last = dPriceLast
                         
                         Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                        If (aReqUndData.Price.IsUseManualActive) Then
-                            aReqUndData.VolaSrv.UnderlyingPrice = aReqUndData.Price.Active
+                        If (aReqUndData.price.IsUseManualActive) Then
+                            aReqUndData.VolaSrv.UnderlyingPrice = aReqUndData.price.Active
                         Else
-                            aReqUndData.VolaSrv.UnderlyingPrice = aReqUndData.UndPriceProfile.GetUndPriceMid(aReqUndData.Price.Bid, aReqUndData.Price.Ask, aReqUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                            aReqUndData.VolaSrv.UnderlyingPrice = aReqUndData.UndPriceProfile.GetUndPriceMid(aReqUndData.price.Bid, aReqUndData.price.Ask, aReqUndData.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
                         End If
                     
                         If m_Idx.ID = aReq.Und.ID Then
                             Set aReqIdxData = m_Idx
-                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
-                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
-                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
                         End If
                         
                     ElseIf Params.Type = enFUT Then
@@ -4580,9 +4726,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                         End If
                     
                         If Not aReqFutData Is Nothing Then
-                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqFutData.Price.Bid = dPriceBid
-                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqFutData.Price.Ask = dPriceAsk
-                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqFutData.Price.Last = dPriceLast
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqFutData.price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqFutData.price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqFutData.price.Last = dPriceLast
     
                             Set aReqFutData = Nothing
                         End If
@@ -4593,9 +4739,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 If m_Idx.ID = aReq.Und.ID Then
                     
                     Set aReqIdxData = m_Idx
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
                     
                 End If
             End If
@@ -4631,6 +4777,8 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         lblProcess.Visible = False
         imgStop.Visible = False
         imgStopDis.Visible = False
+        
+        RaiseEvent OnRefreshComplete
     End If
 End Sub
 
@@ -4748,6 +4896,8 @@ Private Sub RequestLastQuotes(ByVal bIndexOnly As Boolean)
             lblProcess.Visible = False
             imgStop.Visible = False
             imgStopDis.Visible = False
+            
+            RaiseEvent OnRefreshEmpty
         End If
     Else
         If Not m_bShutDown Then gCmn.MyMsgBox m_frmOwner, "You are in offline mode now.", vbExclamation
@@ -4773,6 +4923,8 @@ EH:
     If m_bGroupRequest Then
         m_GroupPriceProvider.CancelGroup
     End If
+    
+    RaiseEvent OnRefreshError
 End Sub
 
 Private Function IndexLoad() As Boolean
@@ -4803,10 +4955,10 @@ Private Function IndexLoad() As Boolean
             sKeyActiveFuture = CStr(enCtFuture) & "_" & m_Idx.ActiveFuture.Symbol
             Set aReqActiveFuture = m_QuoteRequests(sKeyActiveFuture)
             
-            m_Idx.ActiveFuture.Price.IsUseManualActive = False
+            m_Idx.ActiveFuture.price.IsUseManualActive = False
             If (g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice > 0) Then
-                m_Idx.ActiveFuture.Price.IsUseManualActive = True
-                m_Idx.ActiveFuture.Price.Active = g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice
+                m_Idx.ActiveFuture.price.IsUseManualActive = True
+                m_Idx.ActiveFuture.price.Active = g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice
             End If
         End If
         
@@ -4867,19 +5019,19 @@ Private Function IndexLoad() As Boolean
                 aReq.IndexOnly = True
                 Set aReq = Nothing
             Else
-                m_Idx.Price.Bid = aReq.Und.Price.Bid
-                m_Idx.Price.Ask = aReq.Und.Price.Ask
-                m_Idx.Price.Last = aReq.Und.Price.Last
-                m_Idx.Price.NetChange = aReq.Und.Price.NetChange
+                m_Idx.price.Bid = aReq.Und.price.Bid
+                m_Idx.price.Ask = aReq.Und.price.Ask
+                m_Idx.price.Last = aReq.Und.price.Last
+                m_Idx.price.NetChange = aReq.Und.price.NetChange
             End If
             
             Set aUndIdx = g_ContractAll(m_Idx.ID).Und
             If (Not aUndIdx Is Nothing) Then
-                m_Idx.Price.Close = aUndIdx.PriceClose
-                m_Idx.Price.TheoClose = aUndIdx.PriceTheoclose
+                m_Idx.price.Close = aUndIdx.PriceClose
+                m_Idx.price.TheoClose = aUndIdx.PriceTheoclose
                 If (aUndIdx.manualActivePrice > 0) Then
-                    m_Idx.Price.IsUseManualActive = True
-                    m_Idx.Price.Active = aUndIdx.manualActivePrice
+                    m_Idx.price.IsUseManualActive = True
+                    m_Idx.price.Active = aUndIdx.manualActivePrice
                 End If
                 Set aUndIdx = Nothing
             End If
@@ -4915,13 +5067,13 @@ Private Function IndexLoad() As Boolean
                                     m_Idx.ActiveFuture.ID = g_ContractAll(m_Idx.ID).Und.ActiveFuture.ID
                                     Set m_Idx.ActiveFuture.UndPriceProfile = g_ContractAll(m_Idx.ID).Und.ActiveFuture.UndPriceProfile
                                     Set m_Idx.ActiveFuture.OptPriceProfile = g_ContractAll(m_Idx.ID).Und.ActiveFuture.OptPriceProfile
-                                    m_Idx.ActiveFuture.Price.Close = g_ContractAll(m_Idx.ID).Und.ActiveFuture.PriceClose
-                                    m_Idx.ActiveFuture.Price.TheoClose = g_ContractAll(m_Idx.ID).Und.ActiveFuture.PriceTheoclose
+                                    m_Idx.ActiveFuture.price.Close = g_ContractAll(m_Idx.ID).Und.ActiveFuture.PriceClose
+                                    m_Idx.ActiveFuture.price.TheoClose = g_ContractAll(m_Idx.ID).Und.ActiveFuture.PriceTheoclose
                                     
-                                    m_Idx.ActiveFuture.Price.IsUseManualActive = False
+                                    m_Idx.ActiveFuture.price.IsUseManualActive = False
                                     If (g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice > 0) Then
-                                        m_Idx.ActiveFuture.Price.IsUseManualActive = True
-                                        m_Idx.ActiveFuture.Price.Active = g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice
+                                        m_Idx.ActiveFuture.price.IsUseManualActive = True
+                                        m_Idx.ActiveFuture.price.Active = g_ContractAll(m_Idx.ID).Und.ActiveFuture.manualActivePrice
                                     End If
                                     
                                     m_Idx.ActiveFuture.CalcGreeks = False
@@ -5117,7 +5269,9 @@ Public Function ScenarioSave(ByVal bUpdateGrid As Boolean, ByVal bShowError As B
         'If m_Scn.Dirty Then
             nID = gDBW.usp_RMScenario_Save(IIf(.ID <> 0, .ID, Null), .ScenarioName, .Description, _
                                     .Points(RMA_HORZ), .Step(RMA_HORZ), .Units(RMA_HORZ), .Axis(RMA_HORZ), _
-                                    .Points(RMA_VERT), .Step(RMA_VERT), .Units(RMA_VERT), .Axis(RMA_VERT), .VolaShiftType)
+                                    .Points(RMA_VERT), .Step(RMA_VERT), .Units(RMA_VERT), .Axis(RMA_VERT), .VolaShiftType, _
+                                    IIf(.Axis(RMA_HORZ) = RMAT_TIME, .Hour(RMA_HORZ), .Hour(RMA_VERT)), _
+                                    IIf(.Axis(RMA_HORZ) = RMAT_TIME, .Minute(RMA_HORZ), .Minute(RMA_VERT)))
                                     
             If .ID = 0 Then .ID = nID
             .Dirty = False
@@ -5257,6 +5411,20 @@ Private Sub HandleGridDblClick()
     End If
 End Sub
 
+Public Sub ImmediateRefresh()
+    On Error Resume Next
+    If m_bFirstTime Then m_Grp.ID = -1
+    m_bFirstTime = False
+End Sub
+
+Public Function ExportToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
+                             ByVal bShowFilter As Boolean) As Boolean
+    On Error Resume Next
+    Screen.MousePointer = vbHourglass
+    ExportToHTML = g_ScreenExport.SaveToHTML(sFileName, sFilePath, fgVal, _
+                                            IIf(bShowFilter, fgScn, Nothing), IIf(bShowFilter, fgFlt, Nothing))
+    Screen.MousePointer = vbNormal
+End Function
 
 
 

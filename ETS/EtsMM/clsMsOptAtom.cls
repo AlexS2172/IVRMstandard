@@ -18,6 +18,8 @@ Option Explicit
 Public ID As Long
 Public Symbol As String
 Public Expiry As Date
+Public ExpiryOV As Date
+Public TradingClose As Date
 Public OptType As Long
 Public Strike As Double
 

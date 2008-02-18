@@ -16,10 +16,11 @@
 #include "EtsExpCalColl.h"
 #include "ExchColl.h"
 #include "IndexColl.h"
+#include "EtsHolidayAtom.h"
 
 #include "_IEtsMainEvents_CP.h"
 
-
+#include <atlsmtpconnection.h>
 
 // CEtsMain
 
@@ -52,6 +53,7 @@ public:
 		,m_pHedgeSymbols(NULL)
 		,m_pBasketIndex(NULL)
 		,m_bUseTheoCloseForPNL(VARIANT_FALSE)
+		,m_pHolidays(NULL)
 	{
 	}
 
@@ -132,6 +134,9 @@ public:
 			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pHedgeSymbols), _T("Fail to create Hedge Symbols Collection."));
 			m_spHedgeSymbols.Attach(m_pHedgeSymbols, TRUE);
 
+			_CHK(CComObject<CEtsHolidayAtom>::CreateInstance(&m_pHolidays), _T("Fail to create Holidays Atom."));
+			m_spHolidays.Attach(m_pHolidays, TRUE);
+
 		}
 		catch(_com_error& e )
 		{
@@ -175,6 +180,7 @@ private:
 		if(m_pIndex)            m_pIndex->Clear();
 		if(m_pBasketIndex)      m_pBasketIndex->Clear();
 		if(m_pHedgeSymbols)     m_pHedgeSymbols->Clear();
+		if(m_pHolidays)			m_pHolidays->Clear();
 	}
 private:
 	CDBConnection                       m_DbConnection; 
@@ -200,7 +206,8 @@ private:
 	CComObject<CIndexColl>*				m_pIndex;
 
 	CComObject<CIndexColl>*				m_pBasketIndex;	
-	CComObject<CIndexColl>*				m_pHedgeSymbols;	
+	CComObject<CIndexColl>*				m_pHedgeSymbols;
+	CComObject<CEtsHolidayAtom>*		m_pHolidays;
 	
 
 
@@ -227,6 +234,7 @@ private:
 	IIndexCollPtr               m_spIndex;
 	IIndexCollPtr				m_spBasketIndex;	
 	IIndexCollPtr				m_spHedgeSymbols;
+	IEtsHolidayAtomPtr			m_spHolidays;
 	//IETSLogPtr					m_spLogger;
 
 public:
@@ -238,6 +246,9 @@ public:
 	STDMETHOD(LoadTrader)(LONG lTraderID);
 	STDMETHOD(LoadUnderlying)(LONG lTraderID);
 	STDMETHOD(LoadAssetGroup)();
+	STDMETHOD(LoadHolidays)();
+
+	STDMETHOD(SendMail)(BSTR sAddress, BSTR sSender, BSTR sSubject, BSTR sMessage, BSTR sSMTPServer, BSTR sFilePath = L"");
 
 	IMPLEMENT_BSTRT_PROPERTY(DatabaseString, m_bstrDatabaseString)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IEtsTraderColl*,			Trader,			m_spTraderColl);
@@ -262,6 +273,7 @@ public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IIndexColl*,	BasketIndex, m_spBasketIndex);
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IIndexColl*,	HedgeSymbols, m_spHedgeSymbols);
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, UseTheoCloseForPNL, m_bUseTheoCloseForPNL);
+	IMPLEMENT_OBJECTREADONLY_PROPERTY(IEtsHolidayAtom*,			Holidays,			m_spHolidays);
 	//IMPLEMENT_OBJECT_PROPERTY(IETSLog*,			Logger,		m_spLogger);
 };
 

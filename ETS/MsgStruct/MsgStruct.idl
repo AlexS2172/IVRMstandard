@@ -411,6 +411,8 @@ library MSGSTRUCTLib
 		MSGSTRUCT_PROP_DEF(33,	BSTR,			ImportID)
 		MSGSTRUCT_PROP_DEF(35,	long,			OrderID)
 		MSGSTRUCT_PROP_DEF(36,	long,			ExecStatus)
+		MSGSTRUCT_PROP_DEF(37,	DATE,			ExpiryOV)
+		MSGSTRUCT_PROP_DEF(38,	DATE,			TradingClose)
 	};
 
 	[

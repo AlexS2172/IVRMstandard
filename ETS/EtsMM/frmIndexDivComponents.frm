@@ -147,9 +147,12 @@ Public Sub Init(ByVal nUnderlyingID As Long, ByVal dtDivDate As Date)
     Dim DivAmounts() As Double
     Dim DivDates() As Double
     
+    Dim dtNow As Date
+    
     m_nUnderlyingID = nUnderlyingID
     m_dtDivDate = dtDivDate
     iRowCounter = 0
+    dtNow = GetNewYorkTime
     
     Set m_aBasketIndex = g_BasketIndex(m_nUnderlyingID)
     
@@ -165,15 +168,13 @@ Public Sub Init(ByVal nUnderlyingID As Long, ByVal dtDivDate As Date)
                 If (Not aUnd Is Nothing And aComp.Weight > 0) Then
                    If (Not aUnd.Dividend Is Nothing) Then
                       iRetCount = 0
-                      aUnd.Dividend.GetDividendCount Date, CDate("31/12/3000"), iDivCount
-                      aUnd.Dividend.GetDividends Date, CDate("31/12/3000"), iDivCount, DivAmounts, DivDates, iRetCount
+                      aUnd.Dividend.GetDividendCount2 dtNow, CDate("31/12/3000"), 0#, iDivCount
+                      aUnd.Dividend.GetDividends2 dtNow, CDate("31/12/3000"), 0#, iDivCount, DivAmounts, DivDates, iRetCount
                       
                       If iRetCount > 0 Then
                         For iCycle = 0 To iRetCount - 1
                           If (CDate(DivDates(iCycle) * 365 + Date) = m_dtDivDate) Then
-                          
-                              'Debug.Print aUnd.Symbol & " " & DivAmounts(iCycle) & " " & aComp.Weight
-                              
+                                                      
                               fgDivComp.AddItem aUnd.Symbol
                               iRowCounter = iRowCounter + 1
                               fgDivComp.TextMatrix(iRowCounter, IDX_DIVAMOUNT) = DivAmounts(iCycle)

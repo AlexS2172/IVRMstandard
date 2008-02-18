@@ -680,8 +680,11 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 			{
 				InitVola(pUndAtom);
 				IEtsOptAtomPtr spOpt = spTradeAtom->Opt;
-				pPosAtom->m_enOptType    = spOpt->OptType;
-				pPosAtom->m_dtExpiry     = spOpt->Expiry;
+
+				pPosAtom->m_enOptType		 = spOpt->OptType;
+				pPosAtom->m_dtExpiry		 = spOpt->Expiry;
+				pPosAtom->m_dtExpiryOV		 = spOpt->ExpiryOV;
+				pPosAtom->m_dtTradingClose	 = spOpt->TradingClose;
 
 				pPosAtom->m_pQuote->m_pPrice->m_dPriceClose  = spOpt->PriceClose;
 				pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose = spOpt->PriceTheoClose;
@@ -701,10 +704,10 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 				pPosAtom->m_nOptionRootID = spTradeAtom->OptRootID;
 				pPosAtom->m_nUndID        = pUndAtom->m_nID;
 				pPosAtom->m_bstrImportId  = spOpt->ImportID; 
-				pPosAtom->m_dVegaWeight   = m_spEtsMain->ExpCalendar->GetVegaWeight(pPosAtom->m_dtExpiry);
+				pPosAtom->m_dVegaWeight   = m_spEtsMain->ExpCalendar->GetVegaWeight(pPosAtom->m_dtExpiryOV);
 
 				_bstr_t	bsExpiryKey = _bstr_t(static_cast<long>(pPosAtom->m_dtExpiry));
-				_CHK(pUndAtom->m_spVolaSrv->get_OptionVola(pPosAtom->m_dtExpiry, spOpt->Strike, &pPosAtom->m_pQuote->m_dMIV )); 
+				_CHK(pUndAtom->m_spVolaSrv->get_OptionVola(pPosAtom->m_dtExpiryOV, spOpt->Strike, &pPosAtom->m_pQuote->m_dMIV )); 
 
 				if(bUpdateVola)
 					pPosAtom->m_pQuote->m_dVola = pPosAtom->m_pQuote->m_dMIV;
@@ -726,7 +729,9 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 					if(spUndExp == NULL)
 					{
 						spUndExp = pUndAtom->m_pExp->AddNew(pPosAtom->m_dtExpiry, &pUndExp);
-						pUndExp->m_dtExpiry = dtExpiry;
+						pUndExp->m_dtExpiry			 = dtExpiry;
+						pUndExp->m_dtExpiryOV		 = spOpt->ExpiryOV;
+						pUndExp->m_dtTradingClose	 = spOpt->TradingClose;
 
 						IMmRvPosAtomPtr spFakePosAtom;
 						pUndExp->m_pPos->Add(pPosAtom->m_nID, pPosAtom->m_bstrSymbol, pPosAtom, &spFakePosAtom);
@@ -912,7 +917,7 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 				if(enCtFutOption == pPosAtom->m_enContractType)
 				{
 
-					IEtsFutOptAtomPtr spFutOpt					= spTradeAtom->FutOpt;
+					IEtsFutOptAtomPtr spFutOpt		= spTradeAtom->FutOpt;
 					pPosAtom->m_pQuote->m_pPrice->m_dPriceClose = spFutOpt->PriceClose;
 					pPosAtom->m_pQuote->m_pPrice->m_dPriceTheoClose = spFutOpt->PriceTheoClose;
 
@@ -925,11 +930,14 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 
 					pPosAtom->m_enOptType   = spFutOpt->OptType;
 					pPosAtom->m_dtExpiry    = spFutOpt->Expiry;
+					pPosAtom->m_dtExpiryOV		 = spFutOpt->ExpiryOV;
+					pPosAtom->m_dtTradingClose	 = spFutOpt->TradingClose;
+					
 					pPosAtom->m_dStrike     = spFutOpt->Strike;
-					pPosAtom->m_dVegaWeight = m_spEtsMain->ExpCalendar->GetVegaWeight(pPosAtom->m_dtExpiry);
+					pPosAtom->m_dVegaWeight = m_spEtsMain->ExpCalendar->GetVegaWeight(pPosAtom->m_dtExpiryOV);
 					pPosAtom->m_bstrImportId= spFutOpt->ImportID;
 
-					_CHK(pUndAtom->m_spVolaSrv->get_OptionVola(pPosAtom->m_dtExpiry, pPosAtom->m_dStrike, &pPosAtom->m_pQuote->m_dMIV )); 
+					_CHK(pUndAtom->m_spVolaSrv->get_OptionVola(pPosAtom->m_dtExpiryOV, pPosAtom->m_dStrike, &pPosAtom->m_pQuote->m_dMIV )); 
 
 					if(bUpdateVola)
 						pPosAtom->m_pQuote->m_dVola = pPosAtom->m_pQuote->m_dMIV;
@@ -962,7 +970,9 @@ IMmRvPosAtomPtr  CMmRiskView::_AddNewPosition(IMmTradeInfoAtomPtr spTradeAtom, I
 						if(spUndExp == NULL)
 						{
 							spUndExp = pUndAtom->m_pExp->AddNew(pPosAtom->m_dtExpiry, &pUndExp);
-							pUndExp->m_dtExpiry = dtExpiry;
+							pUndExp->m_dtExpiry			 = dtExpiry;
+							pUndExp->m_dtExpiryOV		 = spFutOpt->ExpiryOV;
+							pUndExp->m_dtTradingClose	 = spFutOpt->TradingClose;
 
 							IMmRvPosAtomPtr spFakePosAtom;
 							pUndExp->m_pPos->Add(pPosAtom->m_nID, pPosAtom->m_bstrSymbol, pPosAtom, &spFakePosAtom);
@@ -2355,6 +2365,7 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 									pRow->m_pUnd->m_nID = lID;
 									pRow->m_pUnd->m_enContractType = enCtType;
 									pRow->m_pAgg->m_bIsHeadAggregation = VARIANT_TRUE;
+									pRow->m_pAgg->internalName_ = pRow->m_pUnd->m_bstrSymbol + "_" +_bstr_t(RDT_UNDAGG);
 
 									vHeadInserted.insert(lID);
 									undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, spRowData);
@@ -2411,6 +2422,7 @@ HRESULT CMmRiskView::Refresh(RisksPosColumnEnum SortField, long lExpiryFilter, S
 										pRow->m_pUnd->m_nID = lID;
 										pRow->m_pUnd->m_enContractType = enCtType;
 										pRow->m_pAgg->m_bIsHeadAggregation = VARIANT_TRUE;
+										pRow->m_pAgg->internalName_ = pRow->m_pUnd->m_bstrSymbol + "_" +_bstr_t(RDT_UNDAGG);
 
 										vHeadInserted.insert(lID);
 										undGroupedRows.insert(undGroupedRows.begin() + lRowCounter, spRowData);

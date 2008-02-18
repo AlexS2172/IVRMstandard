@@ -327,6 +327,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\EtsHolidayAtom.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\EtsIndexDivAtom.cpp"
 				>
 			</File>
@@ -588,6 +592,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\EtsHolidayAtom.h"
+				>
+			</File>
+			<File
 				RelativePath=".\EtsIndexDivAtom.h"
 				>
 			</File>
@@ -838,6 +846,10 @@
 			</File>
 			<File
 				RelativePath="EtsGeneral.rgs"
+				>
+			</File>
+			<File
+				RelativePath=".\EtsHolidayAtom.rgs"
 				>
 			</File>
 			<File

@@ -16,6 +16,18 @@ public:
 
 	virtual void	CheckMktStrUpdates(bool bOnlyActive);
 	virtual void	OnIvData(EODIV::CIvMarketStructureUpdatesResultPtr pResult);
+public:
+	EgLib::vt_date	GetDefaultValuationParams(	const EgLib::vt_date &dtExpiry,
+												const SYMBOL_TYPE stBaseType,
+												const SYMBOL_TYPE stOptionType,
+												const PP::SettlementTypeEnum stType,
+												long lExpirationType,
+												EgLib::vt_date &dtTradingClose);
+
+	EgLib::vt_date	GetDefaultValuationParams(  const EgLib::vt_date &dtDate,
+												const SYMBOL_TYPE stContractType,
+												const PP::SettlementTypeEnum stType,
+												long lExpirationType);
 
 protected:
 	virtual const HANDLE _StopEventHandle() { return GetStopEventHandle(); }

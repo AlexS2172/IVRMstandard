@@ -22,9 +22,13 @@ struct __EtsOptAtom
 	CComBSTR			m_bstrImportID;
 	LONG				m_IsFlex;
 
+	DATE				m_dtExpiryOV;
+	DATE				m_dtTradingClose;
+
 	__EtsOptAtom()
 		: m_nID(0L), m_nRootID(0L), m_enOptType(enOtPut),
-		m_dtExpiry(0.), m_dStrike(0.), m_dPriceClose(0.), m_dPriceTheoClose(0.), m_IsFlex(0)
+		m_dtExpiry(0.), m_dStrike(0.), m_dPriceClose(0.), m_dPriceTheoClose(0.), m_IsFlex(0),
+		m_dtExpiryOV(0), m_dtTradingClose(0)
 	{
 	}
 };
@@ -76,6 +80,9 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceTheoClose, m_dPriceTheoClose)
 	IMPLEMENT_BSTR_PROPERTY(ImportID, m_bstrImportID)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, Flex, m_IsFlex)
+
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
 
 	STDMETHOD(CopyTo)(IEtsOptAtom* pDest);
 };

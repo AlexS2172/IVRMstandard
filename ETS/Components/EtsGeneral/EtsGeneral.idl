@@ -142,7 +142,24 @@ library EtsGeneralLib
 	interface IEtsMmEntityAtomColl : IDispatch{
 		ETSGENERAL_COMMON_COLLECTION_DEF(BSTR, IEtsMmEntityAtom*)
 	};
-
+	
+	[
+		object,
+		uuid(E3C2E7E8-C441-4D3F-AA64-EBE15D285C0A),
+		dual,
+		nonextensible,
+		helpstring("IEtsHolidayAtom Interface"),
+		pointer_default(unique)
+	]
+	interface IEtsHolidayAtom : IDispatch
+	{
+		[id(1), helpstring("method Add")] HRESULT Add([in] DATE dtDate);
+		[id(2), helpstring("method Remove")] HRESULT Remove([in] DATE dtDate);
+		[id(3), helpstring("method GetHolidays")] HRESULT GetHolidays([in] DATE dtToday, [out] SAFEARRAY(DOUBLE) * psaDates, [out] LONG * pnCount);
+		[id(4), helpstring("method GetPreviousWorkingDate")] HRESULT GetPreviousWorkingDate([in] DATE dtDate, [out] DATE *dtPWDate);
+		[id(5), helpstring("method Clear")] HRESULT Clear(void);
+		[id(6), helpstring("method TransformDividends")] HRESULT TransformDividends([in] SAFEARRAY(DATE) *psaDates, [in] LONG nCount, [out] SAFEARRAY(DATE) *psaTDates, [out] LONG *pnTCount);
+	};
 
 	[
 		object,
@@ -155,9 +172,9 @@ library EtsGeneralLib
 	interface IEtsDivColl : IDispatch
 	{
 //		ETSGENERAL_EXTENDED_COLLECTION_DEF(DATE, DATE, DOUBLE)
-		[id(7), helpstring("method GetDividends")] HRESULT GetDividends([in] LONG nToday, [in] LONG nExpiry, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates , [out] LONG* pnCount);
-		[id(8), helpstring("method GetNearest")] HRESULT GetNearest([in] LONG nToday, [in] LONG nExpiry, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
-		[id(9), helpstring("method GetDividendCount")] HRESULT GetDividendCount([in] LONG nToday, [in] LONG nExpiry, [out] LONG* pnCount);
+		[id(7), helpstring("method GetDividends")] HRESULT GetDividends([in] DATE nToday, [in] DATE nExpiry, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates , [out] LONG* pnCount);
+		[id(8), helpstring("method GetNearest")] HRESULT GetNearest([in] DATE nToday, [in] DATE nExpiry, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
+		[id(9), helpstring("method GetDividendCount")] HRESULT GetDividendCount([in] DATE nToday, [in] DATE nExpiry, [out] LONG* pnCount);
 		[id(10), helpstring("method Add")] HRESULT Add([in] DATE Date, [in] DOUBLE Amount);
 		[id(11), helpstring("method Remove")] HRESULT Remove([in] DATE Date);
 		[id(12), helpstring("method Clear")] HRESULT Clear(void);
@@ -167,12 +184,14 @@ library EtsGeneralLib
 		[id(14), helpstring("method AddNonUnique")] HRESULT AddNonUnique([in] DATE Date, [in] DOUBLE Amount);
 
 		[id(15), helpstring("method Clone")] HRESULT Clone([out, retval] IEtsDivColl** ppVal );
-		
-		 
-
+		//ETM MODE//
+		ETSGENERAL_PROPPUTREF_DEF(17,	IEtsHolidayAtom*,			Holidays)
+		[id(18), helpstring("method GetDividends2")] HRESULT GetDividends2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE dtCloseTime, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates , [out] LONG* pnCount);
+		[id(19), helpstring("method GetNearest2")] HRESULT GetNearest2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE dtCloseTime, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
+		[id(20), helpstring("method GetDividendCount2")] HRESULT GetDividendCount2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE dtCloseTime, [out] LONG* pnCount); 
 	};
 
-		[
+	[
 		object,
 		uuid(C9A8CC15-7ABE-4A4F-8174-66BACF7BAB6C),
 		dual,
@@ -194,15 +213,18 @@ library EtsGeneralLib
 		HRESULT IsValidDivs([in] EtsDivTypeEnum enDivType, [out, retval] VARIANT_BOOL* pVal);
 		//[id(10), helpstring("method CopyToWithWeight")]
 		//HRESULT CopyToWithWeight([in] DOUBLE dWeight, [in] IEtsIndexDivAtom* pDest , [out, retval] IEtsIndexDivAtom** ppVal);
-		[id(11), helpstring("method GetDividends")] HRESULT GetDividends([in] LONG nToday, [in] LONG nExpiry, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates, [out] LONG * pnCount);
-		[id(12), helpstring("method GetNearest")] HRESULT GetNearest([in] LONG nToday, [in] LONG nExpiry, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
-		[id(13), helpstring("method GetDividendCount")] HRESULT GetDividendCount([in] LONG nToday, [in] LONG nExpiry, [out] LONG* pnCount);
+		[id(11), helpstring("method GetDividends")] HRESULT GetDividends([in] DATE nToday, [in] DATE nExpiry, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates, [out] LONG * pnCount);
+		[id(12), helpstring("method GetNearest")] HRESULT GetNearest([in] DATE nToday, [in] DATE nExpiry, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
+		[id(13), helpstring("method GetDividendCount")] HRESULT GetDividendCount([in] DATE nToday, [in] DATE nExpiry, [out] LONG* pnCount);
 		[id(14), helpstring("method Clear")] HRESULT Clear(void);
 		[id(15), helpstring("method Clone")] HRESULT Clone([out, retval] IEtsIndexDivAtom** pDestination);
 		[id(16), helpstring("method ResetInternalCache")] HRESULT ResetInternalCache(void);
-
+		ETSGENERAL_PROPPUTREF_DEF(17,	IEtsHolidayAtom*,			Holidays)
+		[id(18), helpstring("method GetDividends2")] HRESULT GetDividends2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE tmCloseTime, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates, [out] LONG * pnCount);
+		[id(19), helpstring("method GetNearest2")] HRESULT GetNearest2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE tmCloseTime, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
+		[id(20), helpstring("method GetDividendCount2")] HRESULT GetDividendCount2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE tmCloseTime,  [out] LONG* pnCount);
 	};
-	
+
 	[
 		object,
 		uuid(07DF1F75-A2CF-4133-A29F-8D46A9ED3522),
@@ -216,10 +238,13 @@ library EtsGeneralLib
 		ETSGENERAL_EXTENDED_COLLECTION_DEF(LONG, LONG, IEtsIndexDivAtom*)
 		[id(10), helpstring("method CopyToWithWeight")]
 		HRESULT CopyToWithWeight([in] DOUBLE dWeight, [in] IEtsIndexDivColl* pDest , [out, retval] IEtsIndexDivColl** ppVal);
-		[id(11), helpstring("method GetDividends")] HRESULT GetDividends([in] LONG nToday, [in] LONG nExpiry, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates, [out] LONG* pnCount);
-		[id(12), helpstring("method GetNearest")] HRESULT GetNearest([in] LONG nToday, [in] LONG nExpiry, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
-		[id(13), helpstring("method GetDividendCount")] HRESULT GetDividendCount([in] LONG nToday, [in] LONG nExpiry, [out] LONG* pnCount);
+		[id(11), helpstring("method GetDividends")] HRESULT GetDividends([in] DATE nToday, [in] DATE nExpiry, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates, [out] LONG* pnCount);
+		[id(12), helpstring("method GetNearest")] HRESULT GetNearest([in] DATE nToday, [in] DATE nExpiry, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
+		[id(13), helpstring("method GetDividendCount")] HRESULT GetDividendCount([in] DATE nToday, [in] DATE nExpiry, [out] LONG* pnCount);
 		[id(14), helpstring("method SetWeight")] HRESULT SetWeight([in] LONG nKey, [in] DOUBLE dWeight);
+		[id(15), helpstring("method GetDividends2")] HRESULT GetDividends2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE tmCloseTime, [in] LONG nCount, [out] SAFEARRAY(DOUBLE) * psaDivAmounts, [out] SAFEARRAY(DOUBLE) * psaDivDates, [out] LONG* pnCount);
+		[id(16), helpstring("method GetNearest2")] HRESULT GetNearest2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE tmCloseTime, [out] DOUBLE* pdDivAmount, [out] DOUBLE* pdDivDate);
+		[id(17), helpstring("method GetDividendCount2")] HRESULT GetDividendCount2([in] DATE dtNow, [in] DATE dtExpiryOV, [in] DATE tmCloseTime, [out] LONG* pnCount);
 	};
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -885,6 +910,9 @@ library EtsGeneralLib
 		ETSGENERAL_PROP_DEF(9,			DOUBLE,							PriceTheoClose)
 		ETSGENERAL_PROP_DEF(10,			BSTR,							ImportID)
 
+		ETSGENERAL_PROP_DEF(11,			DATE,							ExpiryOV)
+		ETSGENERAL_PROP_DEF(12,			DATE,							TradingClose)
+
 		[id(21), helpstring("method CopyTo")] 
 		HRESULT CopyTo([in] IEtsFutOptAtom* pDest);
 	};
@@ -1205,6 +1233,10 @@ library EtsGeneralLib
 		ETSGENERAL_PROP_DEF(9,			DOUBLE,							PriceTheoClose)
 		ETSGENERAL_PROP_DEF(10,			BSTR,							ImportID)
 		ETSGENERAL_PROP_DEF(11,			LONG,							Flex)
+
+		ETSGENERAL_PROP_DEF(12,			DATE,							ExpiryOV)
+		ETSGENERAL_PROP_DEF(13,			DATE,							TradingClose)
+
 		[id(21), helpstring("method CopyTo")] 
 		HRESULT CopyTo([in] IEtsOptAtom* pDest);
 	};
@@ -1655,7 +1687,12 @@ library EtsGeneralLib
 		[id(55), helpstring("LoadUnderlying")]		HRESULT LoadUnderlying([in] LONG lTraderID);
 		[id(56), helpstring("LoadBetas")]			HRESULT LoadBetas();
 
+		[id(60), helpstring("SendMail")]
+		HRESULT SendMail(	[in] BSTR sAddress, [in] BSTR sSender, [in] BSTR sSubject, 
+							[in] BSTR sMessage, [in] BSTR sSMTPServer, [in, defaultvalue("")] BSTR sFilePath);
+
 		ETSGENERAL_PROP_DEF(57,	VARIANT_BOOL,	UseTheoCloseForPNL)
+		ETSGENERAL_PROPREADONLY_DEF(58, IEtsHolidayAtom*,		Holidays)
 	};
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -2183,4 +2220,12 @@ library EtsGeneralLib
 
 
 
+	[
+		uuid(5E590859-41EC-4BEB-B926-B18BBFACBD58),
+		helpstring("EtsHolidayAtom Class")
+	]
+	coclass EtsHolidayAtom
+	{
+		[default] interface IEtsHolidayAtom;
+	};
 };

@@ -17,6 +17,7 @@ double CoxRoss(	double	S,		// Underlying spot price
 				double	K,		// Strike price
 				double	Rd,		// Domestic continuos risk free rate
 				double	Rf,		// Foreign continuos risk free rate (or yield value)
+				double	Rb,		// Actual borrowing continuous rate
 				double	V,		// Volatility
 				double	T,		// Years amount till expiration
 				bool	IsCall,	// true if it's 'Call option', false is 'Put option'
@@ -31,7 +32,7 @@ double CoxRoss(	double	S,		// Underlying spot price
 	if (Steps < cnTreeStepsMin || Steps > cnTreeStepsMax)
 		return BadDoubleValue;
 
-	if (S <= 0. || K <= 0. || V <= 0. || T <= 0. || Rd < 0. || Rf < 0.)
+	if (S <= 0. || K <= 0. || V <= 0. || T <= 0. || Rd < 0. || Rf < 0. || Rb < 0.)
 		return BadDoubleValue;
 
 	if (DC > 0)	
@@ -67,7 +68,7 @@ double CoxRoss(	double	S,		// Underlying spot price
 		if (DT[k] < 0. || !ValueNEQZero(DT[k]) || DT[k] > T || DA[k] < 0. || !ValueNEQZero(DA[k]))
 			continue;
 
-		S -= DividendPv(DA[k], Rd, DT[k]);						// Discounts the underlying
+		S -= DividendPv(DA[k], Rd, Rb, DT[k]);						// Discounts the underlying
 			
 		if (S < 0.)
 			return BadDoubleValue;
@@ -76,11 +77,11 @@ double CoxRoss(	double	S,		// Underlying spot price
 	
 		// Sometimes it can has two dividend payments in one day
 		if(Step < cnTreeStepsMax && Step >= 0L)
-			Payment[Step] += DividendPv(DA[k], Rd, DT[k]);
+			Payment[Step] += DividendPv(DA[k], Rd, Rb, DT[k]);
 	}
 	const double	S0 = S;		// stock price without dividends
 
-	const double	R = Rd - Rf;							// Summary rate of underlying
+	const double	R = Rd - (Rf + Rb);						// Summary rate of underlying
 	const double	A = exp(R * T / Steps);					// Yield on one step 
 	const double	U = V * sqrt(T / Steps);				
 	const double	D = -U;
@@ -115,18 +116,31 @@ double CoxRoss(	double	S,		// Underlying spot price
 		// option prices of the tree
 		if (Payment[Step] > Epsilon)
 		{
-			S += Payment[Step];
-
+#ifndef NonPropDividend
+			//ProportionalDividendCalculation
 			for (int i = Bottom; i <= Top; i++)
 			{
-				double _S	= S * exp((IsCall ? U : -U) * (Steps - i));
-				double C	= (IsCall ? _S - K : K - _S);	
-			
+				double _S = S * exp((IsCall ? U : -U) * (Steps - i)) + Payment[Step];
+				double C  = (IsCall ? _S - K : K - _S);	
+
 				_Tree[i] = max(C, 0);
 
 				if ((i - Bottom) % 2 == 0)
 					Tree[i] = max(Tree[i], _Tree[i]);			
 			}
+#else
+			S += Payment[Step];
+			for (int i = Bottom; i <= Top; i++)
+			{
+				double _S = S * exp((IsCall ? U : -U) * (Steps - i));
+				double C  = (IsCall ? _S - K : K - _S);	
+
+				_Tree[i] = max(C, 0);
+
+				if ((i - Bottom) % 2 == 0)
+					Tree[i] = max(Tree[i], _Tree[i]);			
+			}
+#endif
 		}
 
 		Finish = (Bottom++ == Top--); 
@@ -312,8 +326,9 @@ double CoxRossOddEvenAdjust(
 				double	dStrike,
 				double	dRateDomestic,
 				double	dRateForeign,
+				double	dHTBRate,
 				double	dVolatility,
-				int		nDte,
+				double	dYte,
 				bool	bIsCall,
 				long	nSteps,	// Amount of binomial tree steps
 				double* pdDivAmnt,						   
@@ -322,12 +337,13 @@ double CoxRossOddEvenAdjust(
 				GREEKS*	pGreeks/*out*/
 				)
 {
-	if (nDte < 1) 
+	if (dYte < 0.) 
 		return max(bIsCall ? dSpotPrice - dStrike : dStrike - dSpotPrice, 0.);
 
-	double dContRd = RateDiscToCont(dRateDomestic , nDte);
-	double dContRf = RateDiscToCont(dRateForeign, nDte);
-	double dYte	= nDte / cdDaysPerYear365;
+	double dContRd = RateDiscToCont(dRateDomestic , dYte * cdDaysPerYear365);
+	double dContRf = RateDiscToCont(dRateForeign, dYte * cdDaysPerYear365);
+	//double dContRb = IsBadValue(dHTBRate) ? 0 : (dContRd - RateDiscToCont(dHTBRate, nDte)); //actual stock borrowing rate (b in spec)
+	double dContRb = IsBadValue(dHTBRate) ? 0 : (RateDiscToCont(dRateDomestic - dHTBRate, dYte * cdDaysPerYear365)); //actual stock borrowing rate (b in spec)
 	
 	GREEKS GreeksN, GreeksN_1;
 
@@ -338,10 +354,10 @@ double CoxRossOddEvenAdjust(
 		pGreeks->nMask = GT_NOTHING;
 	}
 
-	double dPriceN = CoxRoss(dSpotPrice, dStrike, dContRd, dContRf, dVolatility, dYte, bIsCall, nSteps, pdDivAmnt, pdDivYte, nDivCount, pGreeks ? &GreeksN : NULL);
+	double dPriceN = CoxRoss(dSpotPrice, dStrike, dContRd, dContRf, dContRb, dVolatility, dYte, bIsCall, nSteps, pdDivAmnt, pdDivYte, nDivCount, pGreeks ? &GreeksN : NULL);
 	if(IsBadValue(dPriceN))
 		return BadDoubleValue;
-	double dPriceN_1 = CoxRoss(dSpotPrice, dStrike, dContRd, dContRf, dVolatility, dYte, bIsCall, nSteps - 1, pdDivAmnt, pdDivYte, nDivCount, pGreeks ? &GreeksN_1 : NULL);
+	double dPriceN_1 = CoxRoss(dSpotPrice, dStrike, dContRd, dContRf, dContRb, dVolatility, dYte, bIsCall, nSteps - 1, pdDivAmnt, pdDivYte, nDivCount, pGreeks ? &GreeksN_1 : NULL);
 	if(IsBadValue(dPriceN_1))
 		return BadDoubleValue;
 

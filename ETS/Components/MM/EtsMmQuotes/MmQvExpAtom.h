@@ -20,8 +20,12 @@ struct __MmQvExpAtom
 	IMmQvStrikeAtomPtr		m_spAtmStrike;
 	_bstr_t					m_bstrRootNames;
 
+	DATE					m_dtExpiryOV;
+	DATE					m_dtTradingClose;
+
 	__MmQvExpAtom()
-		: m_dtExpiryMonth(0.), m_dtExpiry(0.), m_dRate(0.), m_dRateCust(0.), m_bVisible(VARIANT_FALSE)
+		: m_dtExpiryMonth(0.), m_dtExpiry(0.), m_dRate(0.), m_dRateCust(0.), m_bVisible(VARIANT_FALSE),
+		  m_dtExpiryOV(0), m_dtTradingClose(0)
 	{
 	}
 };
@@ -103,6 +107,7 @@ private:
 	CRootNamesCollection  m_Roots;
 	CComPtr<IUnknown> m_pUnkMarshaler;
 
+	DOUBLE	GetStrikeVola(IMmQvStrikeAtomPtr & spStrike, DOUBLE dSpotPrice);
 public:
 
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryMonth, m_dtExpiryMonth)
@@ -115,6 +120,10 @@ public:
 	IMPLEMENT_BSTRT_PROPERTY(RootNames, m_bstrRootNames)
 	STDMETHOD(get_NearAtmVola)(DOUBLE* pVal);
 	STDMETHOD(FindAtmStrike)(DOUBLE UnderlyingSpot);
+	STDMETHOD(get_Vola)(DOUBLE	Strike, DOUBLE SpotPrice,  DOUBLE *pVola);
+
+	IMPLEMENT_SIMPLE_PROPERTY(DATE,		ExpiryOV,		m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE,		TradingClose,	m_dtTradingClose)
 
 };
 

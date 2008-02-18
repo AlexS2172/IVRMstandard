@@ -55,6 +55,7 @@ public:
 		,m_spOpt(new CMsOptionColl)
 		,m_spOptByKey(new CMsOptionByKeyColl)
 		,m_spEmptyIvExp(new CMsUndExpColl)
+		,m_enContractType(enStStock)
 	{
 	}
 
@@ -159,6 +160,7 @@ public:
 	bool			m_bMsUpdated;
 	bool			m_bUndClosePriceUpdated;
 	long			m_nOptClosePriceUpdated;
+	SYMBOL_TYPE		m_enContractType;
 
 protected:
 	CMsOptRootByNameCollPtr			m_spOptRoot; // all option roots by name

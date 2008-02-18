@@ -27,6 +27,9 @@ struct __MmHsOptAtom
 	DOUBLE				m_dVegaWeight;
 	DOUBLE				m_dVola;
 
+	DATE				m_dtExpiryOV;
+	DATE				m_dtTradingClose;
+
 	void ClearValues()
 	{
 		m_dDelta = BAD_DOUBLE_VALUE;
@@ -45,6 +48,9 @@ struct __MmHsOptAtom
 		m_dVega = BAD_DOUBLE_VALUE;
 		m_dVegaWeight = 0.;
 		m_dVola = 0.;
+
+		m_dtExpiryOV = 0;
+		m_dtTradingClose = 0;
 	}
 
 	__MmHsOptAtom()
@@ -106,7 +112,10 @@ public:
 	IMPLEMENT_BSTR_PROPERTY(Symbol,		m_bstrSymbol)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				Vega,			m_dVega)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				VegaWeight,		m_dVegaWeight)
-	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				Vola,			m_dVola)	
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				Vola,			m_dVola)
+
+	IMPLEMENT_SIMPLE_PROPERTY(DATE,					ExpiryOV,		m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE,					TradingClose,	m_dtTradingClose)
 
 	STDMETHOD(ClearValues)();
 };

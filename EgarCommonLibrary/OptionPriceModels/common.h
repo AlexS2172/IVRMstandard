@@ -45,6 +45,10 @@ const double cdDaysPerYear360 = 360.;
 
 const double cdDaysPerYear365 = 365.;
 
+const double cdMinutesPerYear365 = 24*60*cdDaysPerYear365;
+
+const double cdSecondsPerYear365 = 60*cdMinutesPerYear365;
+
 const double cdDeltaVolatility = 0.01;
 
 const double cdDeltaRate = 0.01;

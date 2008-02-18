@@ -46,7 +46,6 @@ Public TradesFilter As Long
 Public OptionsFilter As Long
 
 Public CalcModelVisible As Boolean
-'Public ExpCalendarVisible As Boolean
 Public DividendsVisible As Boolean
 Public VolaVisible As Boolean
 Public RatesVisible As Boolean
@@ -134,7 +133,7 @@ Public Sub InitGrids()
     End With
     
     With fgVol
-        .Rows = 2
+        .Rows = 7
         .Cols = QVC_COLUMN_COUNT
         
         .AllowBigSelection = False
@@ -150,7 +149,7 @@ Public Sub InitGrids()
         .ExplorerBar = flexExNone
         .ExtendLastCol = False
         .FixedCols = 1
-        .FixedRows = 1
+        .FixedRows = 2
         .FocusRect = flexFocusSolid
         .FrozenCols = 0
         .FrozenRows = 0
@@ -290,7 +289,7 @@ Public Sub FormatDivGrid()
     
         .Cols = QDC_LAST_COLUMN
         
-        For i = QDC_TRADES To QDC_RATE
+        For i = QDC_TRADES To QDC_LAST_COLUMN
             .TextMatrix(0, i) = gdDiv.Col(i).Caption
             .ColFormat(i) = gdDiv.Col(i).Format
             .ColDataType(i) = gdDiv.Col(i).DataType
@@ -351,10 +350,24 @@ Public Sub FormatVolGrid()
     With fgVol
         m_GridLock(GT_QUOTES_VOLA).LockRedraw
     
-        .Cols = QVC_LAST_COLUMN - 1
+        .Cols = QVC_LAST_COLUMN
+        .Rows = 7
+        .FixedRows = 2
+        .FixedCols = 1
         
-        .TextMatrix(0, QVC_VOLA) = gdVol.Col(QVC_VOLA).Caption
-        .TextMatrix(1, QVC_VOLA) = "ATM Vola"
+        .TextMatrix(0, QVC_VOLA) = "Monyeness" 'gdVol.Col(QVC_VOLA).Caption
+        .TextMatrix(1, QVC_VOLA) = "Monyeness" 'gdVol.Col(QVC_VOLA).Caption
+        
+        .TextMatrix(2, 0) = "+20%"
+        .TextMatrix(3, 0) = "+10%"
+        .TextMatrix(4, 0) = "ATM"
+        .TextMatrix(5, 0) = "-10%"
+        .TextMatrix(6, 0) = "-20%"
+        
+        .MergeCells = flexMergeFixedOnly
+        .MergeRow(0) = True
+        .MergeCol(0) = True
+        
         .ColFormat(QVC_VOLA) = gdVol.Col(QVC_VOLA).Format
         .ColDataType(QVC_VOLA) = gdVol.Col(QVC_VOLA).DataType
        
@@ -607,10 +620,7 @@ Public Sub AdjustDivsAndRatesVisible()
                     .ColHidden(i) = Not CalcModelVisible
                     
                 ElseIf i < QDC_DIV Then
-                    .ColHidden(i) = False 'Not ExpCalendarVisible
-                    
-'                ElseIf i < QDC_DIV Then
-'                    .ColHidden(i) = False
+                    .ColHidden(i) = False
                     
                 ElseIf i < QDC_RATE Then
                     .ColHidden(i) = Not (DividendsVisible _
@@ -708,7 +718,7 @@ End Sub
 
 Public Sub FormatVolColumns()
     On Error Resume Next
-    Dim i&, nCols&, nRows&, nIdx&, aFont As New StdFont
+    Dim i&, j&, nCols&, nRows&, nIdx&, aFont As New StdFont
     
     With fgVol
         m_GridLock(GT_QUOTES_VOLA).LockRedraw
@@ -722,17 +732,15 @@ Public Sub FormatVolColumns()
         
         Set .Font = aFont
         
-        nCols = .Cols - 2
+        nCols = .Cols - 1
         nRows = .Rows - 1
-        For i = QVC_VOLA_VAL To nCols
-            .Cell(flexcpBackColor, 1, i) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
-            .Cell(flexcpForeColor, 1, i) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
+        For j = 2 To 7
+            For i = QVC_VOLA_VAL To nCols
+                .Cell(flexcpBackColor, j, i) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
+                .Cell(flexcpForeColor, j, i) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
+            Next
         Next
-        If .Cols > QVC_VOLA_VAL Then
-            .Cell(flexcpBackColor, 1, .Cols - 1) = IIf(gdVol.Col(QVC_VOLA_DATECALC).BackColor <> 0, gdVol.Col(QVC_VOLA_DATECALC).BackColor, RGB(1, 1, 1))
-            .Cell(flexcpForeColor, 1, .Cols - 1) = IIf(gdVol.Col(QVC_VOLA_DATECALC).ForeColor <> 0, gdVol.Col(QVC_VOLA_DATECALC).ForeColor, RGB(1, 1, 1))
-        End If
-    
+           
         If gdVol.HorizLinesVisible Then
             If gdVol.VertLinesVisible Then
                 .GridLines = flexGridFlat

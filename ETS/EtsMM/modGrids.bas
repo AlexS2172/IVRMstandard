@@ -124,12 +124,21 @@ Public Enum MatrixScenarioColumnEnum
     MSC_HORZ_AXIS
     MSC_HORZ_POINTS
     MSC_HORZ_STEP
+    
+    MSC_HORZ_STEP_HOUR
+    MSC_HORZ_STEP_MIN
+    
     MSC_HORZ_UNITS
     MSC_VERT_AXIS
     MSC_VERT_POINTS
     MSC_VERT_STEP
+    
+    MSC_VERT_STEP_HOUR
+    MSC_VERT_STEP_MIN
+    
     MSC_VERT_UNITS
     MSC_VOLA_SHIFT
+    
     
     MSC_COLUMN_COUNT
     MSC_LAST_COLUMN = MSC_COLUMN_COUNT - 1
@@ -1081,6 +1090,8 @@ Private Sub InitQuotesGrids()
         .Col(QDC_AMT).Init "Amt", "Dividends Amount", "#,##0.00", flexDTDouble, True, False, True, False
         .Col(QDC_RATE).Init "Rates", "Interest Rates Type", "", flexDTString, True, False, True, False
         .Col(QDC_RATE_VAL).Init "Rate", "Interest Rate Value", "#,##0.00", flexDTDouble, True, False, True, False
+        .Col(QDC_VOLA_IS_MANUAL).Init "ManualVola", "Is Vola Manual", "", flexDTBoolean, True, False, True, False
+        .Col(QDC_DATECALC).Init "Calculation Date", "Calculation Date", "MM/DD/YYYY hh:mm AMPM", flexDTDate, False, False, True, True
     End With
     
     ' quotes vola grid
@@ -1092,10 +1103,8 @@ Private Sub InitQuotesGrids()
             .Idx(i) = i
         Next
         
-        .Col(QVC_VOLA).Init "Exp", "Expiry", "", flexDTString, False, False, True, False
+        .Col(QVC_VOLA).Init "Moneyness", "Expiry", "", flexDTString, False, False, True, False
         .Col(QVC_VOLA_VAL).Init "Vola", "ATM Volatility", "#,##0.00", flexDTDouble, True, False, True, False
-        .Col(QVC_VOLA_IS_MANUAL).Init "ManualVola", "Is Vola Manual", "", flexDTBoolean, True, False, True, False
-        .Col(QVC_VOLA_DATECALC).Init "Calculation Date", "Calculation Date", "Short Date", flexDTDate, True, False, True, True
     
     End With
     
@@ -1192,6 +1201,7 @@ Private Sub InitQuotesGrids()
         .Col(QOC_C_EXCHANGE).Init "cExch", "Call Exchange", "", flexDTString, False, True, False, True
         .Col(QOC_C_SERIES).Init "cSeries", "Call Series", "", flexDTString, False, True, True, True
         .Col(QOC_C_EXPIRY).Init "cExpiry", "Call Expiry", "MMM,DD YY", flexDTDate, False, True, False, True
+        .Col(QOC_C_EXPIRY_OV).Init "cExpiryOV", "Call Expiry for Option Valuation", "MMM,DD YY hh:mm AMPM", flexDTDate, False, True, False, True
         .Col(QOC_C_STRIKE).Init "cStrike", "Call Strike", "#,##0.00", flexDTDouble, False, True, False, True
         .Col(QOC_C_BID).Init "cBid", "Call Bid Price", "#,##0.00", flexDTDouble, True, True, True, True, "Up Tick", "Down Tick"
         .Col(QOC_C_ASK).Init "cAsk", "Call Ask Price", "#,##0.00", flexDTDouble, True, True, True, True, "Up Tick", "Down Tick"
@@ -1225,6 +1235,7 @@ Private Sub InitQuotesGrids()
         .Col(QOC_P_EXCHANGE).Init "pExch", "Put Exchange", "", flexDTString, False, True, False, True
         .Col(QOC_P_SERIES).Init "pSeries", "Put Series", "", flexDTString, False, True, True, True
         .Col(QOC_P_EXPIRY).Init "pExpiry", "Put Expiry", "MMM,DD YY", flexDTDate, False, True, False, True
+        .Col(QOC_P_EXPIRY_OV).Init "pExpiryOV", "Put Expiry for Option Valuation", "MMM,DD YY hh:mm AMPM", flexDTDate, False, True, False, True
         .Col(QOC_P_STRIKE).Init "pStrike", "Put Strike", "#,##0.00", flexDTDouble, False, True, False, True
         .Col(QOC_P_BID).Init "pBid", "Put Bid Price", "#,##0.00", flexDTDouble, True, True, True, True, "Up Tick", "Down Tick"
         .Col(QOC_P_ASK).Init "pAsk", "Put Ask Price", "#,##0.00", flexDTDouble, True, True, True, True, "Up Tick", "Down Tick"
@@ -1258,7 +1269,8 @@ Private Sub InitQuotesGrids()
         .Col(QOC_IS_SYNTH).Init "Synth", "Synthetic Underlying", "", flexDTBoolean, False, True, False, True
         .Col(QOC_DPC).Init "DPC", "Delivery Per Contract", "", flexDTString, False, True, False, True
         .Col(QOC_SU_PRICE).Init "SU Price", "Synthetic Underlying Price", "#,##0.00", flexDTDouble, False, True, True, True
-        .Col(QOC_DTE).Init "DTE", "Days To Expiration", "", flexDTString, False, True, False, True
+'        .Col(QOC_DTE).Init "DTE", "Days To Expiration", "", flexDTString, False, True, False, True
+        .Col(QOC_DTE).Init "TimeToExp", "Time To Expiration", "", flexDTString, False, True, False, True
         .Col(QOC_FUT_MATURITY).Init "FutMaturity", "Futures Maturity Date", "MMM,DD YY", flexDTDate, False, True, False, True
         
         .Col(QOC_C_BID).ForeColorAlt1 = &H8000&
@@ -1321,7 +1333,8 @@ Private Sub InitTradesGrids()
         .Col(TLC_SYMBOL).Init "Sym", "Symbol", "", flexDTString, False, True, True, True
         .Col(TLC_OPT_TYPE).Init "C/P", "Option Type", "", flexDTString, False, True, True, True
         .Col(TLC_EXPIRY).Init "Exp", "Option Expiry", "MMM,DD YY", flexDTDate, False, True, True, True
-        .Col(TLC_DTE).Init "DTE", "DTE", "#,##0", flexDTLong, False, True, True, True
+        '.Col(TLC_DTE).Init "DTE", "DTE", "#,##0", flexDTLong, False, True, True, True
+        .Col(TLC_DTE).Init "TimeToExp", "Time To Expiration", "", flexDTString, False, True, True, True
         .Col(TLC_STRIKE).Init "Str", "Option Strike", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(TLC_BS).Init "B/S", "Buy/Sell", "Buy;Sell", flexDTBoolean, False, True, True, True
         .Col(TLC_PRICE).Init "Prc", "Trade Price", "#,##0.00", flexDTDouble, False, True, True, True
@@ -1521,7 +1534,7 @@ Private Sub InitRisksGrids()
         .Col(RFC_EXPIRY).Init "Expiry", "Options Expiry", "", flexDTString, True, False, True, False
         .Col(RFC_INDEX).Init "Hedge Symbol", "Hedge Symbol for Calculations", "", flexDTString, True, False, True, False
         .Col(RFC_MODEL).Init "Model", "Options Calculation Model", "", flexDTString, False, False, True, False
-        .Col(RFC_SIM_DATE).Init "Calculation Date", "Calculation Date", "", flexDTDate, False, False, False, False
+        .Col(RFC_SIM_DATE).Init "Calculation Date", "Calculation Date", "MM/DD/YYYY hh:mm AMPM", flexDTDate, False, False, False, False
     End With
     
     ' risks total grid
@@ -1573,6 +1586,7 @@ Private Sub InitRisksGrids()
         .Col(RPC_SYMBOL).Init "Sym", "Symbol", "", flexDTString, False, False, True, False
         .Col(RPC_OPT_TYPE).Init "C/P", "Option Type", "", flexDTString, False, True, True, True
         .Col(RPC_EXPIRY).Init "Exp", "Option Expiry", "MMM,DD YY", flexDTDate, False, True, True, True
+        .Col(RPC_EXPIRY_OV).Init "ExpOV", "Expiry for Option Valuation", "MMM,DD YY hh:mm AMPM", flexDTDate, False, True, True, True
         .Col(RPC_STRIKE).Init "Str", "Option Strike", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(RPC_BID).Init "Bid", "Bid Price", "#,##0.00", flexDTDouble, True, True, True, True
         .Col(RPC_ASK).Init "Ask", "Ask Price", "#,##0.00", flexDTDouble, True, True, True, True
@@ -1699,10 +1713,18 @@ Private Sub InitRiskMatrixGrids()
         .Col(MSC_HORZ_AXIS).Init "hAxis", "Horizontal Axis Type", "", flexDTString, True, False, True, False
         .Col(MSC_HORZ_POINTS).Init "hPts", "Horizontal Points Count", "", flexDTString, True, False, True, False
         .Col(MSC_HORZ_STEP).Init "hStep", "Horizontal Step Value", "#,##0.00", flexDTDouble, True, False, True, False
+        
+        .Col(MSC_HORZ_STEP_HOUR).Init "hours", "", "#,##0", flexDTLong, True, False, True, False
+        .Col(MSC_HORZ_STEP_MIN).Init "minutes", "", "#,##0", flexDTLong, True, False, True, False
+        
         .Col(MSC_HORZ_UNITS).Init "hUnits", "Horizontal Units Type", "", flexDTString, True, False, True, False
         .Col(MSC_VERT_AXIS).Init "vAxis", "Vertical Axis Type", "", flexDTString, True, False, True, False
         .Col(MSC_VERT_POINTS).Init "vPts", "Vertical Points Count", "", flexDTString, True, False, True, False
         .Col(MSC_VERT_STEP).Init "vStep", "Vertical Step Value", "#,##0.00", flexDTDouble, True, False, True, False
+        
+        .Col(MSC_VERT_STEP_HOUR).Init "hours", "", "#,##0", flexDTLong, True, False, True, False
+        .Col(MSC_VERT_STEP_MIN).Init "minutes", "", "#,##0", flexDTLong, True, False, True, False
+        
         .Col(MSC_VERT_UNITS).Init "vUnits", "Vertical Units Type", "", flexDTString, True, False, True, False
         .Col(MSC_VOLA_SHIFT).Init "VolShift", "Volatility Shift Type", "", flexDTString, True, False, True, False
     End With
@@ -2065,7 +2087,8 @@ Private Sub InitVolaAnalysisGrids()
         .Col(AUC_UND_ASK).Init "Ask", "Underlying Ask Price", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(AUC_UND_LAST).Init "Last", "Underlying Last Price", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(AUC_EXPIRY).Init "Exp", "Expiry Date", "", flexDTDate, False, True, True, True
-        .Col(AUC_EXPIRY_DAYS).Init "DTE", "Days to Expiry", "#,##0", flexDTLong, False, True, True, True
+'        .Col(AUC_EXPIRY_DAYS).Init "DTE", "Days to Expiry", "#,##0", flexDTLong, False, True, True, True
+        .Col(AUC_EXPIRY_DAYS).Init "TimeToExp", "Time To Expiry", "", flexDTString, False, True, True, True
         .Col(AUC_ATM_STRIKE).Init "AtmStr", "ATM Strike", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(AUC_OPT_ROOT).Init "Root", "Option Root", "", flexDTString, True, True, True, True, "Multiple Roots"
         .Col(AUC_SUM_BID).Init "sBid", "Straddle Bid (Call Bid + Put Bid)", "#,##0.00", flexDTDouble, False, True, True, True

@@ -571,10 +571,10 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 					if(enContractType == enCtOption || enContractType == enCtFutOption)
 					{
 
-						DATE dtExpiry = pPos->m_dtExpiry;
+						DATE dtExpiryOV = pPos->m_dtExpiryOV;
 						DOUBLE dStrike = pPos->m_dStrike;
 
-						if(dtExpiry >= dtCalcDate )
+						if(dtExpiryOV >= dtCalcDate )
 						{
 							bPosCalcGreeks = pPos->m_bCalcGreeks;
 
@@ -610,7 +610,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 								if(bUpdateVola)
 								{
 									if(pPos->m_spQuote!=NULL)
-										_CHK(pPos->m_spQuote->put_Vola(m_spVolaSrv->GetOptionVola(dtExpiry, dStrike)));
+										_CHK(pPos->m_spQuote->put_Vola(m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike)));
 								}
 
 								if(enContractType == enCtOption)
@@ -710,7 +710,7 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 							pPos->put_LogEnhansement ( L"The option is expired" ) ;
 
 							WCHAR strparam[200] ;
-							_snwprintf_s ( strparam, sizeof(strparam), L"Expiration Date %f" , dtExpiry  ) ;
+							_snwprintf_s ( strparam, sizeof(strparam), L"Expiration Date %f" , dtExpiryOV  ) ;
 
 							IRvMmQuoteAtomPtr spQuote = pPos->m_spQuote;
 
@@ -1324,7 +1324,7 @@ STDMETHODIMP CMmRvUndAtom::CalcWtdVega(IEtsExpCalColl* aExpCalColl)
 						DOUBLE dVegaWeight = BAD_DOUBLE_VALUE;
 						DATE dtExpiry = pPosAtom->m_dtExpiry;
 
-						dVegaWeight = spExpCalColl->GetVegaWeight(dtExpiry);
+						dVegaWeight = spExpCalColl->GetVegaWeight(pPosAtom->m_dtExpiryOV);
 						pPosAtom->m_dVegaWeight = dVegaWeight;
 
 
@@ -1872,7 +1872,7 @@ STDMETHODIMP CMmRvUndAtom::ClearRatios()
 //								nOptUpdated++;
 //
 //								if(bUpdateVola)
-//									_CHK(spPos->put_Vola(m_spVolaSrv->GetOptionVola(dtExpiry, dStrike)));
+//									_CHK(spPos->put_Vola(m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike)));
 //
 //								if(enContractType == enCtOption)
 //								{

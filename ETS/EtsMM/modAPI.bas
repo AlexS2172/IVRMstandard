@@ -47,7 +47,7 @@ Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Public Declare Function GetForegroundWindow Lib "user32" () As Long
 Public Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
 
-Public Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Public Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Public Declare Function GetComputerName Lib "kernel32.dll" Alias "GetComputerNameA" (Name As Byte, ByRef Size As Long) As Boolean
 Public Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
 
@@ -190,7 +190,7 @@ Public Const WM_VSCROLL As Long = &H115
 Public Const WM_WININICHANGE As Long = &H1A
 
 
-Declare Function GetUpdateRect Lib "user32" (ByVal hwnd As Long, lpRect As RECT, ByVal bErase As Long) As Long
+Declare Function GetUpdateRect Lib "user32" (ByVal hWnd As Long, lpRect As RECT, ByVal bErase As Long) As Long
 
 Public Const HWND_TOP As Long = 0
 Public Const HWND_TOPMOST As Long = -1
@@ -209,9 +209,9 @@ Public Const SW_SHOWMINIMIZED As Long = 2
 Public Const SW_MAXIMIZE As Long = 3
 Public Const SW_MINIMIZE As Long = 6
 
-Public Declare Function SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
-Public Declare Function ShowWindow Lib "user32" (ByVal hwnd As Long, ByVal nCmdShow As Long) As Long
-Public Declare Function IsIconic Lib "user32" (ByVal hwnd As Long) As Long
+Public Declare Function SetWindowPos Lib "user32" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+Public Declare Function ShowWindow Lib "user32" (ByVal hWnd As Long, ByVal nCmdShow As Long) As Long
+Public Declare Function IsIconic Lib "user32" (ByVal hWnd As Long) As Long
 
 
 'Public Type MONITORINFO
@@ -251,12 +251,12 @@ Public Type WINDOWPLACEMENT
     rcNormalPosition As RECT
 End Type
 
-Public Declare Function GetWindowPlacement Lib "user32" (ByVal hwnd As Long, lpwndpl As WINDOWPLACEMENT) As Long
-Public Declare Function SetWindowPlacement Lib "user32" (ByVal hwnd As Long, lpwndpl As WINDOWPLACEMENT) As Long
+Public Declare Function GetWindowPlacement Lib "user32" (ByVal hWnd As Long, lpwndpl As WINDOWPLACEMENT) As Long
+Public Declare Function SetWindowPlacement Lib "user32" (ByVal hWnd As Long, lpwndpl As WINDOWPLACEMENT) As Long
 Public Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
 
-Public Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
-Public Declare Function SetWindowLong Lib "user32" Alias "SetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Public Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+Public Declare Function SetWindowLong Lib "user32" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
 Public Const SWP_NOZORDER As Long = &H4&
 Public Const SWP_HIDEWINDOW As Long = &H80
 Public Const SWP_SHOWWINDOW As Long = &H40
@@ -281,7 +281,7 @@ Public Declare Function GetCursorPos Lib "user32" (lpPoint As POINTAPI) As Long
 Public Declare Function WindowFromPoint Lib "user32" (ByVal xPoint As Long, ByVal yPoint As Long) As Long
 Public Declare Function GetCapture Lib "user32" () As Long
 Public Declare Function ReleaseCapture Lib "user32" () As Long
-Public Declare Function SetCapture Lib "user32" (ByVal hwnd As Long) As Long
+Public Declare Function SetCapture Lib "user32" (ByVal hWnd As Long) As Long
 
 Public Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (lpEventAttributes As Any, ByVal bManualReset As Long, ByVal bInitialState As Long, lpName As Any) As Long
 Public Declare Function SetEvent Lib "kernel32" (ByVal hEvent As Long) As Long
@@ -324,8 +324,8 @@ Public Type MENUBARINFO
     fBarFocused_fFocused As Long
 End Type
 
-Public Declare Function GetMenu Lib "user32" (ByVal hwnd As Long) As Long
-Public Declare Function GetMenuBarInfo Lib "user32" (ByVal hwnd As Long, ByVal idObject As Long, ByVal idItem As Long, ByRef pmbi As MENUBARINFO) As Long
+Public Declare Function GetMenu Lib "user32" (ByVal hWnd As Long) As Long
+Public Declare Function GetMenuBarInfo Lib "user32" (ByVal hWnd As Long, ByVal idObject As Long, ByVal idItem As Long, ByRef pmbi As MENUBARINFO) As Long
 Public Declare Function GetLastError Lib "kernel32" () As Long
 Public Declare Function GetMenuItemCount Lib "user32" (ByVal hMenu As Long) As Long
 
@@ -361,7 +361,7 @@ Public Declare Function GetWindowsDirectory Lib "kernel32" Alias "GetWindowsDire
 Public Declare Function GetVolumeInformation Lib "kernel32" Alias "GetVolumeInformationA" (ByVal lpRootPathName As String, lpVolumeNameBuffer As Any, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength As Any, lpFileSystemFlags As Any, lpFileSystemNameBuffer As Any, ByVal nFileSystemNameSize As Long) As Long
 
 Public Const EM_SETTABSTOPS As Long = &HCB
-Public Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Public Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
 
 Public Declare Function GetLongPathName Lib "kernel32" Alias "GetLongPathNameA" (ByVal lpszShortPath As String, ByVal lpszLongPath As String, ByVal cchBuffer As Long) As Long
 
@@ -382,7 +382,7 @@ Public Const EM_LIMITTEXT As Long = &HC5
 Public Const CB_LIMITTEXT As Long = &H141
 
 Public Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
-Public Declare Function BringWindowToTop Lib "user32" (ByVal hwnd As Long) As Long
+Public Declare Function BringWindowToTop Lib "user32" (ByVal hWnd As Long) As Long
 
 'Public Type Guid
 '    Data1 As Long
@@ -393,7 +393,7 @@ Public Declare Function BringWindowToTop Lib "user32" (ByVal hwnd As Long) As Lo
 
 Public Declare Function CoCreateGuid Lib "ole32" (ByRef pguid As Guid) As Long
 Public Declare Function CLSIDFromProgID Lib "ole32.dll" (ByVal pOLESTR As Long, ByRef pCLSID As Guid) As Long
-Public Declare Function FlashWindow Lib "user32" (ByVal hwnd As Long, ByVal bInvert As Long) As Long
+Public Declare Function FlashWindow Lib "user32" (ByVal hWnd As Long, ByVal bInvert As Long) As Long
 Public Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 
 Public Const VK_LSHIFT& = &HA0
@@ -440,8 +440,8 @@ Public Declare Sub InitCommonControls Lib "comctl32" ()
 Public Declare Function InitCommonControlsEx Lib "comctl32" (Init As InitCommonControlsExType) As Boolean
 
 Public Declare Function CreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
-Public Declare Function DestroyWindow Lib "user32" (ByVal hwnd As Long) As Long
-Public Declare Function MoveWindow Lib "user32" (ByVal hwnd As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal bRepaint As Long) As Long
+Public Declare Function DestroyWindow Lib "user32" (ByVal hWnd As Long) As Long
+Public Declare Function MoveWindow Lib "user32" (ByVal hWnd As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal bRepaint As Long) As Long
 
 Public Const WM_USER& = &H400
 Public Const IPM_CLEARADDRESS& = (WM_USER + 100)
@@ -518,29 +518,55 @@ Declare Function PdhCollectQueryData Lib "pdh.dll" (ByVal QueryHandle As Long) A
 Declare Function PdhVbGetDoubleCounterValue Lib "pdh.dll" (ByVal CounterHandle As Long, ByRef CounterStatus As Long) As Double
 Declare Function PdhVbIsGoodStatus Lib "pdh.dll" (ByVal StatusValue As Long) As Long
 
-Public Type MapiMessage
-    Reserved As Long
-    Subject As String
-    NoteText As String
-    MessageType As String
-    DateReceived As String
-    ConversiondID As String
-    Flags As Long
-    Originator As Long
-    RecipCount As Long
-    FileCount As Long
-End Type
+'Public Type MAPIMessage
+'    Reserved As Long
+'    Subject As String
+'    NoteText As String
+'    MessageType As String
+'    DateReceived As String
+'    ConversiondID As String
+'    Flags As Long
+'    Originator As Long
+'    RecipCount As Long
+'    FileCount As Long
+'End Type
+'
+'Public Type MapiRecip
+'    Reserved As Long
+'    RecipClass As Long
+'    Name As String
+'    Address As String
+'    EIDSize As Long
+'    EntryID As String
+'End Type
+'
+'Public Type MapiFile
+'    Reserved As Long
+'    Flags As Long
+'    Position As Long
+'    PathName As String
+'    FileName As String
+'    FileType As String
+'End Type
 
+'Public Const MAPI_TO& = 1&
+'Public Const MAPI_CC& = 2&
+'Public Const MAPI_BCC& = 3&
+'Public Const MAPI_DIALOG& = &H8&
+
+
+'-- mapi message recipient object type
 Public Type MapiRecip
     Reserved As Long
     RecipClass As Long
     Name As String
-    address As String
+    Address As String
     EIDSize As Long
     EntryID As String
 End Type
 
-Public Type Mapifile
+'-- mapi message file object type
+Public Type MapiFile
     Reserved As Long
     Flags As Long
     Position As Long
@@ -549,12 +575,80 @@ Public Type Mapifile
     FileType As String
 End Type
 
-Public Const MAPI_TO& = 1&
-Public Const MAPI_CC& = 2&
-Public Const MAPI_BCC& = 3&
-Public Const MAPI_DIALOG& = &H8&
+'-- mapi message object type
+Public Type MAPIMessage
+    Reserved As Long
+    Subject As String
+    NoteText As String
+    MessageType As String
+    DateReceived As String
+    ConversationID As String
+    Flags As Long
+    RecipCount As Long
+    FileCount As Long
+End Type
 
-Declare Function MAPISendMail Lib "MAPI32.DLL" Alias "BMAPISendMail" (ByVal Session&, ByVal UIParam&, message As MapiMessage, Recipient() As MapiRecip, File() As Mapifile, ByVal Flags&, ByVal Reserved&) As Long
+'MAPI constants
+Public Const MAPI_AB_NOMODIFY = &H400
+Public Const MAPI_BCC = 3
+Public Const MAPI_BODY_AS_FILE = &H200
+Public Const MAPI_CC = 2
+Public Const MAPI_DIALOG = &H8
+Public Const MAPI_E_AMBIGUOUS_RECIPIENT = 21
+Public Const MAPI_E_AMBIG_RECIP = MAPI_E_AMBIGUOUS_RECIPIENT
+Public Const MAPI_E_ATTACHMENT_NOT_FOUND = 11
+Public Const MAPI_E_ATTACHMENT_OPEN_FAILURE = 12
+Public Const MAPI_E_ATTACHMENT_WRITE_FAILURE = 13
+Public Const MAPI_E_BAD_RECIPTYPE = 15
+Public Const MAPI_E_BLK_TOO_SMALL = 6
+Public Const MAPI_E_DISK_FULL = 4
+Public Const MAPI_E_FAILURE = 2
+Public Const MAPI_E_INSUFFICIENT_MEMORY = 5
+Public Const MAPI_E_INVALID_EDITFIELDS = 24
+Public Const MAPI_E_INVALID_MESSAGE = 17
+Public Const MAPI_E_INVALID_RECIPS = 25
+Public Const MAPI_E_INVALID_SESSION = 19
+Public Const MAPI_E_LOGIN_FAILURE = 3
+Public Const MAPI_E_LOGON_FAILURE = MAPI_E_LOGIN_FAILURE
+Public Const MAPI_E_MESSAGE_IN_USE = 22
+Public Const MAPI_E_NETWORK_FAILURE = 23
+Public Const MAPI_E_NO_MESSAGES = 16
+Public Const MAPI_E_NOT_SUPPORTED = 26
+Public Const MAPI_E_TEXT_TOO_LARGE = 18
+Public Const MAPI_E_TOO_MANY_FILES = 9
+Public Const MAPI_E_TOO_MANY_RECIPIENTS = 10
+Public Const MAPI_E_TOO_MANY_SESSIONS = 8
+Public Const MAPI_E_TYPE_NOT_SUPPORTED = 20
+Public Const MAPI_E_UNKNOWN_RECIPIENT = 14
+Public Const MAPI_ENVELOPE_ONLY = &H40
+Public Const MAPI_FORCE_DOWNLOAD = &H1000
+Public Const MAPI_GUARANTEE_FIFO = &H100
+Public Const MAPI_LOGOFF_SHARED = &H1
+Public Const MAPI_LOGOFF_UI = &H2
+Public Const MAPI_LOGON_UI = &H1
+Public Const MAPI_NEW_SESSION = &H2
+Public Const MAPI_OLE = &H1
+Public Const MAPI_OLE_STATIC = &H2
+Public Const MAPI_ORIG = 0
+Public Const MAPI_PEEK = &H80
+Public Const MAPI_RECEIPT_REQUESTED = &H2
+Public Const MAPI_SENT = &H4
+Public Const MAPI_SUPPRESS_ATTACH = &H800
+Public Const MAPI_TO = 1
+Public Const MAPI_UNREAD = &H1
+Public Const MAPI_UNREAD_ONLY = &H20
+Public Const MAPI_USER_ABORT = 1
+Public Const MAPI_E_USER_ABORT = MAPI_USER_ABORT
+Public Const SUCCESS_SUCCESS = 0
+
+Public Declare Function MAPILogoff Lib "MAPI32.DLL" (ByVal Session&, ByVal UIParam&, ByVal Flags&, ByVal Reserved&) As Long
+
+Public Declare Function MAPILogon Lib "MAPI32.DLL" (ByVal UIParam&, ByVal User$, ByVal Password$, ByVal Flags&, ByVal Reserved&, Session&) As Long
+
+Public Declare Function MAPISendMail Lib "MAPI32.DLL" Alias "BMAPISendMail" (ByVal Session&, ByVal UIParam&, Message As MAPIMessage, Recipient() As MapiRecip, File() As MapiFile, ByVal Flags&, ByVal Reserved&) As Long
+
+
+'Declare Function MAPISendMail Lib "MAPI32.DLL" Alias "BMAPISendMail" (ByVal Session&, ByVal UIParam&, Message As MAPIMessage, Recipient() As MapiRecip, File() As MapiFile, ByVal Flags&, ByVal Reserved&) As Long
 
 Declare Function MAPIResolveName Lib "MAPI32.DLL" Alias "BMAPIResolveName" (ByVal Session&, ByVal UIParam&, ByVal UserName$, ByVal Flags&, ByVal Reserved&, Recipient As MapiRecip) As Long
 
@@ -615,7 +709,7 @@ Public Const SND_SYNC = &H0
 
 
 Public Const CSIDL_PERSONAL& = &H5
-Public Declare Function SHGetSpecialFolderPath Lib "shell32.dll" Alias "SHGetSpecialFolderPathA" (ByVal hwnd As Long, ByVal pszPath As String, ByVal csidl As Long, ByVal fCreate As Long) As Long
+Public Declare Function SHGetSpecialFolderPath Lib "shell32.dll" Alias "SHGetSpecialFolderPathA" (ByVal hWnd As Long, ByVal pszPath As String, ByVal csidl As Long, ByVal fCreate As Long) As Long
 Public Declare Function GetUserName Lib "advapi32.dll" Alias "GetUserNameA" (ByVal lpBuffer As String, nSize As Long) As Long
 
 
@@ -678,7 +772,7 @@ Public Declare Function CreateProcess Lib "kernel32.dll" _
 Public Declare Function WaitForSingleObject Lib "kernel32.dll" _
         (ByVal hHandle As Long, ByVal dwMilliseconds As Long) As Long
         
-Public Declare Function SetActiveWindow Lib "user32.dll" (ByVal hwnd As Long) As Long
+Public Declare Function SetActiveWindow Lib "user32.dll" (ByVal hWnd As Long) As Long
 
 Private Declare Sub GetSystemTime Lib "kernel32" (lpSystemTime As SystemTime)
 Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long

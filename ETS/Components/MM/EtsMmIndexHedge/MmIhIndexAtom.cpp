@@ -68,20 +68,21 @@ HRESULT CMmIhIndexAtom::CalcOptionGreeks(IMmIhOptAtomPtr aOpt, DOUBLE dSpotPrice
 			EtsOptionTypeEnum enOptType = enOtPut;
 			_CHK(spOpt->get_OptType(&enOptType));
 
-			DATE dtTemp = 0.;
+			DATE dtTemp = 0., dtExpiryOV = 0., tmCloseTime = 0., dtNow = 0.;
+			DOUBLE dYTE = 0.;
 
-			_CHK(spOpt->get_Expiry(&dtTemp));
-			LONG nExpiry = static_cast<LONG>(dtTemp);
+//			_CHK(spOpt->get_Expiry(&dtExpiry));
+			_CHK(spOpt->get_ExpiryOV(&dtExpiryOV));
+			_CHK(spOpt->get_TradingClose(&tmCloseTime));
+			::GetNYDateTimeAsDATE(&dtNow);
 
-			dtTemp = vt_date::GetCurrentDate();
-			LONG nToday = static_cast<LONG>(dtTemp);
+			dYTE = (dtExpiryOV - dtNow) / 365.;
 
 			if(m_spBasketIndex != NULL)
 			{
 				LONG nBaskDivCount = 0L; VARIANT_BOOL bIsBasket = VARIANT_FALSE;
 
 				_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
-				//_CHK(m_spBasketIndex->get_BasketDivsCount(&nBaskDivCount));
 
 				if(bIsBasket /*&& nBaskDivCount > 0L*/)
 				{
@@ -89,13 +90,13 @@ HRESULT CMmIhIndexAtom::CalcOptionGreeks(IMmIhOptAtomPtr aOpt, DOUBLE dSpotPrice
 					IEtsIndexDivCollPtr spBasketDivs;
 					m_spBasketIndex->get_BasketDivs(&spBasketDivs);
 					nDivCount = 0;
-					spBasketDivs->GetDividendCount(nToday, nExpiry, &nDivCount);
+					spBasketDivs->GetDividendCount2(dtNow, dtExpiryOV, tmCloseTime, &nDivCount);
 					if(nDivCount > 0L) 
 					{
 						LPSAFEARRAY psaDates = NULL;
 						LPSAFEARRAY psaAmounts = NULL;
 
-						spBasketDivs->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+						spBasketDivs->GetDividends2(dtNow, dtExpiryOV, tmCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 						saDates.Attach(psaDates);
 						saAmounts.Attach(psaAmounts);
 					}
@@ -118,8 +119,8 @@ HRESULT CMmIhIndexAtom::CalcOptionGreeks(IMmIhOptAtomPtr aOpt, DOUBLE dSpotPrice
 					if (dOptPriceMid > DBL_EPSILON)
 					{
 						LONG nFlag = VF_OK;
-						dVola = ::CalcVolatilityMM3(dRate, dYield, dSpotPriceMid, dOptPriceMid, dStrike, 
-							nExpiry - nToday, enOptType, nIsAmerican, nDivCount,
+						dVola = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPriceMid, dOptPriceMid, dStrike, 
+							dYTE, enOptType, nIsAmerican, nDivCount,
 							saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &nFlag);
 						
 						if (bUseTheoVolaBadMarket && nFlag != VF_OK)
@@ -132,7 +133,7 @@ HRESULT CMmIhIndexAtom::CalcOptionGreeks(IMmIhOptAtomPtr aOpt, DOUBLE dSpotPrice
 					_CHK(spOpt->get_Vola(&dVola));
 			}
 
-			nRetCount = ::CalcGreeksMM2(dRate, dYield, dSpotPriceMid, dStrike, dVola, nExpiry - nToday,
+			nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPriceMid, dStrike, dVola, dYTE,
 				enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 			
 			if(nRetCount != 0L)

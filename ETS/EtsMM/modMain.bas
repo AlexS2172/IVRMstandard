@@ -10,7 +10,7 @@ Public Const PRODUCT_XML_KEY As String = "ETS\"
 Public Const GROUP_XML_KEY As String = "ETS\Asp\Groups\"
 
 Public Const DATA_SHAPSHOT_FILENAME$ = "EtsMM_DataShapshot"
-Public Const DB_VERSION_COMPATIBLE_MAJOR& = 3
+Public Const DB_VERSION_COMPATIBLE_MAJOR& = 4
 Public Const DB_VERSION_COMPATIBLE_MINOR& = 46
 Public Const DB_VERSION_COMPATIBLE_BUILD& = 123
 
@@ -148,11 +148,9 @@ Global g_ptDefWindowSize As POINTAPI
 Global g_frmMatchedTrades As frmMatchedTrades
 
 Global g_frmUnderlyings As clsFormAtom
-
 Global g_frmEarlyExer As clsFormAtom
 
 Private m_bFirstRun As Boolean
-
 Global g_PerformanceLog As clsPerformanceLog
 
 Private m_PriceProvider As PRICEPROVIDERSLib.BatchPriceInfo
@@ -164,11 +162,17 @@ Global g_RTNumber As Long
 Global g_pOptionInfo As PROCESS_INFORMATION
 Global g_pStrategyInfo As PROCESS_INFORMATION
 Global g_ScannersLogin As String
+Global g_bOldData As Boolean
 
+Global g_ScreenExport As clsScreenExport
+
+Global g_frmProjections As frmBatchCapability
 
 Sub Main()
     On Error GoTo EH
     Dim bNewLicense As Boolean
+    Dim iTimeRest As Long
+
     SetCrashHandler
     
     g_RTQuantity = 0
@@ -232,12 +236,11 @@ Sub Main()
     frmSplash.Show
     frmSplash.Refresh
 
-        
+    Set g_frmProjections = New frmBatchCapability
     Set g_frmOwner = frmSplash
         
     frmSplash.SetStatus "Loading application settings..."
     DoEvents
-    
    
     frmSplash.SetStatus "Checking license ..."
     DoEvents
@@ -264,6 +267,11 @@ Sub Main()
         Exit Sub
     End If
     
+    If Not CheckEODUpdate(iTimeRest, True) Then
+        ShutDown True
+        Exit Sub
+    End If
+
     Do While Not LoadDBVersion(True)
         Set gDBW = Nothing
         Set gDBW = New clsDBWork
@@ -328,6 +336,9 @@ Sub Main()
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.FinishLogMmOperation nOperation, OPER_LOADINITDATA, "EtsMM"
         
+    g_Params.LoadBatchShedule
+    g_Params.LoadBatchReports
+        
     frmSplash.SetStatus "Loading interest rates data..."
     DoEvents
     LoadInterestRates
@@ -347,11 +358,14 @@ Sub Main()
     DoEvents
     
     g_TradeChannel.InitMessaging
+
+    If (iTimeRest <> 0) Then LogEvent EVENT_WARNING, "Database has not been updated."
+
     g_OrdersProcessor.InitMessaging
-    
 '    g_TntProcessor.InitAdapter
     
 '    DeleteOldOrders
+
     If Not g_PerformanceLog Is Nothing Then _
         nOperation = g_PerformanceLog.BeginLogMmOperation
     
@@ -365,14 +379,15 @@ Sub Main()
     
     g_TradeChannel.Start
     g_OrdersProcessor.Start
-    
 '   g_TntProcessor.Start
+
 '   check ISE provider
 '   frmSplash.SetStatus "Checking ISE environment..."
 '   DoEvents
 '   g_bIseEnable = IsIseProviderPresent
     
     Set g_ClipMgr = New clsClipMgr
+    Set g_ScreenExport = New clsScreenExport
     
     If g_Params.LogAdvancedInfo Then
         frmMain.tmrPerformance.Interval = g_Params.LogPerfCountInterval
@@ -393,17 +408,16 @@ Sub Main()
     Unload frmSplash
     
     g_frmMatchedTrades.StartMonitoring
+    g_frmProjections.Init
     
     If g_Params.SOQ_CheckExpiredOptions Then
         Dim rs As ADODB.Recordset
         Set rs = gDBW.usp_MmExpiredPositions_Check_Simple(g_Params.SOQ_EADaysToDivDays)
         Dim strExp As String
         Dim dtExpary As Date
-        
         dtExpary = DateSerial(1900, 0, 0)
         
         While Not rs.EOF
-            
             If (dtExpary <> rs!expiryDate) Then
             
                 dtExpary = rs!expiryDate
@@ -473,6 +487,9 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     Set g_frmUnderlyings = Nothing
     Set g_frmEarlyExer = Nothing
     
+    g_frmProjections.Term
+    Set g_frmProjections = Nothing
+    
     Set g_frmOwner = Nothing
 '    Set g_MmManager = Nothing
     
@@ -484,7 +501,6 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     Set g_frmWtdVegaSettings = Nothing
 '    Set g_frmStockHedgeMaintenance = Nothing
     g_VolaSource.UnregisterPublisher
-    
     Set g_VolaSource = Nothing
     
 '    Set g_DefStkPriceProfile = Nothing
@@ -503,6 +519,7 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     Set gDBW = Nothing
     Set gCmn = Nothing
     Set g_ClipMgr = Nothing
+    Set g_ScreenExport = Nothing
     Set g_PerformanceLog = Nothing
     
    
@@ -514,7 +531,6 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
         End
     End If
     m_bShutDownNow = False
-    
 End Sub
 
 Public Sub Restart()
@@ -592,7 +608,6 @@ Private Sub LoadSettings(ByRef frmOwner As Form)
     If g_aUserXMLParams Is Nothing Then
         Set g_aUserXMLParams = New ETSXMLParamsLib.XMLParams
     End If
-    
     
     g_lMainTop = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MainTop", 0)
     g_lMainLeft = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MainLeft", 0)
@@ -768,10 +783,13 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
     End If
     
     If (enType And ET_EXP_CALENDAR) = ET_EXP_CALENDAR Then
+    
+        Dim dtNow As Date
+        dtNow = GetNewYorkTime
+        
         sStep = "expiry calendars data."
         If Not Progress Is Nothing Then Progress.SetStatus "Loading Vega Weight data..."
         g_ExpCalendar.Clear
-        'Set g_DefExpCalendar = Nothing
         
         Set rs = gDBW.usp_WtdVegaMaturity_Get()
         If Not rs.EOF Then
@@ -784,7 +802,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         
         Set rs = gDBW.usp_MmVegaWeight_Get
         While Not rs.EOF
-            dtExpiry = ReadDate(rs!dtExpiryDate)
+            dtExpiry = ReadDate(rs!dtExpiryOV)
             
             If dtExpiry > Date Then
                 If g_ExpCalendar(CLng(dtExpiry)) Is Nothing Then
@@ -796,7 +814,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                     aExpMonth.IsDirty = False
                     
                     If aExpMonth.VegaWeight <= 0# Then
-                        aExpMonth.VegaWeight = Sqr(g_ExpCalendar.Maturity / (dtExpiry - Date))
+                        aExpMonth.VegaWeight = Sqr(g_ExpCalendar.Maturity / Abs(DateDiff("d", dtExpiry, dtNow)))
                     End If
                     
                     g_ExpCalendar.Add CLng(dtExpiry), aExpMonth
@@ -2017,6 +2035,57 @@ Private Function CheckAspLicense(ByRef frmOwner As Form) As Boolean
     CheckAspLicense = bSucceeded
 End Function
 
+Public Function CheckEODUpdate(ByRef iTimeRest As Long, ByVal bNeedToAsk As Boolean) As Boolean
+    Dim EODProcess As String, sDate As String, EODProcessTime As String, sTime As String
+    Dim rsEOD As ADODB.Recordset
+    Dim Answer As VbMsgBoxStyle
+    Dim iDaysFromUpdate As Long
+
+    On Error Resume Next
+
+    iTimeRest = 0
+    CheckEODUpdate = True
+    Set rsEOD = gDBW.usp_DataInfo_Get(, "EODLastDate") 'Field is updated by EOD Job
+    If Not rsEOD Is Nothing Then
+        If Not rsEOD.EOF Then
+            EODProcess = Format$(ReadStr(rsEOD!vcKeyValue), "YYYY-MM-DD")
+            sDate = Format$(Date, "YYYY-MM-DD")
+            iDaysFromUpdate = 60 - DateDiff("s", EODProcessTime, sTime) / 60
+            If Weekday(sDate) <> 1 And Weekday(sDate) <> 7 And _
+               StrComp(sDate, EODProcess, vbTextCompare) <> 0 Then
+                'An average time to make database update is 30-40 minutes.
+                EODProcessTime = Format$(ReadStr(rsEOD!vcKeyValue), "Long Time")
+                sTime = Format$(Now, "Long Time")
+                iTimeRest = 60 - DateDiff("s", EODProcessTime, sTime) / 60
+                g_bOldData = True
+                
+                iDaysFromUpdate = DateDiff("d", EODProcess, sDate)
+                If bNeedToAsk Then
+                    If iDaysFromUpdate > 1 Or iTimeRest < 0 Or iTimeRest > 60 Then 'Last update time is yeterday or earlier.
+'                        iTimeRest = 2 'Hope to finish it in a couple of minutes...
+                        EODProcess = "The database was not updated with the latest market and analytical information." & vbCrLf & _
+                                     "Please contact support." & vbCrLf & vbCrLf & _
+                                     "Press 'Yes' to continue without update or press 'No' to exit. "
+                        Answer = gCmn.MyMsgBox(frmMsgBox, EODProcess, vbYesNo, "Database has not been updated.")
+                    Else
+                        EODProcess = "Application performance might be decreased. " & vbCrLf & vbCrLf & _
+                            "Estimated time for update - " + Str(iTimeRest) + " minutes. " & vbCrLf & vbCrLf & _
+                            "Would you like to continue? "
+                        Answer = gCmn.MyMsgBox(frmMsgBox, EODProcess, vbYesNo, "Database is being updated...")
+                    End If
+
+                    If Answer = vbNo Then
+                        CheckEODUpdate = False
+                        Set rsEOD = Nothing
+                    End If
+                End If
+            Else: CheckEODUpdate = True
+            End If
+        End If
+        Set rsEOD = Nothing
+    End If
+End Function
+
 Public Sub LoadScenariosFromDB()
     Dim rs As ADODB.Recordset, nID As Long
     Dim aScn As clsRmScenarioAtom
@@ -2037,11 +2106,15 @@ Public Sub LoadScenariosFromDB()
             aScn.Points(RMA_HORZ) = ReadLng(rs!iPoints1)
             aScn.Step(RMA_HORZ) = ReadDbl(rs!fStep1)
             aScn.Units(RMA_HORZ) = ReadByte(rs!tiIsAbs1)
+            aScn.Hour(RMA_HORZ) = ReadLng(rs!iHours)
+            aScn.Minute(RMA_HORZ) = ReadLng(rs!iMinutes)
 
             aScn.Axis(RMA_VERT) = ReadByte(rs!tiType2)
             aScn.Points(RMA_VERT) = ReadLng(rs!iPoints2)
             aScn.Step(RMA_VERT) = ReadDbl(rs!fStep2)
             aScn.Units(RMA_VERT) = ReadByte(rs!tiIsAbs2)
+            aScn.Hour(RMA_VERT) = ReadLng(rs!iHours)
+            aScn.Minute(RMA_VERT) = ReadLng(rs!iMinutes)
             
             aScn.VolaShiftType = IIf(ReadByte(rs!tiVolaShift) <> 0, RMVS_WEIGHTED, RMVS_COMMON)
             

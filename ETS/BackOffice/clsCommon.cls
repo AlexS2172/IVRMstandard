@@ -277,93 +277,94 @@ End Sub
 '            formating functions
 '**************************************************
 
-Public Function FmtLng(ByVal V As Long) As String
+Public Function FmtLng(ByVal v As Long) As String
     On Error Resume Next
-    FmtLng = Format$(V, msLongFormat)
+    FmtLng = Format$(v, msLongFormat)
 End Function
 
-Public Function FmtExtDbl(ByVal V As Double) As String
+Public Function FmtExtDbl(ByVal v As Double) As String
     On Error Resume Next
    
-    FmtExtDbl = Format$(V, msDoubleExtFormat)
+    FmtExtDbl = Format$(v, msDoubleExtFormat)
 End Function
 
-Public Function FmtDbl(ByVal V As Double) As String
+Public Function FmtDbl(ByVal v As Double) As String
     On Error Resume Next
-    FmtDbl = Format$(V, msDoubleFormat) 'msDoubleFormat  "#####0.0#"
+    FmtDbl = Format$(v, msDoubleFormat) 'msDoubleFormat  "#####0.0#"
 End Function
-Public Function FmtWideDbl(ByVal V As Double) As String
+Public Function FmtWideDbl(ByVal v As Double) As String
     On Error Resume Next
-    FmtWideDbl = Format$(V, msDoubleWideFormat)
+    FmtWideDbl = Format$(v, msDoubleWideFormat)
 End Function
 
-Public Function FmtDate(ByVal V As Date) As String
+Public Function FmtDate(ByVal v As Date) As String
     On Error Resume Next
-    FmtDate = Format$(V, msDateFormat)
+    FmtDate = Format$(v, msDateFormat)
 End Function
 
-
-
-
+Public Function FmtDateTime(ByVal v As Date) As String
+    On Error Resume Next
+    FmtDateTime = Format$(v, "MMM,dd yyyy hh:mm AM/PM")
+End Function
 
 
 '**************************************************
 '            reading functions
 '**************************************************
 
-Public Function ReadDbl(ByVal V As Variant) As Double
+Public Function ReadDbl(ByVal v As Variant) As Double
     On Error Resume Next
     ReadDbl = 0
-    If Not IsNull(V) Then
-        ReadDbl = CDbl(V)
+    If Not IsNull(v) Then
+        ReadDbl = CDbl(v)
     End If
     If Err.Number > 0 Then
-        ReadDbl = Val(V)
+        ReadDbl = Val(v)
     End If
 End Function
 
-Public Function ReadLng(ByVal V As Variant) As Long
+Public Function ReadLng(ByVal v As Variant) As Long
     On Error Resume Next
     ReadLng = 0&
-    If Not IsNull(V) Then
-        If IsNumeric(V) Then
-            ReadLng = CLng(V)
+    If Not IsNull(v) Then
+        If IsNumeric(v) Then
+            ReadLng = CLng(v)
         End If
     End If
     If Err.Number > 0 Then
-        ReadLng = CLng(Val(V))
+        ReadLng = CLng(Val(v))
     End If
 End Function
 
-Public Function ReadCur(ByVal V As Variant) As Currency
+Public Function ReadCur(ByVal v As Variant) As Currency
     On Error Resume Next
     ReadCur = 0
-    If Not IsNull(V) Then
-        ReadCur = CCur(V)
+    If Not IsNull(v) Then
+        ReadCur = CCur(v)
     End If
     If Err.Number > 0 Then
-        ReadCur = CCur(Val(V))
+        ReadCur = CCur(Val(v))
     End If
 End Function
 
-Public Function ReadStr(ByVal V As Variant) As String
+Public Function ReadStr(ByVal v As Variant) As String
     On Error Resume Next
-    If Not IsNull(V) Then
-        ReadStr = Trim(CStr(V))
+    If Not IsNull(v) Then
+        ReadStr = Trim(CStr(v))
     End If
 End Function
 
-Public Function ReadByte(ByVal V As Variant) As Byte
+Public Function ReadByte(ByVal v As Variant) As Byte
     On Error Resume Next
-    If Not IsNull(V) Then
-        ReadByte = CByte(V)
+    If Not IsNull(v) Then
+        ReadByte = CByte(v)
     End If
 End Function
 
-Public Function ReadDate(ByVal V As Variant) As Date
+Public Function ReadDate(ByVal v As Variant) As Date
     On Error GoTo Herr
-    If Not IsNull(V) Then
-        ReadDate = CDate(V)
+    If Not IsNull(v) Then
+        ReadDate = CDate(v)
         If ReadDate <= DateSerial(1900, 1, 1) Then ReadDate = Date
     Else
         ReadDate = Date
@@ -373,10 +374,10 @@ Herr:
     ReadDate = Date
 End Function
 
-Public Function ReadTime(ByVal V As Variant) As Date
+Public Function ReadTime(ByVal v As Variant) As Date
     On Error GoTo Herr
-    If Not IsNull(V) Then
-        ReadTime = CDate(V)
+    If Not IsNull(v) Then
+        ReadTime = CDate(v)
         If ReadTime < 0# Or ReadTime >= 1# Then ReadTime = 0#
     Else
         ReadTime = 0#

@@ -29,9 +29,10 @@
 // STL
 #include <vector>
 #include <map>
+#include <deque>
 
 // Option Price Model
-#include "OptionPriceModels.h"
+#include "optionpricemodels.h"
 
 
 //{{AFX_INSERT_LOCATION}}

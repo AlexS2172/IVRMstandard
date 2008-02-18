@@ -3162,6 +3162,7 @@ StatusCode CActivFeedContentGateway::RequestFuture(CRequest<FutureParams>::CRequ
 	requestBlock1.m_fieldIdList.push_back(Feed::FID_BID);
 	requestBlock1.m_fieldIdList.push_back(Feed::FID_ASK);
 	requestBlock1.m_fieldIdList.push_back(Feed::FID_TRADE);
+	requestBlock1.m_fieldIdList.push_back(Feed::FID_EXPIRATION_DATE);
 
 	getMultiplePatternMatchListRequestParameters.m_requestBlockList.push_back(requestBlock1);
 
@@ -3281,6 +3282,7 @@ StatusCode CActivFeedContentGateway::RequestFuturesOptions(CRequest<FuturesOptio
 	requestBlock1.m_fieldIdList.push_back(FID_MINIMUM_TICK); 
 	requestBlock1.m_fieldIdList.push_back(FID_UNIT_OF_MEASURE);
 	requestBlock1.m_fieldIdList.push_back(FID_UNIT_OF_MEASURE_CURRENCY);
+	requestBlock1.m_fieldIdList.push_back(FID_EXPIRATION_DATE);
 	getMultiplePatternMatchListRequestParameters.m_requestBlockList.push_back(requestBlock1);
 
 	RequestBlock requestBlock;
@@ -3405,13 +3407,16 @@ StatusCode CActivFeedContentGateway::SaveOptionRoots(HeapMessage &response)
 					}   break;
 				case Feed::FID_SETTLEMENT_TYPE:
 					{
+						ori.SettlementType = static_cast<long>(enSTUndefined);
 						Activ::TextArray pText;
 						IFieldType* pUpdateField = static_cast<Activ::TextArray*>(&pText);
 						if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)) // set new field values
 						{
 							const char ch= *pText.ToString().c_str();
 							if(ch == 'a' || ch == 'A')
-								ori.bSettlementTypeA = true;
+								ori.SettlementType = static_cast<long>(enSTAM);
+							else if(ch == 'p' || ch == 'P')
+								ori.SettlementType = static_cast<long>(enSTPM);
 						}
 					}   break;
 				}
@@ -3487,13 +3492,16 @@ StatusCode CActivFeedContentGateway::SaveIndexOptionRoots(HeapMessage &response)
 					}   break;
 				case Feed::FID_SETTLEMENT_TYPE:
 					{
+						ori.SettlementType = static_cast<long>(enSTUndefined);
 						Activ::TextArray pText;
 						IFieldType* pUpdateField = static_cast<Activ::TextArray*>(&pText);
 						if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)) // set new field values
 						{
 							const char ch= *pText.ToString().c_str();
 							if(ch == 'a' || ch == 'A')
-								ori.bSettlementTypeA = true;
+								ori.SettlementType = static_cast<long>(enSTAM);
+							else if (ch == 'p' || ch == 'P')
+								ori.SettlementType = static_cast<long>(enSTPM);
 						}
 					}   break;
 
@@ -3669,6 +3677,7 @@ StatusCode CActivFeedContentGateway::RequestFutureOptionsByRoot(RequestIdPtr pRe
 	requestBlock.m_fieldIdList.push_back(FID_OPTION_TYPE);
 	requestBlock.m_fieldIdList.push_back(FID_STRIKE_PRICE);
 	requestBlock.m_fieldIdList.push_back(FID_LAST_TRADING_DATE);
+	requestBlock.m_fieldIdList.push_back(FID_EXPIRATION_DATE);
 	requestBlock.m_fieldIdList.push_back(FID_SETTLEMENT);
 	requestBlock.m_fieldIdList.push_back(FID_BID);
 	requestBlock.m_fieldIdList.push_back(FID_ASK);
@@ -3725,6 +3734,7 @@ StatusCode CActivFeedContentGateway::RequestFutures(CRequest<FutureRootParams>::
 	requestBlock1.m_fieldIdList.push_back(Feed::FID_BID);
 	requestBlock1.m_fieldIdList.push_back(Feed::FID_ASK);
 	requestBlock1.m_fieldIdList.push_back(Feed::FID_TRADE);
+	requestBlock1.m_fieldIdList.push_back(Feed::FID_EXPIRATION_DATE);
 
 	getMultiplePatternMatchListRequestParameters.m_requestBlockList.push_back(requestBlock1);
 
@@ -4852,11 +4862,13 @@ void CActivFeedContentGateway::OnFuture(CRequest<FutureParams>::CRequestPtr& spR
 								IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
 								if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
 									vt_date dtDiv((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
-									spResult->m_respParams->ExpirationDate = dtDiv + 1;
+									//spResult->m_respParams->ExpirationDate = dtDiv + 1;
+
+									spResult->m_respParams->LastTradingDate = dtDiv;
 								}
 							}
 							break;
-						case Feed::FID_EXPIRATION_DATE: //105
+						case Feed::FID_EXPIRATION_DATE: //280
 							{
 								Activ::Date pDate;
 								IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
@@ -5029,9 +5041,8 @@ void CActivFeedContentGateway::OnFutureByRoot(CRequest<FutureRootParams>::CReque
 						Activ::Date pDate;
 						IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
 						if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
-							vt_date dtDiv((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
-							spFut->m_respParams->ExpirationDate = dtDiv;
-							//spResult->m_respParams->ExpirationDate = dtDiv;
+							vt_date dtExpDate((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
+							spFut->m_respParams->ExpirationDate = dtExpDate;
 						}
 					}
 					break;
@@ -5040,8 +5051,8 @@ void CActivFeedContentGateway::OnFutureByRoot(CRequest<FutureRootParams>::CReque
 						Activ::Date pDate;
 						IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
 						if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
-							vt_date dtDiv((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
-							spFut->m_respParams->ExpirationDate = dtDiv + 1;
+							vt_date dtLastTradingDate((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
+							spFut->m_respParams->LastTradingDate = dtLastTradingDate;
 						}
 					}
 					break;
@@ -5204,8 +5215,18 @@ void CActivFeedContentGateway::OnFutureByRoot(CRequest<FutureRootParams>::CReque
 								Activ::Date pDate;
 								IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
 								if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
-									vt_date dtDiv((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
-									spResult->m_respParams->ExpirationDate = dtDiv + 1;
+									vt_date dtLastTradingDate((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
+									spResult->m_respParams->LastTradingDate = dtLastTradingDate;
+								}
+							}
+							break;
+						case Feed::FID_EXPIRATION_DATE: //280
+							{
+								Activ::Date pDate;
+								IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
+								if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
+									vt_date dtExpDate((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
+									spResult->m_respParams->ExpirationDate = dtExpDate;
 								}
 							}
 							break;
@@ -5748,6 +5769,9 @@ void CActivFeedContentGateway::OnOption(CRequest<OptionParams>::CRequestPtr& spR
 						spResult->m_respParams->LotSize = ori->second.lotsize;
 						spResult->m_respParams->Currency = (_bstr_t(ori->second.currency.c_str()).copy());
 
+						spResult->m_respParams->SettlementType = static_cast<SettlementTypeEnum>(ori->second.SettlementType);
+						spResult->m_respParams->ExpirationType = ori->second.expirationType;
+
 						switch(ori->second.expirationType)
 						{
 						case 1:
@@ -5755,21 +5779,21 @@ void CActivFeedContentGateway::OnOption(CRequest<OptionParams>::CRequestPtr& spR
 						case 4:
 						case 5:
 							{
-								if(spResult->m_respParams->ExpirationDate > 0 && !ori->second.bSettlementTypeA)
-									spResult->m_respParams->ExpirationDate++;
+								/*if(spResult->m_respParams->ExpirationDate > 0 )
+									spResult->m_respParams->ExpirationDate++;*/
 
 							}break;
 						case 7:
 							{
-								if(spResult->m_respParams->ExpirationDate > 0)
-									spResult->m_respParams->ExpirationDate++;
+								/*if(spResult->m_respParams->ExpirationDate > 0)
+									spResult->m_respParams->ExpirationDate++;*/
 							}break;
 
 						case 0:
 						default:
 							{
-								if(spResult->m_respParams->ExpirationDate > 0 && ori->second.bSettlementTypeA)
-									spResult->m_respParams->ExpirationDate--;
+								/*if(spResult->m_respParams->ExpirationDate > 0 )
+									spResult->m_respParams->ExpirationDate--;*/
 							}break;
 						}
 					}
@@ -5876,8 +5900,20 @@ void CActivFeedContentGateway::OnFuturesOption(CRequest<FuturesOptionParams>::CR
 								Activ::Date pDate;
 								IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
 								if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
-									vt_date dtDiv((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
-									spResult->m_respParams->ExpirationDate = dtDiv + 1;
+									vt_date dtLastTradingDate((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
+
+									spResult->m_respParams->LastTradingDate = dtLastTradingDate;
+								}
+							}
+							break;
+						case Feed::FID_EXPIRATION_DATE: //280
+							{
+								Activ::Date pDate;
+								IFieldType* pUpdateField = static_cast<Activ::Date*>(&pDate);
+								if (field.m_pIFieldType != NULL && STATUS_CODE_SUCCESS == pUpdateField->Assign(field.m_pIFieldType)){ // set new field values
+									vt_date dtExpDate((WORD)pDate.GetYear(), (WORD)pDate.GetMonth(), (WORD)pDate.GetDay());
+
+									spResult->m_respParams->ExpirationDate = dtExpDate;
 								}
 							}
 							break;

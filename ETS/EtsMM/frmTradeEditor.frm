@@ -1027,7 +1027,7 @@ Private Sub Init()
     
     chkMark.Value = IIf(m_NewTrd.Mark <> 0, 1, 0)
     
-    txtPrice.Text = m_NewTrd.Price
+    txtPrice.Text = m_NewTrd.price
     lblLotSize.Caption = m_NewTrd.LotSize
     txtQuantity.Text = m_NewTrd.Quantity
     lblTotalPrice.Caption = Format$(m_NewTrd.TotalPrice, "#,##0.00#####")
@@ -1121,7 +1121,7 @@ Private Sub btnSubmit_Click()
     
     txtQuantity_Change
     
-    If m_NewTrd.Price < 0 Then
+    If m_NewTrd.price < 0 Then
         gCmn.MyMsgBox Me, "Please specify valid trade price.", vbCritical
         txtPrice.SetFocus
         Exit Sub
@@ -1134,8 +1134,15 @@ Private Sub btnSubmit_Click()
     End If
     
     If m_bLastQuoteReqNow Then
+    
+        If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: Canlel Last Quote [Call]", m_frmOwner.Caption
+            
         m_bLastQuoteReqNow = False
         PriceProvider.CancelLastQuote
+        
+        If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: Canlel Last Quote [Done]", m_frmOwner.Caption
     End If
     
     tmrTradeDate.Enabled = False
@@ -1144,12 +1151,32 @@ Private Sub btnSubmit_Click()
     m_nDefBrokerID = m_NewTrd.BrokerID
     m_nDefClearingBrokerID = m_NewTrd.ClearingBrokerID
     
+    If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: SaveRegEntries [Call]", m_frmOwner.Caption
+            
     SaveRegEntries
     
+    If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: SaveRegEntries [Done]", m_frmOwner.Caption
+    
     If m_OldTrd Is Nothing Then
+    
+        If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: NewTrade [Call]", m_frmOwner.Caption
+            
         bSucceed = g_TradeChannel.NewTrade(m_NewTrd)
+        
+        If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: NewTrade [Done]", m_frmOwner.Caption
+            
     Else
+        If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: UpdateTrade [Call]", m_frmOwner.Caption
+            
         bSucceed = g_TradeChannel.UpdateTrade(m_NewTrd, m_OldTrd)
+        
+        If Not g_PerformanceLog Is Nothing Then _
+            g_PerformanceLog.LogMmInfo enLogUserAction, "frmTradeEditor: btnSubmit_Click: UpdateTrade [Done]", m_frmOwner.Caption
     End If
     
     If bSucceed Then
@@ -1166,7 +1193,7 @@ Private Sub btnSubmit_Click()
             g_PerformanceLog.LogMmInfo enLogUserAction, "New Trade Submited: " _
                                         & "Symbol=""" & m_NewTrd.Symbol & """ " _
                                         & "Quantity=""" & m_NewTrd.Quantity & """ " _
-                                        & "Price=""" & m_NewTrd.Price & """ " _
+                                        & "Price=""" & m_NewTrd.price & """ " _
                                         & "LotSize=""" & m_NewTrd.LotSize & """ " _
                                         & "IsBuy=""" & m_NewTrd.IsBuy & """ " _
                                         & "Status=""" & m_NewTrd.Status & """ " _
@@ -1212,7 +1239,7 @@ Private Sub cbxContract_Change()
             Set aTrdSrc = Nothing
         End If
                 
-        txtPrice.Text = m_NewTrd.Price
+        txtPrice.Text = m_NewTrd.price
         lblLotSize.Caption = m_NewTrd.LotSize
         txtQuantity.Text = m_NewTrd.Quantity
         
@@ -1312,9 +1339,11 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
                             aTrd.Opt.RootID = aTrd.OptRoot.ID
                             aTrd.Opt.OptType = ReadByte(rs!tiIsCall)
                             aTrd.Opt.Expiry = ReadDate(rs!dtExpiry)
+                            aTrd.Opt.ExpiryOV = ReadDate(rs!dtExpiryOV)
+                            aTrd.Opt.TradingClose = ReadDate(rs!dtTradingClose)
                             aTrd.Opt.Strike = Round(ReadDbl(rs!fStrike), STRIKE_DECIMALS_COUNT)
                             aTrd.Opt.PriceClose = ReadDbl(rs!fPriceClose)
-                            aTrd.Opt.PriceTheoClose = ReadDbl(rs!fPriceTheoClose)
+                            aTrd.Opt.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
                             aTrd.Opt.Series = ReadStr(rs!vcContractName)
                         End If
                 
@@ -1334,9 +1363,11 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
                                     aTrd.FutOpt.FutID = aTrd.Fut.ID
                                     aTrd.FutOpt.OptType = ReadByte(rs!tiIsCall)
                                     aTrd.FutOpt.Expiry = ReadDate(rs!dtExpiry)
+                                    aTrd.FutOpt.ExpiryOV = ReadDate(rs!dtExpiryOV)
+                                    aTrd.FutOpt.TradingClose = ReadDate(rs!dtTradingClose)
                                     aTrd.FutOpt.Strike = Round(ReadDbl(rs!fStrike), STRIKE_DECIMALS_COUNT)
                                     aTrd.FutOpt.PriceClose = ReadDbl(rs!fPriceClose)
-                                    aTrd.FutOpt.PriceTheoClose = ReadDbl(rs!fPriceTheoClose)
+                                    aTrd.FutOpt.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
                                     aTrd.FutOpt.Series = ReadStr(rs!vcContractName)
                                 End If
                             End If
@@ -1663,9 +1694,9 @@ Private Sub ApplyPrices()
             Set aPrc = m_Price(CStr(m_NewTrd.ContractID))
             If Not aPrc Is Nothing Then
                 If m_NewTrd.IsBuy Then
-                    m_NewTrd.Price = IIf(aPrc.PriceAsk > 0, aPrc.PriceAsk, aPrc.PriceLast)
+                    m_NewTrd.price = IIf(aPrc.PriceAsk > 0, aPrc.PriceAsk, aPrc.PriceLast)
                 Else
-                    m_NewTrd.Price = IIf(aPrc.PriceBid > 0, aPrc.PriceBid, aPrc.PriceLast)
+                    m_NewTrd.price = IIf(aPrc.PriceBid > 0, aPrc.PriceBid, aPrc.PriceLast)
                 End If
                 Set aPrc = Nothing
             End If
@@ -1716,7 +1747,7 @@ Private Sub ApplyPrices()
     
     m_bInit = True
     
-    txtPrice.Text = m_NewTrd.Price
+    txtPrice.Text = m_NewTrd.price
     lblLotSize.Caption = m_NewTrd.LotSize
     txtQuantity.Text = m_NewTrd.Quantity
     lblTotalPrice.Caption = Format$(m_NewTrd.TotalPrice, "#,##0.00#####")
@@ -1739,6 +1770,9 @@ Private Function GetRates(UndID As Long, expDate As Date) As Double
     On Error Resume Next
     GetRates = 0
     
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     If UndID = 0 Then Exit Function
     
     Dim bUseMidRates As Boolean, cPosThreshold@, dPos#
@@ -1755,15 +1789,15 @@ Private Function GetRates(UndID As Long, expDate As Date) As Double
      
     If bUseMidRates Then
        If Not g_UnderlyingAll(UndID).IsHTB Then
-           GetRates = GetNeutralRate(Date, expDate)
+           GetRates = GetNeutralRate(dtNow, expDate)
        Else
-           GetRates = GetNeutralHTBRate(Date, expDate)
+           GetRates = GetNeutralHTBRate(dtNow, expDate)
        End If
     Else
        If Not g_UnderlyingAll(UndID).IsHTB Then
-           GetRates = IIf(dPos < 0, GetShortRate(Date, expDate), GetLongRate(Date, expDate))
+           GetRates = IIf(dPos < 0, GetShortRate(dtNow, expDate), GetLongRate(dtNow, expDate))
        Else
-           GetRates = IIf(dPos < 0, GetHTBRate(Date, expDate), GetLongRate(Date, expDate))
+           GetRates = IIf(dPos < 0, GetHTBRate(dtNow, expDate), GetLongRate(dtNow, expDate))
        End If
     End If
         
@@ -1778,7 +1812,7 @@ Private Function IsBrokerCommissionShouldBeChanged() As Boolean
         IsBrokerCommissionShouldBeChanged = m_OldTrd.BrokerID <> m_NewTrd.BrokerID _
                                     Or m_OldTrd.IsBuy <> m_NewTrd.IsBuy _
                                     Or m_OldTrd.Quantity <> m_NewTrd.Quantity _
-                                    Or m_OldTrd.Price <> m_NewTrd.Price
+                                    Or m_OldTrd.price <> m_NewTrd.price
     Else
         IsBrokerCommissionShouldBeChanged = True
     End If
@@ -1790,7 +1824,7 @@ Private Function IsClearingBrokerCommissionShouldBeChanged() As Boolean
         IsClearingBrokerCommissionShouldBeChanged = m_OldTrd.ClearingBrokerID <> m_NewTrd.ClearingBrokerID _
                                     Or m_OldTrd.IsBuy <> m_NewTrd.IsBuy _
                                     Or m_OldTrd.Quantity <> m_NewTrd.Quantity _
-                                    Or m_OldTrd.Price <> m_NewTrd.Price
+                                    Or m_OldTrd.price <> m_NewTrd.price
     Else
         IsClearingBrokerCommissionShouldBeChanged = True
     End If
@@ -1800,7 +1834,7 @@ Private Sub AdjustBrokerCommissionsForOptionPriceChange()
     On Error Resume Next
     If m_NewTrd.ContractType = enCtOption Or m_NewTrd.ContractType = enCtFutOption Then
         If Not m_NewTrd.Broker Is Nothing Then
-            If m_NewTrd.Price > g_Params.CommissionLowPremiumLimit Then
+            If m_NewTrd.price > g_Params.CommissionLowPremiumLimit Then
                 If cbxCommType.ListIndex <> 0 Then
                     m_bCommInit = True
                     cbxCommType.ListIndex = 0
@@ -1825,7 +1859,7 @@ Private Sub AdjustClearingBrokerCommissionsForOptionPriceChange()
     On Error Resume Next
     If m_NewTrd.ContractType = enCtOption Or m_NewTrd.ContractType = enCtFutOption Then
         If Not m_NewTrd.ClearingBroker Is Nothing Then
-            If m_NewTrd.Price > g_Params.CommissionLowPremiumLimit Then
+            If m_NewTrd.price > g_Params.CommissionLowPremiumLimit Then
                 If cbxClearingCommType.ListIndex <> 0 Then
                     m_bCommInit = True
                     cbxClearingCommType.ListIndex = 0
@@ -2001,9 +2035,9 @@ Private Sub cbxBuySell_Change()
                 dUndPrice = IIf(aUndPrc.PriceBid > 0, aUndPrc.PriceBid, aUndPrc.PriceLast)
             End If
         
-            If dPrice > 0# And m_NewTrd.Price <> dPrice Then
-                m_NewTrd.Price = dPrice
-                txtPrice.Text = m_NewTrd.Price
+            If dPrice > 0# And m_NewTrd.price <> dPrice Then
+                m_NewTrd.price = dPrice
+                txtPrice.Text = m_NewTrd.price
             End If
         
             If (m_NewTrd.ContractType = enCtOption Or m_NewTrd.ContractType = enCtFutOption) _
@@ -2015,7 +2049,7 @@ Private Sub cbxBuySell_Change()
             End If
         End If
     Else
-        txtPrice.Text = m_NewTrd.Price
+        txtPrice.Text = m_NewTrd.price
     End If
 
     lblTotalPrice.Caption = Format$(m_NewTrd.TotalPrice, "#,##0.00#####")
@@ -2105,9 +2139,9 @@ Private Sub txtPrice_Change()
     
     dValue = CDbl(txtPrice.Text)
     
-    If m_NewTrd.Price <> dValue Then
-        m_NewTrd.Price = dValue
-        lblTitle(2).ForeColor = IIf(m_NewTrd.Price > 0, GCOLOR_LABEL_VALID, GCOLOR_LABEL_INVALID)
+    If m_NewTrd.price <> dValue Then
+        m_NewTrd.price = dValue
+        lblTitle(2).ForeColor = IIf(m_NewTrd.price > 0, GCOLOR_LABEL_VALID, GCOLOR_LABEL_INVALID)
         
         lblTotalPrice.Caption = Format$(m_NewTrd.TotalPrice, "#,##0.00#####")
         

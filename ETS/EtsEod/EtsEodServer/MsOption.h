@@ -13,7 +13,8 @@ class  CMsOption : public CMsContract
 public:
 	CMsOption(void)
 		: m_bIsCall(true), m_dStrike(0.), m_dtExpiration(0.), m_dRate(BAD_DOUBLE_VALUE), 
-		m_dPriceTheo(BAD_DOUBLE_VALUE), m_bHasPositions(false), m_bClosePriceUpdated(false)
+		m_dPriceTheo(BAD_DOUBLE_VALUE), m_bHasPositions(false), m_bClosePriceUpdated(false),
+		m_dtExpiryOV(BAD_DOUBLE_VALUE), m_dtCloseTime(0.)
 	{
 	}
 
@@ -31,6 +32,8 @@ public:
 	bool			m_bIsCall;
 	double			m_dStrike;
 	DATE			m_dtExpiration;
+	DATE			m_dtExpiryOV;
+	DATE			m_dtCloseTime;
 	double			m_dRate;
 	double			m_dPriceTheo;
 	bool			m_bClosePriceUpdated;

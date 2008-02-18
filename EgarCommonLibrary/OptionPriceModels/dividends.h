@@ -4,7 +4,7 @@
 namespace OPM
 {
 
-double DividendPv(double dDivAmnt, double dCntRate, double dTime);
+double DividendPv(double dDivAmnt, double dCntRate, double dCntBorrowingRate, double dTime);
 
 /************************************************************
 	Discount asset price for the present value of 
@@ -12,6 +12,7 @@ double DividendPv(double dDivAmnt, double dCntRate, double dTime);
 
 	S			- Stock price
 	R			- Domestic continuous rate
+	B			- actual continuous borrowing rate
 	pDivAmnts	- Array of dividends 
 	pDivYte		- Array of time(amount of years) to payments
 	nDivCount	- Size of dividends array
@@ -21,6 +22,7 @@ double DividendPv(double dDivAmnt, double dCntRate, double dTime);
 ************************************************************/
 double DiscountForDividends(double		S, 
 							double		R,
+							double		B,
 							double*		pDivAmnt,
 							double*		pDivYte,
 							unsigned	nDivCount,
@@ -31,6 +33,7 @@ double DiscountForDividends(double		S,
 
 double			DividendNPV(double		S, 
 							double		R,
+							double		B,
 							double*		pDivAmnt,
 							double*		pDivYte,
 							unsigned	nDivCount,

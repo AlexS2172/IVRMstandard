@@ -18,9 +18,10 @@ namespace OPM
 
 double BlackAndScholes(	double	dRateDomestic,
 						double	dRateForeign,
+						double	dHTBRate,
 						double	dSpotPrice,
 						double	dStrike,
-						int		nDte,
+						double  dYte,
 						double	dVolatility,
 						bool	bIsCall,
 						double* pdDivAmnt,						   
@@ -28,15 +29,17 @@ double BlackAndScholes(	double	dRateDomestic,
 						int		nDivCount,
 						GREEKS*	pGreeks/*out*/)
 {
-	if (nDte < 1) 
+	if (dYte < 0.) 
 		return max(bIsCall ? dSpotPrice - dStrike : dStrike - dSpotPrice, 0.);
 
-	double dContRd = RateDiscToCont(dRateDomestic , nDte);
-	double dContRf = RateDiscToCont(dRateForeign, nDte);
-	double dYte	= nDte / cdDaysPerYear365;
+	double dContRd = RateDiscToCont(dRateDomestic , dYte * cdDaysPerYear365);
+	double dContRf = RateDiscToCont(dRateForeign, dYte * cdDaysPerYear365);
+	//double dContRb = IsBadValue(dHTBRate) ? 0 : (dContRd - RateDiscToCont(dHTBRate, nDte)); //actual stock borrowing rate (b in spec)
+	double dContRb = IsBadValue(dHTBRate) ? 0 : (RateDiscToCont(dRateDomestic - dHTBRate, dYte * cdDaysPerYear365)); //actual stock borrowing rate (b in spec)
 	
 	double dDiscountedSpot = DiscountForDividends(dSpotPrice,
 												dContRd,
+												dContRb,
 												pdDivAmnt,
 												pdDivYte,
 												nDivCount,
@@ -44,12 +47,12 @@ double BlackAndScholes(	double	dRateDomestic,
 	if(IsBadValue(dDiscountedSpot))
 		return BadDoubleValue;
 
-	const double A = dDiscountedSpot * (1. / exp( dContRf * dYte));
+	const double A = dDiscountedSpot * (1. / exp( (dContRf + dContRb) * dYte));
 	const double B = dStrike * (1. / exp( dContRd * dYte));
 
 	const double D = dVolatility * sqrt(dYte);
 
-	const double d1	= log(dDiscountedSpot/dStrike) / D + D * (((dContRd - dContRf) / (dVolatility * dVolatility)) + .5);
+	const double d1	= log(dDiscountedSpot/dStrike) / D + D * (((dContRd - (dContRf + dContRb)) / (dVolatility * dVolatility)) + .5);
 	const double d2	= d1 - D;
 
 	const double N1	= NormalC(d1);
@@ -71,11 +74,12 @@ double BlackAndScholes(	double	dRateDomestic,
 	if(pGreeks && pGreeks->nMask & ~GT_THEOPRICE && !IsBadValue(dTheoPrice))
 	{
         const double	dd1dS = 1. / (D * dDiscountedSpot);
-        const double	dd1dT = -d2 / (2. * dYte) + (dContRd - dContRf) / D;
-        const double	dd2dT = -d1 / (2. * dYte) + (dContRd - dContRf) / D;
+        const double	dd1dT = -d2 / (2. * dYte) + (dContRd - (dContRf + dContRb)) / D;
+        const double	dd2dT = -d1 / (2. * dYte) + (dContRd - (dContRf + dContRb)) / D;
         const double	dd1dVol = - d2 / dVolatility;
         const double	dd2dVol = - d1 / dVolatility;
         const double	dd12dR = dYte / D;
+		const double	d2d1dVol2 = 2 * log(A/B) / (D * dVolatility * dVolatility);
         const double    n1 = NormalDensity(d1);
         const double    n2 = NormalDensity(d2);
 		
@@ -83,21 +87,21 @@ double BlackAndScholes(	double	dRateDomestic,
     	// DELTA
 	    if (pGreeks->nMask & GT_DELTA)
 	    {
-            pGreeks->dDelta = exp(-dContRf * dYte) * (N1 - (bIsCall ? 0. : 1.));
+            pGreeks->dDelta = exp(-(dContRf + dContRb) * dYte) * (N1 - (bIsCall ? 0. : 1.));
 		    cCalculatedGreeksMask |= GT_DELTA;
 	    }
 
     	// GAMMA
 	    if (pGreeks->nMask & GT_GAMMA)
 	    {
-		    pGreeks->dGamma = exp(-dContRf * dYte) * dd1dS * n1;
+		    pGreeks->dGamma = exp(-(dContRf + dContRb) * dYte) * dd1dS * n1;
 		    cCalculatedGreeksMask |= GT_GAMMA;
 	    }
 
 	    // THETA
 	    if (pGreeks->nMask & GT_THETA)
 	    {
-		    pGreeks->dTheta = ( A * (dContRf * (N1 - (bIsCall ? 0. : 1.)) - dd1dT * n1) -
+		    pGreeks->dTheta = ( A * ((dContRf + dContRb) * (N1 - (bIsCall ? 0. : 1.)) - dd1dT * n1) -
                 B * (dContRd * (N2 - (bIsCall ? 0. : 1.)) - dd2dT * n2) ) * cdDeltaTime;            
 		    cCalculatedGreeksMask |= GT_THETA;
 	    }
@@ -105,7 +109,7 @@ double BlackAndScholes(	double	dRateDomestic,
 	    // DELTA THETA
 	    if (pGreeks->nMask & GT_DELTA_THETA)
 	    {
-		    pGreeks->dDeltaTheta = ( dContRf * (pGreeks->dDelta - (bIsCall ? 0. : exp(-dContRf * dYte) )) - 
+		    pGreeks->dDeltaTheta = ( (dContRf + dContRb) * (pGreeks->dDelta - (bIsCall ? 0. : exp(-(dContRf + dContRb) * dYte) )) - 
 				pGreeks->dGamma * dd1dT / dd1dS ) * cdDeltaTime;
 		    cCalculatedGreeksMask |= GT_DELTA_THETA;
 	    }
@@ -113,7 +117,7 @@ double BlackAndScholes(	double	dRateDomestic,
 	    // GAMMA THETA
 	    if (pGreeks->nMask & GT_GAMMA_THETA)
 	    {
-		    pGreeks->dGammaTheta = ( pGreeks->dGamma * (dContRf + 1. / (2. * dYte) + d1 * dd1dT) ) * cdDeltaTime;
+		    pGreeks->dGammaTheta = ( pGreeks->dGamma * ((dContRf + dContRb) + 1. / (2. * dYte) + d1 * dd1dT) ) * cdDeltaTime;
 		    cCalculatedGreeksMask |= GT_GAMMA_THETA;
 	    }
 
@@ -144,6 +148,14 @@ double BlackAndScholes(	double	dRateDomestic,
 	        pGreeks->dRho = ( (A * n1 - B * n2) * dd12dR + dYte * B * (N2 - (bIsCall ? 0. : 1.)) ) * cdDeltaRate;
 	        cCalculatedGreeksMask |= GT_RHO;
         }
+
+		// VOLGA
+		if (pGreeks->nMask & GT_VOLGA)
+		{
+			pGreeks->dVolga = (A * n1 * (-d1 * (dd1dVol * dd1dVol) + d2d1dVol2) - 
+							   B * n2 * (-d2 * (dd2dVol * dd2dVol) + d2d1dVol2)) * cdDeltaVolatility * cdDeltaVolatility;
+			cCalculatedGreeksMask |= GT_VOLGA;
+		}
 
 		// Check values
 		if (cCalculatedGreeksMask & GT_DELTA)

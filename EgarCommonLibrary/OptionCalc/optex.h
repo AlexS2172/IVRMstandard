@@ -9,7 +9,7 @@ double CalculateOptionEx(
 						double	S,
 						double	K,
 						double	V,
-						int		Dte, 
+						double	Yte, 
                         bool	Call,
 						bool	American,
 						double* DivAmnt,

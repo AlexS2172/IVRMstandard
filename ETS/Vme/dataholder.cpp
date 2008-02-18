@@ -163,7 +163,7 @@ void CDataHolder::ClearSkew( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	m_vola.erase( static_cast<ExpDate>(dtExpDate) );
+	m_vola.erase( ExpDate(dtExpDate) );
 }
 
 
@@ -171,7 +171,7 @@ DWORD CDataHolder::GetSkewUpdateMark( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew(static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).m_dwUpdateTime;
+	return m_vola.GetSkew(ExpDate(dtExpDate), m_dInterpolationFactor ).m_dwUpdateTime;
 }
 
 
@@ -181,7 +181,7 @@ void CDataHolder::SetPoint( long nID, double dStrike,
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew( static_cast<ExpDate>(vtExpDate.date), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew( ExpDate(vtExpDate.date), m_dInterpolationFactor );
 
 	CPoint pt;
 	skew.InitPoint( pt, nID,dStrike, vtVola, vtIsBasePoint);													
@@ -208,7 +208,7 @@ void CDataHolder::ImportPoint( long nID, double dStrike, const _variant_t& vtExp
 
 	try
 	{
-		CSkew& skew = m_vola.GetSkew( static_cast<ExpDate>(vtExpDate.date), m_dInterpolationFactor );
+		CSkew& skew = m_vola.GetSkew( ExpDate(vtExpDate.date), m_dInterpolationFactor );
 
 		EVolaItemStatus enStatus = (EVolaItemStatus)vtStatus.lVal;
 		switch( enStatus )
@@ -299,7 +299,7 @@ void CDataHolder::SetTimeSkewVolatilityDelta( DATE dtExpDate, double dVolaDelta 
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew( static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew( ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	skew.SetVolaDelta( dVolaDelta );
 	skew.m_bInterpolationVectorUpdated = false;
@@ -312,7 +312,7 @@ void CDataHolder::SetTimeSkewVolatility( DATE dtExpDate, double dVola )
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew( static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew( ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	skew.SetVola( dVola );
 	skew.m_bInterpolationVectorUpdated = false;
@@ -340,7 +340,7 @@ long CDataHolder::GetPointsCount( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew( static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).size();
+	return m_vola.GetSkew( ExpDate(dtExpDate), m_dInterpolationFactor ).size();
 }
 
 
@@ -349,7 +349,7 @@ bool CDataHolder::GetBasePointsInterpolation( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).m_bBasePointsInterpolation;
+	return m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).m_bBasePointsInterpolation;
 }
 
 
@@ -358,7 +358,7 @@ void CDataHolder::SetBasePointsInterpolation( DATE dtExpDate, bool bValue )
 {
 	CObjectLock(this);
 
-	m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).SetBasePointsInterpolation( bValue );
+	m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).SetBasePointsInterpolation( bValue );
 }
 
 	
@@ -367,7 +367,7 @@ CDataHolder::PointID CDataHolder::GetPointID( DATE dtExpDate, long nIndex )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetPointID();
+	return m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetPointID();
 }
 
 
@@ -376,7 +376,7 @@ double CDataHolder::GetPointStrike( DATE dtExpDate, long nIndex )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetStrike();
+	return m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetStrike();
 }
 
 
@@ -385,7 +385,7 @@ EVolaItemStatus CDataHolder::GetPointStatus( DATE dtExpDate, double Strike )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( Strike ).GetStatus();
+	return m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( Strike ).GetStatus();
 }
 
 
@@ -394,7 +394,7 @@ EVolaItemStatus CDataHolder::GetPointStatus( DATE dtExpDate, long nIndex )
 {
 	CObjectLock(this);
 
-	return m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetStatus();
+	return m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetStatus();
 }
 
 
@@ -403,7 +403,7 @@ long CDataHolder::GetBasePointsCount( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	return (long)m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetBasePointsCount();
+	return (long)m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetBasePointsCount();
 }
 
 	
@@ -412,7 +412,7 @@ bool CDataHolder::GetIsBasePoint( DATE dtExpDate, double Strike )
 {
 	CObjectLock(this);
 
-	const CDataHolder::CPoint& pt = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( Strike );
+	const CDataHolder::CPoint& pt = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( Strike );
 
 	return pt.GetStatus() != Deleted && pt.GetIsBase();
 }
@@ -423,7 +423,7 @@ bool CDataHolder::GetIsBasePoint( DATE dtExpDate, long nIndex )
 {
 	CObjectLock(this);
 
-	const CDataHolder::CPoint& pt = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex );
+	const CDataHolder::CPoint& pt = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex );
 
 	if( pt.GetStatus() == Deleted )
 		return false;
@@ -437,7 +437,7 @@ void CDataHolder::SetIsBasePoint( DATE dtExpDate, double Strike, bool bIsBasePoi
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	skew.GetPoint( Strike ).SetIsBase(bIsBasePoint);
 	skew.m_bInterpolationVectorUpdated = false;
@@ -448,11 +448,17 @@ double	CDataHolder::ExpirationInterpolate( DATE dtExpDate, double dStrike, doubl
 	double dV1 = 0., dV2 = 0., dV = 0., dVol = 0.0;
 
 	// get neighbors
-	CVolaValuesMap::iterator itPrev = m_vola.lower_bound( static_cast<ExpDate>(dtExpDate) ); 
+	CVolaValuesMap::iterator itPrev = m_vola.lower_bound( ExpDate(dtExpDate) ); 
 	CVolaValuesMap::iterator itEnd = m_vola.end();
 	CVolaValuesMap::reverse_iterator ritPrev( itPrev );
 	CVolaValuesMap::reverse_iterator ritEnd = m_vola.rend();
-	CVolaValuesMap::iterator itNext = m_vola.upper_bound( static_cast<ExpDate>(dtExpDate) );
+	CVolaValuesMap::iterator itNext = m_vola.upper_bound( ExpDate(dtExpDate) );
+	
+	/*CVolaValuesMap::iterator itPos;
+	boudary_find<ExpDate, CSkew>(m_vola, itPrev, itNext, itPos, ExpDate(dtExpDate));
+	CVolaValuesMap::reverse_iterator ritPrev( itPrev );
+	CVolaValuesMap::reverse_iterator ritEnd = m_vola.rend();
+	CVolaValuesMap::iterator itEnd = m_vola.end();*/
 
 	// find previous useful expiration
 	bool bGoodSkew = false;
@@ -510,8 +516,10 @@ double	CDataHolder::ExpirationInterpolate( DATE dtExpDate, double dStrike, doubl
 		dV2 = dV2 > 0 ? dV2 : 0.0f;
 
 		// interpolate
-		double dE = static_cast<double>(static_cast<long>(itNext->first) - static_cast<long>(ritPrev->first));
-		double dE1 = static_cast<double>(static_cast<long>(dtExpDate) - static_cast<long>(ritPrev->first));
+		/*double dE = static_cast<double>(static_cast<long>(itNext->first) - static_cast<long>(ritPrev->first));
+		double dE1 = static_cast<double>(static_cast<long>(dtExpDate) - static_cast<long>(ritPrev->first));*/
+		double dE  = sqrt(itNext->first.date_) - sqrt(ritPrev->first.date_);
+		double dE1 = sqrt(dtExpDate) - sqrt(ritPrev->first.date_);
 
 		if ( dE1 == 0.0 ) 
 			dE1 = 1.0;
@@ -568,29 +576,56 @@ double	CDataHolder::ExpirationInterpolate( DATE dtExpDate, double dStrike, doubl
 double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double UnderlinePrice )
 {
 	CObjectLock(this);
+	
+	double	dVola = 0.;
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
-
-	if (!skew.GetUsefulPtCount()) {
+	if (m_vola.find(ExpDate(dtExpDate)) == m_vola.end())
+	{
 		// no volatilities for this expiration
 		// perform interpolation between expirations
-		double m_dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
-		if( (dtExpDate > 32874) && ( Strike>(0.1)) ) 
-			AddPoint(dtExpDate, Strike, m_dVola, false, true);
-		return m_dVola;
+		dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
+		/*if( (dtExpDate > 32874) && ( Strike>(0.1)) ) 
+			AddPoint(dtExpDate, Strike, m_dVola, false, true);*/
+		return dVola;
 	}
-	double dStrikeDelta = 0.0f;
-	if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
+	else
 	{
-		if( !m_bDiscreteAcceleration )
-			dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
-		else
-			dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
-						   skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
+		CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
+		double dStrikeDelta = 0.0f;
+		if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
+		{
+			if( !m_bDiscreteAcceleration )
+				dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
+			else
+				dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
+				skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
+		}
+
+		dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
+		dVola = dVola > 0 ? dVola : 0.0f;
 	}
 
-	double dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
-	dVola = dVola > 0 ? dVola : 0.0f;
+	//CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
+	//if (!skew.GetUsefulPtCount()) {
+	//	// no volatilities for this expiration
+	//	// perform interpolation between expirations
+	//	double m_dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
+	//	if( (dtExpDate > 32874) && ( Strike>(0.1)) ) 
+	//		AddPoint(dtExpDate, Strike, m_dVola, false, true);
+	//	return m_dVola;
+	//}
+	//double dStrikeDelta = 0.0f;
+	//if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
+	//{
+	//	if( !m_bDiscreteAcceleration )
+	//		dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
+	//	else
+	//		dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
+	//					   skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
+	//}
+
+	//double dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
+	//dVola = dVola > 0 ? dVola : 0.0f;
 
 	return dVola;
 }
@@ -601,7 +636,7 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike )
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	double dVola = skew.GetPointVolatility( Strike );
 	dVola = dVola > 0 ? dVola : 0.0f;
@@ -623,7 +658,7 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, long nIndex )
 {
 	CObjectLock(this);
 
-	double dStrike = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetStrike();
+	double dStrike = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).GetPoint( nIndex ).GetStrike();
 
 	return GetPointVolatility( dtExpDate, dStrike );
 }
@@ -634,7 +669,7 @@ void CDataHolder::SetPointVolatility( DATE dtExpDate, double Strike, double dVol
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	skew.GetPoint( Strike).SetVola( dVola );
 	skew.m_bInterpolationVectorUpdated = false;
@@ -646,7 +681,7 @@ void CDataHolder::ProportionalShift( DATE dtExpDate, double Strike, double dVola
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	try
 	{
@@ -667,7 +702,7 @@ long CDataHolder::AddPoint( DATE dtExpDate, double dStrike, double dVola, bool b
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	CPoint pt;
 	skew.InitPoint( pt, dStrike, dVola, bIsBasePoint);
@@ -692,7 +727,7 @@ void CDataHolder::RemovePoint( DATE dtExpDate, double dStrike )
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	skew.RemovePoint( dStrike );
 	skew.m_bInterpolationVectorUpdated = false;
@@ -705,7 +740,7 @@ void CDataHolder::RemoveAllPoints( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	//for( long i = 0; i < skew.size(); i++ )
 	//	skew.GetPoint( i ).enStatus = Deleted;
@@ -720,7 +755,7 @@ double CDataHolder::GetATMStrike( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	try
 	{
@@ -737,7 +772,7 @@ double CDataHolder::GetATMVola( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	CSkew& skew = m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor );
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
 
 	try
 	{
@@ -767,5 +802,5 @@ void CDataHolder::UpdateSkewStatus( DATE dtExpDate )
 {
 	CObjectLock(this);
 
-	m_vola.GetSkew(  static_cast<ExpDate>(dtExpDate), m_dInterpolationFactor ).UpdateStatus();
+	m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor ).UpdateStatus();
 }

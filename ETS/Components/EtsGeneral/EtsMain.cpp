@@ -851,6 +851,9 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 {
 	try
 	{
+
+		LoadHolidays();
+
 		m_pUnderlying->Clear();
 		m_pUnderlyingAll->Clear();
 		m_pStock->Clear();
@@ -933,6 +936,7 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 									pDivAtom->m_nDivFreqCust	= rs[L"iDivFreqCustom"];
 									pDivAtom->m_dtDivDateCust   = (vt_date) rs[L"dtDivDateCustom"];
 									pDivAtom->m_dDivAmtCust     = rs[L"fDivAmtCustom"];
+									pDivAtom->m_spHolidays		= m_spHolidays;
 
 									pObject->m_spDividend		= spDivAtom;
 								}
@@ -957,6 +961,13 @@ STDMETHODIMP CEtsMain::LoadUnderlying(LONG lTraderID)
 									spDivAtom.Attach(pDivAtom, TRUE);
 
 									pDivAtom->m_enDivType		= static_cast<EtsDivTypeEnum>((long)rs[L"tiIsDivCustom"]);
+									pDivAtom->m_nDivFreq		= rs[L"iDivFreq"];
+									pDivAtom->m_dtDivDate		= (vt_date) rs[L"dtDivDate"];
+									pDivAtom->m_dDivAmt			= rs[L"fDivAmt"];
+									pDivAtom->m_nDivFreqCust	= rs[L"iDivFreqCustom"];
+									pDivAtom->m_dtDivDateCust   = (vt_date) rs[L"dtDivDateCustom"];
+									pDivAtom->m_dDivAmtCust     = rs[L"fDivAmtCustom"];
+									pDivAtom->m_spHolidays		= m_spHolidays;
 
 									pObject->m_spDividend		= spDivAtom;
 								}
@@ -1080,5 +1091,93 @@ STDMETHODIMP CEtsMain::LoadAssetGroup()
 	{
 		return Error(_T("Unknown Error in CEtsMain::LoadAssetGroup "), IID_IEtsMain, E_FAIL);
 	}
+	return S_OK;
+}
+//load holidays
+STDMETHODIMP CEtsMain::LoadHolidays()
+{
+	try
+	{
+
+		_bstr_t bsStatus("Loading Holidays data...");
+
+		InitializeDB();
+		Fire_Progress(bsStatus,-1);
+		CStoredProc<> db(m_DbConnection, L"usp_Holiday_Get");
+
+		CClientRecordset rs;
+		rs.Open(db);
+		long lTotalCount = rs.GetRecordCount();
+		long lLoaded = 0;
+		long lLastPerc = -1;
+
+		if(lTotalCount)
+		{
+			for(rs.MoveFirst(); !rs.IsEOF(); ++rs, ++lLoaded)
+			{
+				long	lActionID		= rs[L"tiActionID"];
+				DATE	dtHolidayDate	= (vt_date)rs[L"dtHolidayDate"];
+
+				if (lActionID < 2)
+					m_pHolidays->Add(dtHolidayDate);
+
+				long lPerc = static_cast<long>( 100.* double(lLoaded)/ double(lTotalCount));
+				if(lPerc != lLastPerc)
+				{
+					lLastPerc = lPerc;
+					Fire_Progress(bsStatus, lLastPerc);
+				}
+			}
+		}
+	}
+	catch(_com_error& e )
+	{
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsMain, e.Error());
+
+	}
+	catch(...)
+	{
+		return Error(_T("Unknown Error in CEtsMain::LoadHolidays() "), IID_IEtsMain, E_FAIL);
+	}
+	return S_OK;
+}
+
+// send email
+STDMETHODIMP CEtsMain::SendMail(BSTR sAddress, BSTR sSender, BSTR sSubject, BSTR sMessage, BSTR sSMTPServer, BSTR sFilePath) {
+
+	try {
+		BOOL bRet = FALSE;
+
+		CSMTPConnection SMTPConnection;
+		bRet = SMTPConnection.Connect( (char*)_bstr_t(sSMTPServer) );
+		if( !bRet ) {
+			return E_FAIL;
+		}
+
+		CMimeMessage Message;
+		_bstr_t sbsFilePath = sFilePath;
+		if( sbsFilePath != _bstr_t("") )
+			Message.AttachFile( (char*)sbsFilePath );
+
+		Message.SetSubject( (char*)_bstr_t(sSubject) );
+		Message.AddText( (char*)_bstr_t(sMessage) );
+		Message.AddRecipient( (char*)_bstr_t(sAddress) );
+
+		bRet = SMTPConnection.SendMessage( Message, (char*)_bstr_t(sAddress), (char*)_bstr_t(sSender) );
+
+		if( !bRet ) {
+			SMTPConnection.Disconnect();
+			return E_FAIL;
+		}
+
+		SMTPConnection.Disconnect();
+	}
+	catch(_com_error& e ) {
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsMain, e.Error());
+	}
+	catch(...){
+		return Error(_T("Unknown Error in CEtsMain::SendMail() "), IID_IEtsMain, E_FAIL);
+	}
+
 	return S_OK;
 }

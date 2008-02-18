@@ -170,6 +170,11 @@ library EtsMmVolaAnalysisLib
 		ETSGENERAL_PROPREADONLY_DEF(3,	IMmVaStrikeColl*,	Strike)
 		ETSGENERAL_PROPPUTREF_DEF(4,	IMmVaStrikeAtom*,	AtmStrike)
 
+		ETSGENERAL_PROP_DEF(5,			DATE,				ExpiryOV)
+		ETSGENERAL_PROP_DEF(6,			DATE,				TradingClose)
+
+		ETSGENERAL_PROPREADONLY_DEF(8,	DATE,				LocalExpiryOV)
+
 		[id(7), helpstring("method FindAtmStrike")]
 		HRESULT FindAtmStrike([in] DOUBLE UnderlyingSpot);
 	};

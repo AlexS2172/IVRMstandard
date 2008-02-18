@@ -30,4 +30,8 @@ EXPORTS
 	VarianceSwapGreeks @28
 	RealizedVariance @29	
 	ImpliedVariance @30
+	OleDateToUnixDate @31
+	TmToDATE @32
+	GetNYDateTimeAsDATE @33
+	TmToDateEx @34
 	

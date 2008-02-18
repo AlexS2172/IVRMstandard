@@ -57,6 +57,7 @@ enum GREEK_TYPE
 	GT_VEGA			= 0x00000010,
 	GT_THETA		= 0x00000020,
 	GT_RHO			= 0x00000040,
+	GT_VOLGA		= 0x00000080,
 
 	GT_DELTA_VEGA	= 0x00000100,
 	GT_DELTA_THETA	= 0x00000200,
@@ -80,6 +81,7 @@ struct GREEKS
 	double	dVega;
 	double	dTheta;
 	double	dRho;
+	double	dVolga;
 
 	double	dDeltaVega;
 	double	dDeltaTheta;

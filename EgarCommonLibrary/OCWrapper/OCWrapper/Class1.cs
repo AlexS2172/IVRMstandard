@@ -28,6 +28,7 @@ namespace OCWrapper
 		GT_VEGA			= 0x00000010,
 		GT_THETA		= 0x00000020,
 		GT_RHO			= 0x00000040,
+        GT_VOLGA        = 0x00000080,
 
 		GT_DELTA_VEGA	= 0x00000100,
 		GT_DELTA_THETA	= 0x00000200,
@@ -71,6 +72,7 @@ namespace OCWrapper
 		public double	dVega;
 		public double	dTheta;
 		public double	dRho;
+        public double   dVolga;
 		public double	dDeltaVega;
 		public double	dDeltaTheta;
 		public double	dGammaVega;
@@ -83,21 +85,25 @@ namespace OCWrapper
 
 	public class OCWrapperClass
 	{
-	
+        [System.Runtime.InteropServices.DllImport("OptionCalc.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern
+            bool OleDateToUnixDate(double dtDateIn,
+            [Out, MarshalAs(UnmanagedType.I8)] out long dtDateOut);
+
 		[System.Runtime.InteropServices.DllImport("OptionCalc.dll", CallingConvention=CallingConvention.Cdecl)]
 		private static extern 
-			int GetDividendsCount(	int nToday, 
-			int nDTE, 
-			int nLastDivDate, 
+			int GetDividendsCount(long dtToday, 
+			double dYTE, 
+			long dtLastDivDate, 
 			int nFrequency );
 		
 
 		
 		[System.Runtime.InteropServices.DllImport("OptionCalc.dll", CallingConvention=CallingConvention.Cdecl)]
 		private static extern 
-			int GetDividends2(	int nToday,
-			int nDTE, 
-			int nLastDivDate,
+			int GetDividends2(	long dtToday,
+			double dYTE, 
+			long dtLastDivDate,
 			int nFrequency,
 			double dAmount, 
 			int nCount, 
@@ -114,8 +120,8 @@ namespace OCWrapper
 		private static extern double InterpolateRates2(
 			int	nCount,
 			[MarshalAs(UnmanagedType.LPArray) ]  double[]   pRates,
-			[MarshalAs(UnmanagedType.LPArray)]   int[]   pDTEs,
-			int		nSteps
+			[MarshalAs(UnmanagedType.LPArray)]   double[]   pYTEs,
+			double	dYte
 			);
 
 		
@@ -123,11 +129,12 @@ namespace OCWrapper
 		[System.Runtime.InteropServices.DllImport("OptionCalc.dll", SetLastError=true, CallingConvention=CallingConvention.Cdecl)]
 		private static extern double CalcVolatilityMM(
 			double	dDomesticRate,
-			double	dForeignRate, 
+			double	dForeignRate,
+            double  dHTBRate,
 			double	dSpotPrice,
 			double	dOptionPrice,
 			double	dStrike,		
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nCount, 	
@@ -145,7 +152,7 @@ namespace OCWrapper
 			double	dFuturePrice,
 			double	dOptionPrice,
 			double	dStrike,		
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nSteps,		
@@ -165,7 +172,7 @@ namespace OCWrapper
 			double	dFuturePrice,
 			double	dOptionPrice,
 			double	dStrike,		
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nSteps,		
@@ -184,7 +191,7 @@ namespace OCWrapper
 			double	dFuturePrice,		
 			double	dStrike,		
 			double	dVolatility, 	
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nSteps,		
@@ -207,7 +214,7 @@ namespace OCWrapper
 			bool	bSpotGreeks,
 			double	dStrike,
 			double	dVolatility, 	
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nSteps,		
@@ -227,7 +234,7 @@ namespace OCWrapper
 			double	dFuturePrice,		
 			double	dStrike,		
 			double	dVolatility, 	
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nSteps,		
@@ -242,11 +249,12 @@ namespace OCWrapper
 		private static extern
 			int CalcGreeksMM2(
 			double	dDomesticRate,
-			double	dForeignRate, 
+			double	dForeignRate,
+            double  dHTBRate,
 			double	dSpotPrice,		
 			double	dStrike,		
 			double	dVolatility, 	
-			int		nDTE,		
+			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
 			int		nCount, 	
@@ -259,6 +267,11 @@ namespace OCWrapper
 			[In, Out, MarshalAs(UnmanagedType.LPStruct)] GREEKS   pGreeks);
 	
 	
+        public bool OCWOleDateToUnixDate(double dtOleDate, out long dtUnixDate)
+        {
+            bool bRet = OleDateToUnixDate(dtOleDate, out dtUnixDate);
+            return bRet; 
+        }
 
 
 		public int OCWCalcGreeksMM(	double	dDomesticRate,
@@ -266,7 +279,7 @@ namespace OCWrapper
 			double	dSpotPrice,		
 			double	dStrike,		
 			double	dVolatility, 	
-			long		nDTE,		
+			double	dYTE,		
 			long		nIsCall,	
 			long		nIsAmerican,
 			long		nCount, 	
@@ -282,11 +295,12 @@ namespace OCWrapper
 			int iRet = 0;
 			
 			iRet = CalcGreeksMM2(	dDomesticRate,
-				dForeignRate, 
+				dForeignRate,
+                (double)-1E+308,
 				dSpotPrice,		
 				dStrike,		
 				dVolatility, 	
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nCount, 	
@@ -302,9 +316,9 @@ namespace OCWrapper
 		}
 
 		public int OCWGetDividends(
-			int nToday,
-			int nDTE, 
-			int nLastDivDate,
+			long dtToday,
+			double dYTE, 
+			long dtLastDivDate,
 			int nFrequency,
 			double dAmount, 
 			int nCount, 
@@ -313,9 +327,9 @@ namespace OCWrapper
 			out int pnCount )
 		{
 			int iRet = 0;
-			iRet = GetDividends2(	nToday,
-				nDTE, 
-				nLastDivDate,
+			iRet = GetDividends2(	dtToday,
+				dYTE, 
+				dtLastDivDate,
 				nFrequency,
 				dAmount, 
 				nCount, 
@@ -323,22 +337,21 @@ namespace OCWrapper
 				pDivDays, 
 				out pnCount );
 
-
 			return iRet;
 		}
 
 
 		public int OCWGetDividendsCount(
-			int nToday, 
-			int nDTE, 
-			int nLastDivDate, 
+			long dtToday, 
+			double dYTE, 
+			long dtLastDivDate, 
 			int nFrequency )
 		{
 			int iRet = 0;
 			iRet = GetDividendsCount(
-				nToday, 
-				nDTE, 
-				nLastDivDate, 
+				dtToday, 
+				dYTE, 
+				dtLastDivDate, 
 				nFrequency );
 
 			return iRet;
@@ -348,26 +361,26 @@ namespace OCWrapper
 		public double OCWInterpolateRates(
 			int	nCount,
 			ref  double[]   pRates,
-			ref  int[]   pDTEs,
-			int		nSteps)
+			ref  double[]   pYTEs,
+			double		dYte)
 		{
 			double dRet = 0;
 			dRet = InterpolateRates2(
 				nCount,
 				pRates,
-				pDTEs,
-				(int)nSteps);
+				pYTEs,
+				dYte);
 			return dRet;
 		}		
 
 
 		public double OCWCalcVolatilityMM(
 			double	dDomesticRate,
-			double	dForeignRate, 
+			double	dForeignRate,
 			double	dSpotPrice,
 			double	dOptionPrice,
 			double	dStrike,		
-			long		nDTE,		
+			double	dYTE,		
 			long		nIsCall,	
 			long		nIsAmerican,
 			long		nCount, 	
@@ -382,11 +395,12 @@ namespace OCWrapper
 			double dRet = 0;
 			dRet = CalcVolatilityMM(
 				dDomesticRate,
-				dForeignRate, 
+				dForeignRate,
+                (double)-1E+308, 
 				dSpotPrice,
 				dOptionPrice,
 				dStrike,		
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nCount, 	
@@ -404,7 +418,7 @@ namespace OCWrapper
 			double	dFuturePrice,		
 			double	dStrike,		
 			double	dVolatility, 	
-			long		nDTE,		
+			double	dYTE,		
 			long		nIsCall,	
 			long		nIsAmerican,
 			long		nSteps,		
@@ -425,7 +439,7 @@ namespace OCWrapper
 				dFuturePrice,		
 				dStrike,		
 				dVolatility, 	
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nSteps,		
@@ -447,7 +461,7 @@ namespace OCWrapper
 			bool	bSpotGreeks,
 			double	dStrike,		
 			double	dVolatility, 	
-			long		nDTE,		
+			double	dYTE,		
 			long		nIsCall,	
 			long		nIsAmerican,
 			long		nSteps,		
@@ -469,7 +483,7 @@ namespace OCWrapper
 				bSpotGreeks,
 				dStrike,		
 				dVolatility, 	
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nSteps,		
@@ -490,7 +504,7 @@ namespace OCWrapper
 			double	dFuturePrice,
 			double	dOptionPrice,
 			double	dStrike,		
-			long	nDTE,		
+			double	dYTE,		
 			long	nIsCall,	
 			long	nIsAmerican,
 			long	nSteps,		
@@ -509,7 +523,7 @@ namespace OCWrapper
 				dFuturePrice,
 				dOptionPrice,
 				dStrike,		
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nSteps,		
@@ -530,7 +544,7 @@ namespace OCWrapper
 			double	dFuturePrice,
 			double	dOptionPrice,
 			double	dStrike,		
-			long	nDTE,		
+			double	dYTE,		
 			long	nIsCall,	
 			long	nIsAmerican,
 			long	nSteps,		
@@ -546,7 +560,7 @@ namespace OCWrapper
 				dFuturePrice,
 				dOptionPrice,
 				dStrike,		
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nSteps,		
@@ -564,7 +578,7 @@ namespace OCWrapper
 			double	dFuturePrice,		
 			double	dStrike,		
 			double	dVolatility, 	
-			long		nDTE,		
+			double	dYTE,		
 			long		nIsCall,	
 			long		nIsAmerican,
 			long		nSteps,		
@@ -581,7 +595,7 @@ namespace OCWrapper
 				dFuturePrice,		
 				dStrike,		
 				dVolatility, 	
-				(int)nDTE,		
+				dYTE,		
 				(int)nIsCall,	
 				(int)nIsAmerican,
 				(int)nSteps,		

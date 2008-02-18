@@ -24,6 +24,9 @@ Public Vola As Double
 Public TargVola As Double
 Public LotSize As Long
 
+Public ExpiryOV As Date
+Public TradingClose As Date
+
 Public Exp As clsVmExpiryAtom
 
 Public QtyInShares As Long

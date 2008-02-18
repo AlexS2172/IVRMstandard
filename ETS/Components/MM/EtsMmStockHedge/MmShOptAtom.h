@@ -25,11 +25,14 @@ struct __MmShOptAtom
 	DOUBLE						m_dPriceLast;
 
 	DOUBLE						m_dDelta;
+	DATE						m_dtExpiryOV;
+	DATE						m_dtTradingClose;
 
 	__MmShOptAtom()
 		: m_nID(BAD_LONG_VALUE), m_dtExpiry(0.), m_enOptType(enOtPut), m_dStrike(BAD_DOUBLE_VALUE),
 		m_dVola(BAD_DOUBLE_VALUE), m_dRate(BAD_DOUBLE_VALUE), m_dPriceBid(BAD_DOUBLE_VALUE),
-		m_dPriceAsk(BAD_DOUBLE_VALUE), m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE)
+		m_dPriceAsk(BAD_DOUBLE_VALUE), m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE),
+		m_dtExpiryOV(0.), m_dtTradingClose(0.)
 	{
 	}
 };
@@ -81,6 +84,8 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceLast, m_dPriceLast)
 
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Delta, m_dDelta)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmShOptAtom), CMmShOptAtom)

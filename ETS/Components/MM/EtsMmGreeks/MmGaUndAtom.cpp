@@ -751,7 +751,7 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 						LONG	nFlag = 0L;
 						if(dOptPriceMid > 0.)
 						{
-							dVola = ::CalcVolatilityMM3(dRate, dYield, dUndPriceMid, dOptPriceMid, dStrike, 
+							dVola = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dUndPriceMid, dOptPriceMid, dStrike, 
 								nExpiry - nToday, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
 								100L, m_dSkew, m_dKurt, nModel, &nFlag);
 
@@ -772,7 +772,7 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 					}
 				}
 
-				nRetCount = ::CalcGreeksMM2(dRate, dYield, dUndPriceMid, dStrike, dVola, nExpiry - nToday,
+				nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dUndPriceMid, dStrike, dVola, nExpiry - nToday,
 					enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 
 				if (DoubleEQZero(dOptPriceMid) || DoubleEQZero(dOptPriceBid)|| DoubleEQZero(dOptPriceAsk) || DoubleEQZero(dOptPriceLast))
@@ -877,7 +877,7 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 						LONG	nFlag = 0L;
 						if(dOptPriceMid > 0.)
 						{
-							dVola = ::CalcVolatilityMM3(dRate, dYield, dSynthUndPriceMid, dOptPriceMid, dStrike, 
+							dVola = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSynthUndPriceMid, dOptPriceMid, dStrike, 
 								nExpiry - nToday, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
 								100L, dSkew, dKurt, nModel, &nFlag);
 
@@ -897,7 +897,7 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 					}
 				}
 
-				nRetCount = ::CalcGreeksMM2(dRate, dYield, dSynthUndPriceMid, dStrike, dVola, nExpiry - nToday,
+				nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dSynthUndPriceMid, dStrike, dVola, nExpiry - nToday,
 					enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, dSkew, dKurt, nModel, &aGreeks);
 
 				if (DoubleEQZero(dOptPriceMid) || DoubleEQZero(dOptPriceBid)|| DoubleEQZero(dOptPriceAsk) || DoubleEQZero(dOptPriceLast))

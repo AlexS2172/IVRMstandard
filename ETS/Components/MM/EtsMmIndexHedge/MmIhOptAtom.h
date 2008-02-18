@@ -12,6 +12,8 @@ struct __MmIhOptAtom
 	LONG						m_nID;
 	CComBSTR					m_bstrSymbol;
 	DATE						m_dtExpiry;
+	DATE						m_dtExpiryOV;
+	DATE						m_dtTradingClose;
 	EtsOptionTypeEnum			m_enOptType;
 	DOUBLE						m_dStrike;
 	DOUBLE						m_dVola;
@@ -28,7 +30,8 @@ struct __MmIhOptAtom
 		: m_nID(0L), m_dtExpiry(0.), m_enOptType(enOtPut), m_dStrike(BAD_DOUBLE_VALUE),
 		m_dVola(BAD_DOUBLE_VALUE), m_dRate(BAD_DOUBLE_VALUE), m_nQty(BAD_LONG_VALUE),
 		m_dPriceBid(BAD_DOUBLE_VALUE), m_dPriceAsk(BAD_DOUBLE_VALUE),
-		m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE)
+		m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE), m_dtExpiryOV(0.),
+		m_dtTradingClose(0.)
 	{
 	}
 };
@@ -82,6 +85,9 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceLast, m_dPriceLast)
 
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Delta, m_dDelta)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
+
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmIhOptAtom), CMmIhOptAtom)

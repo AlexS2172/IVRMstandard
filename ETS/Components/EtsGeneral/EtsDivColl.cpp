@@ -10,7 +10,7 @@
 #include <atlsafe.h>
 
 // CEtsDivColl
-STDMETHODIMP CEtsDivColl::GetDividends(LONG nToday, LONG nExpiry, LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates, LONG* pnCount)
+STDMETHODIMP CEtsDivColl::GetDividends(DATE nToday, DATE nExpiry, LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates, LONG* pnCount)
 {
 	__CHECK_POINTER(pnCount);
 	*pnCount = 0;
@@ -24,48 +24,38 @@ STDMETHODIMP CEtsDivColl::GetDividends(LONG nToday, LONG nExpiry, LONG nCount, S
 	{
 		CComSafeArray<double> spDates(nCount);
 		CComSafeArray<double> spAmount(nCount);
-//		if(m_nTodayCache == nToday && m_lExpryCache == nExpiry && m_bDivCacheInit)
-//		{
-//			spDates.CopyFrom(m_spDatesCache);
-//			spAmount.CopyFrom(m_spAmountCache);
-//		}
-//		else
-//		{
-//			CComSafeArray<double> spDates(nCount);
-//			CComSafeArray<double> spAmount(nCount);
-			EnumIterType iter;
-			EnumIterType iterStart = m_DivColl.upper_bound(nToday);
-			EnumIterType iterExp = m_DivColl.lower_bound(nExpiry);
-			EnumIterType iterEnd = m_DivColl.end();
 
-			if ( iterStart != iterEnd && iterStart != iterExp )
+		EnumIterType iter;
+		EnumIterType iterStart = m_DivColl.lower_bound(static_cast<LONG>(nToday));
+		EnumIterType iterExp = m_DivColl.lower_bound(static_cast<LONG>(nExpiry));
+		EnumIterType iterEnd = m_DivColl.end();
+
+		if ( iterStart != iterEnd && iterStart != iterExp )
+		{
+			LONG lDivCount = 0;
+			LONG lCurDiv = 0;
+			DOUBLE dDivDate;
+			DOUBLE dCurAmount;
+
+			for( iter = iterStart; iter != iterExp; ++iter)
 			{
-				LONG lDivCount = 0;
-				LONG lCurDiv = 0;
-				DOUBLE dDivDate;
-				DOUBLE dCurAmount;
+				dCurAmount = iter->second;
+				dDivDate = iter->first;
+				dDivDate = (dDivDate - nToday) / OPM::cdDaysPerYear365;
 
-				for( iter = iterStart; iter != iterExp; ++iter)
-				{
-					dCurAmount = iter->second;
-					dDivDate = iter->first;
-					dDivDate = (dDivDate - nToday) / OPM::cdDaysPerYear365;
+				spDates[lCurDiv] = dDivDate;
+				spAmount[lCurDiv] = dCurAmount;
 
-					spDates[lCurDiv] = dDivDate;
-					spAmount[lCurDiv] = dCurAmount;
+				++lCurDiv;
+			}
+			*pnCount = lCurDiv;
 
-					++lCurDiv;
-				}
-				*pnCount = lCurDiv;
-//				m_spDatesCache.CopyFrom(spDates);
-//				m_spAmountCache.CopyFrom(spAmount);
 
-				m_nTodayCache    = nToday;
-				m_lExpryCache    = nExpiry;
-				m_lQuantityCache = lCurDiv;
-//				m_bDivCacheInit  = true;
-//			}
+			m_nTodayCache    = nToday;
+			m_lExpryCache    = nExpiry;
+			m_lQuantityCache = lCurDiv;
 		}
+
 		*psaDivAmounts = spAmount.Detach();
 		*psaDivDates = spDates.Detach();
 
@@ -81,7 +71,7 @@ STDMETHODIMP CEtsDivColl::GetDividends(LONG nToday, LONG nExpiry, LONG nCount, S
 	return hr;
 }
 
-STDMETHODIMP CEtsDivColl::GetNearest( LONG nToday, LONG nExpiry, DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
+STDMETHODIMP CEtsDivColl::GetNearest( DATE nToday, DATE nExpiry, DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
 {
 	__CHECK_POINTER(pdDivAmount);
 	__CHECK_POINTER(pdDivDate);
@@ -92,11 +82,11 @@ STDMETHODIMP CEtsDivColl::GetNearest( LONG nToday, LONG nExpiry, DOUBLE* pdDivAm
 	HRESULT hr = S_OK;
 	try
 	{
-		EnumIterType iterStart = m_DivColl.upper_bound(nToday);
+		EnumIterType iterStart = m_DivColl.upper_bound(static_cast<LONG>(nToday));
 		EnumIterType iterEnd = m_DivColl.end();
 		EnumIterType iterExp;
 		if (nExpiry > 0)
-			iterExp = m_DivColl.lower_bound(nExpiry);
+			iterExp = m_DivColl.lower_bound(static_cast<LONG>(nExpiry));
 		else
 			iterExp = iterEnd;
 
@@ -121,7 +111,7 @@ STDMETHODIMP CEtsDivColl::GetNearest( LONG nToday, LONG nExpiry, DOUBLE* pdDivAm
 
 
 
-STDMETHODIMP CEtsDivColl::GetDividendCount(LONG nToday, LONG nExpiry,  LONG* pnCount)
+STDMETHODIMP CEtsDivColl::GetDividendCount(DATE nToday, DATE nExpiry,  LONG* pnCount)
 {
 	__CHECK_POINTER(pnCount);
 	*pnCount = 0;
@@ -138,9 +128,9 @@ STDMETHODIMP CEtsDivColl::GetDividendCount(LONG nToday, LONG nExpiry,  LONG* pnC
 		else
 		{
 			EnumIterType iter;
-			EnumIterType iterStart = m_DivColl.upper_bound(nToday);
+			EnumIterType iterStart = m_DivColl.upper_bound(static_cast<LONG>(nToday));
 			EnumIterType iterEnd = m_DivColl.end();
-			EnumIterType iterExp = m_DivColl.lower_bound(nExpiry);
+			EnumIterType iterExp = m_DivColl.lower_bound(static_cast<LONG>(nExpiry));
 
 			if( iterStart != iterEnd && iterStart != iterExp )
 				for(iter = iterStart; iter != iterExp; ++iter)
@@ -311,6 +301,156 @@ STDMETHODIMP CEtsDivColl::Clone(IEtsDivColl** ppVal)
 	catch (_com_error& e) 
 	{
 		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsDivColl, e.Error());
+	}
+	return hr;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+////ETM MODEL//////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+STDMETHODIMP CEtsDivColl::GetDividendCount2(DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime, LONG* pnCount)
+{
+	__CHECK_POINTER(pnCount);
+	*pnCount = 0;
+	long lCount = 0;
+
+	if (dtExpiryOV < dtNow) return S_OK;
+
+	HRESULT hr = S_OK;
+	try
+	{
+		EnumIterType	iter;
+		EnumIterType	iterStart	= m_DivColl.begin();
+		EnumIterType	iterEnd		= m_DivColl.end();
+
+		DATE			dtDate,	dtPWDate;
+		
+		for(iter = iterStart; iter != iterEnd; iter++)
+		{
+			dtPWDate =	dtDate	=	static_cast<DOUBLE>(iter->first);
+			if (m_spHolidays)
+				m_spHolidays->GetPreviousWorkingDate(dtDate, &dtPWDate);
+
+			dtPWDate += dtCloseTime;
+			if ( dtPWDate >= dtNow && dtPWDate < dtExpiryOV )
+				++lCount;
+		}
+
+		*pnCount = lCount;
+	}
+	catch(const _com_error& e)
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsDivColl, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error((PTCHAR)(_T("Unhandled exception at GetDividendCount2")), IID_IEtsDivColl, E_FAIL);
+	}
+	return hr;
+}
+STDMETHODIMP CEtsDivColl::GetDividends2(DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime, LONG nCount, SAFEARRAY ** psaDivAmounts,  SAFEARRAY ** psaDivDates, LONG* pnCount)
+{
+	__CHECK_POINTER(pnCount);
+	__CHECK_POINTER(psaDivAmounts);
+	__CHECK_POINTER(psaDivDates);
+
+	*pnCount = 0;
+	if (dtExpiryOV < dtNow) return S_OK;
+
+	HRESULT hr = S_OK;
+	try
+	{
+		CComSafeArray<double> spDates(nCount);
+		CComSafeArray<double> spAmount(nCount);
+
+		EnumIterType iter;
+		EnumIterType iterStart = m_DivColl.begin();
+		EnumIterType iterEnd = m_DivColl.end();
+		
+		LONG	lCurDiv		= 0;
+		DOUBLE	dDivDate;
+		DOUBLE	dCurAmount;
+		DATE	dtDate, dtPWDate;
+
+		for( iter = iterStart; iter != iterEnd; iter++)
+		{
+			dCurAmount	= iter->second;
+			dtPWDate	= dtDate = iter->first;
+
+			if (m_spHolidays)
+				m_spHolidays->GetPreviousWorkingDate(dtDate, &dtPWDate);
+
+			dtPWDate += dtCloseTime;
+
+			if (dtPWDate >= dtNow && dtPWDate < dtExpiryOV){
+
+				dDivDate = (dtPWDate - dtNow) / OPM::cdDaysPerYear365;
+				spDates[lCurDiv]	= dDivDate;
+				spAmount[lCurDiv]	= dCurAmount;
+				++lCurDiv;
+			}
+		}
+		*pnCount = lCurDiv;
+
+		*psaDivAmounts	= spAmount.Detach();
+		*psaDivDates	= spDates.Detach();
+
+	}
+	catch(const _com_error& e)
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsDivColl, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error((PTCHAR)(_T("Unhandled exception at GetDividends2")), IID_IEtsDivColl, E_FAIL);
+	}
+	return hr;
+}
+
+
+STDMETHODIMP CEtsDivColl::GetNearest2( DATE dtNow, DATE dtExpiryOV, DATE dtCloseTime,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate)
+{
+	__CHECK_POINTER(pdDivAmount);
+	__CHECK_POINTER(pdDivDate);
+
+	if ( dtExpiryOV <= dtNow )	return E_FAIL;
+	
+	HRESULT hr = S_OK;
+	try
+	{
+		EnumIterType iter;
+		EnumIterType iterStart = m_DivColl.begin();
+		EnumIterType iterEnd = m_DivColl.end();
+		
+		DATE	dtPWDate, dtDate;
+		DOUBLE	dCurAmount;
+
+
+		for( iter = iterStart; iter != iterEnd; iter++)
+		{
+			dCurAmount	= iter->second;
+			dtPWDate	= dtDate = iter->first;
+			if (m_spHolidays)
+				m_spHolidays->GetPreviousWorkingDate(dtDate, &dtPWDate);
+
+			dtPWDate += dtCloseTime;
+
+			if (dtPWDate >= dtNow && dtPWDate < dtExpiryOV)
+			{
+				*pdDivAmount = dCurAmount;	
+				*pdDivDate = dtPWDate;
+				break;
+			}
+
+		}
+	}
+	catch(const _com_error& e)
+	{
+		hr =  Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsDivColl, e.Error());
+	}
+	catch(...)
+	{
+		hr =  Error((PTCHAR)(_T("Unhandled exception at GetNearest2")), IID_IEtsDivColl, E_FAIL);
 	}
 	return hr;
 }

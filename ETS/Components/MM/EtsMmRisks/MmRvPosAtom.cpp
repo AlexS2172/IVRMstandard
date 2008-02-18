@@ -25,10 +25,15 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 	if(m_enContractType != enCtOption)
 		return S_OK;
 
-	LONG nExpiry = static_cast<LONG>(m_dtExpiry);
-	LONG nToday = static_cast<LONG>(vt_date::GetCurrentDate());
+	DOUBLE	dtExpiryOV	=	m_dtExpiryOV;
+	DOUBLE	dtCloseTime	=	m_dtTradingClose;
+	//DOUBLE  dtNYTime	=	0.;
+	//::GetNYDateTimeAsDATE(&dtNYTime);
+	//DOUBLE	dTimeShift	=	dtCalcDate - vt_date::GetCurrentDateWOS();
+	DOUBLE	dtNow		=	static_cast<DOUBLE>(dtCalcDate);//dtNYTime + dTimeShift;
+	DOUBLE	dYTE		=	(dtExpiryOV - dtNow) / 365.;
 
-	if(nExpiry < nToday )
+	if( dtExpiryOV < dtNow )
 		return S_OK;
 
 	try
@@ -104,14 +109,7 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 					EtsContractTypeEnum enUndType = pUnd->m_enContractType;
 
 					DOUBLE dSkew = 0., dKurt = 0.;
-					vt_date dt_vt_CalcDate ( dtCalcDate ) ;
-					dt_vt_CalcDate.ClearTime() ;
 
-					EgLib::vt_date_span dtSp = ( dtCalcDate - vt_date::GetCurrentDate( true )) ;
-
-					LONG nTimeShift = dtSp.get_days() ;
-
-					LONG nToday = nTimeShift + static_cast<LONG>(vt_date::GetCurrentDate());
 					// prepare parameters
 					if(!m_bIsSynthetic)
 					{
@@ -134,13 +132,13 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 
 									if (spDiv != NULL)
 									{
-										spDiv->GetDividendCount(nToday, nExpiry, &nDivCount);
+										spDiv->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
 										if(nDivCount > 0L) 
 										{
 											LPSAFEARRAY psaAmounts = NULL;
 											LPSAFEARRAY psaDates = NULL;
 
-											spDiv->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+											spDiv->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 
 											saAmounts.Attach(psaAmounts);
 											saDates.Attach(psaDates);
@@ -166,7 +164,7 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 										LPSAFEARRAY psaAmounts = NULL;
 										LPSAFEARRAY psaDates = NULL;
 
-										spBasketDivs->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+										spBasketDivs->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 										saAmounts.Attach(psaAmounts);
 										saDates.Attach(psaDates);
@@ -252,7 +250,7 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 								LPSAFEARRAY psaAmounts = NULL;
 								LPSAFEARRAY psaDates = NULL;
 
-								spBasketDivs->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+								spBasketDivs->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 								saAmounts.Attach(psaAmounts);
 								saDates.Attach(psaDates);
@@ -277,8 +275,8 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 							if(dOptPriceMid > DBL_EPSILON || bCalcInAnyCase )
 							{
 								LONG nFlag = VF_OK;
-								dVolaCalculated = ::CalcVolatilityMM3(m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
-									nExpiry - nToday, m_enOptType, nIsAmerican, nDivCount,
+								dVolaCalculated = ::CalcVolatilityMM3(m_dRate, dYield, BAD_DOUBLE_VALUE, dUndMidPrice, dOptPriceMid, m_dStrike, 
+									dYTE, m_enOptType, nIsAmerican, nDivCount,
 									saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, dSkew, dKurt, nModel, &nFlag);
 
 								if(bUseTheoVolaBadMarket && nFlag != VF_OK)
@@ -306,7 +304,7 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 					memset ( strlog , 0 , sizeof(strlog) ) ;
 					sprintf_s ( strlog , sizeof(strlog) ,  "Rate %f , Yield %f , Price %f , dOptPriceMid %f , dStrike %f , days %i , OptType %i , IsAmerican %i, DivCount %i, Steps  %i , Skew %f , Kurt %f , Model %i " ,
 															m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
-															nExpiry - nToday, m_enOptType, nIsAmerican, nDivCount, 100L, dSkew, dKurt, nModel) ;
+															dYTE, m_enOptType, nIsAmerican, nDivCount, 100L, dSkew, dKurt, nModel) ;
 
 					m_pQuote->m_bsVolaCalculatedParametrs  = _bstr_t( strlog ) ;
 
@@ -316,7 +314,7 @@ STDMETHODIMP CMmRvPosAtom::CalcOptionGreeks(IMmRvUndColl* aUndColl,
 					if(nMask != GT_NOTHING)
 					{
 						// calc greeks
-						nRetCount = ::CalcGreeksMM2(m_dRate, dYield, dUndMidPrice, m_dStrike, dVolaCalculated, nExpiry - nToday,
+						nRetCount = ::CalcGreeksMM2(m_dRate, dYield, BAD_DOUBLE_VALUE, dUndMidPrice, m_dStrike, dVolaCalculated, dYTE,
 							m_enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, dSkew, dKurt, nModel, &aGreeks);
 
 						if(nRetCount != 0L)
@@ -807,7 +805,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 			DOUBLE dVola = 0.;
 			LONG nRetCount = 0L;
 
-			LONG nExpiry = static_cast<LONG>(m_dtExpiry);
+			/*LONG nExpiry = static_cast<LONG>(m_dtExpiry);
 
 			vt_date dt_vt_CalcDate ( _dtCalcDate ) ;
 			dt_vt_CalcDate.ClearTime() ;
@@ -816,7 +814,16 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 
 			LONG nTimeShift = dtSp.get_days() ;
 
-			LONG nToday = nTimeShift + static_cast<LONG>(vt_date::GetCurrentDate());
+			LONG nToday = nTimeShift + static_cast<LONG>(vt_date::GetCurrentDate());*/
+
+			DOUBLE	dtExpiryOV	=	m_dtExpiryOV;
+			DOUBLE	dtCloseTime	=	m_dtTradingClose;
+			//DOUBLE	dtNYTime;
+			//::GetNYDateTimeAsDATE(&dtNYTime);
+			//DOUBLE	dShift		=	_dtCalcDate - vt_date::GetCurrentDateWOS();
+			DOUBLE	dtNow		=	static_cast<DOUBLE>(_dtCalcDate);//dtNYTime + dShift;
+			DOUBLE	dYTE		=	(dtExpiryOV - dtNow) / 365.;
+
 
 			DOUBLE dSkew = 0., dKurt = 0.;
 			_CHK(spUnd->get_Skew(&dSkew));
@@ -840,7 +847,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 					if (spDividend != NULL)
 					{
 						nDivCount = 0;
-						spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
+						spDividend->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
 						if (nDivCount< 0)
 							nDivCount = 0;
 
@@ -850,7 +857,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 							LPSAFEARRAY psaDates	= NULL;
 							LPSAFEARRAY psaAmounts  = NULL ;
 
-							spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+							spDividend->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 
 							saDates.Attach(psaDates);
 							saAmounts.Attach(psaAmounts);
@@ -874,14 +881,14 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 						if ( bIsBasket && spDivColl != NULL )
 						{
 							dYield = 0.0;
-							spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+							spDivColl->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
 							if(nDivCount > 0L)
 							{
 
 								LPSAFEARRAY psaDates	= NULL;
 								LPSAFEARRAY psaAmounts  = NULL ;
 
-								spDivColl->GetDividends(nToday, nExpiry,  nDivCount, &psaAmounts, &psaDates, &nRetCount);
+								spDivColl->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 
 								saDates.Attach(psaDates);
 								saAmounts.Attach(psaAmounts);
@@ -972,7 +979,7 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 
 						LONG nFlag = VF_OK;
 						dVola = ::CalcFutureOptionVolatility(m_dRate, dFutMidPrice, dOptPriceMid, m_dStrike, 
-							nExpiry - nToday, m_enOptType, nIsAmerican, 100L, dSkew, dKurt, nModel, &nFlag);
+							dYTE, m_enOptType, nIsAmerican, 100L, dSkew, dKurt, nModel, &nFlag);
 
 						if(bUseTheoVolaBadMarket && nFlag != VF_OK)
 							dVola = m_pQuote->m_dVola;
@@ -986,8 +993,8 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 
 			char strlog[2048] ;
 			memset ( strlog , 0 , sizeof(strlog) ) ;
-			sprintf_s ( strlog , sizeof(strlog) , "Rate %f , Yield %f , Price %f , dOptPriceMid %f , dStrike %f , days %i , OptType %i , IsAmerican %i, DivCount %i, Steps  %i , Skew %f , Kurt %f , Model %i " , m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
-				nExpiry - nToday, m_enOptType, nIsAmerican, nDivCount,
+			sprintf_s ( strlog , sizeof(strlog) , "Rate %f , Yield %f , Price %f , dOptPriceMid %f , dStrike %f , Yte %f , OptType %i , IsAmerican %i, DivCount %i, Steps  %i , Skew %f , Kurt %f , Model %i " , m_dRate, dYield, dUndMidPrice, dOptPriceMid, m_dStrike, 
+				dYTE, m_enOptType, nIsAmerican, nDivCount,
 				/*saAmounts.GetPlainData(), saDates.GetPlainData(), */100L, dSkew, dKurt, nModel) ;
 			m_pQuote->m_bsVolaCalculatedParametrs  =  strlog ;
 
@@ -996,12 +1003,12 @@ STDMETHODIMP CMmRvPosAtom::CalcFutOptionGreeks(IMmRvUndAtom* aUnd,
 
 			// calc greeks
 			if(m_enUndType== enCtFutUnd)
-				nRetCount = ::CalcFutureOptionGreeks2(m_dRate, dFutMidPrice,false, m_dStrike, dVola, nExpiry - nToday,
+				nRetCount = ::CalcFutureOptionGreeks2(m_dRate, dFutMidPrice,false, m_dStrike, dVola, dYTE,
 				m_enOptType, nIsAmerican, 100L, dSkew, dKurt, nModel, &aGreeks);
 			else
 			{
 
-				nRetCount = ::CalcFutureOptionGreeks3(m_dRate, dYield, dFutMidPrice,true/*false*/, m_dStrike, dVola, nExpiry - nToday,
+				nRetCount = ::CalcFutureOptionGreeks3(m_dRate, dYield, dFutMidPrice,true/*false*/, m_dStrike, dVola, dYTE,
 					m_enOptType, nIsAmerican, 100L, dSkew, dKurt, nModel, nRetCount, saAmounts.GetPlainData(), saDates.GetPlainData(), &aGreeks);
 			}
 
@@ -1298,10 +1305,6 @@ void CMmRvPosAtom::_CalcFutPositionData(
 				}
 			}
 		}
-
-		//			m_dTimeValue = dOptPriceMid - (m_enOptType == enOtCall
-		//							? (dFutMidPrice - m_dStrike > DBL_EPSILON ? dFutMidPrice - m_dStrike : 0.)
-		//							: (m_dStrike - dFutMidPrice > DBL_EPSILON ? m_dStrike - dFutMidPrice : 0.));
 	}
 }
 
@@ -1769,6 +1772,8 @@ IMmRvPosAtomPtr CMmRvPosAtom::MakeCopy(bool bStaticDataOnly, bool bAddNewQuote)
 
 			pCopy->m_enOptType		= m_enOptType;
 			pCopy->m_dtExpiry		= m_dtExpiry;
+			pCopy->m_dtExpiryOV		= m_dtExpiryOV;
+			pCopy->m_dtTradingClose = m_dtTradingClose;
 			pCopy->m_dStrike		= m_dStrike;
 			pCopy->m_dRate			= m_dRate;
 			pCopy->m_dVegaWeight	= m_dVegaWeight;
@@ -1922,6 +1927,8 @@ void CMmRvPosAtom::SimpleCopyForETS_VME(CComObject<CMmRvPosAtom>* pCopy)
 
 	pCopy->m_enOptType		= m_enOptType;
 	pCopy->m_dtExpiry		= m_dtExpiry;
+	pCopy->m_dtExpiryOV		= m_dtExpiryOV;
+	pCopy->m_dtTradingClose = m_dtTradingClose;
 	pCopy->m_dStrike		= m_dStrike;
 	pCopy->m_dRate			= m_dRate;
 	pCopy->m_dVegaWeight	= m_dVegaWeight;

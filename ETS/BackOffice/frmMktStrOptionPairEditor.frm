@@ -218,7 +218,7 @@ Begin VB.Form frmMktStrOptionPairEditor
          _ExtentX        =   2143
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20709377
+         Format          =   25493505
          CurrentDate     =   38718
          MinDate         =   38718
       End
@@ -313,7 +313,8 @@ Public Function Execute( _
     ByVal iUnderlyingID As Long, _
     ByVal iUnderlyingTypeID As Long, _
     ByVal iExpCalendarID As Long, _
-    ByRef OptPair As clsOptionPairAtom _
+    ByRef OptPair As clsOptionPairAtom, _
+    ByVal bEditScreen _
 ) As Boolean
     On Error GoTo EH
     mbDirty = False
@@ -321,11 +322,16 @@ Public Function Execute( _
     m_iUnderlyingID = iUnderlyingID
     m_iUnderlyingTypeID = iUnderlyingTypeID
     m_iExpCalendarID = iExpCalendarID
-    Load Me
-    If m_iUnderlyingTypeID = 4 Then Me.chkManuallyEntered(1).Enabled = False
-    Me.Show vbModal
-    Execute = mbDirty
-    Unload Me
+    If bEditScreen Then
+        Load Me
+        If m_iUnderlyingTypeID = 4 Then Me.chkManuallyEntered(1).Enabled = False
+        Me.Show vbModal
+        Execute = mbDirty
+        Unload Me
+    Else
+        LoadData
+        SaveDataForOptionAndFuture
+    End If
     Exit Function
 EH:
     ShowError "Error loading Option Pair Editor"
@@ -333,7 +339,7 @@ End Function
 
 Private Sub btnOK_Click()
 On Error Resume Next
-    If m_bChanged Then SaveData
+    If m_bChanged Then SaveDataForOptionAndFuture
     If Not m_bChanged Then Me.Hide
 End Sub
 
@@ -382,7 +388,6 @@ On Error GoTo EH
     txtSymbol(0) = m_OptPair.sPutSymbol
     txtExportSymbol(1) = m_OptPair.sCallImportSymbol
     txtExportSymbol(0) = m_OptPair.sPutImportSymbol
-
     
     chkManuallyEntered(1).Value = IIf(m_OptPair.bCallManual, 1, 0)
     'chkManuallyEntered(0).Value = IIf(m_OptPair.bPutManual, 1, 0)
@@ -396,24 +401,26 @@ EH:
     ShowError "Unable to load data"
 End Sub
 
-Private Sub SaveData()
+Public Sub SaveDataForOptionAndFuture()  'sosed
     On Error GoTo EH
     Dim nRet&, vId As Variant, nRootID&
     Dim rst As ADODB.Recordset
     
-    If Not CheckData Then Exit Sub
-    
+'    If Not p_OptPair Is Nothing Then
+'        Set m_OptPair = p_OptPair
+'    Else
+        If Not CheckData Then Exit Sub
+'    End If
+
     With m_OptPair
         If Len(.sCallSymbol) Then
             If m_iUnderlyingTypeID <> 4 Then ' general option
-                nRet = gDBW.usp_Option_Save(.iCallID, .sCallSymbol, Null, m_iUnderlyingID, True, .fStrike, .dExpiry, .bCallManual)
-            
+                nRet = gDBW.usp_Option_Save(.iCallID, .sCallSymbol, Null, m_iUnderlyingID, True, .fStrike, .dExpiry, .dExpiryOV, .dTradingClose, .bCallManual)
                 If nRet < 0 Then GoTo EH
                 If IsNull(.iCallID) And nRet > 0 Then .iCallID = nRet
-                                
             Else ' futures option
                 vId = .iCallID
-                nRet = gDBW.usp_BoFutureOption_Save(vId, m_iUnderlyingID, .sCallSymbol, , , 1, .fStrike, .dExpiry, 1)
+                nRet = gDBW.usp_BoFutureOption_Save(vId, m_iUnderlyingID, .sCallSymbol, , , 1, .fStrike, .dExpiry, .dExpiryOV, .dTradingClose, 1)
                 If nRet < 0 Then GoTo EH
                 If IsNull(.iCallID) And nRet > 0 Then .iCallID = vId
             End If
@@ -423,14 +430,12 @@ Private Sub SaveData()
         
         If Len(.sPutSymbol) Then
             If m_iUnderlyingTypeID <> 4 Then ' general option
-                nRet = gDBW.usp_Option_Save(.iPutID, .sPutSymbol, Null, m_iUnderlyingID, False, .fStrike, .dExpiry, .bCallManual)
-                            
+                nRet = gDBW.usp_Option_Save(.iPutID, .sPutSymbol, Null, m_iUnderlyingID, False, .fStrike, .dExpiry, .dExpiryOV, .dTradingClose, .bCallManual)
                 If nRet < 0 Then GoTo EH
                 If IsNull(.iPutID) And nRet > 0 Then .iPutID = nRet
-                
             Else ' futures option
                 vId = .iPutID
-                nRet = gDBW.usp_BoFutureOption_Save(vId, m_iUnderlyingID, .sPutSymbol, , , 0, .fStrike, .dExpiry, 1)
+                nRet = gDBW.usp_BoFutureOption_Save(vId, m_iUnderlyingID, .sPutSymbol, , , 0, .fStrike, .dExpiry, .dExpiryOV, .dTradingClose, 1)
                 If nRet < 0 Then GoTo EH
                 If IsNull(.iPutID) And nRet > 0 Then .iPutID = vId
             End If
@@ -467,7 +472,7 @@ Private Sub SaveData()
                         PubNewFlexOptionRoot .Symbol, .RootID, .UnderlyingID, .LotSize
                     End With
                 Else
-                    Debug.Print "There are  more then one root with the same name and underlying id."
+                    Debug.Print "There are more then one root with the same name and underlying id."
                 End If
             End If
         End If

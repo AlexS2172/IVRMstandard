@@ -9,7 +9,7 @@ double VSKLog(
 				double	dRateDomestic,
 				double	dRateForeign,
 				double	dVolatility,
-				int		nDte,
+				double	dYte,
 				bool	bIsCall,
 				double	dSkew,
 				double	dKurtosis,
@@ -17,15 +17,15 @@ double VSKLog(
 				double* pdDivYte,						    
 				int		nDivCount)
 {
-	if (nDte < 1) 
+	if (dYte < 0.) 
 		return max(bIsCall ? dSpotPrice - dStrike : dStrike - dSpotPrice, 0.);
 
-	double dContRd = RateDiscToCont(dRateDomestic , nDte);
-	double dContRf = RateDiscToCont(dRateForeign, nDte);
-	double dYte	= nDte / cdDaysPerYear365;
+	double dContRd = RateDiscToCont(dRateDomestic , dYte * cdDaysPerYear365);
+	double dContRf = RateDiscToCont(dRateForeign, dYte * cdDaysPerYear365);
 	
 	double dDiscountedSpot = DiscountForDividends(dSpotPrice,
 												dContRd,
+												0,			// borrowing rate
 												pdDivAmnt,
 												pdDivYte,
 												nDivCount,
@@ -47,7 +47,7 @@ double VSKLog(
 	double P2	= (P_*P_ - 1/Sigma2) * P0;
 	
 	// Calculate price by Black and Scholes model
-	double PriceBS	= BlackAndScholes(dRateDomestic, dRateForeign, dSpotPrice, dStrike, nDte, dVolatility, true, pdDivAmnt, pdDivYte, nDivCount);
+	double PriceBS	= BlackAndScholes(dRateDomestic, dRateForeign, BadDoubleValue, dSpotPrice, dStrike, dYte, dVolatility, true, pdDivAmnt, pdDivYte, nDivCount);
 
 	if(IsBadValue(PriceBS))
 		return BadDoubleValue;

@@ -1143,8 +1143,12 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                         aOpt.ID = aTrd.ContractID
                         If Not aTrd.Opt Is Nothing Then
                             aOpt.Expiry = aTrd.Opt.Expiry
+                            aOpt.ExpiryOV = aTrd.Opt.ExpiryOV
+                            aOpt.TradingClose = aTrd.Opt.TradingClose
                         Else
                             aOpt.Expiry = aTrd.FutOpt.Expiry
+                            aOpt.ExpiryOV = aTrd.FutOpt.ExpiryOV
+                            aOpt.TradingClose = aTrd.FutOpt.TradingClose
                         End If
                         aOpt.LotSize = aTrd.LotSize
                         
@@ -1246,12 +1250,12 @@ Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTrade
                         aOpt.ContractType = aTrd.ContractType
                         'If Not aTrd.Opt Is Nothing Then
                         If aOpt.ContractType = enCtFutOption Then
-                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.Expiry)
+                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.ExpiryOV)
                         Else
                             If aTrd.Opt.Flex = 1 Then
-                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.Expiry)
+                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.ExpiryOV)
                             Else
-                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.Expiry)
+                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.ExpiryOV)
                             End If
                         End If
                         'aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aUnd.ExpCalendarID, aOpt.Expiry)
@@ -1565,7 +1569,7 @@ Private Function OptionsLoad() As Boolean
     Dim aMatrixByStockOpt As EtsMmReportsLib.MmRpMatrixByStockOptAtom
     Dim aSynthetic As EtsMmReportsLib.MmRpSyntheticAtom
     Dim aSyntheticOpt As EtsMmReportsLib.MmRpSyntheticOptAtom
-    Dim dtExpiry As Date
+    Dim dtExpiry, dtExpiryOV, dtTradingClose As Date
     
     If m_Grp.Report <> REPORT_POSITION_MATRIX_BY_STOCK And _
         m_Grp.Report <> REPORT_SYNTHETIC And _
@@ -1691,6 +1695,8 @@ Private Function OptionsLoad() As Boolean
                                 End If
                             End If
                         dtExpiry = ReadDate(rsOpt!dtExpiry)
+                        dtExpiryOV = ReadDate(rsOpt!dtExpiryOV)
+                        dtTradingClose = ReadDate(rsOpt!dtTradingClose)
                         nRootID = ReadLng(rsOpt!iOptionRootID)
                         dStrike = ReadDbl(rsOpt!fStrike)
                         If aPosWithEarlyExercise.Opt(nRootID, dStrike, dtExpiry) Is Nothing Then
@@ -1712,6 +1718,8 @@ Private Function OptionsLoad() As Boolean
                                 Set aOpt = bUnd.Opt.Add(nID)
                                 aOpt.ID = nID
                                 aOpt.Expiry = dtExpiry
+                                aOpt.ExpiryOV = dtExpiryOV
+                                aOpt.TradingClose = dtTradingClose
                                 'aOpt.LotSize = aTrd.LotSize
                                 aOpt.OptType = ReadLng(rsOpt!tiIsCall) 'aTrd.Opt.OptType
                                 aOpt.Strike = dStrike
@@ -1722,7 +1730,7 @@ Private Function OptionsLoad() As Boolean
                                 aOpt.ContractType = OptionType
                                 Set aOpt.Fut = aFuture
                                 Set aFuture = Nothing
-                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(dtExpiry)
+                                aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(dtExpiryOV)
                                 Set aOpt.price = Nothing
                                 Set aOpt.price = m_Und.GetPricePropertyOpt(aUnd.Symbol, aOpt.Symbol)
                                 
@@ -4257,7 +4265,7 @@ End Sub
 
 Private Sub CalcReport()
     Dim aUnd As EtsMmReportsLib.MmRpUndAtom, nID&
-    Dim RateValues() As Double, RateDates() As Long
+    Dim RateValues() As Double, RateDates() As Double
     Dim dTolerance#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim bUseTheoVolatility As Boolean, bUseTheoNoBid As Boolean, bUseTheoBadMarketVola As Boolean
     Dim aGreeksSummary As EtsMmReportsLib.MmRpGreeksSummaryAtom, aGreeksSummaryColl As EtsMmReportsLib.MmRpGreeksSummaryColl
@@ -4502,7 +4510,7 @@ Private Function CheckPos(aUnd As EtsMmReportsLib.MmRpUndAtom) As Boolean
     CheckPos = CheckPos Or aUnd.Opt.Count > 0
 End Function
 
-Private Sub GetRates(aUnd As EtsMmReportsLib.MmRpUndAtom, RateValues() As Double, RateDates() As Long)
+Private Sub GetRates(aUnd As EtsMmReportsLib.MmRpUndAtom, RateValues() As Double, RateDates() As Double)
     Dim bUseMidRates As Boolean, cPosThreshold@, dPos#
     
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates 'GetPos(aUnd.Pos)

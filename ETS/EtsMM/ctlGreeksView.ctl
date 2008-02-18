@@ -1388,8 +1388,8 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
     End Select
 
     If bIsStock And Not aUnd Is Nothing Then
-        dPrice = m_View.Und(aUnd.ID).Price.Bid
-        If dPrice <= 0# Then dPrice = m_View.Und(aUnd.ID).Price.Last
+        dPrice = m_View.Und(aUnd.ID).price.Bid
+        If dPrice <= 0# Then dPrice = m_View.Und(aUnd.ID).price.Last
     End If
 End Sub
 
@@ -2331,7 +2331,7 @@ Private Sub UnderlyingsUpdateVola()
         For Each aExp In aUnd.ExpColl
             For Each aPos In aExp.Pos
                 dVola = BAD_DOUBLE_VALUE
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 aPos.Quote.Vola = dVola
             Next
         Next
@@ -3083,34 +3083,34 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             
             If Not aReq.IndexOnly Then
                 If Not aReq.Pos Is Nothing Then
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
-                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.NetChange = dNetChange
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Last = dPriceLast
+                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.NetChange = dNetChange
                 End If
                 
                 If Params.Type <> enOPT Then
                     Set aReqUndData = aReq.Und
                     
                     If Params.Type = enSTK Or Params.Type = enIDX Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.Price.Last = dPriceLast
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.Price.NetChange = dNetChange
+                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.price.Last = dPriceLast
+                        If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.price.NetChange = dNetChange
                         
                         Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                        If (aReq.Und.Price.IsUseManualActive) Then
-                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.Price.Active
+                        If (aReq.Und.price.IsUseManualActive) Then
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.price.Active
                         Else
-                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.Price.Bid, aReqUndData.Price.Ask, aReqUndData.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.price.Bid, aReqUndData.price.Ask, aReqUndData.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
                         End If
                     
                         If m_View.Idx.ID = aReq.Und.ID Then
                             Set aReqIdxData = m_View.Idx
-                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
-                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
-                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
-                            If dNetChange <> BAD_DOUBLE_VALUE Then m_View.Idx.Price.NetChange = dNetChange
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
+                            If dNetChange <> BAD_DOUBLE_VALUE Then m_View.Idx.price.NetChange = dNetChange
                         End If
                         
                     ElseIf Params.Type = enFUT Then
@@ -3121,9 +3121,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                         End If
                     
                         If Not aFut Is Nothing Then
-                            If dPriceBid > BAD_DOUBLE_VALUE Then aFut.Price.Bid = dPriceBid
-                            If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.Price.Ask = dPriceAsk
-                            If dPriceLast > BAD_DOUBLE_VALUE Then aFut.Price.Last = dPriceLast
+                            If dPriceBid > BAD_DOUBLE_VALUE Then aFut.price.Bid = dPriceBid
+                            If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.price.Ask = dPriceAsk
+                            If dPriceLast > BAD_DOUBLE_VALUE Then aFut.price.Last = dPriceLast
                             'If dNetChange <> BAD_DOUBLE_VALUE Then aFut.NetChange = dNetChange
 
                             Set aFut = Nothing
@@ -3134,10 +3134,10 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 Debug.Assert m_View.Idx.ID = aReq.Und.ID
                 If m_View.Idx.ID = aReq.Und.ID Then
                     Set aReqIdxData = m_View.Idx
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.Price.Last = dPriceLast
-                     If dNetChange <> BAD_DOUBLE_VALUE Then m_View.Idx.Price.NetChange = dNetChange
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
+                     If dNetChange <> BAD_DOUBLE_VALUE Then m_View.Idx.price.NetChange = dNetChange
                     
                 End If
             End If
@@ -3546,6 +3546,9 @@ Public Function UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, B
     
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
     
     If GetIrRuleType = enRateBasedOnPosition Then
@@ -3565,15 +3568,15 @@ Public Function UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, B
             If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
                 If bUseMidRates Then
                     If Not aUnd.IsHTB Then
-                        aPos.Rate = GetNeutralRate(Date, aPos.Expiry)
+                        aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
                     Else
-                        aPos.Rate = GetNeutralHTBRate(Date, aPos.Expiry)
+                        aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
                     End If
                 Else
                     If Not aUnd.IsHTB Then
-                        aPos.Rate = IIf(dPos < 0, GetShortRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                        aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                     Else
-                        aPos.Rate = IIf(dPos < 0, GetHTBRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                        aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                     End If
                 End If
 

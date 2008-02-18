@@ -1709,15 +1709,13 @@ Public Sub DivsUpdate()
     
         Set aDiv = m_Aux.Grp.Und.Dividend
         
-        '   SUD-109
         If m_Aux.Grp.ContractType = enCtIndex Then
-            .ColComboList(QDC_DIV) = "#4;Yield %|#3;Stock Basket Div|#2;Custom Stream"
+            .ColComboList(QDC_DIV) = "#0;Market|#1;Custom Periodical|#4;Yield %|#3;Stock Basket Div|#2;Custom Stream"
             .TextMatrix(1, QDC_DIV) = "4"
         Else
             .ColComboList(QDC_DIV) = "#0;Market|#1;Custom Periodical|#2;Custom Stream"
             .TextMatrix(1, QDC_DIV) = "0"
         End If
-        '   SUD-109
         
         
         If aDiv Is Nothing Then
@@ -1865,7 +1863,7 @@ Public Sub RatesUpdate()
                 .ColData(i + QDC_RATE) = aExp
                 .ColFormat(i + QDC_RATE) = gdDiv.Col(QDC_RATE_VAL).Format
                 .ColDataType(i + QDC_RATE) = gdDiv.Col(QDC_RATE_VAL).DataType
-                .TextMatrix(0, i + QDC_RATE) = Format$(aExp.ExpiryMonth, "MMM,DD YY")
+                .TextMatrix(0, i + QDC_RATE) = Format$(aExp.ExpiryOV + 1#, "MMM,DD YY")
                 .TextMatrix(1, i + QDC_RATE) = IIf(m_Aux.Grp.UseCustRates, aExp.RateCust * 100#, aExp.Rate * 100#)
                 
                 .Cell(flexcpBackColor, 1, i + QDC_RATE) = IIf(gdDiv.Col(QDC_RATE_VAL).BackColor <> 0, gdDiv.Col(QDC_RATE_VAL).BackColor, RGB(1, 1, 1))
@@ -1885,7 +1883,7 @@ Public Sub RatesUpdate()
                     .ColData(i + QDC_RATE) = aExp
                     .ColFormat(i + QDC_RATE) = gdDiv.Col(QDC_RATE_VAL).Format
                     .ColDataType(i + QDC_RATE) = gdDiv.Col(QDC_RATE_VAL).DataType
-                    .TextMatrix(0, i + QDC_RATE) = Format$(aExp.ExpiryMonth, "MMM,DD YY")
+                    .TextMatrix(0, i + QDC_RATE) = Format$(aExp.ExpiryOV + 1#, "MMM,DD YY")
                     .TextMatrix(1, i + QDC_RATE) = IIf(m_Aux.Grp.UseCustRates, aExp.RateCust * 100#, aExp.Rate * 100#)
                     
                     .Cell(flexcpBackColor, 1, i + QDC_RATE) = IIf(gdDiv.Col(QDC_RATE_VAL).BackColor <> 0, gdDiv.Col(QDC_RATE_VAL).BackColor, RGB(1, 1, 1))
@@ -1897,6 +1895,27 @@ Public Sub RatesUpdate()
             .AutoSize 0, .Cols - 1
         End If
         
+        'Calculation Date Head Caption
+        .ColFormat(.Cols - 2) = gdDiv.Col(QDC_DATECALC).Format
+        .ColDataType(.Cols - 2) = gdDiv.Col(QDC_DATECALC).DataType
+        .TextMatrix(0, .Cols - 2) = gdDiv.Col(QDC_DATECALC).Caption
+        'Coloring
+        .Cell(flexcpBackColor, 1, .Cols - 2) = IIf(gdDiv.Col(QDC_DATECALC).BackColor <> 0, gdDiv.Col(QDC_DATECALC).BackColor, RGB(1, 1, 1))
+        .Cell(flexcpForeColor, 1, .Cols - 2) = IIf(gdDiv.Col(QDC_DATECALC).ForeColor <> 0, gdDiv.Col(QDC_DATECALC).ForeColor, RGB(1, 1, 1))
+        'Default value
+        .TextMatrix(1, .Cols - 2) = Format(Now)
+        
+        'Manual Vola Check Box Head Caption
+        .ColFormat(.Cols - 1) = gdDiv.Col(QDC_VOLA_IS_MANUAL).Format
+        .ColDataType(.Cols - 1) = gdDiv.Col(QDC_VOLA_IS_MANUAL).DataType
+        .TextMatrix(0, .Cols - 1) = gdDiv.Col(QDC_VOLA_IS_MANUAL).Caption
+        'Coloring
+        .Cell(flexcpBackColor, 1, .Cols - 1) = IIf(gdDiv.Col(QDC_VOLA_IS_MANUAL).BackColor <> 0, gdDiv.Col(QDC_VOLA_IS_MANUAL).BackColor, RGB(1, 1, 1))
+        .Cell(flexcpForeColor, 1, .Cols - 1) = IIf(gdDiv.Col(QDC_VOLA_IS_MANUAL).ForeColor <> 0, gdDiv.Col(QDC_VOLA_IS_MANUAL).ForeColor, RGB(1, 1, 1))
+        'Value
+        If Not m_Aux.Grp.Und Is Nothing Then
+            .TextMatrix(1, .Cols - 1) = IIf(m_Aux.Grp.Und.IsManualVol = True, "-1", "0")
+        End If
         
         m_Aux.GridLock(GT_QUOTES_DIVIDENDS).UnlockRedraw
     End With
@@ -1906,110 +1925,68 @@ Public Sub VolaUpdate()
 
     On Error Resume Next
     If m_bShutDown Or m_Aux.Grp Is Nothing Then Exit Sub
+       
+    Dim aExp As EtsMmQuotesLib.MmQvExpAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
+    Dim aUnd As EtsMmQuotesLib.MmQvUndAtom
     
-    Dim i&, iExp, aExp, aExpG As EtsMmQuotesLib.MmQvExpAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
-    Dim dAtmVola As Double
-    Dim aFut As EtsMmQuotesLib.MmQvFutAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
-    Dim aFut2 As EtsMmQuotesLib.MmQvFutAtom
-
+    Dim aGrp As EtsMmQuotesLib.MmQvGrpAtom
+    Dim iColCount&, iExpCount&
+    
+    Dim i As Long, j As Long
+    Dim enPriceStatus As EtsReplacePriceStatusEnum
+    Dim bDriverUsed As Boolean
 
     With fgVol
         m_Aux.GridLock(GT_QUOTES_VOLA).LockRedraw
-    
-        If m_Aux.Grp.IsStockOrIndex Then
-            Set aExpColl = m_Aux.Grp.Und.Exp
-            
-            .Cols = QVC_LAST_COLUMN + aExpColl.Count
-            i = 0
-            For Each aExp In aExpColl
+        
+        Set aGrp = m_Aux.Grp
+        Set aUnd = aGrp.Und
+        
+        If (aGrp.IsStockOrIndex) Then
+            iExpCount = aUnd.Exp.Count
+            iColCount = QVC_LAST_COLUMN + iExpCount * 2 'x2 because of 2 volatility type used
+            Set aExpColl = aUnd.Exp
+        Else
+            iExpCount = aGrp.ExpAll.Count
+            iColCount = QVC_LAST_COLUMN + iExpCount * 2 'x2 because of 2 volatility type used
+            Set aExpColl = aGrp.ExpAll
+        End If
+        
+        .Cols = iColCount
+        
+        For i = QVC_LAST_COLUMN To iColCount
+            .TextMatrix(0, i) = IIf(i < iExpCount + QVC_LAST_COLUMN, "Implied Volatility", "Theoretical Volatility")
+        Next
+        
+        i = 0
+        For Each aExp In aExpColl
+                
+                'Implied Volatility Coloring and formating
                 .ColData(i + QVC_VOLA_VAL) = aExp
                 .ColFormat(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).Format
                 .ColDataType(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).DataType
-                .TextMatrix(0, i + QVC_VOLA_VAL) = Format$(aExp.ExpiryMonth, "MMM,DD YY")
-                dAtmVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-    
-                If dAtmVola > BAD_DOUBLE_VALUE Then
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
-                Else
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = STR_NA
-                End If
+                .TextMatrix(1, i + QVC_VOLA_VAL) = Format$(aExp.ExpiryMonth, "MMM,DD YY")
+                                               
+                'Theoretical Volatility Coloring and formating
+                .ColData(i + QVC_VOLA_VAL + iExpCount) = aExp
+                .ColFormat(i + QVC_VOLA_VAL + iExpCount) = gdVol.Col(QVC_VOLA_VAL).Format
+                .ColDataType(i + QVC_VOLA_VAL + iExpCount) = gdVol.Col(QVC_VOLA_VAL).DataType
+                .TextMatrix(1, i + QVC_VOLA_VAL + iExpCount) = Format$(aExp.ExpiryMonth, "MMM,DD YY")
                 
-                .Cell(flexcpBackColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
-                .Cell(flexcpForeColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
-                i = i + 1
-                
-                aExpG = aExp
-            Next
-        Else
-            i = 0
-            .Cols = QVC_LAST_COLUMN + m_Aux.Grp.ExpAll.Count
-            '--------------------------------------------------------------------
-            For Each aExpAll In m_Aux.Grp.ExpAll
-                iExp = 0
-                For Each aFut In m_Aux.Grp.Und.Fut
-                    For Each aExp In aFut.Exp
-                        If aExp.ExpiryMonth = aExpAll.ExpiryMonth Then
-                            iExp = iExp + 1
-                            If iExp >= 2 Then
-                                If aFut.MaturityMonth < aFut2.MaturityMonth Then
-                                    Set aFut2 = aFut                            ' aFut2 - future for vola calculation
-                                    'Debug.Print aExpAll.RootNames
-                                End If
-                            End If
-                            If iExp = 1 Then
-                                Set aFut2 = aFut
-                            End If
-                        End If
-                    Next
+                For j = 2 To 7
+                    .Cell(flexcpBackColor, j, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
+                    .Cell(flexcpForeColor, j, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
+                    .Cell(flexcpBackColor, j, i + QVC_VOLA_VAL + iExpCount) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
+                    .Cell(flexcpForeColor, j, i + QVC_VOLA_VAL + iExpCount) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
                 Next
-                .ColData(i + QVC_VOLA_VAL) = aExpAll
-                .ColFormat(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).Format
-                .ColDataType(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_VAL).DataType
-                .TextMatrix(0, i + QVC_VOLA_VAL) = Format$(aExpAll.ExpiryMonth, "MMM,DD YY")
-                dAtmVola = aFut2.atmVola(aExpAll, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-    
-                If dAtmVola > BAD_DOUBLE_VALUE Then
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
-                Else
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = STR_NA
-                End If
                 
-                .Cell(flexcpBackColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).BackColor <> 0, gdVol.Col(QVC_VOLA_VAL).BackColor, RGB(1, 1, 1))
-                .Cell(flexcpForeColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_VAL).ForeColor <> 0, gdVol.Col(QVC_VOLA_VAL).ForeColor, RGB(1, 1, 1))
                 i = i + 1
-                'Debug.Print aFut2.Symbol
-            Next
-            '--------------------------------------------------------------------
-        End If
-        
-        
-        .TextMatrix(0, i + QVC_VOLA_VAL) = Format$(aExp.ExpiryMonth, "MMM D, YY")
-
-        .TextMatrix(0, i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_DATECALC).Caption
-        .ColFormat(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_DATECALC).Format
-        .ColDataType(i + QVC_VOLA_VAL) = gdVol.Col(QVC_VOLA_DATECALC).DataType
-
-        .Cell(flexcpBackColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_DATECALC).BackColor <> 0, gdVol.Col(QVC_VOLA_DATECALC).BackColor, RGB(1, 1, 1))
-        .Cell(flexcpForeColor, 1, i + QVC_VOLA_VAL) = IIf(gdVol.Col(QVC_VOLA_DATECALC).ForeColor <> 0, gdVol.Col(QVC_VOLA_DATECALC).ForeColor, RGB(1, 1, 1))
-
-        If Len(.TextMatrix(1, i + QVC_VOLA_VAL)) = 0 Then .TextMatrix(1, i + QVC_VOLA_VAL) = CStr(Now)
-        
-        
-'        '''''''''
-
-        .TextMatrix(0, i + QVC_VOLA_VAL + 1) = gdVol.Col(QVC_VOLA_IS_MANUAL).Caption
-        .ColFormat(i + QVC_VOLA_VAL + 1) = gdVol.Col(QVC_VOLA_IS_MANUAL).Format
-        .ColDataType(i + QVC_VOLA_VAL + 1) = gdVol.Col(QVC_VOLA_IS_MANUAL).DataType
-        
-        If Not m_Aux.Grp.Und Is Nothing Then
-            .TextMatrix(1, i + QVC_VOLA_VAL + 1) = IIf(m_Aux.Grp.Und.IsManualVol = True, "1", "0")
-        End If
-
-'        '''''''''
-                
+        Next
+                       
         Set aExpColl = Nothing
-        Set aFut = Nothing
-        Set aFut2 = Nothing
+        Set aExp = Nothing
+        Set aGrp = Nothing
+        Set aUnd = Nothing
         
         .Cell(flexcpAlignment, 0, 0, 0, .Cols - 1) = flexAlignCenterCenter
         .Col = 1
@@ -2017,6 +1994,7 @@ Public Sub VolaUpdate()
         
         m_Aux.GridLock(GT_QUOTES_VOLA).UnlockRedraw
     End With
+    VolaUpdateValues
 End Sub
 
 Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
@@ -2024,60 +2002,107 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
     On Error Resume Next
     If m_bShutDown Or m_Aux.Grp Is Nothing Then Exit Sub
     
-    Dim i&, iExp&, aExp As EtsMmQuotesLib.MmQvExpAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
-    Dim dAtmVola As Double
+    Dim iExp&, aExp As EtsMmQuotesLib.MmQvExpAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
-    Dim aFut2 As EtsMmQuotesLib.MmQvFutAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
+    Dim aFutCalc As EtsMmQuotesLib.MmQvFutAtom, aExpOpt As EtsMmQuotesLib.MmQvExpAtom
+    Dim aUnd As EtsMmQuotesLib.MmQvUndAtom, aFutExp As EtsMmQuotesLib.MmQvExpAtom
+    
+    Dim aGrp As EtsMmQuotesLib.MmQvGrpAtom
+    Dim iColCount&, iExpCount&
+    
+    Dim dUndPrice As Double, dStrike As Double, dVola As Double
+    Dim iCol As Long, iRow As Long, i As Long
+    Dim enPriceStatus As EtsReplacePriceStatusEnum
+    Dim bDriverUsed As Boolean
     
     With fgVol
         m_Aux.GridLock(GT_QUOTES_VOLA).LockRedraw
-    
-        If m_Aux.Grp.IsStockOrIndex Then
-            Set aExpColl = m_Aux.Grp.Und.Exp
-            .Cols = QVC_LAST_COLUMN + aExpColl.Count
-            i = 0
-            For Each aExp In aExpColl
-                .ColData(i + QVC_VOLA_VAL) = aExp
-                 dAtmVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-    
-                If dAtmVola > BAD_DOUBLE_VALUE Then
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
-                Else
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = STR_NA
-                End If
-                i = i + 1
-            Next
+        
+        
+        Set aGrp = m_Aux.Grp
+        Set aUnd = aGrp.Und
+        
+        If (aGrp.IsStockOrIndex) Then
+            iExpCount = aUnd.Exp.Count
+            iColCount = QVC_LAST_COLUMN + iExpCount * 2 'x2 because of 2 volatility type used
+            Set aExpColl = aUnd.Exp
         Else
-            i = 0
-            .Cols = QVC_LAST_COLUMN + m_Aux.Grp.ExpAll.Count
-            '--------------------------------------------------------------------
-            For Each aExpAll In m_Aux.Grp.ExpAll
+            iExpCount = aGrp.ExpAll.Count
+            iColCount = QVC_LAST_COLUMN + iExpCount * 2 'x2 because of 2 volatility type used
+            Set aExpColl = aGrp.ExpAll
+        End If
+        
+        .Cols = iColCount
+            
+        If m_Aux.Grp.IsStockOrIndex Then
+                                      
+            'Get ATM strike
+            dUndPrice = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
+                      
+            'Calc volatility
+            '-20% -10% 0% 10% 20%
+            iRow = 2
+            For i = -2 To 2
+                iCol = 1
+                dStrike = dUndPrice * (1# - (CDbl(i) * 0.1))
+                For Each aExp In aExpColl
+                
+                    'Get Theoretical Vola
+                    dVola = aUnd.VolaSrv.OptionVola(aExp.ExpiryOV, dStrike)
+                    .TextMatrix(iRow, iCol + iExpCount) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
+                    
+                    'Get Implied Vola
+                    dVola = aExp.Vola(dStrike, dUndPrice)
+                    .TextMatrix(iRow, iCol) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
+                    
+                    iCol = iCol + 1
+                Next
+                iRow = iRow + 1
+            Next
+
+        Else
+            iCol = 1
+            For Each aExpOpt In aExpColl
+            
+                'get Nearest future and expiration for vola calculation
                 iExp = 0
                 For Each aFut In m_Aux.Grp.Und.Fut
                     For Each aExp In aFut.Exp
-                        If aExp.ExpiryMonth = aExpAll.ExpiryMonth Then
+                        If aExp.ExpiryMonth = aExpOpt.ExpiryMonth Then
                             iExp = iExp + 1
                             If iExp >= 2 Then
-                                If aFut.MaturityMonth < aFut2.MaturityMonth Then
-                                    Set aFut2 = aFut                            ' aFut2 - future for vola calculation
-                                    'Debug.Print aExpAll.RootNames
+                                If aFut.MaturityDate < aFutCalc.MaturityDate Then
+                                    Set aFutCalc = aFut 'aFutCalc - future for vola calculation
+                                    Set aFutExp = aExp
                                 End If
                             End If
                             If iExp = 1 Then
-                                Set aFut2 = aFut
+                                Set aFutCalc = aFut
+                                Set aFutExp = aExp
                             End If
                         End If
                     Next
                 Next
-                .ColData(i + QVC_VOLA_VAL) = aExpAll
-                 dAtmVola = aFut2.atmVola(aExpAll, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-
-                If dAtmVola > BAD_DOUBLE_VALUE Then
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = dAtmVola * 100#
-                Else
-                    .TextMatrix(1, i + QVC_VOLA_VAL) = STR_NA
-                End If
-                i = i + 1
+                              
+                'Get ATM Strike
+                dUndPrice = aFutCalc.GetFuturePrice(aUnd, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
+                              
+                'Calc volatility -20% -10% 0% 10% 20%
+                iRow = 2
+                For i = -2 To 2
+                    dStrike = dUndPrice * (1# - (CDbl(i) * 0.1)) 'calc Strike
+                    
+                    'Get Theoretical Vola
+                    dVola = aUnd.VolaSrv.OptionVola(aFutExp.ExpiryOV, dStrike)
+                    .TextMatrix(iRow, iCol + iExpCount) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
+                    
+                    'Get Implied Vola
+                    dVola = aFutExp.Vola(dStrike, dUndPrice)
+                    .TextMatrix(iRow, iCol) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
+                    
+                    iRow = iRow + 1
+                Next
+                iCol = iCol + 1
             Next
             '--------------------------------------------------------------------
         End If
@@ -2085,7 +2110,8 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
         
         Set aExpColl = Nothing
         Set aFut = Nothing
-        Set aFut2 = Nothing
+        Set aFutCalc = Nothing
+        Set aFutExp = Nothing
         
         .AutoSize 0, .Cols - 1
         

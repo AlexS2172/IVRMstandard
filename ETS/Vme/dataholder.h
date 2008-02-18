@@ -15,7 +15,26 @@ class CDataHolder: public CDataProtector
 {
 // Internal types
 public:
-	typedef long ExpDate;	// Represent exp date as long to insure map search ability
+	class ExpDate{
+	public:
+		double date_;
+	public:
+		ExpDate(): date_(0.) {}
+		ExpDate(const double &r): date_(r) {}
+		bool operator==( const ExpDate& r) const {
+			return fabs( r.date_ - date_) < (1./(24.*60.));
+		}
+		bool operator<( const ExpDate& r) const {
+			return  !(*this==r) && ( (date_ - r.date_) < 0. );
+		}
+		ExpDate& operator=(const double& r)
+		{
+			date_	=	r;
+			return *this;
+		}
+	};
+public:
+	//typedef long ExpDate;	// Represent exp date as long to insure map search ability
 	typedef long PointID;
 
 	// Strikes values

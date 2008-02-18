@@ -293,6 +293,7 @@ double WINAPI ImpliedVariance(	DATE	dtValuationDate,
 	{
 		double dDividendsPresentValue = OPM::DividendNPV(	dtValuationDate,	
 																dInterestRate,
+																BadDoubleValue,
 																pdDividendAmounts,
 																pdtDividendDates,
 																nDividendCount,

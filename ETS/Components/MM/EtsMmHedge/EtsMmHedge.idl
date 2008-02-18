@@ -87,6 +87,9 @@ library EtsMmHedgeLib
 		ETSGENERAL_PROP_DEF(16,		DOUBLE,			VegaWeight)
 		ETSGENERAL_PROP_DEF(17,		DOUBLE,			Vola)
 
+		ETSGENERAL_PROP_DEF(20,		DATE,			ExpiryOV)
+		ETSGENERAL_PROP_DEF(21,		DATE,			TradingClose)
+
 		[id(18), helpstring("method ClearValues")]	HRESULT ClearValues();
 	};
 

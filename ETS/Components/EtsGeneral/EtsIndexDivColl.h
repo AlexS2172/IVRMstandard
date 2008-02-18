@@ -16,7 +16,7 @@ class CEtsIndexDivColl;
 typedef IDispatchImpl<IEtsIndexDivColl, &IID_IEtsIndexDivColl, &LIBID_EtsGeneralLib>		IEtsIndexDivCollDispImpl;
 typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsIndexDivCollDispImpl, IEtsIndexDivAtom, LONG, LONG, LONG, LONG  >	IEtsIndexDivCollImpl;
 
-
+const double OneMinute = 1./(24.*59.);
 
 class ATL_NO_VTABLE CEtsIndexDivColl : 
 	public CComObjectRootEx<CComSingleThreadModel>,
@@ -61,10 +61,11 @@ END_COM_MAP()
 
 private:
 	IEtsDivCollPtr m_spCustomDivsCache;
-	LONG m_nTodayCache;
-	LONG m_nExpiryCache;
+	DATE m_nTodayCache;
+	DATE m_nExpiryCache;
 
-	IEtsDivCollPtr GetCachedDividends(long nToday, long nExpiry);
+	IEtsDivCollPtr GetCachedDividends(DATE nToday, DATE nExpiry);
+	IEtsDivCollPtr GetCachedDividends2(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime);
 
 
 private:
@@ -72,11 +73,14 @@ private:
 public:
 	STDMETHOD(Add)(LONG Key, LONG SortKey, IEtsIndexDivAtom* Value, IEtsIndexDivAtom** pRetVal);
 	STDMETHOD(CopyToWithWeight)( DOUBLE dWeight, IEtsIndexDivColl* pDest , IEtsIndexDivColl** ppVal);
-	STDMETHOD(GetDividends)( LONG nToday,  LONG nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts, SAFEARRAY ** psaDivDates,  LONG* pnCount);
-	STDMETHOD(GetNearest)( LONG nToday,  LONG nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
-	STDMETHOD(GetDividendCount)( LONG nToday,  LONG nExpiry,  LONG* pnCount);
+	STDMETHOD(GetDividends)( DATE nToday,  DATE nExpiry,  LONG nCount, SAFEARRAY ** psaDivAmounts, SAFEARRAY ** psaDivDates,  LONG* pnCount);
+	STDMETHOD(GetNearest)( DATE nToday,  DATE nExpiry,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
+	STDMETHOD(GetDividendCount)( DATE nToday,  DATE nExpiry,  LONG* pnCount);
 	STDMETHOD(SetWeight)(LONG nKey, DOUBLE dWeight);
-
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	STDMETHOD(GetDividends2)(DATE dtNow,  DATE dtExpiryOV, DATE tmCloseTime, LONG nCount, SAFEARRAY ** psaDivAmounts, SAFEARRAY ** psaDivDates,  LONG* pnCount);
+	STDMETHOD(GetNearest2)(DATE dtNow,  DATE dtExpiryOV, DATE tmCloseTime,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
+	STDMETHOD(GetDividendCount2)(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime,  LONG* pnCount);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(EtsIndexDivColl), CEtsIndexDivColl)

@@ -20,5 +20,8 @@ Public Expiry As Date
 Public Strike As New clsVmStrikeColl
 Public Rate As Double
 
+Public ExpiryOV As Date
+Public TradingClose As Date
+
 Public CurStrike As clsVmStrikeAtom
 

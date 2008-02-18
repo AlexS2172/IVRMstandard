@@ -16,7 +16,7 @@
 
 STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -68,11 +68,11 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 		DOUBLE	dStockPos = dQtyDailyPrevDateBuy + dQtyDailyTodayBuy - dQtyDailyPrevDateSell - dQtyDailyTodaySell;
 		DOUBLE	dStockPosPrice = dPosDailyPrevDateBuy + dPosDailyTodayBuy - dPosDailyPrevDateSell - dPosDailyTodaySell;
 		
-		DOUBLE dUndBid , dUndAsk , dUndLast ;
-		m_spPrice->get_Bid ( &dUndBid) ;
-		m_spPrice->get_Ask ( &dUndAsk ) ;
-		m_spPrice->get_Last( &dUndLast ) ;
-		//DOUBLE	dSpotPrice = m_spUndPriceProfile->GetUndPriceMid ( dUndBid , dUndAsk , dUndLast, dUndPriceTolerance, enPriceRoundingRule, NULL );
+		DOUBLE dUndBid, dUndAsk, dUndLast;
+		m_spPrice->get_Bid ( &dUndBid);
+		m_spPrice->get_Ask ( &dUndAsk );
+		m_spPrice->get_Last( &dUndLast );
+		
 		DOUBLE	dSpotPrice;
 		VARIANT_BOOL	futureUsed = VARIANT_FALSE;
 		 __CHECK_HRESULT3(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, NULL, &futureUsed, &dSpotPrice));
@@ -84,7 +84,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 		
 		EtsOptionTypeEnum	enOptType;
 
-		DATE	dtExpiry = 0.;
+		DATE	dtExpiryOV = 0., tmCloseTime = 0.;
 		DOUBLE	dStrike = 0.;
 		LONG	nOptID = 0L;
 		LONG	nOptRootID = 0L;
@@ -103,8 +103,11 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 		DOUBLE	dTotalVega = 0.;
 		DOUBLE	dTotalWeightedVega = 0.;
 		DOUBLE	dTotalTheta = 0.;
+		DOUBLE	dYTE = 0.;
 		
-		LONG	nToday = (LONG)(DATE)COleDateTime::GetCurrentTime();
+		//DATE	nToday = (DATE)COleDateTime::GetCurrentTime();
+		DATE	dtNow = 0.;
+		GetNYDateTimeAsDATE(&dtNow);
 
 		GREEKS	aGreeks;
 		memset(&aGreeks, 0, sizeof(GREEKS));
@@ -127,8 +130,6 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 		{
 			ATLASSERT(varItem.vt == VT_DISPATCH);
 			spOptAtom = varItem;
-
-			
 
 			double futurePrice = 0.;
 			EtsContractTypeEnum optionType;
@@ -160,10 +161,13 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 				continue;
 
 			__CHECK_HRESULT3(spOptAtom->get_ID(&nOptID));
-			__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+			__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+			__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 			__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));			
 			__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 			__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
+
+			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.;
 
 			IMMRpPricePtr spPrice ;
 			spOptAtom->get_Price( &spPrice ) ;
@@ -239,7 +243,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 
 			LONG nRetCount = 0L;
 
-			if (nToday <= (LONG)dtExpiry)
+			if (dtNow <= dtExpiryOV)
 			{
 				if (bIsRootSynthetic)
 				{
@@ -261,12 +265,12 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 					if (bIsRootSynthetic)
 					{
 						dYield = spSynthRootAtom->Yield;						
-						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 					}
 					else
 					{
 						dYield = m_dYield;
-						dPrice = _CalcRegularForwardPrice(dPrice, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+						dPrice = _CalcRegularForwardPrice(dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 					}
 				}
 
@@ -300,7 +304,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
@@ -583,7 +587,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 
 STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonth(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -595,7 +599,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonth(EtsCalcModelTypeEnum enCalcModel,
 	HRESULT hr;
 	hr = CalcGreeksByMonthExt(	enCalcModel,
 								psaRates,
-								psaDTEs,
+								psaYTEs,
 								bUseTheoVolatility,
 								bUseTheoVolaNoBid,
 								bUseTheoVolaBadMarket,
@@ -610,7 +614,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonth(EtsCalcModelTypeEnum enCalcModel,
 
 STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -650,7 +654,6 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 		m_spPrice->get_Last ( &dPriceLast ) ;
 
 
-		//DOUBLE	dSpotPrice = m_spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk, dPriceLast, dUndPriceTolerance, enPriceRoundingRule, NULL );
 		DOUBLE dSpotPrice;
 		VARIANT_BOOL futureUsed = VARIANT_FALSE;
 		__CHECK_HRESULT3(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, NULL, &futureUsed, &dSpotPrice));
@@ -663,13 +666,16 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 
 		EtsOptionTypeEnum	enOptType;
 
-		DATE	dtExpiry = 0.;
+		DATE	dtExpiry = 0., dtExpiryOV = 0.,tmCloseTime = 0.;
 		DOUBLE	dStrike = 0.;
 		LONG	nOptID = 0L;
 		LONG	nOptRootID = 0L;
 		DOUBLE	dVegaWeight = 1.;
 
-		LONG	nToday = (LONG)(DATE)COleDateTime::GetCurrentTime();
+		//DATE	nToday = (DATE)COleDateTime::GetCurrentTime();
+		DATE	dtNow = 0.0;
+		GetNYDateTimeAsDATE(&dtNow);
+		DOUBLE	dYTE = 0.;
 
 		GREEKS	aGreeks;
 		memset(&aGreeks, 0, sizeof(GREEKS));
@@ -727,6 +733,8 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 
 			__CHECK_HRESULT3(spOptAtom->get_ID(&nOptID));
 			__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+			__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+			__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 			__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
 			__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 			__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
@@ -821,7 +829,9 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 
 			LONG	nRetCount = 0L;
 
-			if (nToday <= (LONG)dtExpiry)
+			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.;
+
+			if (dtNow <= dtExpiryOV)
 			{
 
 				if (bIsRootSynthetic)
@@ -845,12 +855,12 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 					if (bIsRootSynthetic)
 					{
 						dYield = spSynthRootAtom->Yield;						
-						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 					}
 					else
 					{
 						dYield = m_dYield;
-						dPrice = _CalcRegularForwardPrice(dPrice, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+						dPrice = _CalcRegularForwardPrice(dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 					}
 				}
 
@@ -889,7 +899,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
@@ -1172,7 +1182,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 
 STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
-					SAFEARRAY** psaDTEs, 
+					SAFEARRAY** psaYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -1488,7 +1498,9 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 		if (bBadVal)
 			dUndMTMLTDPnL = 0.;
 
-		const LONG	nToday = (LONG)vt_date::GetCurrentDate(true);
+		//DATE nToday = vt_date::GetCurrentDate(true);
+		DATE	dtNow = 0.;
+		GetNYDateTimeAsDATE(&dtNow);
 
 		IUnknownPtr		spUnk;
 		_variant_t		varItem;
@@ -1533,8 +1545,9 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 			DOUBLE	dPriceClose = 0.;
 			DOUBLE	dPrice = 0.;
 			DOUBLE	dStrike = 0.;
-			DATE	dtExpiry = 0.;
-			LONG	nOptRootID = 0L;		
+			DATE	dtExpiryOV = 0., tmCloseTime = 0.;
+			LONG	nOptRootID = 0L;
+			DOUBLE	dYTE = 0.;
 
 			EtsOptionTypeEnum	enOptType = enOtPut;
 			IMmRpPosAtomPtr		spOptPosAtom;
@@ -1574,7 +1587,8 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 
 			__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 			__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
-			__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
+			__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
+			__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 			__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
 
 			IMMRpPricePtr spPrice ;
@@ -1601,16 +1615,18 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 				if (spSynthRootAtom != NULL) //is synthetic
 					bIsRootSynthetic = true;
 			}
+			
+			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.0;
 
 			LONG nRetCount = 0L;			
-			if (nToday <= (LONG)dtExpiry)
+			if (dYTE <= dtExpiryOV)
 			{
 				memset(&aGreeks, 0, sizeof(GREEKS));
 				aGreeks.nMask = GT_THEOPRICE;
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate((LONG)dtExpiry - nToday, *psaRates, *psaDTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
@@ -1659,7 +1675,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 			}
 
 // Calculate PoP
-			if (nToday <= (LONG)dtExpiry)
+			if (dtNow <= dtExpiryOV)
 			{
 				if (bIsRootSynthetic)
 				{
@@ -1678,12 +1694,12 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 					if (bIsRootSynthetic)
 					{
 						dYield = spSynthRootAtom->Yield;
-						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 					}
 					else
 					{
 						dYield = m_dYield;
-						dPrice = _CalcRegularForwardPrice(dPrice, (LONG)dtExpiry, nToday, dYield, *psaRates, *psaDTEs);
+						dPrice = _CalcRegularForwardPrice(dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
 					}
 				}
 
@@ -1911,7 +1927,7 @@ STDMETHODIMP CMmRpUndAtom::CalcExercisedStocks(IMmRpUndColl* pUndColl,
 		DOUBLE					dSpotAsk = 0.;
 		DOUBLE					dSpotLast = 0.;
 
-		LONG					nToday = (LONG)(DATE)COleDateTime::GetCurrentTime();		
+		DATE					nToday = (DATE)COleDateTime::GetCurrentTime();		
 
 		IUnknownPtr				spOptUnk;		
 		_variant_t				varOptItem;
@@ -1928,7 +1944,7 @@ STDMETHODIMP CMmRpUndAtom::CalcExercisedStocks(IMmRpUndColl* pUndColl,
 			spOptAtom = varOptItem;
 
 			__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry));
-			if ((LONG)dtExpiry < nToday)
+			if (dtExpiry < nToday)
 				continue;
 			
 			IMmRpPosAtomPtr spOptPosAtom;

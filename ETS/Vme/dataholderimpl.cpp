@@ -13,7 +13,7 @@ DATE CDataHolder::CVolaValuesMap::GetExpirationDate( long index )
 	long i = 0;
 	for( iterator it = begin(); it != end(); it++ )
 		if( i == index )
-			return it->first;
+			return it->first.date_;
 		else
 			i++;
 
@@ -313,5 +313,6 @@ void CDataHolder::CSkew::UpdateStatus()
 	m_bInterpolationVectorUpdated = false;
 	m_dwUpdateTime = GetTickCount();
 }
+
 
 

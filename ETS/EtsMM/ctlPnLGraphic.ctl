@@ -1,7 +1,7 @@
 VERSION 5.00
 Object = "{54850C51-14EA-4470-A5E4-8C5DB32DC853}#1.0#0"; "vsprint8.ocx"
 Object = "{C115893A-A3BF-43AF-B28D-69DB846077F3}#1.0#0"; "vsflex8u.ocx"
-Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1Sizer.ocx"
+Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
 Object = "{0BE3824E-5AFE-4B11-A6BC-4B3AD564982A}#8.0#0"; "olch2x8.ocx"
 Begin VB.UserControl ctlPnLGraphic 
    ClientHeight    =   9705
@@ -2388,8 +2388,8 @@ Private Function PositionsLoad() As Boolean
                     Set aUnd.UndPriceProfile = aTrd.Und.UndPriceProfile
                     Set aUnd.OptPriceProfile = aTrd.Und.OptPriceProfile
                 
-                    aUnd.Price.Close = aTrd.Und.PriceClose
-                    aUnd.Price.TheoClose = aTrd.Und.PriceTheoclose
+                    aUnd.price.Close = aTrd.Und.PriceClose
+                    aUnd.price.TheoClose = aTrd.Und.PriceTheoclose
                     aUnd.LotSize = aTrd.Und.LotSize
                     
                     aUnd.Qty = BAD_LONG_VALUE
@@ -2418,8 +2418,8 @@ Private Function PositionsLoad() As Boolean
                     If aPos.ContractType = enCtOption Then
                         aUnd.HasOptPos = True
                         aPos.Symbol = aTrd.Opt.Symbol
-                        aPos.Quote.Price.Close = aTrd.Opt.PriceClose
-                        aPos.Quote.Price.TheoClose = aTrd.Opt.PriceTheoclose
+                        aPos.Quote.price.Close = aTrd.Opt.PriceClose
+                        aPos.Quote.price.TheoClose = aTrd.Opt.PriceTheoclose
                         aPos.Quote.LotSize = aTrd.OptRoot.LotSize
                         aPos.OptType = aTrd.Opt.OptType
                         aPos.Expiry = aTrd.Opt.Expiry
@@ -2427,7 +2427,10 @@ Private Function PositionsLoad() As Boolean
                         aPos.OptionRootID = aTrd.OptRoot.ID
                         aPos.UndID = aUnd.ID
                         
-                        aPos.VegaWeight = g_ExpCalendar.GetVegaWeight(aPos.Expiry)
+                        aPos.ExpiryOV = aTrd.Opt.ExpiryOV
+                        aPos.TradingClose = aTrd.Opt.TradingClose
+                        
+                        aPos.VegaWeight = g_ExpCalendar.GetVegaWeight(aPos.ExpiryOV)
                         
                         sExpiryKey = CStr(CLng(aPos.Expiry))
                         Set aExp = collExp(sExpiryKey)
@@ -2471,8 +2474,8 @@ Private Function PositionsLoad() As Boolean
                                                 aSynthUnd.Skew = aGUnd.Skew
                                                 aSynthUnd.Kurt = aGUnd.Kurt
                                                 aSynthUnd.HasSynthetic = aGUnd.HaveSyntheticRoots
-                                                aSynthUnd.Price.Close = aGUnd.PriceClose
-                                                aSynthUnd.Price.TheoClose = aGUnd.PriceTheoclose
+                                                aSynthUnd.price.Close = aGUnd.PriceClose
+                                                aSynthUnd.price.TheoClose = aGUnd.PriceTheoclose
                                                 aSynthUnd.LotSize = aGUnd.LotSize
                                                 Set aSynthUnd.SynthRoots = aGUnd.SyntheticRoots
                                                 
@@ -2515,8 +2518,8 @@ Private Function PositionsLoad() As Boolean
                         End If
                     Else
                         aPos.Symbol = aUnd.Symbol
-                        aPos.Quote.Price.Close = aUnd.Price.Close
-                        aPos.Quote.Price.TheoClose = aUnd.Price.TheoClose
+                        aPos.Quote.price.Close = aUnd.price.Close
+                        aPos.Quote.price.TheoClose = aUnd.price.TheoClose
                         aPos.Quote.LotSize = aUnd.LotSize
                     End If
                 
@@ -2556,10 +2559,10 @@ Private Function PositionsLoad() As Boolean
                 
                 'SUD-0909
                 Dim dPriceClose As Double
-                dPriceClose = aPos.Quote.Price.Close
+                dPriceClose = aPos.Quote.price.Close
                 If (Not g_Main Is Nothing) Then
-                    If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
-                        dPriceClose = aPos.Quote.Price.TheoClose
+                    If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.price.TheoClose > 0#) Then
+                        dPriceClose = aPos.Quote.price.TheoClose
                     End If
                 End If
                 
@@ -2573,7 +2576,7 @@ Private Function PositionsLoad() As Boolean
                         End If
                     Else
                         If aPos.PosLTDBuy = BAD_DOUBLE_VALUE Then aPos.PosLTDBuy = 0
-                        aPos.PosLTDBuy = aPos.PosLTDBuy + aTrd.Price * nQtyInShares
+                        aPos.PosLTDBuy = aPos.PosLTDBuy + aTrd.price * nQtyInShares
                     End If
                 
                     If aTrd.TradeDate < Date Then
@@ -2584,7 +2587,7 @@ Private Function PositionsLoad() As Boolean
                             aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + dPriceClose * nQtyInShares
                         ElseIf Not aTrd.IsPosition Then
                             If aPos.PosDailyPrevDateBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateBuy = 0
-                            aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aTrd.Price * nQtyInShares
+                            aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aTrd.price * nQtyInShares
                         End If
                     Else
                         If aPos.QtyDailyTodayBuy = BAD_LONG_VALUE Then aPos.QtyDailyTodayBuy = 0
@@ -2596,7 +2599,7 @@ Private Function PositionsLoad() As Boolean
                             End If
                         Else
                             If aPos.PosDailyTodayBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyTodayBuy = 0
-                            aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + aTrd.Price * nQtyInShares
+                            aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + aTrd.price * nQtyInShares
                         End If
                     End If
                 Else
@@ -2609,7 +2612,7 @@ Private Function PositionsLoad() As Boolean
                         End If
                     Else
                         If aPos.PosLTDSell = BAD_DOUBLE_VALUE Then aPos.PosLTDSell = 0
-                        aPos.PosLTDSell = aPos.PosLTDSell + aTrd.Price * nQtyInShares
+                        aPos.PosLTDSell = aPos.PosLTDSell + aTrd.price * nQtyInShares
                     End If
                 
                     If aTrd.TradeDate < Date Then
@@ -2620,7 +2623,7 @@ Private Function PositionsLoad() As Boolean
                             aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + dPriceClose * nQtyInShares
                         ElseIf Not aTrd.IsPosition Then
                             If aPos.PosDailyPrevDateSell = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateSell = 0
-                            aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aTrd.Price * nQtyInShares
+                            aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aTrd.price * nQtyInShares
                         End If
                     Else
                         If aPos.QtyDailyTodaySell = BAD_LONG_VALUE Then aPos.QtyDailyTodaySell = 0
@@ -2632,7 +2635,7 @@ Private Function PositionsLoad() As Boolean
                             End If
                         Else
                             If aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE Then aPos.PosDailyTodaySell = 0
-                            aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + aTrd.Price * nQtyInShares
+                            aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + aTrd.price * nQtyInShares
                         End If
                     End If
                 End If
@@ -2775,9 +2778,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
             
             If Not aReq.IndexOnly Then
                 If Not aReq.Pos Is Nothing Then
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.Price.Last = dPriceLast
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Last = dPriceLast
                     
 '                    If aReq.Pos.PriceClose <= 0 Then
 '                        If dPriceClose > BAD_DOUBLE_VALUE Then aReq.Pos.PriceClose = dPriceClose
@@ -2791,9 +2794,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 If Params.Type <> enOPT Then
                     If m_bGroupRequest Then m_nLastQuoteGroupReqDone = m_nLastQuoteGroupReqDone + 1
                     
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.Price.Last = dPriceLast
+                    If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Und.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Und.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Und.price.Last = dPriceLast
                     
 '                    If aReq.Und.PriceClose <= 0 Then
 '                        If dPriceClose > BAD_DOUBLE_VALUE Then aReq.Und.PriceClose = dPriceClose
@@ -2805,13 +2808,13 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 
 '                    aReq.Und.VolaSrv.UnderlyingPrice = PriceMidEx(aReq.Und.PriceBid, aReq.Und.PriceBid, aReq.Und.PriceLast)
                     Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                    aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReq.Und.Price.Bid, aReq.Und.Price.Bid, aReq.Und.Price.Last, _
+                    aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReq.Und.price.Bid, aReq.Und.price.Bid, aReq.Und.price.Last, _
                         g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
                         
                     If m_Idx.ID = aReq.Und.ID Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.Price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.Price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.Price.Last = dPriceLast
+                        If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.price.Bid = dPriceBid
+                        If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.price.Ask = dPriceAsk
+                        If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.price.Last = dPriceLast
                     End If
                 End If
             Else
@@ -2819,9 +2822,9 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 If m_Idx.ID = aReq.Und.ID Then
                     If m_bGroupRequest Then m_nLastQuoteGroupReqDone = m_nLastQuoteGroupReqDone + 1
 
-                    If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.Price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.Price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.Price.Last = dPriceLast
+                    If dPriceBid > BAD_DOUBLE_VALUE Then m_Idx.price.Bid = dPriceBid
+                    If dPriceAsk > BAD_DOUBLE_VALUE Then m_Idx.price.Ask = dPriceAsk
+                    If dPriceLast > BAD_DOUBLE_VALUE Then m_Idx.price.Last = dPriceLast
                 End If
             End If
         
@@ -3181,7 +3184,7 @@ Private Sub InitResults()
     nLastY = IIf(m_Exp.Count > 2, 2, m_Exp.Count)
     Debug.Assert nLastX >= 0 And nLastY >= 0
     
-    m_dCurUndMidPrice = Int(m_Und(m_nCurUndID).UndPriceProfile.GetUndPriceMid(m_Und(m_nCurUndID).Price.Bid, m_Und(m_nCurUndID).Price.Ask, m_Und(m_nCurUndID).Price.Last, dToleranceValue, enRoundingRule) * 100) / 100
+    m_dCurUndMidPrice = Int(m_Und(m_nCurUndID).UndPriceProfile.GetUndPriceMid(m_Und(m_nCurUndID).price.Bid, m_Und(m_nCurUndID).price.Ask, m_Und(m_nCurUndID).price.Last, dToleranceValue, enRoundingRule) * 100) / 100
     
     m_dHorStep = (2 * m_dCurUndMidPrice * m_nChartWidth / 100) / ((m_nLabelCount - 1) * CNT_COEF)
     'm_dHorStep = Round(m_dHorStep, 2)
@@ -3241,7 +3244,7 @@ Private Sub InitResults()
     
     If m_Und.Count = 1 Then
         Debug.Assert (Not m_Und(1).UndPriceProfile Is Nothing)
-        dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).Price.Bid, m_Und(1).Price.Ask, m_Und(1).Price.Last, dToleranceValue, enRoundingRule)
+        dValue = m_Und(1).UndPriceProfile.GetUndPriceMid(m_Und(1).price.Bid, m_Und(1).price.Ask, m_Und(1).price.Last, dToleranceValue, enRoundingRule)
         
         If dValue > 0# Then
             dShift = 0
@@ -3270,7 +3273,7 @@ End Sub
 Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX As Long, ByVal nLastY As Long, ByVal nGreeksMask As Long, _
                         ByVal bCorrelatedShift As Boolean, ByVal nModel As EtsGeneralLib.EtsCalcModelTypeEnum)
     On Error Resume Next
-    Dim dtToday As Date, nX&, nY&, aPos As EtsMmRisksLib.MmRvPosAtom
+    Dim dtToday As Date, dtNow As Date, nX&, nY&, aPos As EtsMmRisksLib.MmRvPosAtom
     Dim aGreeks As GreeksData, dUndSpotBase#, dUndSpot#, dUndBidBase#, dUndBid#, dUndAskBase#, dUndAsk#, dOptMidPrice#
     Dim dSynthUndSpotBase#, dSynthUndSpot#, dSynthUndBidBase#, dSynthUndBid#
     Dim dSynthUndAskBase#, dSynthUndAsk#, dSynthUndLastBase#, nSynthOptRootID&
@@ -3283,44 +3286,30 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
     If m_bDataEditedByUser Then
         dUndSpotBase = fgUnd.TextMatrix(1, PUC_PRICE)
     Else
-        dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+        dUndSpotBase = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
             g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     End If
-    dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+    dUndBidBase = aUnd.UndPriceProfile.GetUndPriceBidForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
         g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-    dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, _
+    dUndAskBase = aUnd.UndPriceProfile.GetUndPriceAskForPnL(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, _
         g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     
     dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
     
 '    If dUndSpotBase > 0# Or aUnd.HasSynthetic Then
-        dtToday = Date
+        dtToday = GetNewYorkTime
+        dtNow = dtToday
     
         For nX = 0 To nLastX
             nY = 0
             
-'            Select Case m_Scn.Axis(RMA_HORZ)
-'                Case RMAT_SPOT
-                    If dUndSpotBase > 0# Then
-                        dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
-                        ShiftSpot aUnd.Beta, RMUT_ABS, m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
-                    End If
-'
-'                Case RMAT_TIME
-'                    dtToday = DateAdd("d", m_Res(nX, nY).ShiftX, Date)
-'            End Select
+            If dUndSpotBase > 0# Then
+                dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
+                ShiftSpot aUnd.Beta, RMUT_ABS, m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
+            End If
             
             For nY = 0 To nLastY
-'                Select Case m_Scn.Axis(RMA_VERT)
-'                    Case RMAT_SPOT
-'                        If dUndSpotBase > 0# Then
-'                            dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
-'                            ShiftSpot aUnd.Beta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk
-'                        End If
-'
-'                    Case RMAT_TIME
-                        dtToday = DateAdd("d", m_Res(nX, nY).ShiftY, Date)
-'                End Select
+                dtToday = DateAdd("d", m_Res(nX, nY).ShiftY, dtNow)
 
                 Dim dOptionPnL#
                 For Each aPos In aUnd.Pos
@@ -3335,7 +3324,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                             GoTo NextPos
                                         End If
                                         
-                                        If aPos.Expiry > dtToday Then
+                                        If aPos.ExpiryOV > dtToday Then
                                             
                                             aGreeks.nMask = nGreeksMask
                                             If CalcGreeksCommon(aUnd, aPos, dtToday, m_Res(nX, nY), aGreeks, dUndSpot, dUndSpotBase, dOptMidPrice, nModel) Then
@@ -3349,7 +3338,6 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                                     m_Res(nX, nY).BadPnL = True
                                                 End If
                                                 
-                                                'CalcTheoPnLCommon aPos, aGreeks, m_Res(nX, nY), dtToday
                                                 CalcPosTotalsCommon aPos, aGreeks, m_Res(nX, nY), dUndSpot
                                             
                                             Else
@@ -3363,7 +3351,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                                 nPosRow = fgOpt.FindRow(aPos.Symbol, , POC_SYMBOL)
                                                 dOptMidPrice = fgOpt.ValueMatrix(nPosRow, POC_PRICE)
                                             Else
-                                                dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+                                                dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
                                             End If
 
                                             If aPos.OptType = enOtCall Then
@@ -3449,7 +3437,6 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                                         m_Res(nX, nY).BadPnL = True
                                                     End If
                                                     
-                                                    'CalcTheoPnLCommon aPos, aGreeks, m_Res(nX, nY), dtToday
                                                     CalcPosTotalsSynth aPos, aGreeks, m_Res(nX, nY), aSynthRoot, dSynthUndSpot, dSynthUndSpotBase
                                                 
                                                 Else
@@ -3462,7 +3449,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                                     nPosRow = fgOpt.FindRow(aPos.Symbol, 1, POC_SYMBOL)
                                                     dOptMidPrice = CDbl(fgOpt.TextMatrix(nPosRow, POC_PRICE))
                                                 Else
-                                                    dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+                                                    dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
                                                 End If
                                                 
                                                 If aPos.Qty > 0 Then
@@ -3514,7 +3501,6 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                 m_Res(nX, nY).BadPnL = True
                             End If
                             
-                            'CalcUndPnL aPos, m_Res(nX, nY), dtToday, dUndSpot, dUndBid, dUndAsk
                             If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
                             If m_Res(nX, nY).NetDelta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).NetDelta = 0#
                             m_Res(nX, nY).Delta = m_Res(nX, nY).Delta + aPos.QtyInShares * dUndSpot
@@ -3526,7 +3512,6 @@ NextPos:
                             If Not m_bRecalc Then Exit Sub
                     End If
                 Next
-'                IncProgress pbProgress
             Next
         Next
 End Sub
@@ -3575,7 +3560,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Dim bIsBasket As Boolean
     Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
     Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
-    
+    Dim dYTE As Double
+        
+   
     nDivCount = 0
     ReDim dDivDte(0 To 0)
     ReDim dDivAmts(0 To 0)
@@ -3594,9 +3581,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Select Case enDivType
         Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
             If Not aDiv Is Nothing Then
-                aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                aDiv.GetDividendCount2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount
                 If nDivCount > 0 Then
-                    aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                    aDiv.GetDividends2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                 End If
                 Set aDiv = Nothing
             End If
@@ -3604,77 +3591,51 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
             If Not aUnd.BasketIndex Is Nothing Then
                 Set aBasketDivs = aUnd.BasketIndex.BasketDivs
                     If Not aBasketDivs Is Nothing Then
-                        aBasketDivs.GetDividendCount dtToday, aPos.Expiry, nDivCount
+                        aBasketDivs.GetDividendCount2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount
                         If nDivCount > 0 Then
-                            aBasketDivs.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
+                            aBasketDivs.GetDividends2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                         End If
                     End If
                     Set aBasketDivs = Nothing
             End If
         Case enDivIndexYield
             dYield = aUnd.Yield
-        End Select
+    End Select
     
-'    If aUnd.ContractType = enCtStock Then
-'        Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
-'        Set aDiv = aUnd.Dividend
-'        If Not aDiv Is Nothing Then
-'            aDiv.GetDividendCount dtToday, aPos.Expiry, nDivCount
-'            If nDivCount > 0 Then
-'                aDiv.GetDividends dtToday, aPos.Expiry, nDivCount, dDivAmts, dDivDte, nDivCount
-'            End If
-'            Set aDiv = Nothing
-'        End If
-'    Else
-'        If Not aUnd.BasketIndex Is Nothing Then
-'            Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
-'            Set aBasketDiv = aUnd.BasketIndex.BasketDivs
-'            bIsBasket = aUnd.BasketIndex.IsBasket
-'            If Not aBasketDiv Is Nothing Then
-'                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
-'                If nBaskDivCount > 0 Then
-'                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
-'                End If
-'            End If
-'            Set aBasketDiv = Nothing
-'
-'            Erase aBaskDivs
-'        End If
-'
-'        If nDivCount <= 0 And Not bIsBasket Then dYield = aUnd.Yield
-'    End If
-    
+   
     Dim nRow&
     dVola = 0#
+    
+    dYTE = (aPos.ExpiryOV - dtToday) / 365#
     
     If m_bDataEditedByUser Then
         dVola = aPos.Quote.Vola
     Else
     Select Case m_enUsedVolaType
         Case PVT_THEO:
-            dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             aPos.Quote.Vola = dVola
         Case PVT_BIDIMPLD:
-            If (aPos.Quote.Price.Bid <> BAD_DOUBLE_VALUE) Then
+            If (aPos.Quote.price.Bid <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, aUnd.Price.Last, aPos.Quote.Price.Bid, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Bid, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
-            ElseIf (aPos.Quote.Price.Ask <> BAD_DOUBLE_VALUE) Then
+            ElseIf (aPos.Quote.price.Ask <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, aUnd.Price.Last, aPos.Quote.Price.Ask / 2, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Ask / 2, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             End If
             aPos.Quote.Vola = dVola
         Case PVT_HIST:
@@ -3685,20 +3646,20 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                 nRow = fgOpt.FindRow(aPos.Symbol, 1, POC_SYMBOL)
                 dOptSpot = CDbl(fgOpt.TextMatrix(nRow, POC_PRICE))
             Else
-                dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, False, 0#)
+                dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, False, 0#)
             End If
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, dUndSpotBase, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpotBase, dOptSpot, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             End If
             
             aPos.Quote.Vola = dVola
@@ -3709,7 +3670,7 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
         ShiftVola aRes, aPos.VegaWeight, dVola
         
         Dim RetCount
-        RetCount = CalcGreeksMM2(aPos.Rate, dYield, dUndSpot, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, aPos.Strike, dVola, dYTE, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
             
         If RetCount <> 0 Then
@@ -3723,8 +3684,7 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
         nPosRow = fgOpt.FindRow(aPos.Symbol, 1, POC_SYMBOL)
         dOptMidPrice = CDbl(fgOpt.TextMatrix(nPosRow, POC_PRICE))
     Else
-        dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
-        'If dOptMidPrice = 0 Then dOptMidPrice = aGreeks.dTheoPrice
+        dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
     End If
 
     Erase dDivDte
@@ -3894,9 +3854,9 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
         Dim aUnd As MmRvUndAtom
         Set aUnd = m_Und(sRootComp.UndID)
         
-        dCompUndSpot = aUnd.Price.Last
-        dUndCompBid = aUnd.Price.Bid
-        dUndCompAsk = aUnd.Price.Ask
+        dCompUndSpot = aUnd.price.Last
+        dUndCompBid = aUnd.price.Bid
+        dUndCompAsk = aUnd.price.Ask
         ShiftSpot aUnd.Beta, enUnits, dShift, bCorrelatedShift, dCompUndSpot, dUndCompBid, dUndCompAsk
         
         If Not bBadSpotValue And dCompUndSpot > 0# Then
@@ -3936,11 +3896,13 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     On Error Resume Next
     Dim nDivCount&, RetCount&, nBaskDivCount&, dYield#, dVola#, dOptSpot#, nIsAmerican&
     Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
-    Dim nFlag&
+    Dim nFlag&, dYTE As Double
     
     nDivCount = 0
     ReDim dDivDte(0 To 0)
     ReDim dDivAmts(0 To 0)
+    
+    dYTE = (aPos.ExpiryOV - dtToday) / 365#
     
     nIsAmerican = IIf(aUnd.IsAmerican, 1, 0)
     CalcGreeksSynth = False
@@ -3949,9 +3911,9 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
             Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
             Set aBasketDiv = aSynthRoot.BasketDivs
             If Not aBasketDiv Is Nothing Then
-                aBasketDiv.GetDividendCount dtToday, aPos.Expiry, nBaskDivCount
+                aBasketDiv.GetDividendCount2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount
                 If nBaskDivCount > 0 Then _
-                        aBasketDiv.GetDividends dtToday, aPos.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+                        aBasketDiv.GetDividends2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
             End If
             Set aBasketDiv = Nothing
         Erase aBaskDivs
@@ -3968,29 +3930,29 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     Else
     Select Case m_enUsedVolaType
         Case PVT_THEO:
-            dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             aPos.Quote.Vola = dVola
         Case PVT_BIDIMPLD:
-            If (aPos.Quote.Price.Bid <> BAD_DOUBLE_VALUE) Then
+            If (aPos.Quote.price.Bid <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, aUnd.Price.Last, aPos.Quote.Price.Bid, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Bid, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
-            ElseIf (aPos.Quote.Price.Ask <> BAD_DOUBLE_VALUE) Then
+            ElseIf (aPos.Quote.price.Ask <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, aUnd.Price.Last, aPos.Quote.Price.Ask / 2, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Ask / 2, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             End If
             aPos.Quote.Vola = dVola
         Case PVT_HIST:
@@ -4001,20 +3963,20 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
                 nRow = fgOpt.FindRow(aPos.Symbol, 1, POC_SYMBOL)
                 dOptSpot = CDbl(fgOpt.TextMatrix(nRow, POC_PRICE))
             Else
-                dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, False, 0#)
+                dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, False, 0#)
             End If
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, dSynthUndSpotBase, dOptSpot, aPos.Strike, aPos.Expiry - Date, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpotBase, dOptSpot, aPos.Strike, dYTE, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
             End If
             
             aPos.Quote.Vola = dVola
@@ -4024,7 +3986,7 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     If dVola > 0# Then
         ShiftVola aRes, aPos.VegaWeight, dVola
         
-        RetCount = CalcGreeksMM2(aPos.Rate, dYield, dSynthUndSpot, aPos.Strike, dVola, aPos.Expiry - dtToday, _
+        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpot, aPos.Strike, dVola, dYTE, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, aGreeks)
         
         If RetCount <> 0 Then
@@ -4038,7 +4000,7 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
         nPosRow = fgOpt.FindRow(aPos.Symbol, 1, POC_SYMBOL)
         dOptMidPrice = CDbl(fgOpt.TextMatrix(nPosRow, POC_PRICE))
     Else
-        dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, False, 0#)
+        dOptMidPrice = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, False, 0#)
         If dOptMidPrice = 0 Then dOptMidPrice = aGreeks.dTheoPrice
     End If
 
@@ -4065,7 +4027,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
 '                dTmp = PriceMidEx(aSynthUnd.PriceBid, aSynthUnd.PriceAsk, aSynthUnd.PriceLast, g_Params.UseLastPriceForCalcs)
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
-                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.Price.Bid, aSynthUnd.Price.Ask, aSynthUnd.Price.Last, dToleranceValue, enRoundingRule)
+                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.price.Bid, aSynthUnd.price.Ask, aSynthUnd.price.Last, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
                     aRes.Delta = aRes.Delta + aGreeks.dDelta * aPos.QtyInShares * aSynthRootComp.Weight * dTmp
@@ -4093,7 +4055,7 @@ Private Sub CalcPosTotalsSynth(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, ByRef aG
             If Not aSynthUnd Is Nothing Then
 '                dTmp = PriceMidEx(aSynthUnd.PriceBid, aSynthUnd.PriceAsk, aSynthUnd.PriceLast, g_Params.UseLastPriceForCalcs)
                 Debug.Assert (Not aSynthUnd.UndPriceProfile Is Nothing)
-                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.Price.Bid, aSynthUnd.Price.Ask, aSynthUnd.Price.Last, dToleranceValue, enRoundingRule)
+                dTmp = aSynthUnd.UndPriceProfile.GetUndPriceMid(aSynthUnd.price.Bid, aSynthUnd.price.Ask, aSynthUnd.price.Last, dToleranceValue, enRoundingRule)
                 If Not IsBadDouble(dTmp) And dTmp > 0# Then
                     dTmp = dTmp / dSynthUndSpotBase * dSynthUndSpot
                     aRes.Gamma = aRes.Gamma + aGreeks.dGamma * aPos.QtyInShares * aSynthRootComp.Weight * dTmp * dTmp / 100#
@@ -4232,7 +4194,10 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     On Error Resume Next
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     If aUnd Is Nothing Then Exit Sub
-
+    
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
     
     If GetIrRuleType = enRateBasedOnPosition Then
@@ -4248,15 +4213,15 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
         If aPos.ContractType = enCtOption Then
             If bUseMidRates Then
                 If Not aUnd.IsHTB Then
-                    aPos.Rate = GetNeutralRate(Date, aPos.Expiry)
+                    aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
                 Else
-                    aPos.Rate = GetNeutralHTBRate(Date, aPos.Expiry)
+                    aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
                 End If
             Else
                 If Not aUnd.IsHTB Then
-                    aPos.Rate = IIf(dPos < 0, GetShortRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                    aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                 Else
-                    aPos.Rate = IIf(dPos < 0, GetHTBRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                    aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                 End If
             End If
 
@@ -4337,7 +4302,7 @@ Private Sub FillUndPosGrid(UndID As Long)
                 .TextMatrix(nCurRow, POC_UNYLD) = aUnd.Dividend.DivAmt
                 .TextMatrix(nCurRow, POC_DENOM) = aPos.Quote.LotSize
                 .TextMatrix(nCurRow, POC_VOL) = aPos.Quote.Vola * 100
-                .TextMatrix(nCurRow, POC_PRICE) = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.Price.Bid, aPos.Quote.Price.Ask, aPos.Quote.Price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, aPos.Quote.PriceTheo)
+                .TextMatrix(nCurRow, POC_PRICE) = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, aPos.Quote.PriceTheo)
             End If
         Next
         
@@ -4494,8 +4459,8 @@ End Sub
 
 Private Sub InitPrinter()
    On Error Resume Next
-   If Not vsPrinter Is Nothing Then
-    With vsPrinter
+   If Not VSPrinter Is Nothing Then
+    With VSPrinter
         .PhysicalPage = True
         .NavBar = vpnbNone
         .Track = True

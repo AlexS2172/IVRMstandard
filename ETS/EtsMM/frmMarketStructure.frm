@@ -121,7 +121,6 @@ Public Function Execute(ByVal sNewSymbol$, ByRef frmOwner As Form) As Long
     m_Und.Symbol = sNewSymbol
     sPosition = "4"
     
-    
     Set m_Opt = New clsMsOptColl
     sPosition = "5"
     Set m_Vola = New clsMsVolaColl
@@ -327,7 +326,34 @@ Private Sub MsProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, Result
             aOpt.Volume = Results.Volume
             aOpt.OpenInterest = Results.OpenInterest
             aOpt.LotSize = IIf(Results.LotSize > 0, Results.LotSize, 100)
-        
+
+            aOpt.TradingClose = DateSerial(1900, 1, 1)
+            If m_Und.UndType = enCtIndex Then
+                    aOpt.TradingClose = aOpt.TradingClose + "16:15:00"
+            Else:   aOpt.TradingClose = aOpt.TradingClose + "16:00:00" 'GINT_STOCKS enCtStock
+            End If
+
+            Select Case Results.ExpirationType
+            Case 0 ' Standard expiry on 3-rd Saturday
+                Select Case Results.SettlementType
+                    Case enSTAM
+                        aOpt.ExpiryOV = aOpt.Expiry - 1 + "09:30:00"
+                    Case enSTPM
+                        aOpt.ExpiryOV = aOpt.Expiry - 1 + "16:15:00"
+                    Case enSTUndefined
+                        aOpt.ExpiryOV = aOpt.Expiry - 1 + "16:00:00"
+                End Select
+            Case 1, 2, 4, 5, 6 ' Weekly options below on corresponding week and 6 - Vola index option
+                If Results.SettlementType = enSTAM Then
+                        aOpt.ExpiryOV = aOpt.Expiry + "09:30:00"
+                Else:   aOpt.ExpiryOV = aOpt.Expiry + "16:15:00"
+                End If
+            Case 7 ' Quarterly option
+                aOpt.ExpiryOV = aOpt.Expiry + "16:00:00"
+            Case Else
+                AddLogMsg "Wrong ExpirationType: '" & CStr(Results.ExpirationType) & "'."
+            End Select
+
             If pbProgress.Value < pbProgress.Max Then IncProgress pbProgress
         End If
         Set aOpt = Nothing
@@ -338,7 +364,6 @@ Private Sub MsProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, Result
     End If
 
 End Sub
-
 
 Private Sub MsProvider_OnStock(Params As PRICEPROVIDERSLib.StockParams, Results As PRICEPROVIDERSLib.StockResultsEx)
     On Error Resume Next
@@ -357,7 +382,6 @@ Private Sub MsProvider_OnStock(Params As PRICEPROVIDERSLib.StockParams, Results 
         
         If m_Und.UndType = enCtStock Then
             Set m_Und.UndPriceProfile = g_Main.DefStkPriceProfile
-            
         Else
             Set m_Und.UndPriceProfile = g_Main.DefIdxPriceProfile
         End If
@@ -851,13 +875,13 @@ Private Sub SaveOptionsData()
         For Each aOpt In m_Opt
             Err.Clear
             gDBW.usp_Option_Import m_Und.ID, aOpt.Symbol, (aOpt.OptType <> enOtPut), _
-                                    aOpt.Strike, aOpt.Expiry, aOpt.LotSize
+                                    aOpt.Strike, aOpt.Expiry, aOpt.ExpiryOV, aOpt.TradingClose, aOpt.LotSize
                                     
             If Err.Number <> 0 Then
                 AddLogMsg aOpt.Symbol & ": Fail to save option. " & Err.Description
                 
                 Err.Clear
-                gDBW.usp_EodMsOptionCache_Save m_Und.ID, aOpt.Symbol, aOpt.Expiry, aOpt.Strike, (aOpt.OptType <> enOtPut), aOpt.LotSize
+                gDBW.usp_EodMsOptionCache_Save m_Und.ID, aOpt.Symbol, aOpt.Expiry, aOpt.ExpiryOV, aOpt.TradingClose, aOpt.Strike, (aOpt.OptType <> enOtPut), aOpt.LotSize
                 If Err.Number <> 0 Then
                     AddLogMsg m_Und.Symbol & ": Fail to save market structure info. " & Err.Description
                     

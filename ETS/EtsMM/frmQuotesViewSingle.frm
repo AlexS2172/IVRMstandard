@@ -857,7 +857,7 @@ Public Sub ShowWindowInTaskbar(ByVal bShow As Boolean, Optional ByVal bExtended 
     
     If m_bShowInTaskbar <> bShow Then
         m_bShowInTaskbar = bShow
-        mnuWindowShowInTaskbar.Checked = bShow
+        mnuWindowShowInTaskBar.Checked = bShow
         m_bShowInTaskbarChanging = True
         
         If bExtended Then SetWindowPos Me.hWnd, 0, 0, 0, 0, 0, SWP_HIDEWINDOW Or SWP_NOSIZE Or SWP_NOMOVE Or SWP_NOZORDER Or SWP_NOACTIVATE
@@ -1007,7 +1007,10 @@ Private Sub ctlView_OnFutChange(ByVal bStateOnly As Boolean)
     
 End Sub
 
-
+Private Sub ctlView_OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal Price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+On Error Resume Next
+    frmMain.ManualPriceChange UndID, ID, Price, CtType, Status
+End Sub
 
 Private Sub ctlView_OnOptExchangesChange(ByVal bStateOnly As Boolean)
     On Error Resume Next
@@ -1440,6 +1443,12 @@ On Error Resume Next
 ctlView.FuturesParamsChange aUndID, iFutID, dRatio, dBasis
 End Sub
 
+Private Sub fMain_OnManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal Price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+On Error Resume Next
+    'manual price update for each ctrl
+    ctlView.ManualPriceUpdate UndID, ID, Price, CtType, Status
+End Sub
+
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
     On Error Resume Next
     If Shift = vbCtrlMask + vbAltMask Then
@@ -1491,7 +1500,7 @@ Private Sub Form_Load()
         Exit Sub
     End If
     m_bShowInTaskbar = True
-    mnuWindowShowInTaskbar.Checked = True
+    mnuWindowShowInTaskBar.Checked = True
     lblStatus.Caption = ""
     lblProcess.Caption = ""
     m_nCurImgIdx = 0
@@ -2009,12 +2018,12 @@ End Sub
 Private Sub mnuManualPrices_Click()
     Dim frmMPrices As New frmManualPrices
     Dim i As Integer
-    Dim ctrID() As Long, price() As Double, isManual() As Boolean
+    Dim ctrID() As Long, Price() As Double, isManual() As Boolean
     
     frmMPrices.Show vbModal, Me
     
     If (frmMPrices.ChangedCount > 0) Then
-        ctlView.UpdateManualPrices ctrID, price, isManual
+        ctlView.UpdateManualPrices ctrID, Price, isManual
     End If
         
 End Sub

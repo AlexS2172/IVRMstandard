@@ -10,7 +10,7 @@ double VSKLog(
 				double	dRateDomestic,
 				double	dRateForeign,
 				double	dVolatility,
-				int		nDte,
+				double	dYte,
 				bool	bIsCall,
 				double	dSkew,
 				double	dKurtosis,

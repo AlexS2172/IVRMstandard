@@ -6,9 +6,10 @@ namespace OPM
 
 double BlackAndScholes(	double	dRateDomestic,
 						double	dRateForeign,
+						double	dHTBRate,
 						double	dSpotPrice,
 						double	dStrike,
-						int		nDte,
+						double	dYte,
 						double	dVolatility,
 						bool	bIsCall,
 						double* pdDivAmnt,						   

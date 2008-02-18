@@ -35,18 +35,6 @@ Public FutCount&
 'Public QuoteReqsNonGrp As New EtsMmRisksLib.MmRvReqColl ' referencies to non-group requests
 
 Private m_Aux As clsAuxRiskView
-Private m_DateShift As Integer
-
-'ACH_START
-Public Property Let DateShift(ShiftDate As Integer)
-    m_DateShift = ShiftDate
-End Property
-
-Public Property Get DateShift() As Integer
-    DateShift = m_DateShift
-End Property
-'ACH_END
-
 'ACH_START
 Public Property Let CalcDate(ShiftDate As Date)
     m_dtCalcDateShift = ShiftDate
@@ -70,16 +58,9 @@ Public Sub Init(aAux As clsAuxRiskView)
     OptCount = 0
     FutCount = 0
     m_nGreeksMask = GM_ALL
-    m_dtCalcDateShift = Date
+    m_dtCalcDateShift = GetNewYorkTime
     Set m_Aux = aAux
     Set m_ProcessDelay = New EtsGeneralLib.EtsProcessDelay
-End Sub
-Public Sub SetCalcDateShift(dtCalcDateShift As Date)
-    If CLng(dtCalcDateShift) >= CLng(DateTime.Now) Then
-        m_dtCalcDateShift = dtCalcDateShift
-    Else
-        LogEvent EVENT_ERROR, "You ented wrong data into Data Calculation Shift - " + CStr(dtCalcDateShift)
-    End If
 End Sub
 
 Public Sub Term()
@@ -116,6 +97,7 @@ Public Sub UnderlyingsCalc(ByVal bCalcGreeks As Boolean, ByVal bUpdateVola As Bo
     End If
     
     Err.Clear
+    
     
     m_Aux.RiskView.Calc bTotalsOnly, m_nGreeksMask, bCalcGreeks, bUpdateVola, bRealtimeCalc, _
                 IIf(g_Params.UseCalcSleep, m_ProcessDelay, Nothing), _
@@ -182,10 +164,10 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
     
     'SUD-0909
     Dim dPriceClose As Double
-    dPriceClose = aPos.Quote.Price.Close
+    dPriceClose = aPos.Quote.price.Close
     If (Not g_Main Is Nothing) Then
-        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.Price.TheoClose > 0#) Then
-            dPriceClose = aPos.Quote.Price.TheoClose
+        If (g_Main.UseTheoCloseForPNL = True And aPos.Quote.price.TheoClose > 0#) Then
+            dPriceClose = aPos.Quote.price.TheoClose
         End If
     End If
             
@@ -199,7 +181,7 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
             End If
         Else
             If aPos.PosLTDBuy = BAD_DOUBLE_VALUE Then aPos.PosLTDBuy = 0
-            aPos.PosLTDBuy = aPos.PosLTDBuy + aTrd.Price * nQtyInShares
+            aPos.PosLTDBuy = aPos.PosLTDBuy + aTrd.price * nQtyInShares
         End If
     
         If aTrd.TradeDate < Date Then
@@ -210,7 +192,7 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
                 aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + dPriceClose * nQtyInShares
             ElseIf Not aTrd.IsPosition Then
                 If aPos.PosDailyPrevDateBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateBuy = 0
-                aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aTrd.Price * nQtyInShares
+                aPos.PosDailyPrevDateBuy = aPos.PosDailyPrevDateBuy + aTrd.price * nQtyInShares
             End If
         Else
             If aPos.QtyDailyTodayBuy = BAD_LONG_VALUE Then aPos.QtyDailyTodayBuy = 0
@@ -222,7 +204,7 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
                 End If
             Else
                 If aPos.PosDailyTodayBuy = BAD_DOUBLE_VALUE Then aPos.PosDailyTodayBuy = 0
-                aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + aTrd.Price * nQtyInShares
+                aPos.PosDailyTodayBuy = aPos.PosDailyTodayBuy + aTrd.price * nQtyInShares
             End If
         End If
     Else
@@ -235,7 +217,7 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
             End If
         Else
             If aPos.PosLTDSell = BAD_DOUBLE_VALUE Then aPos.PosLTDSell = 0
-            aPos.PosLTDSell = aPos.PosLTDSell + aTrd.Price * nQtyInShares
+            aPos.PosLTDSell = aPos.PosLTDSell + aTrd.price * nQtyInShares
         End If
     
         If aTrd.TradeDate < Date Then
@@ -246,7 +228,7 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
                 aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + dPriceClose * nQtyInShares
             ElseIf Not aTrd.IsPosition Then
                 If aPos.PosDailyPrevDateSell = BAD_DOUBLE_VALUE Then aPos.PosDailyPrevDateSell = 0
-                aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aTrd.Price * nQtyInShares
+                aPos.PosDailyPrevDateSell = aPos.PosDailyPrevDateSell + aTrd.price * nQtyInShares
             End If
         Else
             If aPos.QtyDailyTodaySell = BAD_LONG_VALUE Then aPos.QtyDailyTodaySell = 0
@@ -258,7 +240,7 @@ Public Sub ChangeQtyDailyLTD(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, _
                 End If
             Else
                 If aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE Then aPos.PosDailyTodaySell = 0
-                aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + aTrd.Price * nQtyInShares
+                aPos.PosDailyTodaySell = aPos.PosDailyTodaySell + aTrd.price * nQtyInShares
             End If
         End If
     End If
@@ -277,7 +259,7 @@ Public Sub CalcOptionGreeks(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As Ets
     
     Err.Clear
     aPos.CalcOptionGreeks m_Aux.Und, aUnd, _
-            aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule), _
+            aUnd.UndPriceProfile.GetUndPriceMid(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule), _
             m_nGreeksMask, (g_Params.PnLCalcType = PNLCT_LTD), g_Params.CalcModel, g_Params.UseTheoVolatility, _
             g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, _
             g_Params.PriceRoundingRule, m_dtCalcDateShift
@@ -303,7 +285,7 @@ Public Sub CalcFutOptionGreeks(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As 
     
     Err.Clear
     aPos.CalcFutOptionGreeks aUnd, _
-            aUnd.UndPriceProfile.GetUndPriceMid(aUnd.Price.Bid, aUnd.Price.Ask, aUnd.Price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule), _
+            aUnd.UndPriceProfile.GetUndPriceMid(aUnd.price.Bid, aUnd.price.Ask, aUnd.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule), _
             m_nGreeksMask, (g_Params.PnLCalcType = PNLCT_LTD), g_Params.CalcModel, g_Params.UseTheoVolatility, _
             g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, _
             g_Params.PriceRoundingRule, m_dtCalcDateShift
@@ -614,6 +596,9 @@ Public Function UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, B
     UnderlyingAdjustRates = False
     If aUnd Is Nothing Then Exit Function
     
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
@@ -635,15 +620,15 @@ Public Function UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, B
             If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
                 If bUseMidRates Then
                     If Not aUnd.IsHTB Then
-                        aPos.Rate = GetNeutralRate(Date, aPos.Expiry)
+                        aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
                     Else
-                        aPos.Rate = GetNeutralHTBRate(Date, aPos.Expiry)
+                        aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
                     End If
                 Else
                     If Not aUnd.IsHTB Then
-                        aPos.Rate = IIf(dPos < 0, GetShortRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                        aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                     Else
-                        aPos.Rate = IIf(dPos < 0, GetHTBRate(Date, aPos.Expiry), GetLongRate(Date, aPos.Expiry))
+                        aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
                     End If
                 End If
 
@@ -674,4 +659,5 @@ Public Sub ClearPosQty(ByRef aPos As EtsMmRisksLib.MmRvPosAtom)
     aPos.QtyDailyTodaySell = BAD_LONG_VALUE
     aPos.PosDailyTodaySell = BAD_DOUBLE_VALUE
 End Sub
+
 

@@ -31,11 +31,15 @@ struct __MmRpOptAtom
 	IMmRpFutAtomPtr						m_spFut;
 	IMMRpPricePtr						m_spPrice ;
 
+	DATE					m_dtExpiryOV;
+	DATE					m_dtTradingClose;
+
 
 	__MmRpOptAtom() :
 		m_nID(0L), m_dPriceTheoClose(0.),
 		m_dtExpiry(0.), m_dStrike(0.), m_enOptType(enOtCall), 
-		m_nRootID(0L), m_nLotSize(0L), m_dVegaWeight(0.)
+		m_nRootID(0L), m_nLotSize(0L), m_dVegaWeight(0.),
+		m_dtExpiryOV(0), m_dtTradingClose(0)
 	{
 	}
 };
@@ -97,6 +101,8 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				PriceClose,		m_dPriceClose)*/
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				PriceTheoClose,	m_dPriceTheoClose)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE,					Expiry,			m_dtExpiry)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE,					ExpiryOV,		m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE,					TradingClose,	m_dtTradingClose)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				Strike,			m_dStrike)
 	IMPLEMENT_SIMPLE_PROPERTY(EtsOptionTypeEnum,	OptType,		m_enOptType)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG,					RootID,			m_nRootID)

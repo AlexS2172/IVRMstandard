@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "Vsflex7.ocx"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Object = "{3B008041-905A-11D1-B4AE-444553540000}#1.0#0"; "Vsocx6.ocx"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Begin VB.UserControl ctlVolaAnalysis 
@@ -92,7 +92,7 @@ Begin VB.UserControl ctlVolaAnalysis
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -186,7 +186,7 @@ Begin VB.UserControl ctlVolaAnalysis
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -2002,6 +2002,7 @@ Private Function UnderlyingAdd(ByVal nUndID As Long) As EtsMmVolaAnalysisLib.MmV
                     Set aUnd.Dividend = aGUnd.Dividend
                 Else
                     aUnd.Yield = aGUnd.Yield
+                    Set aUnd.Dividend = aGUnd.Dividend
                     Set aUnd.BasketIndex = g_Index(aUnd.ID)
                 End If
         
@@ -2480,6 +2481,8 @@ Private Function UnderlyingsLoad() As Boolean
                     If aExp Is Nothing Then
                         Set aExp = New EtsMmVolaAnalysisLib.MmVaExpAtom
                         aExp.Expiry = dtExpiry
+                        aExp.ExpiryOV = ReadDate(rsExp!dtExpiryOV)
+                        aExp.TradingClose = ReadDate(rsExp!dtTradingClose)
                         aUnd.Expiry.Add dtExpiry, aExp
 
                         Set aEnt = m_Exp(CStr(CLng(dtExpiry)))
@@ -2674,7 +2677,7 @@ Private Function ExpiryOptionsLoad() As Boolean
                                 aOpt.Expiry = aExp.Expiry
                                 aOpt.Strike = dStrike
                                 aOpt.PriceClose = ReadDbl(rsOpt!fPriceClose)
-                                aOpt.PriceTheoClose = ReadDbl(rsOpt!fPriceTheoClose)
+                                aOpt.PriceTheoclose = ReadDbl(rsOpt!fPriceTheoClose)
 
                                 'aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.Expiry, dStrike)
 
@@ -3349,7 +3352,10 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmVolaAnalysisLib.MmVaUndAtom
     On Error Resume Next
     Dim aExp As EtsMmVolaAnalysisLib.MmVaExpAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     If aUnd Is Nothing Then Exit Sub
-
+    
+    Dim dtNow As Date
+    dtNow = GetNewYorkTime
+    
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
     
     If GetIrRuleType = enRateBasedOnPosition Then ' And aUnd.Pos > BAD_DOUBLE_VALUE Then
@@ -3365,15 +3371,15 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmVolaAnalysisLib.MmVaUndAtom
         For Each aExp In aUnd.Expiry
             If bUseMidRates Then
                 If Not aUnd.IsHTB Then
-                    aExp.Rate = GetNeutralRate(Date, aExp.Expiry)
+                    aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
                 Else
-                    aExp.Rate = GetNeutralHTBRate(Date, aExp.Expiry)
+                    aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
                 End If
             Else
                 If Not aUnd.IsHTB Then
-                    aExp.Rate = IIf(dPos < 0#, GetShortRate(Date, aExp.Expiry), GetLongRate(Date, aExp.Expiry))
+                    aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
                 Else
-                    aExp.Rate = IIf(dPos < 0#, GetHTBRate(Date, aExp.Expiry), GetLongRate(Date, aExp.Expiry))
+                    aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
                 End If
             End If
 
@@ -3459,7 +3465,17 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bSymbol As Boolean, aRowU
                         If Not aExp Is Nothing Then .TextMatrix(nRow, nCol) = aExp.Expiry Else .TextMatrix(nRow, nCol) = STR_NA
 
                     Case AUC_EXPIRY_DAYS
-                        If Not aExp Is Nothing Then .TextMatrix(nRow, nCol) = DateDiff("d", Date, aExp.Expiry) Else .TextMatrix(nRow, nCol) = STR_NA
+                        If Not aExp Is Nothing Then
+                            Dim dtTimeToExp As Date
+                            Dim nDays As Long
+                            
+                            dtTimeToExp = IIf(aExp.LocalExpiryOV - Now > 0, aExp.LocalExpiryOV - Now, 0)
+                            nDays = DateDiff("d", 0, dtTimeToExp)
+                            
+                            .TextMatrix(nRow, nCol) = CStr(nDays) + IIf(nDays < 2, " day ", " days ") + Format(dtTimeToExp, "hh:mm")
+                        Else
+                            .TextMatrix(nRow, nCol) = STR_NA
+                        End If
 
                     Case AUC_ATM_STRIKE
                         If Not aStr Is Nothing Then .TextMatrix(nRow, nCol) = aStr.Strike Else .TextMatrix(nRow, nCol) = STR_NA
@@ -4090,13 +4106,13 @@ Public Sub PortfolioCreate()
                         
                         If aUnd.NewTradeType = enMmVaNewTradeBuy Then
                             aTrd.IsBuy = True
-                            aTrd.Price = aOpt.PriceAsk
+                            aTrd.price = aOpt.PriceAsk
                             aTrd.Quantity = Abs(aPair.ContractsAsk)
                             aTrd.SpotReference = aUnd.PriceLast 'aUnd.PriceAsk
                             aTrd.TradedIV = aOpt.IVAsk
                         Else
                             aTrd.IsBuy = False
-                            aTrd.Price = aOpt.PriceBid
+                            aTrd.price = aOpt.PriceBid
                             aTrd.Quantity = Abs(aPair.ContractsBid)
                             aTrd.SpotReference = aUnd.PriceLast 'aUnd.PriceBid
                             aTrd.TradedIV = aOpt.IVBid
@@ -4117,7 +4133,7 @@ Public Sub PortfolioCreate()
                         aTrd.Opt.Expiry = aOpt.Expiry
                         aTrd.Opt.Strike = aOpt.Strike
                         aTrd.Opt.PriceClose = aOpt.PriceClose
-                        aTrd.Opt.PriceTheoClose = aOpt.PriceTheoClose
+                        aTrd.Opt.PriceTheoclose = aOpt.PriceTheoclose
                         
                         collTrades.Add aTrd.TradeID, nTradeID, aTrd
                         Set aTrd = Nothing
@@ -4141,24 +4157,24 @@ Public Sub PortfolioCreate()
                         If aUnd.NewTradeType = enMmVaNewTradeBuy Then
                             If aPair.DeltaInSharesAsk > 0# Then
                                 aTrd.IsBuy = False
-                                aTrd.Price = IIf(aUnd.PriceBid > 0#, aUnd.PriceBid, aUnd.PriceLast)
+                                aTrd.price = IIf(aUnd.PriceBid > 0#, aUnd.PriceBid, aUnd.PriceLast)
                             Else
                                 aTrd.IsBuy = True
-                                aTrd.Price = IIf(aUnd.PriceAsk > 0#, aUnd.PriceAsk, aUnd.PriceLast)
+                                aTrd.price = IIf(aUnd.PriceAsk > 0#, aUnd.PriceAsk, aUnd.PriceLast)
                             End If
                             aTrd.Quantity = Abs(aPair.DeltaInSharesAsk)
                         Else
                             If aPair.DeltaInSharesBid > 0# Then
                                 aTrd.IsBuy = False
-                                aTrd.Price = IIf(aUnd.PriceBid > 0#, aUnd.PriceBid, aUnd.PriceLast)
+                                aTrd.price = IIf(aUnd.PriceBid > 0#, aUnd.PriceBid, aUnd.PriceLast)
                             Else
                                 aTrd.IsBuy = True
-                                aTrd.Price = IIf(aUnd.PriceAsk > 0#, aUnd.PriceAsk, aUnd.PriceLast)
+                                aTrd.price = IIf(aUnd.PriceAsk > 0#, aUnd.PriceAsk, aUnd.PriceLast)
                             End If
                             aTrd.Quantity = Abs(aPair.DeltaInSharesBid)
                         End If
                     
-                        aTrd.SpotReference = aTrd.Price
+                        aTrd.SpotReference = aTrd.price
                         aTrd.TradedIV = 0#
                 
                         collTrades.Add aTrd.TradeID, nTradeID, aTrd

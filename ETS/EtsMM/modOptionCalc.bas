@@ -14,15 +14,15 @@ Public Type InterestRateCurve
     PosThreshold As Currency
     PointsCount As Long
     
-    ShortRateDTE() As Long
+    ShortRateDTE() As Double
     ShortRateValue() As Double
-    LongRateDTE() As Long
+    LongRateDTE() As Double
     LongRateValue() As Double
-    NeutralRateDTE() As Long
+    NeutralRateDTE() As Double
     NeutralRateValue() As Double
-    HTBRateDTE() As Long
+    HTBRateDTE() As Double
     HTBRateValue() As Double
-    NeutralHTBRateDTE() As Long
+    NeutralHTBRateDTE() As Double
     NeutralHTBRateValue() As Double
 End Type
 
@@ -40,6 +40,7 @@ Public Const GM_GAMMA        As Long = &H8&
 Public Const GM_VEGA         As Long = &H10&
 Public Const GM_THETA        As Long = &H20&
 Public Const GM_RHO          As Long = &H40&
+Public Const GT_VOLGA        As Long = &H80&
 Public Const GM_DELTA_VEGA   As Long = &H100&
 Public Const GM_DELTA_THETA  As Long = &H200&
 Public Const GM_GAMMA_VEGA   As Long = &H400&
@@ -61,6 +62,7 @@ Public Type GreeksData
     dVega As Double
     dTheta As Double
     dRho As Double
+    dVolga As Double
     dDeltaVega As Double
     dDeltaTheta As Double
     dGammaVega As Double
@@ -73,28 +75,30 @@ Public Type REGULAR_DIVIDENDS
     dAmount As Double
 End Type
 
-Public Declare Function InterpolateRates2 Lib "OptionCalc.dll" (ByVal nCount As Long, pRates As Double, pnDTEs As Long, ByVal nDTE As Long) As Double
-                                        
-Public Declare Function GetDividendsCount Lib "OptionCalc.dll" (ByVal nToday As Long, ByVal nDTE As Long, ByVal nLastDivDate As Long, ByVal nFrequency As Long) As Long
-                                        
-Public Declare Function GetDividends2 Lib "OptionCalc.dll" (ByVal nToday As Long, ByVal nDTE As Long, ByVal nLastDivDate As Long, ByVal nFrequency As Long, ByVal dAmount As Double, ByVal nCount As Long, pDivAmnts As Double, pDivYears As Double, pnCount As Long) As Long
-                                        
-Public Declare Function GetBasketDividendsCount Lib "OptionCalc.dll" (ByVal nToday As Long, ByVal nDTE As Long, pDividends As REGULAR_DIVIDENDS, ByVal nCount As Long) As Long
+Public Declare Function GetNYDateTimeAsDATE Lib "OptionCalc.dll" (ByRef dtNow As Double) As Long
 
-Public Declare Function GetBasketDividends Lib "OptionCalc.dll" (ByVal nToday As Long, ByVal nDTE As Long, pDividends As REGULAR_DIVIDENDS, ByVal nCount As Long, pDivAmnts As Double, pDivYears As Double, ByVal nInCount As Long, pnOutCount As Long) As Long
-
-Public Declare Function CalcGreeksMM2 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dForeignRate As Double, ByVal dSpotPrice As Double, ByVal dStrike As Double, ByVal dVolatility As Double, ByVal nDTE As Long, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nCount As Long, pDivAmnts As Double, pDivYears As Double, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long, pGreeks As GreeksData) As Long
+Public Declare Function InterpolateRates2 Lib "OptionCalc.dll" (ByVal nCount As Long, pRates As Double, pdYTEs As Double, ByVal dYTE As Double) As Double
                                         
-Public Declare Function CalcVolatilityMM2 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dForeignRate As Double, ByVal dSpotPrice As Double, ByVal dOptionPrice As Double, ByVal dStrike As Double, ByVal nDTE As Long, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nCount As Long, pDivAmnts As Double, pDivDays As Double, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long) As Double
+Public Declare Function GetDividendsCount Lib "OptionCalc.dll" (ByVal dToday As Double, ByVal dYTE As Double, ByVal dLastDivDate As Double, ByVal nFrequency As Long) As Long
+                                        
+Public Declare Function GetDividends2 Lib "OptionCalc.dll" (ByVal dToday As Double, ByVal dYTE As Double, ByVal dLastDivDate As Double, ByVal nFrequency As Long, ByVal dAmount As Double, ByVal nCount As Long, pDivAmnts As Double, pDivYears As Double, pnCount As Long) As Long
+                                        
+Public Declare Function GetBasketDividendsCount Lib "OptionCalc.dll" (ByVal dToday As Double, ByVal dDTE As Double, pDividends As REGULAR_DIVIDENDS, ByVal nCount As Long) As Long
 
-Public Declare Function CalcVolatilityMM3 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dForeignRate As Double, ByVal dSpotPrice As Double, ByVal dOptionPrice As Double, ByVal dStrike As Double, ByVal nDTE As Long, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nCount As Long, pDivAmnts As Double, pDivDays As Double, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long, ByRef nFlag As Long) As Double
+Public Declare Function GetBasketDividends Lib "OptionCalc.dll" (ByVal dToday As Double, ByVal dDTE As Double, pDividends As REGULAR_DIVIDENDS, ByVal nCount As Long, pDivAmnts As Double, pDivYears As Double, ByVal nInCount As Long, pnOutCount As Long) As Long
+
+Public Declare Function CalcGreeksMM2 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dForeignRate As Double, ByVal dHTBRate As Double, ByVal dSpotPrice As Double, ByVal dStrike As Double, ByVal dVolatility As Double, ByVal dYTE As Double, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nCount As Long, pDivAmnts As Double, pDivYears As Double, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long, pGreeks As GreeksData) As Long
+                                       
+Public Declare Function CalcVolatilityMM2 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dForeignRate As Double, ByVal dHTBRate As Double, ByVal dSpotPrice As Double, ByVal dOptionPrice As Double, ByVal dStrike As Double, ByVal dYTE As Double, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nCount As Long, pDivAmnts As Double, pDivDays As Double, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long) As Double
+
+Public Declare Function CalcVolatilityMM3 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dForeignRate As Double, ByVal dHTBRate As Double, ByVal dSpotPrice As Double, ByVal dOptionPrice As Double, ByVal dStrike As Double, ByVal dYTE As Double, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nCount As Long, pDivAmnts As Double, pDivDays As Double, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long, ByRef nFlag As Long) As Double
 
 Public Declare Function CalcFutureOptionGreeks2 Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, _
                                                                       ByVal dFuturePrice As Double, _
                                                                       ByVal bSpotGreeks As Boolean, _
                                                                       ByVal dStrike As Double, _
                                                                       ByVal dVolatility As Double, _
-                                                                      ByVal nDTE As Long, _
+                                                                      ByVal dYTE As Double, _
                                                                       ByVal nIsCall As Long, _
                                                                       ByVal nIsAmerican As Long, _
                                                                       ByVal nSteps As Long, _
@@ -109,7 +113,7 @@ Public Declare Function CalcFutureOptionGreeks3 Lib "OptionCalc.dll" (ByVal dDom
                                                                       ByVal bSpotGreeks As Boolean, _
                                                                       ByVal dStrike As Double, _
                                                                       ByVal dVolatility As Double, _
-                                                                      ByVal nDTE As Long, _
+                                                                      ByVal dYTE As Double, _
                                                                       ByVal nIsCall As Long, _
                                                                       ByVal nIsAmerican As Long, _
                                                                       ByVal nSteps As Long, _
@@ -121,7 +125,7 @@ Public Declare Function CalcFutureOptionGreeks3 Lib "OptionCalc.dll" (ByVal dDom
                                                                       pDivYears As Double, _
                                                                       pGreeks As GreeksData) As Long
                                         
-Public Declare Function CalcFutureOptionVolatility Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dFuturePrice As Double, ByVal dOptionPrice As Double, ByVal dStrike As Double, ByVal nDTE As Long, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long, ByRef nFlag As Long) As Double
+Public Declare Function CalcFutureOptionVolatility Lib "OptionCalc.dll" (ByVal dDomesticRate As Double, ByVal dFuturePrice As Double, ByVal dOptionPrice As Double, ByVal dStrike As Double, ByVal dYTE As Double, ByVal nIsCall As Long, ByVal nIsAmerican As Long, ByVal nSteps As Long, ByVal dSkew As Double, ByVal dKurt As Double, ByVal nModel As Long, ByRef nFlag As Long) As Double
 
 Public Type VSGreeksData
     nMask As Long
@@ -246,11 +250,17 @@ Public Function GetDays(ByVal dtDate As Date, ByVal lNumber As Long, ByVal lPeri
     End Select
 End Function
 
+Public Function GetYears(ByVal dtDate As Date, ByVal lNumber As Long, ByVal lPeriodType As Long) As Double
+    On Error Resume Next
+    GetYears = CDbl(GetDays(dtDate, lNumber, lPeriodType)) / 365#
+End Function
+
 Public Sub LoadInterestRates()
     On Error GoTo EH
     Dim rsCurve As ADODB.Recordset
     Dim rsPoint As ADODB.Recordset
     Dim nCurveCount&, nDTE&, nCurveIdx&, nPointIdx&
+    Dim dYTE As Double
     
     ClearInterestRates
     nCurveCount = 0&
@@ -287,22 +297,21 @@ Public Sub LoadInterestRates()
                 nPointIdx = 0
                 
                 While Not rsPoint.EOF
-                    nDTE = GetDays(Date, ReadLng(rsPoint!iNum), ReadLng(rsPoint!iPeriodTypeID))
+                    dYTE = GetYears(Date, ReadLng(rsPoint!iNum), ReadLng(rsPoint!iPeriodTypeID))
                     
-                    g_IRs(nCurveIdx).ShortRateDTE(nPointIdx) = nDTE
+                    g_IRs(nCurveIdx).ShortRateDTE(nPointIdx) = dYTE
                     g_IRs(nCurveIdx).ShortRateValue(nPointIdx) = ReadDbl(rsPoint!fShortRate)
                     
-                    g_IRs(nCurveIdx).LongRateDTE(nPointIdx) = nDTE
+                    g_IRs(nCurveIdx).LongRateDTE(nPointIdx) = dYTE
                     g_IRs(nCurveIdx).LongRateValue(nPointIdx) = ReadDbl(rsPoint!fLongRate)
                     
-                    g_IRs(nCurveIdx).NeutralRateDTE(nPointIdx) = nDTE
-                    'g_IRs(nCurveIdx).NeutralRateValue(nPointIdx) = (g_IRs(nCurveIdx).ShortRateValue(nPointIdx) + g_IRs(nCurveIdx).LongRateValue(nPointIdx)) / 2#
+                    g_IRs(nCurveIdx).NeutralRateDTE(nPointIdx) = dYTE
                     g_IRs(nCurveIdx).NeutralRateValue(nPointIdx) = ReadDbl(rsPoint!neutralRate)
                     
-                    g_IRs(nCurveIdx).HTBRateDTE(nPointIdx) = nDTE
+                    g_IRs(nCurveIdx).HTBRateDTE(nPointIdx) = dYTE
                     g_IRs(nCurveIdx).HTBRateValue(nPointIdx) = ReadDbl(rsPoint!fHTBRate)
                     
-                    g_IRs(nCurveIdx).NeutralHTBRateDTE(nPointIdx) = nDTE
+                    g_IRs(nCurveIdx).NeutralHTBRateDTE(nPointIdx) = dYTE
                     g_IRs(nCurveIdx).NeutralHTBRateValue(nPointIdx) = (g_IRs(nCurveIdx).HTBRateValue(nPointIdx) + g_IRs(nCurveIdx).LongRateValue(nPointIdx)) / 2#
                     
                     nPointIdx = nPointIdx + 1
@@ -336,7 +345,7 @@ Public Function GetShortRate(ByVal dtToday As Date, ByVal dtDate As Date) As Dou
     On Error Resume Next
     
     If g_IRs(0).PointsCount > 0 Then
-        GetShortRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).ShortRateValue(0), g_IRs(0).ShortRateDTE(0), dtDate - dtToday)
+        GetShortRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).ShortRateValue(0), g_IRs(0).ShortRateDTE(0), CDbl(dtDate - dtToday) / 365#)
     Else
         GetShortRate = 0
     End If
@@ -346,7 +355,7 @@ Public Function GetLongRate(ByVal dtToday As Date, ByVal dtDate As Date) As Doub
     On Error Resume Next
     
     If g_IRs(0).PointsCount > 0 Then
-        GetLongRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).LongRateValue(0), g_IRs(0).LongRateDTE(0), dtDate - dtToday)
+        GetLongRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).LongRateValue(0), g_IRs(0).LongRateDTE(0), CDbl(dtDate - dtToday) / 365#)
     Else
         GetLongRate = 0
     End If
@@ -356,7 +365,7 @@ Public Function GetNeutralRate(ByVal dtToday As Date, ByVal dtDate As Date) As D
     On Error Resume Next
     
     If g_IRs(0).PointsCount > 0 Then
-        GetNeutralRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).NeutralRateValue(0), g_IRs(0).NeutralRateDTE(0), dtDate - dtToday)
+        GetNeutralRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).NeutralRateValue(0), g_IRs(0).NeutralRateDTE(0), CDbl(dtDate - dtToday) / 365#)
     Else
         GetNeutralRate = 0
     End If
@@ -366,7 +375,7 @@ Public Function GetHTBRate(ByVal dtToday As Date, ByVal dtDate As Date) As Doubl
     On Error Resume Next
     
     If g_IRs(0).PointsCount > 0 Then
-        GetHTBRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).HTBRateValue(0), g_IRs(0).HTBRateDTE(0), dtDate - dtToday)
+        GetHTBRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).HTBRateValue(0), g_IRs(0).HTBRateDTE(0), CDbl(dtDate - dtToday) / 365#)
     Else
         GetHTBRate = 0
     End If
@@ -376,7 +385,7 @@ Public Function GetNeutralHTBRate(ByVal dtToday As Date, ByVal dtDate As Date) A
     On Error Resume Next
     
     If g_IRs(0).PointsCount > 0 Then
-        GetNeutralHTBRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).NeutralHTBRateValue(0), g_IRs(0).NeutralHTBRateDTE(0), dtDate - dtToday)
+        GetNeutralHTBRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).NeutralHTBRateValue(0), g_IRs(0).NeutralHTBRateDTE(0), CDbl(dtDate - dtToday) / 365#)
     Else
         GetNeutralHTBRate = 0
     End If

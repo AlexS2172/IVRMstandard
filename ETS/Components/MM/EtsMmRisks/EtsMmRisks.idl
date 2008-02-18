@@ -259,7 +259,8 @@ library EtsMmRisksLib
 		RPC_OPT_DELTA_USD				= 48,
 		RPC_THEO_PRICE_VALUE			= 49,
 		RPC_THEO_PRICE_CLOSE			= 50,
-		RPC_COLUMN_COUNT		= 51,
+		RPC_EXPIRY_OV					= 51,
+		RPC_COLUMN_COUNT		= 52,
 		RPC_LAST_COLUMN			= RPC_COLUMN_COUNT - 1
 	}RisksPosColumnEnum;
 	/////////////////////////////////////////////////////////////////////////////
@@ -336,6 +337,8 @@ library EtsMmRisksLib
 	{
 			ETSGENERAL_PROP_DEF(1,			LONG,						ExpiryMonth)
 			ETSGENERAL_PROP_DEF(2,			DATE,						Expiry)
+			ETSGENERAL_PROP_DEF(21,			DATE,						ExpiryOV)
+			ETSGENERAL_PROP_DEF(22,			DATE,						TradingClose)
 			ETSGENERAL_PROP_DEF(3,			DOUBLE,						Rate)
 			ETSGENERAL_PROPREADONLY_DEF(4,	IMmRvPosColl*,				Pos)
 			ETSGENERAL_PROP_DEF(5,			DOUBLE,						DeltaInShares)
@@ -768,6 +771,8 @@ library EtsMmRisksLib
 		// option related info
 		ETSGENERAL_PROP_DEF(4,			enum EtsOptionTypeEnum,			OptType)
 		ETSGENERAL_PROP_DEF(5,			DATE,							Expiry)
+		ETSGENERAL_PROP_DEF(70,			DATE,							ExpiryOV)
+		ETSGENERAL_PROP_DEF(71,			DATE,							TradingClose)
 		ETSGENERAL_PROP_DEF(6,			DOUBLE,							Strike)
 		ETSGENERAL_PROP_DEF(7,			DOUBLE,							Rate)
 		ETSGENERAL_PROP_DEF(8,			DOUBLE,							VegaWeight)

@@ -183,6 +183,12 @@ HRESULT CMmTradeUpdateColl::CopyTrade(ITradeUpdate* pSrc, ITradeUpdate* pDst)
 	pSrc->get_Expiry(&dTemp);
 	pDst->put_Expiry(dTemp);
 
+	pSrc->get_ExpiryOV(&dTemp);
+	pDst->put_ExpiryOV(dTemp);
+
+	pSrc->get_TradingClose(&dTemp);
+	pDst->put_TradingClose(dTemp);
+
 	pSrc->get_IsCall(&lTemp);
 	pDst->put_IsCall(lTemp);
 

@@ -1888,25 +1888,16 @@ Public Function usp_EodMsUnderlyingCache_Save( _
 End Function
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Public Function usp_Option_Import( _
-    ByVal UnderlyingContractID As Long, _
-    ByVal Symbol As String, _
-    ByVal IsCall As Boolean, _
-    ByVal Strike As Double, _
-    ByVal Expiry As Date, _
-    ByVal LotSize As Long, _
-    Optional ByVal iMsCacheOptID As Variant = Null _
+Public Function usp_Option_Import(ByVal UnderlyingContractID As Long, _
+    ByVal Symbol As String, ByVal IsCall As Boolean, ByVal Strike As Double, _
+    ByVal Expiry As Date, ByVal ExpiryOV As Date, ByVal TradingClose As Date, _
+    ByVal LotSize As Long, Optional ByVal iMsCacheOptID As Variant = Null _
 ) As Boolean
     usp_Option_Import = 0 = _
-    Execute(False, "usp_Option_Import" _
-        , UnderlyingContractID _
-        , Symbol _
-        , IIf(IsCall, 1, 0) _
-        , Strike _
-        , Expiry _
-        , LotSize _
-        , iMsCacheOptID _
-        )
+    Execute(False, "usp_Option_Import", UnderlyingContractID _
+        , Symbol, IIf(IsCall, 1, 0), Strike _
+        , Expiry, ExpiryOV, TradingClose _
+        , LotSize, iMsCacheOptID)
 End Function
 Public Function usp_FindOption( _
     ByVal OptionRootID As Long, _
@@ -1932,23 +1923,14 @@ End Function
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Public Function usp_EodMsOptionCache_Save( _
-    ByVal UnderlyingContractID As Long, _
-    ByVal Symbol As String, _
-    ByVal Expiry As Date, _
-    ByVal Strike As Double, _
-    ByVal IsCall As Boolean, _
-    ByVal LotSize As Long _
+Public Function usp_EodMsOptionCache_Save(ByVal UnderlyingContractID As Long, ByVal Symbol As String, _
+    ByVal Expiry As Date, ByVal ExpiryOV As Date, ByVal TradingClose As Date, _
+    ByVal Strike As Double, ByVal IsCall As Boolean, ByVal LotSize As Long _
 ) As Boolean
     usp_EodMsOptionCache_Save = 0 = _
-    Execute(False, "usp_EodMsOptionCache_Save" _
-        , UnderlyingContractID _
-        , Symbol _
-        , Expiry _
-        , Strike _
-        , IsCall _
-        , LotSize _
-        )
+    Execute(False, "usp_EodMsOptionCache_Save", UnderlyingContractID, Symbol _
+        , Expiry, ExpiryOV, TradingClose _
+        , Strike, IsCall, LotSize)
 End Function
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

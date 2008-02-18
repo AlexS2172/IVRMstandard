@@ -33,6 +33,8 @@ struct __MmRvPosAtom
 	EtsOptionTypeEnum			m_enOptType;
 
 	DATE						m_dtExpiry;
+	DATE						m_dtExpiryOV;
+	DATE						m_dtTradingClose;
 	DOUBLE						m_dStrike;
 	DOUBLE						m_dRate;
 	DOUBLE						m_dVegaWeight;
@@ -126,6 +128,8 @@ struct __MmRvPosAtom
 		m_nID(0L), m_enContractType(enCtNone),
 		m_enOptType(enOtCall),
 		m_dtExpiry(0.),
+		m_dtExpiryOV(0),
+		m_dtTradingClose(0),
 		m_dStrike(0.),
 		m_dRate(0.),
 		m_dVegaWeight(0.),
@@ -324,6 +328,8 @@ public:
 		// option related info
 		IMPLEMENT_SIMPLE_PROPERTY(EtsOptionTypeEnum, OptType, m_enOptType)
 		IMPLEMENT_SIMPLE_PROPERTY(DATE, Expiry, m_dtExpiry)
+		IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+		IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Strike, m_dStrike)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, VegaWeight, m_dVegaWeight)

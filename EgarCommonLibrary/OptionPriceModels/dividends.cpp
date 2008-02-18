@@ -3,24 +3,26 @@
 namespace OPM
 {
 
-double DividendPv(double dDivAmnt, double dCntRate, double dTime)
+double DividendPv(double dDivAmnt, double dCntRate, double dCntBorrowingRate, double dTime)
 {
-	return dDivAmnt * exp(-dCntRate * dTime);
+	return dDivAmnt * exp(-(dCntRate - dCntBorrowingRate) * dTime);
 }
 
 
 double DiscountForDividends(double		S, 
 							double		R,
+							double		B,			//actual stock borrowing rate
 							double*		pdDivAmnt,
 							double*		pdDivYears,
 							unsigned	nDivCount,
 							double		T)
 {
-	return (S - DividendNPV(S, R, pdDivAmnt, pdDivYears, nDivCount, T));
+	return (S - DividendNPV(S, R, B, pdDivAmnt, pdDivYears, nDivCount, T));
 }
 
 double			DividendNPV(double		S, 
 							double		R,
+							double		B,			//actual stock borrowing rate
 							double*		pdDivAmnt,
 							double*		pdDivYears,
 							unsigned	nDivCount,
@@ -35,7 +37,7 @@ double			DividendNPV(double		S,
 		
 		if (IsGood) 
 		{
-			SumPV += DividendPv(pdDivAmnt[n], R, pdDivYears[n]);
+			SumPV += DividendPv(pdDivAmnt[n], R, B, pdDivYears[n]);
 			
 			if (SumPV > S)
 				return BadDoubleValue;

@@ -403,6 +403,7 @@ bool CMmRvRowData::GetUndField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 		vtRet = _vtEmpty;
 		break;
 	case RPC_EXPIRY:
+	case RPC_EXPIRY_OV:
 	case RPC_STRIKE:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
@@ -809,6 +810,7 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 		}
 		break;
 	case RPC_EXPIRY:
+	case RPC_EXPIRY_OV:
 	case RPC_STRIKE:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
@@ -977,6 +979,20 @@ bool CMmRvRowData::GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet
 	case RPC_EXPIRY:
 		vtRet = EgLib::vt_date(m_pPos->m_dtExpiry).GetVtDate();
 		break;
+	case RPC_EXPIRY_OV: {
+			vt_date dtExpiryOV(m_pPos->m_dtExpiryOV);
+			typedef boost::date_time::c_local_adjustor<ptime> local_time;
+			typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+			ptime	ptExpiryOV( date( dtExpiryOV.get_year(), dtExpiryOV.get_month(), dtExpiryOV.get_day() ), 
+								hours( dtExpiryOV.get_hour() ) + minutes( dtExpiryOV.get_minute() ) );
+			ptExpiryOV = us_eastern::local_to_utc(ptExpiryOV);
+			ptime	ptLocalExpiryOV = local_time::utc_to_local(ptExpiryOV);
+			tm		tmLocalExpiryOV = to_tm(ptLocalExpiryOV);
+			vt_date dtLocalExpiryOV(tmLocalExpiryOV.tm_year + 1900, tmLocalExpiryOV.tm_mon + 1, tmLocalExpiryOV.tm_mday,
+									tmLocalExpiryOV.tm_hour, tmLocalExpiryOV.tm_min);
+
+			vtRet = (DATE)dtLocalExpiryOV;
+		} break;
 	case RPC_STRIKE:
 		{
 			vtRet = m_pPos->m_dStrike>BAD_DOUBLE_VALUE ?
@@ -1208,6 +1224,20 @@ bool CMmRvRowData::GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, b
 	case RPC_EXPIRY:
 		vtRet = EgLib::vt_date(m_pPos->m_dtExpiry).GetVtDate();
 		break;
+	case RPC_EXPIRY_OV: {
+			vt_date dtExpiryOV(m_pPos->m_dtExpiryOV);
+			typedef boost::date_time::c_local_adjustor<ptime> local_time;
+			typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+			ptime	ptExpiryOV( date( dtExpiryOV.get_year(), dtExpiryOV.get_month(), dtExpiryOV.get_day() ), 
+								hours( dtExpiryOV.get_hour() ) + minutes( dtExpiryOV.get_minute() ) );
+			ptExpiryOV = us_eastern::local_to_utc(ptExpiryOV);
+			ptime	ptLocalExpiryOV = local_time::utc_to_local(ptExpiryOV);
+			tm		tmLocalExpiryOV = to_tm(ptLocalExpiryOV);
+			vt_date dtLocalExpiryOV(tmLocalExpiryOV.tm_year + 1900, tmLocalExpiryOV.tm_mon + 1, tmLocalExpiryOV.tm_mday,
+									tmLocalExpiryOV.tm_hour, tmLocalExpiryOV.tm_min);
+
+			vtRet = (DATE)dtLocalExpiryOV;
+		} break;
 	case RPC_STRIKE:
 		{
 			vtRet = m_pPos->m_dStrike>BAD_DOUBLE_VALUE ?

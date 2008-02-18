@@ -16,7 +16,7 @@ Begin VB.UserControl ctlMktStruct
    Begin ElladaFlatControls.FlatButton cmdAsset 
       Height          =   300
       Left            =   10080
-      TabIndex        =   82
+      TabIndex        =   80
       Top             =   1680
       Width           =   1215
       _ExtentX        =   2143
@@ -51,7 +51,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractCancel 
          Height          =   255
          Left            =   120
-         TabIndex        =   21
+         TabIndex        =   20
          Tag             =   "red"
          Top             =   2640
          Width           =   1875
@@ -76,7 +76,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractImport 
          Height          =   195
          Left            =   120
-         TabIndex        =   22
+         TabIndex        =   21
          Tag             =   "red"
          Top             =   3960
          Width           =   1875
@@ -101,7 +101,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractApply 
          Height          =   195
          Left            =   120
-         TabIndex        =   20
+         TabIndex        =   19
          Tag             =   "red"
          Top             =   2400
          Width           =   1875
@@ -126,7 +126,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractDelete 
          Height          =   195
          Left            =   120
-         TabIndex        =   19
+         TabIndex        =   18
          Tag             =   "red"
          Top             =   2040
          Width           =   1875
@@ -151,7 +151,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractStock 
          Height          =   195
          Left            =   120
-         TabIndex        =   18
+         TabIndex        =   17
          Tag             =   "red"
          Top             =   240
          Width           =   1875
@@ -175,7 +175,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnOptionDelete 
          Height          =   195
          Left            =   120
-         TabIndex        =   25
+         TabIndex        =   24
          Top             =   6840
          Width           =   1875
          _ExtentX        =   3307
@@ -199,7 +199,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnOptionEdit 
          Height          =   195
          Left            =   120
-         TabIndex        =   24
+         TabIndex        =   23
          Top             =   6600
          Width           =   1875
          _ExtentX        =   3307
@@ -223,7 +223,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnOptionAdd 
          Height          =   195
          Left            =   120
-         TabIndex        =   23
+         TabIndex        =   22
          Top             =   6360
          Width           =   1875
          _ExtentX        =   3307
@@ -247,7 +247,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnUnd 
          Height          =   195
          Left            =   120
-         TabIndex        =   45
+         TabIndex        =   43
          Tag             =   "red"
          Top             =   4320
          Width           =   1875
@@ -272,7 +272,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnSymbLoadIV 
          Height          =   195
          Left            =   120
-         TabIndex        =   49
+         TabIndex        =   47
          Tag             =   "red"
          Top             =   4680
          Width           =   1875
@@ -297,7 +297,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnCAExecute 
          Height          =   195
          Left            =   120
-         TabIndex        =   51
+         TabIndex        =   49
          Tag             =   "red"
          Top             =   3480
          Visible         =   0   'False
@@ -323,7 +323,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnCAList 
          Height          =   195
          Left            =   120
-         TabIndex        =   52
+         TabIndex        =   50
          Tag             =   "red"
          Top             =   3720
          Visible         =   0   'False
@@ -349,7 +349,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnStockToIndex 
          Height          =   195
          Left            =   120
-         TabIndex        =   56
+         TabIndex        =   54
          Tag             =   "red"
          Top             =   4980
          Width           =   1875
@@ -374,7 +374,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnUpdateComposition 
          Height          =   195
          Left            =   120
-         TabIndex        =   70
+         TabIndex        =   68
          Tag             =   "red"
          Top             =   5280
          Width           =   1875
@@ -399,7 +399,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractAdd 
          Height          =   195
          Left            =   120
-         TabIndex        =   74
+         TabIndex        =   72
          Tag             =   "red"
          Top             =   1800
          Width           =   1875
@@ -424,7 +424,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractIndex 
          Height          =   195
          Left            =   120
-         TabIndex        =   75
+         TabIndex        =   73
          Tag             =   "red"
          Top             =   480
          Width           =   1875
@@ -448,7 +448,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractFutures 
          Height          =   195
          Left            =   120
-         TabIndex        =   76
+         TabIndex        =   74
          Tag             =   "red"
          Top             =   720
          Width           =   1875
@@ -472,7 +472,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.ActiveLabel btnContractFunderlying 
          Height          =   195
          Left            =   120
-         TabIndex        =   77
+         TabIndex        =   75
          Tag             =   "red"
          Top             =   960
          Width           =   1875
@@ -496,7 +496,7 @@ Begin VB.UserControl ctlMktStruct
       Begin MSForms.ComboBox cboFutUndType 
          Height          =   300
          Left            =   120
-         TabIndex        =   66
+         TabIndex        =   64
          Top             =   5520
          Width           =   1935
          VariousPropertyBits=   681592859
@@ -516,20 +516,20 @@ Begin VB.UserControl ctlMktStruct
       BackColor       =   &H80000005&
       BorderStyle     =   0  'None
       ForeColor       =   &H80000008&
-      Height          =   5895
+      Height          =   6495
       Left            =   2280
-      ScaleHeight     =   5895
+      ScaleHeight     =   6495
       ScaleWidth      =   9615
-      TabIndex        =   17
+      TabIndex        =   16
       Top             =   0
       Width           =   9615
       Begin VB.Frame Shape2 
          Appearance      =   0  'Flat
          BackColor       =   &H00FFFFFF&
          ForeColor       =   &H00FFFFFF&
-         Height          =   1215
+         Height          =   975
          Left            =   120
-         TabIndex        =   78
+         TabIndex        =   76
          Top             =   2040
          Width           =   2895
          Begin VB.OptionButton opAmerican 
@@ -539,7 +539,7 @@ Begin VB.UserControl ctlMktStruct
             ForeColor       =   &H80000008&
             Height          =   255
             Left            =   120
-            TabIndex        =   80
+            TabIndex        =   78
             Top             =   240
             Value           =   -1  'True
             Width           =   1695
@@ -551,7 +551,7 @@ Begin VB.UserControl ctlMktStruct
             ForeColor       =   &H80000008&
             Height          =   255
             Left            =   120
-            TabIndex        =   79
+            TabIndex        =   77
             Top             =   600
             Width           =   1695
          End
@@ -559,14 +559,15 @@ Begin VB.UserControl ctlMktStruct
       Begin MSComCtl2.DTPicker dtMaturityPicker 
          Height          =   300
          Left            =   6360
-         TabIndex        =   73
+         TabIndex        =   71
          Top             =   1320
          Visible         =   0   'False
          Width           =   1335
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   60686337
+         CustomFormat    =   "MMM,dd yyy hh:mm tt"
+         Format          =   20578305
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -576,7 +577,7 @@ Begin VB.UserControl ctlMktStruct
          ForeColor       =   &H80000008&
          Height          =   255
          Left            =   1680
-         TabIndex        =   61
+         TabIndex        =   59
          Top             =   1680
          Width           =   3735
       End
@@ -587,10 +588,10 @@ Begin VB.UserControl ctlMktStruct
          ForeColor       =   &H80000008&
          Height          =   255
          Left            =   360
-         TabIndex        =   63
+         TabIndex        =   61
          Tag             =   "1"
-         Top             =   3840
-         Width           =   2415
+         Top             =   3480
+         Width           =   1695
       End
       Begin VB.OptionButton rbUseCustStream 
          Appearance      =   0  'Flat
@@ -599,17 +600,53 @@ Begin VB.UserControl ctlMktStruct
          ForeColor       =   &H80000008&
          Height          =   255
          Left            =   360
-         TabIndex        =   62
+         TabIndex        =   60
          Tag             =   "1"
-         Top             =   4080
-         Width           =   2415
+         Top             =   4200
+         Width           =   1695
+      End
+      Begin VB.OptionButton rbUseBasketIndex 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         Caption         =   "Basket Index"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Left            =   360
+         TabIndex        =   83
+         Tag             =   "1"
+         Top             =   4920
+         Width           =   1695
+      End
+      Begin VB.OptionButton rbUseIndexYield 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         Caption         =   "Index Yield"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Left            =   360
+         TabIndex        =   82
+         Tag             =   "1"
+         Top             =   4560
+         Width           =   1695
+      End
+      Begin VB.OptionButton rbUseMarketDiv 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         Caption         =   "Market Dividends"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Left            =   360
+         TabIndex        =   81
+         Tag             =   "1"
+         Top             =   3840
+         Width           =   1695
       End
       Begin VB.TextBox txtLotSize 
          Appearance      =   0  'Flat
          Enabled         =   0   'False
          Height          =   300
          Left            =   4800
-         TabIndex        =   59
+         TabIndex        =   57
          Top             =   1320
          Width           =   1335
       End
@@ -617,7 +654,7 @@ Begin VB.UserControl ctlMktStruct
          Appearance      =   0  'Flat
          Height          =   300
          Left            =   6360
-         TabIndex        =   55
+         TabIndex        =   53
          Top             =   1320
          Width           =   1335
       End
@@ -625,39 +662,17 @@ Begin VB.UserControl ctlMktStruct
          Appearance      =   0  'Flat
          Height          =   300
          Left            =   4800
-         TabIndex        =   54
+         TabIndex        =   52
          Top             =   1320
          Width           =   1335
-      End
-      Begin VB.CheckBox chkIsBasket 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         Caption         =   "Basket Index"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Left            =   3240
-         TabIndex        =   41
-         Top             =   3000
-         Width           =   1455
-      End
-      Begin VB.CheckBox chkUseManualDivData 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         Caption         =   "Use Manual Dividends Data"
-         ForeColor       =   &H80000008&
-         Height          =   375
-         Left            =   360
-         TabIndex        =   9
-         Top             =   3480
-         Width           =   2655
       End
       Begin VB.TextBox txtDivAmt 
          Appearance      =   0  'Flat
          Height          =   300
          Index           =   1
          Left            =   6360
-         TabIndex        =   12
-         Top             =   3720
+         TabIndex        =   11
+         Top             =   3480
          Width           =   1335
       End
       Begin VB.TextBox txtYield 
@@ -665,7 +680,7 @@ Begin VB.UserControl ctlMktStruct
          Height          =   300
          Left            =   4800
          TabIndex        =   5
-         Top             =   2400
+         Top             =   4560
          Width           =   1335
       End
       Begin MSComCtl2.DTPicker dtpDivDate 
@@ -673,12 +688,12 @@ Begin VB.UserControl ctlMktStruct
          Index           =   0
          Left            =   4800
          TabIndex        =   7
-         Top             =   3000
+         Top             =   3840
          Width           =   1335
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   60686337
+         Format          =   20578305
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -687,13 +702,13 @@ Begin VB.UserControl ctlMktStruct
          Index           =   0
          Left            =   6360
          TabIndex        =   8
-         Top             =   3000
+         Top             =   3840
          Width           =   1335
       End
       Begin ElladaFlatControls.FlatButton btnMarketValues 
          Height          =   300
          Left            =   4800
-         TabIndex        =   15
+         TabIndex        =   14
          Top             =   1680
          Width           =   1335
          _ExtentX        =   2355
@@ -712,7 +727,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.FlatButton btnGroups 
          Height          =   300
          Left            =   120
-         TabIndex        =   13
+         TabIndex        =   12
          Top             =   1680
          Width           =   1335
          _ExtentX        =   2355
@@ -748,10 +763,10 @@ Begin VB.UserControl ctlMktStruct
       Begin VSFlex8Ctl.VSFlexGrid grdOptions 
          Height          =   1095
          Left            =   120
-         TabIndex        =   16
-         Top             =   4560
-         Width           =   6435
-         _cx             =   11351
+         TabIndex        =   15
+         Top             =   5400
+         Width           =   8835
+         _cx             =   15584
          _cy             =   1931
          Appearance      =   0
          BorderStyle     =   1
@@ -841,12 +856,26 @@ Begin VB.UserControl ctlMktStruct
          AccessibleDescription=   ""
          AccessibleValue =   ""
          AccessibleRole  =   24
+         Begin MSComCtl2.DTPicker dtPicker2 
+            Height          =   300
+            Left            =   5160
+            TabIndex        =   85
+            Top             =   240
+            Visible         =   0   'False
+            Width           =   2295
+            _ExtentX        =   4048
+            _ExtentY        =   529
+            _Version        =   393216
+            CustomFormat    =   "MMM,dd yyy hh:mm tt"
+            Format          =   20578307
+            CurrentDate     =   38974.5416666667
+         End
       End
       Begin ElladaFlatControls.ActiveLabel btnContractNav 
          Height          =   195
          Index           =   4
          Left            =   5400
-         TabIndex        =   29
+         TabIndex        =   28
          Top             =   165
          Width           =   1020
          _ExtentX        =   1799
@@ -867,7 +896,7 @@ Begin VB.UserControl ctlMktStruct
          Height          =   195
          Index           =   3
          Left            =   4320
-         TabIndex        =   28
+         TabIndex        =   27
          Top             =   165
          Width           =   930
          _ExtentX        =   1640
@@ -888,7 +917,7 @@ Begin VB.UserControl ctlMktStruct
          Height          =   195
          Index           =   2
          Left            =   1560
-         TabIndex        =   27
+         TabIndex        =   26
          Top             =   165
          Width           =   1215
          _ExtentX        =   2143
@@ -909,7 +938,7 @@ Begin VB.UserControl ctlMktStruct
          Height          =   195
          Index           =   1
          Left            =   600
-         TabIndex        =   26
+         TabIndex        =   25
          Top             =   165
          Width           =   885
          _ExtentX        =   1561
@@ -929,7 +958,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.FlatButton btnExchanges 
          Height          =   300
          Left            =   1680
-         TabIndex        =   14
+         TabIndex        =   13
          Top             =   1680
          Width           =   1335
          _ExtentX        =   2355
@@ -949,20 +978,20 @@ Begin VB.UserControl ctlMktStruct
          Height          =   300
          Index           =   1
          Left            =   4800
-         TabIndex        =   11
-         Top             =   3720
+         TabIndex        =   10
+         Top             =   3480
          Width           =   1335
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   60686337
+         Format          =   20578305
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
          Height          =   300
-         Left            =   4800
-         TabIndex        =   42
-         Top             =   3000
+         Left            =   3240
+         TabIndex        =   40
+         Top             =   4920
          Width           =   1335
          _ExtentX        =   2355
          _ExtentY        =   529
@@ -979,9 +1008,9 @@ Begin VB.UserControl ctlMktStruct
       End
       Begin ElladaFlatControls.FlatButton btnComponentsDividends 
          Height          =   300
-         Left            =   6360
-         TabIndex        =   43
-         Top             =   3000
+         Left            =   4800
+         TabIndex        =   41
+         Top             =   4920
          Width           =   1335
          _ExtentX        =   2355
          _ExtentY        =   529
@@ -999,7 +1028,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.FlatButton btnOptionRoots 
          Height          =   300
          Left            =   3240
-         TabIndex        =   50
+         TabIndex        =   48
          Top             =   1680
          Width           =   1335
          _ExtentX        =   2355
@@ -1019,7 +1048,7 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.FlatButton btnBeta 
          Height          =   300
          Left            =   6360
-         TabIndex        =   53
+         TabIndex        =   51
          Top             =   1680
          Width           =   1335
          _ExtentX        =   2355
@@ -1042,14 +1071,14 @@ Begin VB.UserControl ctlMktStruct
          ForeColor       =   &H80000008&
          Height          =   255
          Left            =   1680
-         TabIndex        =   44
+         TabIndex        =   42
          Top             =   1320
          Width           =   1335
       End
       Begin ElladaFlatControls.FlatButton btnFuturesRoots 
          Height          =   300
          Left            =   3240
-         TabIndex        =   57
+         TabIndex        =   55
          Top             =   1320
          Width           =   1335
          _ExtentX        =   2355
@@ -1068,8 +1097,8 @@ Begin VB.UserControl ctlMktStruct
       Begin ElladaFlatControls.FlatButton btnCustDivs 
          Height          =   300
          Left            =   3240
-         TabIndex        =   81
-         Top             =   4080
+         TabIndex        =   79
+         Top             =   4200
          Width           =   1335
          _ExtentX        =   2355
          _ExtentY        =   529
@@ -1084,14 +1113,52 @@ Begin VB.UserControl ctlMktStruct
          EndProperty
          Caption         =   "Dividend Stream"
       End
-      Begin VSFlex8Ctl.VSFlexGrid fgRoots 
-         Height          =   1815
+      Begin ElladaFlatControls.FlatButton AddButton 
+         Height          =   300
          Left            =   120
-         TabIndex        =   71
+         TabIndex        =   70
+         Top             =   5040
+         Width           =   1335
+         _ExtentX        =   2355
+         _ExtentY        =   529
+         BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+            Name            =   "Arial"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         Caption         =   "Add"
+      End
+      Begin ElladaFlatControls.FlatButton DeleteButton 
+         Height          =   300
+         Left            =   1680
+         TabIndex        =   62
+         Top             =   5040
+         Width           =   1335
+         _ExtentX        =   2355
+         _ExtentY        =   529
+         BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+            Name            =   "Arial"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         Caption         =   "Delete"
+      End
+      Begin VSFlex8Ctl.VSFlexGrid fgRoots 
+         Height          =   2895
+         Left            =   120
+         TabIndex        =   69
          Top             =   2040
          Width           =   8895
          _cx             =   15690
-         _cy             =   3201
+         _cy             =   5106
          Appearance      =   0
          BorderStyle     =   1
          Enabled         =   -1  'True
@@ -1194,54 +1261,121 @@ Begin VB.UserControl ctlMktStruct
             Width           =   180
          End
       End
-      Begin ElladaFlatControls.FlatButton AddButton 
-         Height          =   300
+      Begin VB.Label lblDivType 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BorderStyle     =   1  'Fixed Single
+         Caption         =   "Dividend Type"
+         ForeColor       =   &H80000008&
+         Height          =   255
          Left            =   120
-         TabIndex        =   72
-         Top             =   3960
-         Width           =   1335
-         _ExtentX        =   2355
-         _ExtentY        =   529
-         BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-            Name            =   "Arial"
-            Size            =   8.25
-            Charset         =   204
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
-         Caption         =   "Add"
+         TabIndex        =   84
+         Top             =   3120
+         Width           =   2895
       End
-      Begin ElladaFlatControls.FlatButton DeleteButton 
-         Height          =   300
-         Left            =   1560
-         TabIndex        =   64
-         Top             =   3960
-         Width           =   1335
-         _ExtentX        =   2355
-         _ExtentY        =   529
-         BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-            Name            =   "Arial"
-            Size            =   8.25
-            Charset         =   204
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
-         Caption         =   "Delete"
+      Begin VB.Label lblYield 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Yield (%) :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Left            =   3240
+         TabIndex        =   36
+         Top             =   4560
+         Width           =   1215
+      End
+      Begin VB.Label lblDivFreq 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Div. Frequency :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Index           =   1
+         Left            =   3240
+         TabIndex        =   39
+         Top             =   3240
+         Width           =   1215
+      End
+      Begin VB.Label lblDivDate 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Last Div. Date :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Index           =   1
+         Left            =   4800
+         TabIndex        =   38
+         Top             =   3240
+         Width           =   1215
+      End
+      Begin VB.Label lblDivAmt 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Last Div. Amount :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Index           =   1
+         Left            =   6360
+         TabIndex        =   37
+         Top             =   3240
+         Width           =   1455
+      End
+      Begin VB.Label lblDivAmt 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Last Div. Amount :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Index           =   0
+         Left            =   6360
+         TabIndex        =   35
+         Top             =   3240
+         Visible         =   0   'False
+         Width           =   1455
+      End
+      Begin VB.Label lblDivDate 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Last Div. Date :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Index           =   0
+         Left            =   4800
+         TabIndex        =   34
+         Top             =   3240
+         Visible         =   0   'False
+         Width           =   1215
+      End
+      Begin VB.Label lblDivFreq 
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "Div. Frequency :"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Index           =   0
+         Left            =   3240
+         TabIndex        =   33
+         Top             =   3240
+         Visible         =   0   'False
+         Width           =   1215
       End
       Begin VB.Shape Shape1 
-         Height          =   1095
+         Height          =   2175
          Left            =   120
-         Top             =   3360
+         Top             =   3120
          Width           =   7695
       End
       Begin MSForms.ComboBox cboType 
          Height          =   300
          Left            =   7320
-         TabIndex        =   69
+         TabIndex        =   67
          Top             =   720
          Width           =   1215
          VariousPropertyBits=   679495707
@@ -1258,7 +1392,7 @@ Begin VB.UserControl ctlMktStruct
       Begin VB.Label txtDefCal 
          Height          =   255
          Left            =   7800
-         TabIndex        =   68
+         TabIndex        =   66
          Top             =   1320
          Visible         =   0   'False
          Width           =   1095
@@ -1268,7 +1402,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Type :"
          Height          =   255
          Left            =   7320
-         TabIndex        =   67
+         TabIndex        =   65
          Top             =   480
          Width           =   735
       End
@@ -1277,7 +1411,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Default Opt Expiration calendar:"
          Height          =   255
          Left            =   5400
-         TabIndex        =   65
+         TabIndex        =   63
          Top             =   1320
          Visible         =   0   'False
          Width           =   2295
@@ -1287,7 +1421,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Lot Size :"
          Height          =   255
          Left            =   4800
-         TabIndex        =   60
+         TabIndex        =   58
          Top             =   1080
          Width           =   1335
       End
@@ -1296,7 +1430,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Maturity Date :"
          Height          =   255
          Left            =   6360
-         TabIndex        =   58
+         TabIndex        =   56
          Top             =   1080
          Width           =   1335
       End
@@ -1305,7 +1439,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Skew :"
          Height          =   255
          Left            =   4800
-         TabIndex        =   46
+         TabIndex        =   44
          Top             =   1080
          Width           =   735
       End
@@ -1314,7 +1448,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Kurtosis :"
          Height          =   255
          Left            =   6360
-         TabIndex        =   48
+         TabIndex        =   46
          Top             =   1080
          Width           =   735
       End
@@ -1322,8 +1456,8 @@ Begin VB.UserControl ctlMktStruct
          Height          =   300
          Index           =   1
          Left            =   3240
-         TabIndex        =   10
-         Top             =   3720
+         TabIndex        =   9
+         Top             =   3480
          Width           =   1335
          BorderStyle     =   1
          DisplayStyle    =   7
@@ -1335,102 +1469,12 @@ Begin VB.UserControl ctlMktStruct
          FontCharSet     =   204
          FontPitchAndFamily=   2
       End
-      Begin VB.Label lblDivFreq 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Div. Frequency :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Index           =   1
-         Left            =   3240
-         TabIndex        =   40
-         Top             =   3480
-         Width           =   1215
-      End
-      Begin VB.Label lblDivDate 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Last Div. Date :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Index           =   1
-         Left            =   4800
-         TabIndex        =   39
-         Top             =   3480
-         Width           =   1215
-      End
-      Begin VB.Label lblDivAmt 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Last Div. Amount :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Index           =   1
-         Left            =   6360
-         TabIndex        =   38
-         Top             =   3480
-         Width           =   1455
-      End
-      Begin VB.Label lblYield 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Yield (%) :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Left            =   4800
-         TabIndex        =   37
-         Top             =   2160
-         Width           =   1335
-      End
-      Begin VB.Label lblDivAmt 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Last Div. Amount :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Index           =   0
-         Left            =   6360
-         TabIndex        =   36
-         Top             =   2760
-         Width           =   1455
-      End
-      Begin VB.Label lblDivDate 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Last Div. Date :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Index           =   0
-         Left            =   4800
-         TabIndex        =   35
-         Top             =   2760
-         Width           =   1215
-      End
-      Begin VB.Label lblDivFreq 
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BackStyle       =   0  'Transparent
-         Caption         =   "Div. Frequency :"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Index           =   0
-         Left            =   3240
-         TabIndex        =   34
-         Top             =   2760
-         Width           =   1215
-      End
       Begin MSForms.ComboBox cboDivFreq 
          Height          =   300
          Index           =   0
          Left            =   3240
          TabIndex        =   6
-         Top             =   3000
+         Top             =   3840
          Width           =   1335
          BorderStyle     =   1
          DisplayStyle    =   7
@@ -1468,7 +1512,7 @@ Begin VB.UserControl ctlMktStruct
          ForeColor       =   &H00808000&
          Height          =   195
          Left            =   120
-         TabIndex        =   33
+         TabIndex        =   32
          Top             =   1380
          Width           =   1530
       End
@@ -1494,7 +1538,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Symbol :"
          Height          =   255
          Left            =   120
-         TabIndex        =   32
+         TabIndex        =   31
          Top             =   480
          Width           =   735
       End
@@ -1503,7 +1547,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Name :"
          Height          =   255
          Left            =   1680
-         TabIndex        =   31
+         TabIndex        =   30
          Top             =   480
          Width           =   735
       End
@@ -1512,7 +1556,7 @@ Begin VB.UserControl ctlMktStruct
          Caption         =   "Prim. Exchange :"
          Height          =   255
          Left            =   3240
-         TabIndex        =   30
+         TabIndex        =   29
          Top             =   2160
          Width           =   1575
       End
@@ -1522,7 +1566,7 @@ Begin VB.UserControl ctlMktStruct
       Caption         =   "Skew :"
       Height          =   255
       Left            =   0
-      TabIndex        =   47
+      TabIndex        =   45
       Top             =   0
       Width           =   735
    End
@@ -1600,11 +1644,13 @@ Private Enum GridColumns
     OPT_CALLCLOSEPRICE = 2
     OPT_STRIKE = 3
     OPT_EXPIRATION = 4
-    OPT_PUTSYMBOL = 5
-    OPT_PUTIMPORTSYMBOL = 6
-    OPT_PUTCLOSEPRICE = 7
-    OPT_HIDDENCOLUMN = 8
-    OPT_COLUMNS_COUNT = 9
+    OPT_EXPIRYVALUATION = 5
+    OPT_PUTSYMBOL = 6
+    OPT_PUTIMPORTSYMBOL = 7
+    OPT_PUTCLOSEPRICE = 8
+    OPT_HIDDENCOLUMN = 9
+'    OPT_TRADINGCLOSE = 10
+    OPT_COLUMNS_COUNT = 10
     OPT_LAST_COLUMN = OPT_COLUMNS_COUNT - 1
 End Enum
 
@@ -1696,12 +1742,16 @@ Private PrevV As eContractType
 
 Dim m_Roots As New clsFutureRootColl
 Dim bMatChanged As Boolean
+Dim bExpiryOVChanged As Boolean
+Dim bDblClickHandled As Boolean
 Dim dtFutMaturity As Date
 
 Private m_sCurrentOriginalText As String
 
 Private m_frmCustDivs As New frmCustomDivs
 Private m_bFireEvent As Boolean
+Private m_bDTPIsDroppedDown As Boolean
+
 
 
 '****************************************************
@@ -1716,7 +1766,6 @@ Private m_bFireEvent As Boolean
 '****************************************************
 '****************************************************
 '****************************************************
-
 
 Public Sub Activate()
     On Error Resume Next
@@ -1848,7 +1897,6 @@ Private Sub btnSymbLoadIV_Click()
     End If
     
     If ContractCanProceed Then
-        
         m_OldContract = m_Contract
         
         frmSymbolsLoadFrIV.Execute
@@ -1911,6 +1959,10 @@ End Sub
 Private Sub cmdAsset_Click()
     On Error Resume Next
     If ContractCanProceed Then frmAssetGroupEditor.Execute m_Contract.ID, m_Contract.Symbol
+End Sub
+
+Private Sub ComboBox1_Change()
+
 End Sub
 
 Private Sub DeleteButton_Click()
@@ -2161,7 +2213,6 @@ End Sub
 
 Private Sub dtMaturityPicker_CloseUp()
     If (bMatChanged) Then
-    
         On Error Resume Next
         If m_State = STATE_NONE Then
             SetState STATE_CONTRACT_EDIT
@@ -2170,14 +2221,11 @@ Private Sub dtMaturityPicker_CloseUp()
         End If
         dtFutMaturity = dtMaturityPicker.Value
         bMatChanged = False
-        
     End If
 End Sub
 
-
 Private Sub dtMaturityPicker_LostFocus()
     If (bMatChanged) Then
-        
         On Error Resume Next
         If m_State = STATE_NONE Then
             SetState STATE_CONTRACT_EDIT
@@ -2186,8 +2234,111 @@ Private Sub dtMaturityPicker_LostFocus()
         End If
         dtFutMaturity = dtMaturityPicker.Value
         bMatChanged = False
-        
     End If
+End Sub
+
+'**************************************************
+'              datepicker events
+'**************************************************
+Private Sub DTPicker2_Change()
+On Error Resume Next
+    grdOptions.Text = IIf(dtPicker2.Value = "", dtPicker2.Tag, Format$(dtPicker2.Value, "MMM,dd yyyy hh:mm AM/PM"))
+    bExpiryOVChanged = True
+    If m_State = STATE_NONE Then
+        SetState STATE_CONTRACT_EDIT
+        m_OldContract = m_Contract
+        SetContractButtonsState
+    End If
+End Sub
+
+'Private Sub DTPicker2_Click()
+'    On Error Resume Next
+'    If m_State = STATE_NONE Then
+'        SetState STATE_CONTRACT_EDIT
+'        m_OldContract = m_Contract
+'        SetContractButtonsState
+'    End If
+'    SendKeys "{F4}"
+'End Sub
+
+Private Sub DTPicker2_CloseUp()
+    If (bExpiryOVChanged) Then
+        On Error Resume Next
+        If m_State = STATE_NONE Then
+            SetState STATE_CONTRACT_EDIT
+            m_OldContract = m_Contract
+            SetContractButtonsState
+        End If
+        Timer1.Enabled = True
+        m_bDTPIsDroppedDown = False
+    End If
+End Sub
+
+Private Sub DTPicker2_DropDown()
+    m_bDTPIsDroppedDown = True
+End Sub
+
+Private Sub DTPicker2_KeyDown(KeyCode As Integer, Shift As Integer)
+    On Error Resume Next
+    ' close date picker when user hits escape or return or tab
+    Select Case KeyCode
+        Case vbKeyEscape
+            grdOptions.Text = dtPicker2.Tag
+            dtPicker2.Visible = False
+        Case vbKeyReturn
+            SendKeys "{TAB}"
+        Case vbKeyTab
+            dtPicker2.Visible = False
+            bExpiryOVChanged = True
+            bDblClickHandled = True
+            grdOptions.SetFocus
+    End Select
+End Sub
+
+Private Sub DTPicker2_LostFocus()
+On Error Resume Next
+    If (bExpiryOVChanged) Then
+        If m_State = STATE_NONE Then
+            SetState STATE_CONTRACT_EDIT
+            m_OldContract = m_Contract
+            SetContractButtonsState
+        End If
+'        grdOptions.Text = IIf(dtPicker2.Value = "", dtPicker2.Tag, Format$(dtPicker2.Value, "MMM,dd yyyy hh:mm am/pm"))
+'        bExpiryOVChanged = False
+    End If
+    Timer1.Enabled = True
+    dtPicker2.Refresh
+    dtPicker2.Visible = False
+    'SendKeys "{ESC}"
+    grdOptions.SetFocus
+End Sub
+
+Private Sub DTPicker2_Validate(Cancel As Boolean)
+'    grdOptions.SetFocus
+    bExpiryOVChanged = True
+End Sub
+
+Private Sub ExpirationForOV_Click()
+    On Error Resume Next
+    
+    With grdOptions
+        bDblClickHandled = False
+        ' position date picker control over cell
+        dtPicker2.Move .CellLeft, .CellTop - 10, .CellWidth + 500, .CellHeight + 50
+            
+        ' initialize value, save original in tag in case user hits escape
+        dtPicker2.Value = IIf(.Text = "", Format$(Date, "MMM,dd yyyy hh:mm AM/PM"), .Text)
+        dtPicker2.Tag = .Text
+                        
+        grdOptions.Text = dtPicker2.Tag
+            
+        ' show and activate date picker control
+        dtPicker2.Visible = True
+        dtPicker2.SetFocus
+            
+        ' make it drop down the calendar
+        SendKeys "{f4}"
+    End With
 End Sub
 
 Private Sub fgRoots_AfterEdit(ByVal Row As Long, ByVal Col As Long)
@@ -2299,10 +2450,22 @@ Private Sub grdOptions_AfterSort(ByVal Col As Long, Order As Integer)
             For nRow = 2 To .Rows - 1
                 .Cell(flexcpBackColor, nRow, OPT_CALLSYMBOL, nRow, OPT_CALLCLOSEPRICE) = iCurColor1
                 .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRATION) = iCurColor2
+                .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRYVALUATION) = iCurColor2
                 .Cell(flexcpBackColor, nRow, OPT_PUTSYMBOL, nRow, OPT_PUTCLOSEPRICE) = iCurColor1
             Next nRow
         End If
     End With
+End Sub
+
+Private Sub rbUseBasketIndex_Click()
+    On Error Resume Next
+    If m_State = STATE_NONE Then
+        SetState STATE_CONTRACT_EDIT
+        m_OldContract = m_Contract
+        SetContractButtonsState
+    End If
+    
+    UpdateStateOfDivControls
 End Sub
 
 Private Sub rbUseCustFreq_Click()
@@ -2313,19 +2476,7 @@ Private Sub rbUseCustFreq_Click()
         SetContractButtonsState
     End If
     
-    Dim IsManual As Boolean
-    If rbUseCustFreq.Value Then
-        cboDivFreq(1).Enabled = True
-        dtpDivDate(1).Enabled = True
-        txtDivAmt(1).Enabled = True
-        btnCustDivs.Enabled = False
-                            Else
-        cboDivFreq(1).Enabled = False
-        dtpDivDate(1).Enabled = False
-        txtDivAmt(1).Enabled = False
-        btnCustDivs.Enabled = True
-    
-    End If
+    UpdateStateOfDivControls
 End Sub
 
 Private Sub rbUseCustStream_Click()
@@ -2336,19 +2487,29 @@ Private Sub rbUseCustStream_Click()
         SetContractButtonsState
     End If
     
-    Dim IsManual As Boolean
-    If rbUseCustStream.Value Then
-        cboDivFreq(1).Enabled = False
-        dtpDivDate(1).Enabled = False
-        txtDivAmt(1).Enabled = False
-        btnCustDivs.Enabled = True
-                            Else
-        cboDivFreq(1).Enabled = True
-        dtpDivDate(1).Enabled = True
-        txtDivAmt(1).Enabled = True
-        btnCustDivs.Enabled = False
-    
+    UpdateStateOfDivControls
+End Sub
+
+Private Sub rbUseIndexYield_Click()
+    On Error Resume Next
+    If m_State = STATE_NONE Then
+        SetState STATE_CONTRACT_EDIT
+        m_OldContract = m_Contract
+        SetContractButtonsState
     End If
+    
+    UpdateStateOfDivControls
+End Sub
+
+Private Sub rbUseMarketDiv_Click()
+    On Error Resume Next
+    If m_State = STATE_NONE Then
+        SetState STATE_CONTRACT_EDIT
+        m_OldContract = m_Contract
+        SetContractButtonsState
+    End If
+    
+    UpdateStateOfDivControls
 End Sub
 
 Private Sub txtKurt_Change()
@@ -2420,27 +2581,6 @@ Public Function Init() As Boolean
     
     SetState STATE_LOAD
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     PrevV = GINT_STOCKS
     btnContractFunderlying.Visible = g_Params.Commodity
     
@@ -2473,13 +2613,76 @@ Public Function Init() As Boolean
     SetState STATE_NONE
     
     SetContractButtonsState
-    
+        
     Init = True
     Exit Function
 EH:
     ShowError "Fail to initialize Market Structure control"
     SetContractButtonsState
 End Function
+
+Private Sub UpdateStateOfDivControls()
+    'MarketDividends
+    cboDivFreq(0).Enabled = False 'rbUseMarketDiv.Value
+    dtpDivDate(0).Enabled = False 'rbUseMarketDiv.Value
+    txtDivAmt(0).Enabled = False 'rbUseMarketDiv.Value
+    'CustomPeriodical
+    cboDivFreq(1).Enabled = rbUseCustFreq.Value
+    dtpDivDate(1).Enabled = rbUseCustFreq.Value
+    txtDivAmt(1).Enabled = rbUseCustFreq.Value
+    'CustomStream
+    btnCustDivs.Enabled = rbUseCustStream.Value
+    'BasketDivs
+    btnComponents.Enabled = rbUseBasketIndex.Value
+    btnComponentsDividends.Enabled = rbUseBasketIndex.Value
+    'Yield
+    txtYield.Enabled = rbUseIndexYield.Value
+End Sub
+
+Private Sub SetDividendType(ByVal enDivType As Long)
+
+    Dim bStkEnable As Boolean
+    Dim bIdxEnable As Boolean
+    
+    'Set All As False
+    rbUseMarketDiv.Value = False
+    rbUseBasketIndex.Value = False
+    rbUseIndexYield.Value = False
+    rbUseCustStream.Value = False
+    rbUseCustFreq.Value = False
+    
+    ' Set Actual Div Type Control
+    If (enDivType = enDivMarket) Then
+        rbUseMarketDiv.Value = True
+    ElseIf (enDivType = enDivStockBasket) Then
+        rbUseBasketIndex.Value = True
+    ElseIf (enDivType = enDivIndexYield) Then
+        rbUseIndexYield.Value = True
+    ElseIf (enDivType = enDivCustomStream) Then
+        rbUseCustStream.Value = True
+    ElseIf (enDivType = enDivCustomPeriodical) Then
+        rbUseCustFreq.Value = True
+    End If
+    
+    bStkEnable = False: bIdxEnable = False
+    If (m_ContractType = GINT_INDEXES) Then
+        bIdxEnable = True
+    ElseIf (m_ContractType = GINT_STOCKS) Then
+        bStkEnable = True
+    End If
+    
+    'Set Enables
+    rbUseIndexYield.Enabled = bIdxEnable
+    rbUseBasketIndex.Enabled = bIdxEnable
+    rbUseMarketDiv.Enabled = bIdxEnable Or bStkEnable
+    rbUseCustStream.Enabled = bIdxEnable Or bStkEnable
+    rbUseCustFreq.Enabled = bIdxEnable Or bStkEnable
+    
+    'UpdateControl
+    UpdateStateOfDivControls
+    
+End Sub
+
 
 '****************************************************
 ' control properties
@@ -2561,15 +2764,10 @@ Private Sub SetContractType(ByVal v As eContractType)
     End If
     
     ' controls customizing
-    chkIsBasket.Visible = (m_ContractType = GINT_INDEXES)
-    btnComponents.Visible = False
-    
     btnUpdateComposition.Visible = (m_ContractType = GINT_INDEXES)
     
-    btnComponentsDividends.Visible = False
-    
     For i = 0 To 1
-        lblDivFreq(i).Visible = (m_ContractType = GINT_STOCKS Or (i = 1 And m_ContractType = GINT_INDEXES))
+        lblDivFreq(i).Visible = (m_ContractType = GINT_STOCKS Or m_ContractType = GINT_INDEXES)
         cboDivFreq(i).Visible = lblDivFreq(i).Visible
         lblDivDate(i).Visible = lblDivFreq(i).Visible
         dtpDivDate(i).Visible = lblDivFreq(i).Visible
@@ -2582,16 +2780,25 @@ Private Sub SetContractType(ByVal v As eContractType)
     
     lblPrimExchange.Visible = ((m_ContractType = GINT_STOCKS Or m_ContractType = GINT_INDEXES) And m_ContractType <> GINT_COMMODITIES)
     cboPrimExchange.Visible = lblPrimExchange.Visible
-    chkUseManualDivData.Visible = bVisibleComponents
     Shape1.Visible = bVisibleComponents
     rbUseCustFreq.Visible = bVisibleComponents
     rbUseCustStream.Visible = bVisibleComponents
     btnCustDivs.Visible = bVisibleComponents
     
+    'visible ctrls for divEdition
+    rbUseIndexYield.Visible = bVisibleComponents
+    rbUseBasketIndex.Visible = bVisibleComponents
+    rbUseMarketDiv.Visible = bVisibleComponents
+    rbUseCustStream.Visible = bVisibleComponents
+    rbUseCustFreq.Visible = bVisibleComponents
+    lblYield.Visible = bVisibleComponents
+    txtYield.Visible = bVisibleComponents
+    btnComponents.Visible = bVisibleComponents
+    btnComponentsDividends.Visible = bVisibleComponents
+    lblDivType.Visible = bVisibleComponents
+    
     cmdAsset.Visible = (m_ContractType <> GINT_COMMODITIES And m_ContractType <> GINT_FUTURES)
     
-    lblYield.Visible = (m_ContractType = GINT_INDEXES)
-    txtYield.Visible = lblYield.Visible
     btnFuturesRoots.Visible = (lblYield.Visible Or m_ContractType = GINT_COMMODITIES)
     
     lblSkew.Visible = (m_ContractType <> GINT_FUTURES And m_ContractType <> GINT_COMMODITIES)
@@ -2833,9 +3040,17 @@ End Function
 Public Function ContractCanProceed() As Boolean
     On Error GoTo EH
     
+    Dim aRoot As clsFutureRootAtom
+    
+    If m_bDTPIsDroppedDown Then Exit Function
+    If dtPicker2.Visible Then Exit Function
+    
     If m_State = STATE_CONTRACT_ADD Or m_State = STATE_CONTRACT_EDIT Then
         Select Case gCmn.MyMsgBox("Do you wish to save changes?", vbYesNoCancel)
             Case vbYes
+'                If bExpiryOVChanged Then OptionPairEdit (False)
+'                If bExpiryOVChanged Then ContractCanProceed = SaveData(aRoot) 'sosed
+
                 ' save contract
                 ContractCanProceed = ContractSave
             Case vbNo
@@ -2880,6 +3095,8 @@ Private Function ContractSave() As Boolean
         Exit Function
     End If
     
+    If bExpiryOVChanged Then OptionPairEdit (False)
+    
     sSymbol = UCase$(Trim$(txtSymbol.Text))
     
     ' checking valid contract simbol
@@ -2901,7 +3118,7 @@ Private Function ContractSave() As Boolean
             End If
         End With
     End If
-
+        
     ' reading data from a form
     vId = DBWrite(m_Contract.ID, 0)
     sName = Trim(txtName.Text)
@@ -2920,19 +3137,16 @@ Private Function ContractSave() As Boolean
     
     If m_ContractType = GINT_STOCKS Then
         vExchangeID = DBWrite(cboPrimExchange.Value, 0)
-        IsManual = (chkUseManualDivData.Value <> 0)
-        If IsManual Then
-            
-            If (rbUseCustFreq.Value) Then
-                lDivType = 1
-            End If
-            
-            If (rbUseCustStream.Value) Then
-                lDivType = 2
-            End If
-                    
-                    Else
+        
+        If (rbUseMarketDiv.Value = True) Then
             lDivType = 0
+            IsManual = False
+        ElseIf (rbUseCustFreq.Value = True) Then
+            lDivType = 1
+            IsManual = True
+        ElseIf (rbUseCustStream.Value = True) Then
+            lDivType = 2
+            IsManual = True
         End If
         
         iDivFreq = 0
@@ -2962,7 +3176,6 @@ Private Function ContractSave() As Boolean
     End If
     
     If m_ContractType = GINT_INDEXES Then
-        IsBasket = (chkIsBasket.Value <> 0)
         vExchangeID = DBWrite(cboPrimExchange.Value, 0)
         
         If Not IsNumeric(txtYield.Text) Then
@@ -2971,26 +3184,43 @@ Private Function ContractSave() As Boolean
             Exit Function
         End If
         
-        IsManual = (chkUseManualDivData.Value <> 0)
-        If IsManual Then
-            If (rbUseCustStream.Value) Then
-                lDivType = 2 'CustomStream
-            End If
-        Else
+        If (rbUseMarketDiv.Value = True) Then
+            lDivType = 0
+            IsManual = False
+        ElseIf (rbUseCustFreq.Value = True) Then
+            lDivType = 1
+            IsManual = True
+        ElseIf (rbUseCustStream.Value = True) Then
+            lDivType = 2
+            IsManual = True
+        ElseIf (rbUseIndexYield.Value = True) Then
+            lDivType = 4
+            IsManual = False
+        ElseIf (rbUseBasketIndex.Value = True) Then
+            lDivType = 3
+            IsManual = False
+        End If
+                
+        'Read Market Divs
+        iDivFreq = cboDivFreq(0).Value
+        If (IsNumeric(txtDivAmt(0).Text)) Then
+            fDivAmt = gCmn.ReadDbl(txtDivAmt(0).Text)
+        End If
+        dDivDate = dtpDivDate(0).Value
         
-            fYield = gCmn.ReadDbl(txtYield.Text) * 0.01
-            
-            If IsBasket Then
-                lDivType = 3 'Basket
-            Else
-                lDivType = 4 'Yield
-            End If
-               
-            If fYield < 0 Then
-                ShowWarning "Negative Yield value"
-                m_State = m_State1
-                Exit Function
-            End If
+        'Read Custom Stream
+        iDivFreq2 = cboDivFreq(1).Value
+        If (IsNumeric(txtDivAmt(1).Text)) Then
+            fDivAmt2 = gCmn.ReadDbl(txtDivAmt(1).Text)
+        End If
+        dDivDate2 = dtpDivDate(1).Value
+                
+        'Read Yield
+        fYield = gCmn.ReadDbl(txtYield.Text) * 0.01
+        If fYield < 0 Then
+            ShowWarning "Negative Yield value"
+            m_State = m_State1
+            Exit Function
         End If
         
     End If
@@ -3010,6 +3240,7 @@ Private Function ContractSave() As Boolean
         End If
         fKurt = gCmn.ReadDbl(txtKurt.Text)
     End If
+    
     Dim lType As Long
     
     If m_ContractType = GINT_COMMODITIES Then
@@ -3083,7 +3314,9 @@ Private Function ContractSave() As Boolean
                 , DBWrite(fKurt, 0) _
                 , 1 _
                 , vExchangeID _
-                , lDivType)
+                , lDivType _
+                , IIf(fDivAmt >= 0#, iDivFreq, Null), IIf(fDivAmt >= 0#, dDivDate, Null), IIf(fDivAmt >= 0#, fDivAmt, Null) _
+                , IIf(fDivAmt2 >= 0#, iDivFreq2, Null), IIf(fDivAmt2 >= 0#, dDivDate2, Null), IIf(fDivAmt2 >= 0#, fDivAmt2, Null))
     
         Case GINT_COMMODITIES
             vId = gDBW.usp_IC_Save( _
@@ -3463,7 +3696,6 @@ Private Sub ContractListLoad()
             If Not m_rsContractList.BOF Then m_rsContractList.MoveFirst
             m_Contract.ID = m_rsContractList!iContractID
             arr = .GetRows(, adBookmarkFirst, Array("vcSymbol", "iContractID", "iContractTypeID"))
-        
         Else
             m_Contract.ID = 0
             
@@ -3624,6 +3856,7 @@ Private Function ContractLoad() As Boolean
                             .DivDate = gCmn.ReadDate(rst!dtDivDate)
                         End If
                         .DivType = DBRead(rst!tiDivCustom)
+                                               
                         .DivFreq2 = gCmn.ReadDbl(rst!iDivFreqCustom)
                         If .DivFreq2 > 0 Then
                             .DivAmt2 = gCmn.ReadDbl(rst!fDivAmtCustom)
@@ -3646,7 +3879,6 @@ Private Function ContractLoad() As Boolean
                             .DivAmt = gCmn.ReadDbl(rst!fDivAmt)
                             .DivDate = gCmn.ReadDate(rst!dtDivDate)
                         End If
-                        
                         .DivType = DBRead(rst!tiDivCustom)
                         
                         .DivFreq2 = gCmn.ReadDbl(rst!iDivFreqCustom)
@@ -3690,33 +3922,8 @@ Private Function ContractLoad() As Boolean
         
                 IsManual = .DivUse2
                 CurDivType = .DivType
-                If (CurDivType = enDivMarket) Then
-                    chkUseManualDivData.Value = 0
-                    rbUseCustStream.Enabled = False
-                    rbUseCustFreq.Enabled = False
-                    
-                    rbUseCustFreq.Value = False
-                    rbUseCustStream.Value = False
-                    btnCustDivs.Enabled = False
-                End If
-                
-                If (CurDivType = enDivCustomPeriodical) Then
-                    chkUseManualDivData.Value = 1
-                    
-                    rbUseCustFreq.Value = True
-                    rbUseCustStream.Value = False
-                    btnCustDivs.Enabled = False
-                End If
-                
-                If (CurDivType = enDivCustomStream) Then
-                    chkUseManualDivData.Value = 1
-                    
-                    rbUseCustFreq.Value = False
-                    rbUseCustStream.Value = True
-                    btnCustDivs.Enabled = True
-                
-                End If
-                
+                SetDividendType CurDivType
+                                
                 chkIsActive.Value = IIf(.IsActive <> 0, 1, 0)
                 
                 SetCBOValue cboDivFreq(0), .DivFreq
@@ -3726,73 +3933,23 @@ Private Function ContractLoad() As Boolean
                 SetCBOValue cboDivFreq(1), .DivFreq2
                 dtpDivDate(1).Value = IIf(.DivDate2 = 0, Date, .DivDate2)
                 txtDivAmt(1).Text = gCmn.FmtDbl(.DivAmt2)
-                
-                ' Don't allow to edit Dividends info loaded from market provider
-                cboDivFreq(0).Enabled = False
-                dtpDivDate(0).Enabled = False
-                txtDivAmt(0).Enabled = False
-                
-                ' Allow to edit Dividends info if Manual mode is set
-                cboDivFreq(1).Enabled = IsManual
-                dtpDivDate(1).Enabled = IsManual
-                txtDivAmt(1).Enabled = IsManual
-                If CurDivType = enDivCustomPeriodical Then
-                    cboDivFreq(1).Enabled = True
-                    dtpDivDate(1).Enabled = True
-                    txtDivAmt(1).Enabled = True
-                End If
-        
+                       
             Case GINT_INDEXES
                 SetCBOValue cboPrimExchange, .ExchangeID
                 
                 txtYield.Text = gCmn.FmtDbl(.Yield * 100)
                 chkIsActive.Value = IIf(.IsActive <> 0, 1, 0)
-                
-                btnCustDivs.Visible = True
+
                 CurDivType = .DivType
+                SetDividendType CurDivType
                 
-                If (CurDivType = enDivCustomStream) Then
-                    chkUseManualDivData.Value = 1
-                    rbUseCustStream.Value = True
-                    btnCustDivs.Enabled = True
-                    
-                    btnComponents.Visible = False
-                    btnComponentsDividends.Visible = False
-                    
-                    lblYield.Visible = False
-                    txtYield.Visible = False
-                    chkIsBasket.Visible = False
-                ElseIf (CurDivType = enDivIndexYield) Then
+                SetCBOValue cboDivFreq(0), .DivFreq
+                dtpDivDate(0).Value = IIf(.DivDate = 0, Date, .DivDate)
+                txtDivAmt(0).Text = gCmn.FmtDbl(.DivAmt)
                 
-                    lblYield.Visible = True
-                    txtYield.Visible = True
-                    
-                    chkIsBasket.Visible = True
-                    chkUseManualDivData.Value = 0
-                    
-                    rbUseCustStream.Value = True
-                    btnCustDivs.Enabled = False
-                    
-                Else
-                    chkIsBasket.Value = IIf(.IsBasket, 1, 0)
-                    chkIsBasket.Visible = True
-                    btnComponents.Visible = .IsBasket
-                    btnComponentsDividends.Visible = .IsBasket
-                    
-                    chkUseManualDivData.Value = 0
-                    rbUseCustStream.Value = True
-                    btnCustDivs.Enabled = False
-                    
-                    lblYield.Visible = Not .IsBasket
-                    txtYield.Visible = Not .IsBasket
-                End If
-                
-                
-                rbUseCustFreq.Enabled = False
-                cboDivFreq(1).Enabled = False
-                dtpDivDate(1).Enabled = False
-                txtDivAmt(1).Enabled = False
-                rbUseCustFreq.Value = False
+                SetCBOValue cboDivFreq(1), .DivFreq2
+                dtpDivDate(1).Value = IIf(.DivDate2 = 0, Date, .DivDate2)
+                txtDivAmt(1).Text = gCmn.FmtDbl(.DivAmt2)
                 
             Case GINT_FUTURES
                 dtMaturityPicker.Value = IIf(.MaturityDate <> 0, .MaturityDate, Date)
@@ -3848,8 +4005,9 @@ Private Sub SetContractButtonsState()
     btnStockToIndex.Enabled = (m_State = STATE_NONE And m_ContractType <> GINT_FUTURES)
     btnCAExecute.Enabled = (m_State = STATE_NONE And m_ContractType = GINT_STOCKS)
     btnCAList.Enabled = (m_State = STATE_NONE And m_ContractType = GINT_STOCKS)
-
-    btnUpdateComposition.Enabled = (m_State = STATE_NONE And chkIsBasket.Value)
+    
+    'check achuchev sub-marketdivs
+    'btnUpdateComposition.Enabled = (m_State = STATE_NONE And chkIsBasket.Value)
 
     btnUnd.Enabled = (m_State = STATE_NONE)
     btnSymbLoadIV.Enabled = (m_State = STATE_NONE)
@@ -4057,7 +4215,6 @@ Private Sub OptionListLoad()
                 
                 ' Don't show expired options
                 If op.dExpiry >= Date Then
-                    
                     ' Insert option pair into grid
                     .AddItem ""
                     nRow = .Rows - 1
@@ -4072,7 +4229,9 @@ Private Sub OptionListLoad()
                     End If
                     .TextMatrix(nRow, OPT_STRIKE) = gCmn.FmtDbl(op.fStrike)
                     .TextMatrix(nRow, OPT_EXPIRATION) = gCmn.FmtDate(op.dExpiry)
-                    
+                    .TextMatrix(nRow, OPT_EXPIRYVALUATION) = gCmn.FmtDateTime(op.dExpiryOV)
+'                    .TextMatrix(nRow, OPT_TRADINGCLOSE) = gCmn.FmtDate(op.dTradingClose)
+
                     If op.sPutSymbol > "" Then
                         .TextMatrix(nRow, OPT_PUTSYMBOL) = op.sPutSymbol
                         .TextMatrix(nRow, OPT_PUTCLOSEPRICE) = CustomDbl(op.fPutClose)
@@ -4108,6 +4267,7 @@ Private Sub OptionListLoad()
             End If
             .Cell(flexcpBackColor, nRow, OPT_CALLSYMBOL, nRow, OPT_CALLCLOSEPRICE) = iCurColor1
             .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRATION) = iCurColor2
+            .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRYVALUATION) = iCurColor2
             .Cell(flexcpBackColor, nRow, OPT_PUTSYMBOL, nRow, OPT_PUTCLOSEPRICE) = iCurColor1
         Next nRow
         
@@ -4181,8 +4341,8 @@ Private Sub FormatOptionGrid()
         .Clear
         .Rows = 0
         .Cols = OPT_COLUMNS_COUNT
-        .AddItem "Calls" & vbTab & "Calls" & vbTab & "Calls" & vbTab & "Strike" & vbTab & "Expiration" & vbTab & "Puts" & vbTab & "Puts" & vbTab & "Puts"
-        .AddItem "Symbol" & vbTab & "Import Id" & vbTab & "Close" & vbTab & "Strike" & vbTab & "Expiration" & vbTab & "Symbol" & vbTab & "Import Id" & vbTab & "Close"
+        .AddItem "Calls" & vbTab & "Calls" & vbTab & "Calls" & vbTab & "Strike" & vbTab & "Expiration" & vbTab & "Expiration for option" & vbCr & " valuation" & vbTab & "Puts" & vbTab & "Puts" & vbTab & "Puts"
+        .AddItem "Symbol" & vbTab & "Import Id" & vbTab & "Close" & vbTab & "Strike" & vbTab & "Expiration" & vbTab & "Expiration for option" & vbCr & " valuation" & vbTab & "Symbol" & vbTab & "Import Id" & vbTab & "Close"
         .FixedRows = 2
         .FixedCols = 0
         .Cell(flexcpBackColor, 0, 0, 1, .Cols - 1) = GCOLOR_TABLE_CAPTION_BACK
@@ -4194,6 +4354,7 @@ Private Sub FormatOptionGrid()
         .MergeRow(1) = True
         .MergeCol(OPT_STRIKE) = True
         .MergeCol(OPT_EXPIRATION) = True
+        .MergeCol(OPT_EXPIRYVALUATION) = True
         .Cell(flexcpAlignment, 0, 0, 1, .Cols - 1) = flexAlignCenterCenter
         .HighLight = flexHighlightAlways
         .SelectionMode = flexSelectionByRow
@@ -4205,6 +4366,8 @@ Private Sub FormatOptionGrid()
         
         .ColDataType(OPT_EXPIRATION) = flexDTDate
         .ColFormat(OPT_EXPIRATION) = "MMM, DD YYYY"
+'        .ColDataType(OPT_EXPIRYVALUATION) = flexDTString 'Date
+'        .ColFormat(OPT_EXPIRYVALUATION) = "MMM,dd yyyy : hh:mm AM/PM"
         .ColHidden(OPT_HIDDENCOLUMN) = True
         .ColHidden(IC_HIDDENCOLUMN) = False
     End With
@@ -4350,20 +4513,20 @@ Public Sub OptionPairAdd()
     On Error GoTo EH
     Dim Opt As New clsOptionPairAtom
     Opt.dExpiry = Date
-    If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt) Then GeneralOptionListLoad
+    If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt, True) Then GeneralOptionListLoad
     Exit Sub
 EH:
     ShowError
 End Sub
 
 ' editing option pair
-Public Sub OptionPairEdit()
+Public Sub OptionPairEdit(bEdit As Boolean)
     On Error GoTo EH
     Dim Opt As New clsOptionPairAtom
     Dim iTopRow As Long
     Dim iCurRow As Long
     Dim iCurCol As Long
-
+'    Dim sDateTime As String
     ' getting Call and Put symbols
     With grdOptions
         Opt.sCallSymbol = .TextMatrix(.Row, OPT_CALLSYMBOL)
@@ -4381,7 +4544,11 @@ Public Sub OptionPairEdit()
                 Opt.iCallID = .Fields("iContractID")
                 Opt.fStrike = Round(.Fields("fStrike"), 4)
                 Opt.dExpiry = .Fields("dtExpiry")
-                If m_ContractType <> GINT_FUTURES Then Opt.bCallManual = IIf(.Fields("vcIsFlex") = 0, False, True)
+                Opt.dExpiryOV = .Fields("dtExpiryOV")
+'                sDateTime = grdOptions.TextMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
+                Opt.dExpiryOV = grdOptions.TextMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
+'                Opt.dExpiryOV = gCmn.FmtDateTime(op.dExpiryOV)
+            If m_ContractType <> GINT_FUTURES Then Opt.bCallManual = IIf(.Fields("vcIsFlex") = 0, False, True)
                 Opt.bPutManual = Opt.bCallManual
             End If
             
@@ -4390,6 +4557,10 @@ Public Sub OptionPairEdit()
                 Opt.iPutID = .Fields("iContractID")
                 Opt.fStrike = Round(.Fields("fStrike"), 4)
                 Opt.dExpiry = .Fields("dtExpiry")
+                Opt.dExpiryOV = .Fields("dtExpiryOV")
+'                Opt.dExpiryOV = grdOptions.ValueMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
+                Opt.dExpiryOV = grdOptions.TextMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
+'                Opt.dExpiryOV = gCmn.FmtDateTime(op.dExpiryOV)
                 If m_ContractType <> GINT_FUTURES Then Opt.bCallManual = IIf(.Fields("vcIsFlex") = 0, False, True)
                 Opt.bPutManual = Opt.bCallManual
             End If
@@ -4399,8 +4570,11 @@ Public Sub OptionPairEdit()
             iCurRow = grdOptions.Row
             iCurCol = grdOptions.Col
             
-            ' showing option pair editor
-            If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt) Then GeneralOptionListLoad
+            If bEdit Then ' showing option pair editor
+                If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt, True) Then GeneralOptionListLoad
+            Else ' Just save data for Expiration Valuation
+                If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt, False) Then GeneralOptionListLoad
+            End If
             
             ' restoring grid state
             If iTopRow < grdOptions.Rows Then grdOptions.TopRow = iTopRow
@@ -4479,7 +4653,6 @@ Private Sub OptionPairRead(ByRef rst As ADODB.Recordset, ByRef op As clsOptionPa
 
     With op
         If rst!bIsCall <> 0 Then
-                        
             .iCallID = rst!iContractID
             .sCallSymbol = DBRead(rst!vcSymbol, "")
             .fCallClose = DBRead(rst!fPriceClose, 0)
@@ -4487,6 +4660,8 @@ Private Sub OptionPairRead(ByRef rst As ADODB.Recordset, ByRef op As clsOptionPa
             .iRootID = DBRead(rst!iOptionRootID, 0)
                         
             .dExpiry = DBRead(rst!dtExpiry, 0#)
+            .dExpiryOV = DBRead(rst!dtExpiryOV, 0#)
+            .dTradingClose = DBRead(rst!dtTradeClose, 0#)
             .fStrike = Round(DBRead(rst!fStrike, 0), 4)
             .iPutID = Null
             .sPutSymbol = ""
@@ -4522,6 +4697,8 @@ Private Sub OptionPairRead(ByRef rst As ADODB.Recordset, ByRef op As clsOptionPa
             .sCallImportSymbol = ""
             
             .dExpiry = DBRead(rst!dtExpiry, 0#)
+            .dExpiryOV = DBRead(rst!dtExpiryOV, 0#)
+            .dTradingClose = DBRead(rst!dtTradeClose, 0#)
             .fStrike = Round(DBRead(rst!fStrike, 0), 4)
             .iPutID = rst!iContractID
             .sPutSymbol = DBRead(rst!vcSymbol, "")
@@ -4626,7 +4803,7 @@ End Sub
 
 Private Sub btnOptionEdit_Click()
     On Error Resume Next
-    If ContractCanProceed Then OptionPairEdit
+    If ContractCanProceed Then OptionPairEdit (True)
 End Sub
 
 Private Sub cboContracts_Change()
@@ -4703,7 +4880,7 @@ End Sub
 
 Private Sub mnuOptionEdit_Click()
     On Error Resume Next
-    OptionPairEdit
+    OptionPairEdit (True)
 End Sub
 
 Private Sub mnuOptionPutPrices_Click()
@@ -4762,6 +4939,7 @@ Private Sub mnuOptionsDefSort_Click()
             End If
             .Cell(flexcpBackColor, nRow, OPT_CALLSYMBOL, nRow, OPT_CALLCLOSEPRICE) = iCurColor1
             .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRATION) = iCurColor2
+            .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRYVALUATION) = iCurColor2
             .Cell(flexcpBackColor, nRow, OPT_PUTSYMBOL, nRow, OPT_PUTCLOSEPRICE) = iCurColor1
         Next
         
@@ -4845,15 +5023,6 @@ Private Sub cboDivFreq_Click(Index As Integer)
         m_OldContract = m_Contract
         SetContractButtonsState
     End If
-    
-    If cboDivFreq(Index).ListIndex > 0 Then
-        dtpDivDate(Index).Enabled = True
-        txtDivAmt(Index).Enabled = True
-    Else
-        dtpDivDate(Index).Enabled = False
-        txtDivAmt(Index).Enabled = False
-    End If
-
 End Sub
 
 Private Sub dtpDivDate_Change(Index As Integer)
@@ -4959,7 +5128,11 @@ Private Sub grdOptions_DblClick()
     On Error GoTo EH
     Dim iRow As Long
     Dim iCol As Long
-    
+
+    If bDblClickHandled Then
+        bDblClickHandled = False
+        Exit Sub
+    End If
     With grdOptions
         iRow = .Row
         iCol = .Col
@@ -4969,7 +5142,9 @@ Private Sub grdOptions_DblClick()
                 Case OPT_CALLSYMBOL, OPT_CALLCLOSEPRICE, OPT_CALLIMPORTSYMBOL
                     mnuOptionCallPrices_Click
                 Case OPT_STRIKE, OPT_EXPIRATION
-                    OptionPairEdit
+                    OptionPairEdit (True)
+                Case OPT_EXPIRYVALUATION
+                    ExpirationForOV_Click
                 Case OPT_PUTSYMBOL, OPT_PUTCLOSEPRICE, OPT_PUTIMPORTSYMBOL
                     mnuOptionPutPrices_Click
             End Select
@@ -4980,8 +5155,6 @@ Private Sub grdOptions_DblClick()
             SetContractType GINT_FUTURES
             cboContracts.Text = s
             cboContracts_Validate (True)
-            
-            
         End If
     End With
     Exit Sub
@@ -5001,50 +5174,6 @@ End Function
 Public Function RefreshCurrent()
     ContractLoad
 End Function
-
-Private Sub chkUseManualDivData_Click()
-    On Error Resume Next
-    If m_State = STATE_NONE Then
-        SetState STATE_CONTRACT_EDIT
-        m_OldContract = m_Contract
-        SetContractButtonsState
-    End If
-    
-    Dim IsManual As Boolean
-    IsManual = (chkUseManualDivData.Value <> 0)
-    cboDivFreq(1).Enabled = IsManual
-    dtpDivDate(1).Enabled = IsManual
-    txtDivAmt(1).Enabled = IsManual
-    rbUseCustFreq.Enabled = IsManual
-    rbUseCustStream.Enabled = IsManual
-    btnCustDivs.Enabled = IsManual
-    
-   If (rbUseCustFreq.Enabled And rbUseCustStream.Enabled) Then
-       If (Not rbUseCustFreq.Value And Not rbUseCustStream.Value) Then
-            rbUseCustFreq.Value = True
-            cboDivFreq(1).Enabled = True
-            dtpDivDate(1).Enabled = True
-            txtDivAmt(1).Enabled = True
-            btnCustDivs.Enabled = False
-       End If
-   End If
-   
-   If (m_ContractType = GINT_INDEXES) Then
-       rbUseCustFreq.Value = False
-       rbUseCustFreq.Enabled = False
-       cboDivFreq(1).Enabled = False
-       dtpDivDate(1).Enabled = False
-       txtDivAmt(1).Enabled = False
-       
-       If (IsManual) Then
-            chkIsBasket.Value = False
-       End If
-       
-       chkIsBasket.Visible = Not IsManual
-       lblYield.Visible = Not IsManual
-       txtYield.Visible = Not IsManual
-   End If
-End Sub
 
 Private Sub btnUnd_Click()
     On Error GoTo EH
@@ -5111,12 +5240,13 @@ Private Sub chkIsBasket_Click()
         SetContractButtonsState
     End If
     
-    Dim IsBasket As Boolean
-    IsBasket = (chkIsBasket.Value <> 0)
-    btnComponents.Visible = IsBasket
-    btnComponentsDividends.Visible = IsBasket
-    lblYield.Visible = Not IsBasket
-    txtYield.Visible = Not IsBasket
+'   check achuchev sub-marketdivs
+'    Dim IsBasket As Boolean
+'    IsBasket = (chkIsBasket.Value <> 0)
+'    btnComponents.Visible = IsBasket
+'    btnComponentsDividends.Visible = IsBasket
+'    lblYield.Visible = Not IsBasket
+'    txtYield.Visible = Not IsBasket
 End Sub
 
 Private Sub btnComponents_Click()
@@ -5157,10 +5287,10 @@ Private Sub FutureOptionListLoad()
                 
                 ' Don't show expired options
                 If op.dExpiry >= Date Then
-                    
                     ' Insert option pair into grid
                     .AddItem ""
                     nRow = .Rows - 1
+                    
                     If op.sCallSymbol > "" Then
                         .TextMatrix(nRow, OPT_CALLSYMBOL) = op.sCallSymbol
                         .TextMatrix(nRow, OPT_CALLCLOSEPRICE) = CustomDbl(op.fCallClose)
@@ -5172,6 +5302,9 @@ Private Sub FutureOptionListLoad()
                     End If
                     .TextMatrix(nRow, OPT_STRIKE) = gCmn.FmtDbl(op.fStrike)
                     .TextMatrix(nRow, OPT_EXPIRATION) = gCmn.FmtDate(op.dExpiry)
+                    .TextMatrix(nRow, OPT_EXPIRYVALUATION) = gCmn.FmtDateTime(op.dExpiryOV)
+'                    .TextMatrix(nRow, OPT_TRADINGCLOSE) = gCmn.FmtDate(op.dTradingClose)
+                    
                     If op.sPutSymbol > "" Then
                         .TextMatrix(nRow, OPT_PUTSYMBOL) = op.sPutSymbol
                         .TextMatrix(nRow, OPT_PUTCLOSEPRICE) = CustomDbl(op.fPutClose)
@@ -5207,6 +5340,7 @@ Private Sub FutureOptionListLoad()
             End If
             .Cell(flexcpBackColor, nRow, OPT_CALLSYMBOL, nRow, OPT_CALLCLOSEPRICE) = iCurColor1
             .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRATION) = iCurColor2
+            .Cell(flexcpBackColor, nRow, OPT_STRIKE, nRow, OPT_EXPIRYVALUATION) = iCurColor2
             .Cell(flexcpBackColor, nRow, OPT_PUTSYMBOL, nRow, OPT_PUTCLOSEPRICE) = iCurColor1
         Next nRow
         
@@ -5221,4 +5355,5 @@ EH:
     grdOptions.Redraw = flexRDBuffered
     ShowError
 End Sub
+
 

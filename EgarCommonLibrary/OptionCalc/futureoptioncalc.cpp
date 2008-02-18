@@ -24,7 +24,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 									 double	dFuturePrice,
 									 double	dStrike,
 									 double	dVolatility, 
-									 long	nDTE,
+									 double	dYTE,
 									 bool	bIsCall,
 									 bool	bIsAmerican,
 									 long	nSteps,
@@ -43,7 +43,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 	{
 	case MM_EGAR_BS			:
 		return CFO_BlackScholes3(dDomesticRate,  dYield, bSpotPrice, dFuturePrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
 	case MM_EGAR_BINOMIAL	:	
 		if (!bIsAmerican || bIsCall )
 			return CFO_BlackScholes3(
@@ -53,7 +53,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 			dFuturePrice,						
 			dStrike,						
 			dVolatility,						
-			nDTE,						
+			dYTE,						
 			bIsCall,						
 			bIsAmerican,
 			pDivAmnts,
@@ -68,7 +68,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 			dFuturePrice,
 			dStrike,
 			dVolatility,
-			nDTE,
+			dYTE,
 			bIsCall,						
 			bIsAmerican,						
 			nSteps,
@@ -86,7 +86,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 			dFuturePrice,						
 			dStrike,						
 			dVolatility,						
-			nDTE,						
+			dYTE,						
 			bIsCall,						
 			bIsAmerican,						
 			pDivAmnts,
@@ -101,7 +101,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 			dFuturePrice,
 			dStrike,
 			dVolatility,
-			nDTE,
+			dYTE,
 			bIsCall,						
 			bIsAmerican,						
 			cnOptimizedBinomialSteps,
@@ -111,7 +111,7 @@ static double CalculateFutureOption3(double	dDomesticRate,
 			pGreeks);
 	case MM_EGAR_VSKLOG		:	
 		return CFO_VskLog3(dDomesticRate, dYield, bSpotPrice, dFuturePrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, dSkew, dKurtosis, pDivAmnts, pDivYears, nCount, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, dSkew, dKurtosis, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	default: return OPM::BadDoubleValue;
 	}
@@ -122,7 +122,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 								double	dFuturePrice,
 								double	dStrike,
 								double	dVolatility, 
-								long	nDTE,
+								double	dYTE,
 								bool	bIsCall,
 								bool	bIsAmerican,
 								long	nSteps,
@@ -141,7 +141,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 	{
 	case MM_EGAR_BS			:
         return CFO_BlackScholes(dDomesticRate, dFuturePrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
 	case MM_EGAR_BINOMIAL	:	
 		if (!bIsAmerican || bIsCall )
 			return CFO_BlackScholes(
@@ -149,7 +149,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 							dFuturePrice,						
 							dStrike,						
 							dVolatility,						
-							nDTE,						
+							dYTE,						
 							bIsCall,						
 							bIsAmerican,
 							pDivAmnts,
@@ -162,7 +162,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 							dFuturePrice,
 							dStrike,
 							dVolatility,
-							nDTE,
+							dYTE,
 							bIsCall,						
 							bIsAmerican,						
 							nSteps,
@@ -178,7 +178,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 							dFuturePrice,						
 							dStrike,						
 							dVolatility,						
-							nDTE,						
+							dYTE,						
 							bIsCall,						
 							bIsAmerican,						
 							pDivAmnts,
@@ -191,7 +191,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 							dFuturePrice,
 							dStrike,
 							dVolatility,
-							nDTE,
+							dYTE,
 							bIsCall,						
 							bIsAmerican,						
 							cnOptimizedBinomialSteps,
@@ -201,7 +201,7 @@ static double CalculateFutureOption(double	dDomesticRate,
 							pGreeks);
 	case MM_EGAR_VSKLOG		:	
         return CFO_VskLog(dDomesticRate, dFuturePrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, dSkew, dKurtosis, pDivAmnts, pDivYears, nCount, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, dSkew, dKurtosis, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	default: return OPM::BadDoubleValue;
 	}
@@ -212,7 +212,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 									bool	bSpotPrice,
 									double	dStrike,
 									double	dVolatility, 
-									long	nDTE,
+									double	dYTE,
 									bool	bIsCall,
 									bool	bIsAmerican,
 									long	nSteps,
@@ -231,7 +231,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 	{
 	case MM_EGAR_BS			:
 		return CFO_BlackScholes2(dDomesticRate, dFuturePrice, bSpotPrice, dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, pDivAmnts, pDivYears, nCount, pGreeks);
 	case MM_EGAR_BINOMIAL	:	
 		if (!bIsAmerican || bIsCall )
 			return CFO_BlackScholes2(
@@ -240,7 +240,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 			bSpotPrice, 
 			dStrike,						
 			dVolatility,						
-			nDTE,						
+			dYTE,						
 			bIsCall,						
 			bIsAmerican,
 			pDivAmnts,
@@ -254,7 +254,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 		    bSpotPrice, 
 			dStrike,
 			dVolatility,
-			nDTE,
+			dYTE,
 			bIsCall,						
 			bIsAmerican,						
 			nSteps,
@@ -271,7 +271,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 			bSpotPrice, 
 			dStrike,						
 			dVolatility,						
-			nDTE,						
+			dYTE,						
 			bIsCall,						
 			bIsAmerican,						
 			pDivAmnts,
@@ -285,7 +285,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 			bSpotPrice, 
 			dStrike,
 			dVolatility,
-			nDTE,
+			dYTE,
 			bIsCall,						
 			bIsAmerican,						
 			cnOptimizedBinomialSteps,
@@ -295,7 +295,7 @@ static double CalculateFutureOption2(double	dDomesticRate,
 			pGreeks);
 	case MM_EGAR_VSKLOG		:	
 		return CFO_VskLog2(dDomesticRate, dFuturePrice,  bSpotPrice,  dStrike,
-			dVolatility, nDTE, bIsCall, bIsAmerican, dSkew, dKurtosis, pDivAmnts, pDivYears, nCount, pGreeks);
+			dVolatility, dYTE, bIsCall, bIsAmerican, dSkew, dKurtosis, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	default: return OPM::BadDoubleValue;
 	}
@@ -309,7 +309,7 @@ double OPTIONCALC_API CalcFutureOptionVolatility(	double	dDomesticRate,
 											double	dFuturePrice,
 											double	dOptionPrice,
 											double	dStrike,
-											long	nDTE,
+											double	dYTE,
 											long	nIsCall,
 											long	nIsAmerican,
 											long	nSteps,
@@ -339,13 +339,13 @@ double OPTIONCALC_API CalcFutureOptionVolatility(	double	dDomesticRate,
 
 	// Calculate boundary values
 	double dOptValMin = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-		dVolaLeft, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolaLeft, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		max(nSteps, 5), dSkew, dKurtosis, nModel, NULL, NULL, 0);	
 	if(OPM::IsBadValue(dOptValMin))
 		dOptValMin = 0.;
 
 	double dOptValMax = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-		dVolaRight, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolaRight, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		max(nSteps, 5), dSkew, dKurtosis, nModel, NULL, NULL, 0);
 	if(OPM::IsBadValue(dOptValMax))
 		dOptValMax = 0.;
@@ -374,7 +374,7 @@ double OPTIONCALC_API CalcFutureOptionVolatility(	double	dDomesticRate,
 	
 		dVolaMed = 0.5 * (dVolaLeft + dVolaRight);	
 		dOptValMid = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-			dVolaMed, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+			dVolaMed, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 			max(nSteps, 5), dSkew, dKurtosis, nModel, NULL, NULL, 0, NULL);
 		if(OPM::IsBadValue(dOptValMid))
 			dOptValMid = 0.;
@@ -405,7 +405,7 @@ double OPTIONCALC_API CalcFutureOptionVolatilityCustDivs(	double	dDomesticRate,
 											double	dFuturePrice,
 											double	dOptionPrice,
 											double	dStrike,
-											long	nDTE,
+											double	dYTE,
 											long	nIsCall,
 											long	nIsAmerican,
 											long	nSteps,
@@ -449,13 +449,13 @@ double OPTIONCALC_API CalcFutureOptionVolatilityCustDivs(	double	dDomesticRate,
 
 	// Calculate boundary values
 	double dOptValMin = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-		dVolaLeft, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolaLeft, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		max(nSteps, 5), dSkew, dKurtosis,  nModel, pDivAmnts, pDivYears, nCount, NULL);
 	if(OPM::IsBadValue(dOptValMin))
 		dOptValMin = 0.;
 
 	double dOptValMax = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-		dVolaRight, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolaRight, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		max(nSteps, 5), dSkew, dKurtosis,  nModel, pDivAmnts, pDivYears, nCount, NULL);
 	if(OPM::IsBadValue(dOptValMax))
 		dOptValMax = 0.;
@@ -484,7 +484,7 @@ double OPTIONCALC_API CalcFutureOptionVolatilityCustDivs(	double	dDomesticRate,
 	
 		dVolaMed = 0.5 * (dVolaLeft + dVolaRight);	
 		dOptValMid = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-			dVolaMed, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+			dVolaMed, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 			max(nSteps, 5), dSkew, dKurtosis, nModel, pDivAmnts, pDivYears, nCount, NULL);
 		if(OPM::IsBadValue(dOptValMid))
 			dOptValMid = 0.;
@@ -524,7 +524,7 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs(	double	dDomesticRate,
 									double	dFuturePrice,
 									double	dStrike,
 									double	dVolatility, 
-									long	nDTE,
+									double	dYTE,
 									long	nIsCall,
 									long	nIsAmerican,
 									long	nSteps,
@@ -572,7 +572,7 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs(	double	dDomesticRate,
 	pGreeks->nMask = gt;
 
 	pGreeks->dTheoPrice = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolatility, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, pDivYears, pDivAmnts, nCount, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))
@@ -593,7 +593,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks(	double	dDomesticRate,
 									double	dFuturePrice,
 									double	dStrike,
 									double	dVolatility, 
-									long	nDTE,
+									double	dYTE,
 									long	nIsCall,
 									long	nIsAmerican,
 									long	nSteps,
@@ -628,7 +628,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks(	double	dDomesticRate,
 	pGreeks->nMask = gt;
 
 	pGreeks->dTheoPrice = CalculateFutureOption(dDomesticRate, dFuturePrice, dStrike, 
-		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolatility, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, NULL , NULL, 0, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))
@@ -647,7 +647,7 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs2(	double	dDomesticRate,
 												   bool	bSpotGreeks,
 												   double	dStrike,
 												   double	dVolatility, 
-												   long	nDTE,
+												   double	dYTE,
 												   long	nIsCall,
 												   long	nIsAmerican,
 												   long	nSteps,
@@ -695,7 +695,7 @@ long OPTIONCALC_API CalcFutureOptionGreeksCustDivs2(	double	dDomesticRate,
 	pGreeks->nMask = gt;
 
 	pGreeks->dTheoPrice = CalculateFutureOption2(dDomesticRate, dFuturePrice, bSpotGreeks, dStrike, 
-		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolatility, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, pDivYears, pDivAmnts, nCount, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))
@@ -717,7 +717,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks2(	double	dDomesticRate,
 										   bool	bSpotGreeks,
 										   double	dStrike,
 										   double	dVolatility, 
-										   long	nDTE,
+										   double	dYTE,
 										   long	nIsCall,
 										   long	nIsAmerican,
 										   long	nSteps,
@@ -752,7 +752,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks2(	double	dDomesticRate,
 	pGreeks->nMask = gt;
 
 	pGreeks->dTheoPrice = CalculateFutureOption2(dDomesticRate, dFuturePrice, bSpotGreeks,  dStrike, 
-		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolatility, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, NULL , NULL, 0, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))
@@ -772,7 +772,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks3(	double	dDomesticRate,
 													bool	bSpotGreeks,
 													double	dStrike,
 													double	dVolatility, 
-													long	nDTE,
+													double	dYTE,
 													long	nIsCall,
 													long	nIsAmerican,
 													long	nSteps,
@@ -820,7 +820,7 @@ long OPTIONCALC_API CalcFutureOptionGreeks3(	double	dDomesticRate,
 	pGreeks->nMask = gt;
 
 	pGreeks->dTheoPrice = CalculateFutureOption3(dDomesticRate, dYield, bSpotGreeks, dFuturePrice, dStrike, 
-		dVolatility, nDTE, (nIsCall != 0L), (nIsAmerican != 0L), 
+		dVolatility, dYTE, (nIsCall != 0L), (nIsAmerican != 0L), 
 		min(max(nSteps, OPM::cnTreeStepsMin), OPM::cnTreeStepsMax), dSkew, dKurtosis, nModel, pDivAmnts, pDivYears, nCount, pGreeks);
 
 	if(OPM::IsBadValue(pGreeks->dTheoPrice))

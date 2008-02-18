@@ -719,6 +719,8 @@ Public Function usp_Option_Save( _
     ByVal iIsCall As Boolean, _
     ByVal fStrike As Double, _
     ByVal dtExpiry As Date, _
+    ByVal dtExpiryOV As Date, _
+    ByVal dtTradingClose As Date, _
     ByVal bIsManualyEntered As Boolean _
 ) As Long
     usp_Option_Save = Execute(False, "usp_Option_Save" _
@@ -729,6 +731,8 @@ Public Function usp_Option_Save( _
         , IIf(iIsCall, 1, 0) _
         , Round(fStrike, 4) _
         , dtExpiry _
+        , dtExpiryOV _
+        , dtTradingClose _
         , IIf(bIsManualyEntered, 1, 0) _
         )
 End Function
@@ -887,10 +891,9 @@ Public Function usp_Index_Save( _
         , Null _
         , Null _
         , iPrimaryExchangeID _
-        , isDivCustom, _
-        , iDivFreq, _
-        , fDivAmt, _
-        , dtDivDate)
+        , isDivCustom _
+        , iDivFreq, fDivAmt, dtDivDate _
+        , fDivAmtCustom, iDivFreqCustom, dtDivDateCustom)
 End Function
 
 
@@ -956,6 +959,8 @@ Public Function usp_BoFutureOption_Save(Optional iFutureOptionID As Variant = Nu
                                 Optional tiIsCall As Variant = Null, _
                                 Optional fStrike As Variant = Null, _
                                 Optional dtExpiryDate As Variant = Null, _
+                                Optional dtExpiryOV As Variant = Null, _
+                                Optional dtTradingClose As Variant = Null, _
                                 Optional tiIsRaiseError As Byte = 1) As Long
     
     On Error GoTo EH
@@ -977,6 +982,8 @@ Public Function usp_BoFutureOption_Save(Optional iFutureOptionID As Variant = Nu
         .Parameters.Append .CreateParameter("@tiIsCall", adTinyInt, adParamInput, , tiIsCall)
         .Parameters.Append .CreateParameter("@fStrike", adDouble, adParamInput, , fStrike)
         .Parameters.Append .CreateParameter("@dtExpiryDate", adDBDate, adParamInput, , dtExpiryDate)
+        .Parameters.Append .CreateParameter("@dtExpiryOV", adDBDate, adParamInput, , dtExpiryOV)
+        .Parameters.Append .CreateParameter("@dtTradingClose", adDBDate, adParamInput, , dtTradingClose)
         .Parameters.Append .CreateParameter("@tiIsRaiseError", adTinyInt, adParamInput, , tiIsRaiseError)
         
         .Execute
@@ -1905,25 +1912,15 @@ Public Function usp_EodMsUnderlyingCache_Save( _
 End Function
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Public Function usp_Option_Import( _
-    ByVal UnderlyingContractID As Long, _
-    ByVal Symbol As String, _
-    ByVal IsCall As Boolean, _
-    ByVal Strike As Double, _
-    ByVal Expiry As Date, _
-    ByVal LotSize As Long, _
-    Optional ByVal iMsCacheOptID As Variant = Null _
+Public Function usp_Option_Import(ByVal UnderlyingContractID As Long, _
+    ByVal Symbol As String, ByVal IsCall As Boolean, ByVal Strike As Double, _
+    ByVal Expiry As Date, ByVal ExpiryOV As Date, ByVal TradingClose As Date, _
+    ByVal LotSize As Long, Optional ByVal iMsCacheOptID As Variant = Null _
 ) As Boolean
-    usp_Option_Import = 0 = _
-    Execute(False, "usp_Option_Import" _
-        , UnderlyingContractID _
-        , Symbol _
-        , IIf(IsCall, 1, 0) _
-        , Strike _
-        , Expiry _
-        , LotSize _
-        , iMsCacheOptID _
-        )
+    usp_Option_Import = 0 = Execute(False, "usp_Option_Import", UnderlyingContractID, _
+        Symbol, IIf(IsCall, 1, 0), Strike, _
+        Expiry, ExpiryOV, TradingClose, _
+        LotSize, iMsCacheOptID)
 End Function
 Public Function usp_FindOption( _
     ByVal OptionRootID As Long, _
@@ -1950,22 +1947,15 @@ End Function
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
 Public Function usp_EodMsOptionCache_Save( _
-    ByVal UnderlyingContractID As Long, _
-    ByVal Symbol As String, _
-    ByVal Expiry As Date, _
-    ByVal Strike As Double, _
-    ByVal IsCall As Boolean, _
-    ByVal LotSize As Long _
+    ByVal UnderlyingContractID As Long, ByVal Symbol As String, _
+    ByVal Expiry As Date, ByVal ExpiryOV As Date, ByVal TradingClose As Date, _
+    ByVal Strike As Double, ByVal IsCall As Boolean, ByVal LotSize As Long _
 ) As Boolean
     usp_EodMsOptionCache_Save = 0 = _
-    Execute(False, "usp_EodMsOptionCache_Save" _
-        , UnderlyingContractID _
-        , Symbol _
-        , Expiry _
-        , Strike _
-        , IsCall _
-        , LotSize _
-        )
+    Execute(False, "usp_EodMsOptionCache_Save", _
+         UnderlyingContractID, Symbol, _
+         Expiry, ExpiryOV, TradingClose, _
+         Strike, IsCall, LotSize)
 End Function
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2617,13 +2607,15 @@ Public Function usp_EodFutureOption_Import( _
     ByVal iFutureID As Long, _
     ByVal fStrike As Double, _
     ByVal ExpirationDate As Date, _
+    ByVal dtExpiryOV As Date, _
+    ByVal dtTradingClose As Date, _
     ByVal tiIsCall As Boolean, _
     ByVal vcSymbol As String, _
     ByVal vcContractName As String, _
     ByVal dClosePrice As Double, _
     ByRef vcBadContractName As String _
 ) As Long
-    On Error GoTo EH
+        On Error GoTo EH
     Dim cmd As New ADODB.Command
     
     With cmd
@@ -2637,6 +2629,8 @@ Public Function usp_EodFutureOption_Import( _
         .Parameters.Append .CreateParameter("@iFutureID", adInteger, adParamInput, , iFutureID)
         .Parameters.Append .CreateParameter("@fStrike", adDouble, adParamInput, , fStrike)
         .Parameters.Append .CreateParameter("@dtExpiryDate", adDate, adParamInput, , ExpirationDate)
+        .Parameters.Append .CreateParameter("@dtExpiryOV", adDBDate, adParamInput, , dtExpiryOV)
+        .Parameters.Append .CreateParameter("@dtTradingClose", adDBDate, adParamInput, , dtTradingClose)
         .Parameters.Append .CreateParameter("@tiIsCall", adTinyInt, adParamInput, , IIf(tiIsCall, 1, 0))
         .Parameters.Append .CreateParameter("@vcSymbol", adVarChar, adParamInput, 20, vcSymbol)
         .Parameters.Append .CreateParameter("@vcContractName", adVarChar, adParamInput, 255, vcContractName)

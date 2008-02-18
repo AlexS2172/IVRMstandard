@@ -31,6 +31,7 @@ double CoxRoss(	double	S,		// Underlying spot price
 				double	K,		// Strike price
 				double	Rd,		// Domestic continuos risk free rate
 				double	Rf,		// Foreign continuos risk free rate (or yield for index)
+				double	Rb,		// Actual borrowing continuous rate
 				double	V,		// Volatility
 				double	T,		// Years amount till expiration
 				bool	IsCall,	// true if it's 'Call option', false is 'Put option'
@@ -54,8 +55,9 @@ double CoxRossOddEvenAdjust(
 				double	dStrike,
 				double	dRateDomestic,
 				double	dRateForeign,
+				double	dHTBRate,
 				double	dVolatility,
-				int		nDte,
+				double	dYte,
 				bool	bIsCall,
 				long	nSteps,	// Amount of binomial tree steps
 				double* pdDivAmnt,						   

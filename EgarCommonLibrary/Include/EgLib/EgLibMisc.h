@@ -960,6 +960,24 @@ public:
 
 		return vt_date(dt);
 	}
+
+	static vt_date GetCurrentDateWOS ( bool bNoSM = true )
+	{
+		SYSTEMTIME systime; 
+		GetLocalTime (&systime);
+		if( bNoSM )
+		{
+			systime.wSecond = 0;
+			systime.wMilliseconds = 0;
+		}
+
+		DATE dt;
+		int nResult = ::SystemTimeToVariantTime (&systime, &dt);		
+		ATLASSERT(nResult);
+
+		return vt_date(dt);
+	}
+
 	void GetSystemTime (SYSTEMTIME & rst) const
 	{
 		int nResult = ::VariantTimeToSystemTime (m_date, &rst);

@@ -216,6 +216,8 @@ void CEodStepLoadMktStructure::OnStock(struct PP::StockParams* pReq,  struct PP:
 		bool bSuccess = false;
 		try
 		{
+			m_spUndCurr->m_enContractType = (pResult->StockType == PP::enStock ? enStStock : enStIndex);
+
 			CStoredProc<> spUndImport(m_spDB, _T("usp_EodUnderlying_Import"));
 			spUndImport << m_spUndCurr->m_nID;
 			spUndImport << (pResult->StockType == PP::enStock);
@@ -355,7 +357,7 @@ void CEodStepLoadMktStructure::OnOption(struct PP::OptionParams* pReq,  struct P
 	CString sOptSymbol = (LPCTSTR)_bstr_t(pResult->Series);
 	sOptSymbol.Trim().MakeUpper();
 	sOptSymbol.Replace(_T(" "), _T(""));
-
+	
 	if(m_spUndCurr->m_sSymbol == sUndSymbol)
 	{
 		if(sOptSymbol.GetLength() > 2)
@@ -415,6 +417,19 @@ void CEodStepLoadMktStructure::OnOption(struct PP::OptionParams* pReq,  struct P
 			}
 
 			COleDateTime dtExpiration(pResult->ExpirationDate);
+
+			EgLib::vt_date dtTradingClose = EgLib::vt_date(1900, 1, 1);
+			EgLib::vt_date dtExpiryOV = GetDefaultValuationParams(	EgLib::vt_date(pResult->ExpirationDate),
+																	m_spUndCurr->m_enContractType,
+																	enStOption,
+																	pResult->SettlementType,
+																	pResult->ExpirationType,
+																	dtTradingClose);
+			/*EgLib::vt_date	dtExpiryOV = GetDefaultValuationParams(	EgLib::vt_date(pResult->ExpirationDate),
+																	enStOption,
+																	pResult->SettlementType,
+																	pResult->ExpirationType);*/
+			
 			if(!bNeedStoredInCache)
 			{
 				try
@@ -430,6 +445,8 @@ void CEodStepLoadMktStructure::OnOption(struct PP::OptionParams* pReq,  struct P
 						CStoredProc<> spOptionImport(m_spDB, L"usp_EodOption_Import");
 						spOptionImport << spRoot->m_nID;
 						spOptionImport << vt_date( dtExpiration )/*nExpiryID*/;
+						spOptionImport << dtExpiryOV;
+						spOptionImport << dtTradingClose;
 						spOptionImport << pResult->StrikePrice;
 						spOptionImport << (pResult->OptionType == PP::enCall);
 						spOptionImport << _bstr_t(sOptSymbol.GetString());
@@ -446,6 +463,8 @@ void CEodStepLoadMktStructure::OnOption(struct PP::OptionParams* pReq,  struct P
 						else
 							spOptionImport << CDBNull();
 						spOptionImport << m_bLoadOptClosePrices;
+
+
 						spOptionImport.Execute();
 
 						long nRes = spOptionImport.GetResult();
@@ -506,10 +525,12 @@ void CEodStepLoadMktStructure::OnOption(struct PP::OptionParams* pReq,  struct P
 						spOptionSave << m_spUndCurr->m_nID;
 						spOptionSave << _bstr_t(sOptSymbol.GetString());
 						spOptionSave << vt_date(pResult->ExpirationDate);
-
+						spOptionSave << dtExpiryOV;
+						spOptionSave << dtTradingClose;
 						spOptionSave << pResult->StrikePrice;
 						spOptionSave << (pResult->OptionType == PP::enCall);
 						spOptionSave << pResult->LotSize;
+
 						spOptionSave.Execute();
 					}
 				}
@@ -742,6 +763,7 @@ void CEodStepLoadMktStructure::OnFutureByRoot(struct PP::FutureRootParams* pReq,
 				CStoredProc<CClientRecordset> spFutImport(m_spDB, L"usp_EodFuture_Import");
 				spFutImport << m_spFutRootCurr->m_nRootId;
 				spFutImport << vt_date(spFut->m_dtMaturity);
+				//spFutImport << GetDefaultValuationParams(pResult->LastTradingDate, enStFuture, PP::enSTUndefined, 0);
 				spFutImport << _bstr_t(sFutSymbol);
 				spFutImport << _bstr_t(pResult->Description);
 				spFutImport << pResult->ContractSize;
@@ -878,6 +900,17 @@ void CEodStepLoadMktStructure::OnFuturesOption(struct PP::FuturesOptionParams* p
 		spFutOpt->m_dStrike = pResult->StrikePrice;
 		spFutOpt->m_sSymbol = sOptSymbol;
 		EgLib::vt_date dtExpiration(pResult->ExpirationDate);
+		EgLib::vt_date dtTradingClose = EgLib::vt_date(1900, 1, 1);
+		EgLib::vt_date dtExpiryOV = GetDefaultValuationParams(	EgLib::vt_date(pResult->LastTradingDate),
+																enStFuture,
+																enStFutureOption,
+																PP::enSTUndefined,
+																0,
+																dtTradingClose);
+		/*EgLib::vt_date	dtExpiryOV = GetDefaultValuationParams(	EgLib::vt_date(pResult->LastTradingDate),
+																enStFutureOption,
+																PP::enSTUndefined,
+																0);*/
 		++m_nLoadedOptions;
 
 		CString strContractName;
@@ -890,6 +923,8 @@ void CEodStepLoadMktStructure::OnFuturesOption(struct PP::FuturesOptionParams* p
 			spFutOptImport << m_spFutureCurr->m_nID;
 			spFutOptImport << spFutOpt->m_dStrike;
 			spFutOptImport << vt_date(/*EODMS::CMsContract::GetExpiryID(*/spFutOpt->m_dtExpiration);
+			spFutOptImport << dtExpiryOV;	
+			spFutOptImport << dtTradingClose;
 			spFutOptImport << spFutOpt->m_bIsCall;
 			spFutOptImport << _bstr_t(spFutOpt->m_sSymbol.GetString());
 			spFutOptImport << _bstr_t(strContractName.GetString());
@@ -916,7 +951,6 @@ void CEodStepLoadMktStructure::OnFuturesOption(struct PP::FuturesOptionParams* p
 					spFutOptImport << CDBNull();
 				break;
 			}
-			//spFutOptImport << dtExpiration;
 
 			spFutOptImport.Open();
 			spFutOpt->m_nID = spFutOptImport.GetResult();
@@ -1241,6 +1275,7 @@ void CEodStepLoadMktStructure::_LoadUnderlyingsAndOptions(EODSM::CSmSettingsMgrP
 				break;
 
 			m_spUndCurr  = itNextUnd->second;
+			///m_spUndCurr = m_spUndColl->find("XSP")->second;
 			ATLASSERT(m_spUndCurr);
 			itNextUnd++;
 			_RequestUnderlyingStructure();

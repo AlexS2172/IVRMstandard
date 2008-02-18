@@ -52,7 +52,7 @@ Begin VB.Form frmManualPrices
       AllowSelection  =   -1  'True
       AllowBigSelection=   -1  'True
       AllowUserResizing=   0
-      SelectionMode   =   1
+      SelectionMode   =   3
       GridLines       =   1
       GridLinesFixed  =   2
       GridLineWidth   =   1
@@ -166,7 +166,7 @@ Private Sub InitGrid()
         .Rows = 1
         .Cols = 3
         
-        .AllowBigSelection = False
+        .AllowBigSelection = True
         .AllowSelection = True
         .AllowUserFreezing = flexFreezeNone
         .AllowUserResizing = flexResizeColumns
@@ -185,7 +185,6 @@ Private Sub InitGrid()
         .OutlineBar = flexOutlineBarNone
         .ScrollBars = flexScrollBarBoth
         .ScrollTrack = True
-        .SelectionMode = flexSelectionFree
         .TabBehavior = flexTabControls
         
         ' format columns
@@ -407,23 +406,6 @@ End Sub
 Private Sub fgMP_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boolean)
 On Error Resume Next
     m_sEditedValue = Trim$(fgMP.TextMatrix(Row, Col))
-End Sub
-
-
-Private Sub fgMP_Click()
-On Error Resume Next
-    Dim IsCtrlPressed As Boolean
-    Dim r As Integer
-    
-    r = fgMP.MouseRow
-    
-    If r <> -1 Then
-        IsCtrlPressed = ((GetKeyState(VK_CONTROL) And &H80000000) <> 0)
-        If IsCtrlPressed Then
-            fgMP.IsSelected(r) = Not fgMP.IsSelected(r)
-        End If
-    End If
-
 End Sub
 
 Private Sub Form_Load()

@@ -16,12 +16,10 @@ Option Explicit
 Public ID As Long
 Public Symbol As String
 Public ExpiryDate As Date
+Public ExpiryOV As Date
+Public TradingClose As Date
 Public Strike As Double
 Public IsCall As Boolean
 Public LotSize As Long
 
 Public IsUpload As Boolean
-
-
-
-

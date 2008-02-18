@@ -187,7 +187,19 @@ library PRICEPROVIDERSLib
 		enPPDefault			= 0,
 		enPPAll				= 1		
 	} PriceProviderTypeEnum;
-
+	//-----------------------------------------------------------------------------//
+	typedef
+	[
+		uuid(17E30D32-B013-4b39-B92A-55B52F487B3E),
+		helpstring("Settlement Type Enum"),
+		v1_enum
+	]
+	enum SettlementTypeEnum
+	{
+		enSTUndefined		= -1,
+		enSTAM				= 1,
+		enSTPM				= 2
+	} SettlementTypeEnum;	
 	//-----------------------------------------------------------------------------//
 	typedef
 	[
@@ -430,6 +442,8 @@ library PRICEPROVIDERSLib
 		[helpstring("Bid")] 	    					double				Bid;
 		[helpstring("Ask")] 		    				double				Ask;
 		[helpstring("Trade")] 		    				double				Trade;
+
+		[helpstring("Last trading date")]				DATE				LastTradingDate;
 	};
 
 	//-----------------------------------------------------------------------------//
@@ -469,6 +483,9 @@ library PRICEPROVIDERSLib
 		[helpstring("Yesterday Volume")]		long				YVolume;
 		[helpstring("CloseAsk")]				double				CloseAsk;
 		[helpstring("CloseBid")]				double				CloseBid;
+
+		[helpstring("Settlement type")]			SettlementTypeEnum	SettlementType;
+		[helpstring("Expiration type")]			long				ExpirationType;
 
 	};
 
@@ -524,6 +541,8 @@ library PRICEPROVIDERSLib
 		[helpstring("Last")]					double				Last;
 		[helpstring("CloseAsk")]				double				CloseAsk;
 		[helpstring("CloseBid")]				double				CloseBid;
+
+		[helpstring("Last trading date")]				DATE				LastTradingDate;
 
 	};
 
