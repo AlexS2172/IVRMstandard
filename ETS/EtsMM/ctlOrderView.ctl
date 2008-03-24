@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "VSFLEX7.OCX"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.UserControl ctlOrderView 
    ClientHeight    =   9435
    ClientLeft      =   0
@@ -95,7 +95,7 @@ Begin VB.UserControl ctlOrderView
          TabBehavior     =   0
          OwnerDraw       =   0
          Editable        =   0
-         ShowComboButton =   -1  'True
+         ShowComboButton =   1
          WordWrap        =   0   'False
          TextStyle       =   0
          TextStyleFixed  =   0
@@ -206,7 +206,7 @@ Begin VB.UserControl ctlOrderView
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -300,7 +300,7 @@ Begin VB.UserControl ctlOrderView
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -606,7 +606,7 @@ Private Sub InitFltData()
         sValue = "0"
         nValue = 0
         'sComboList = g_Params.UnderlyingComboList
-	sComboList = g_Params.UnderlyingComboListAllWhtFutUnd
+        sComboList = g_Params.UnderlyingComboListAllWhtFutUnd
         If Len(sComboList) > 0 Then
             sComboList = "#0;<All>|" & sComboList
         Else
@@ -1014,7 +1014,7 @@ Private Sub OrderTradeUpdate(ByVal nRow As Long, ByRef aRowTrd As EtsMmGeneralLi
                         .TextMatrix(nRow, nCol) = aTrd.ExecStatusString 'aExec.OrderExecStatusString
 
                     Case OLC_EXEC_PRICE
-                        .TextMatrix(nRow, nCol) = aTrd.Price 'aExec.ExecPrice
+                        .TextMatrix(nRow, nCol) = aTrd.price 'aExec.ExecPrice
 
                     Case OLC_EXEC_QTY
                         .TextMatrix(nRow, nCol) = aTrd.Quantity 'aExec.ExecQty
@@ -3013,7 +3013,12 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
-
+    
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
+    
     ' common info
     For i = OFC_FIRST_COLUMN To OFC_LAST_COLUMN
         aStorage.SetLongValue "OrderFlt" & sKey, "Filter" & CStr(i), m_nFilter(i)
@@ -3034,7 +3039,12 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
-
+    
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
+    
     ' common info
     For i = OFC_FIRST_COLUMN To OFC_LAST_COLUMN
         m_nFilter(i) = aStorage.GetLongValue("OrderFlt" & sKey, "Filter" & CStr(i), m_nFilter(i))

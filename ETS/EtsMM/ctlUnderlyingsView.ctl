@@ -1619,7 +1619,7 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     FilterUpdate
                 End If
             Else
-                sValue = UCase$(sValue)
+                'sValue = UCase$(sValue)
                 If UCase$(sValue) = "<ALL>" Then sValue = ""
                 
                 If sValue = "" Then

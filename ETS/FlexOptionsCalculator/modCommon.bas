@@ -1367,6 +1367,14 @@ Private Function CheckDBVersion() As Boolean
     End If
 End Function
 
+Public Function GetNewYorkTime() As Date
+    On Error Resume Next
+    Dim dtNY As Double
+    Dim bOk As Boolean
+    bOk = GetNYDateTimeAsDATE(dtNY)
+    GetNewYorkTime = CDate(dtNY)
+End Function
+
 Public Function GmtToLocal(ByVal dtGmtTime As Date) As Date
     On Error Resume Next
     GmtToLocal = DateAdd("n", -g_Params.TimeZoneBias, dtGmtTime)

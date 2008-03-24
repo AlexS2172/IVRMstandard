@@ -1147,6 +1147,9 @@ STDMETHODIMP CEtsMain::SendMail(BSTR sAddress, BSTR sSender, BSTR sSubject, BSTR
 
 	try {
 		BOOL bRet = FALSE;
+		wchar_t *ptrToken = NULL;
+		wchar_t *ptrAddres = NULL;
+		wchar_t *ptrNextTok = NULL;
 
 		CSMTPConnection SMTPConnection;
 		bRet = SMTPConnection.Connect( (char*)_bstr_t(sSMTPServer) );
@@ -1161,9 +1164,16 @@ STDMETHODIMP CEtsMain::SendMail(BSTR sAddress, BSTR sSender, BSTR sSubject, BSTR
 
 		Message.SetSubject( (char*)_bstr_t(sSubject) );
 		Message.AddText( (char*)_bstr_t(sMessage) );
-		Message.AddRecipient( (char*)_bstr_t(sAddress) );
+		
+		ptrAddres = (wchar_t*)_bstr_t(sAddress);
+		ptrToken = wcstok_s(ptrAddres, (wchar_t*)(";"), &ptrNextTok);
+		while (ptrToken != NULL)
+		{
+			Message.AddRecipient( (char*)_bstr_t(ptrToken) );
+			ptrToken = wcstok_s( NULL, (wchar_t*)(";"), &ptrNextTok); 
+		}
 
-		bRet = SMTPConnection.SendMessage( Message, (char*)_bstr_t(sAddress), (char*)_bstr_t(sSender) );
+		bRet = SMTPConnection.SendMessage( Message, /*(char*)_bstr_t(sAddress)*/ NULL, (char*)_bstr_t(sSender) );
 
 		if( !bRet ) {
 			SMTPConnection.Disconnect();

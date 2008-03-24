@@ -1,8 +1,8 @@
 VERSION 5.00
 Object = "{C115893A-A3BF-43AF-B28D-69DB846077F3}#1.0#0"; "vsflex8u.ocx"
 Object = "{BEEECC20-4D5F-4F8B-BFDC-5D9B6FBDE09D}#1.0#0"; "vsflex8.ocx"
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmBatchCapability 
    Caption         =   "Batch Reporting"
    ClientHeight    =   4620
@@ -441,11 +441,11 @@ Private m_nDisableReportsCount As Long
 Private m_nFrmHeight As Long
 Private m_nFrmWidth As Long
 
+Private Const STR_DEFAULT As String = "Default"
+
 Private Enum BatchReportingColumnEnum
     BRC_ID = 0
-    
     BRC_USER
-    
     BRC_STATUS
     BRC_LAYOUT
     BRC_GROUP
@@ -458,8 +458,6 @@ Private Enum BatchReportingColumnEnum
     
     BRC_COLUMN_COUNT
 End Enum
-
-Private m_nRowsCount As Long
 
 Private m_Reports As Collection
 Private m_Shedule As Collection
@@ -497,9 +495,7 @@ Public Sub ShowData(Optional ByRef frmOwner As Form = Nothing)
     Set m_frmOwner = Nothing
     Set m_frmOwner = frmOwner
     If Not m_frmOwner Is Nothing Then m_frmOwner.Enabled = False
-    
-    m_nRowsCount = g_Params.BatchReports.Count + 1
-    
+        
     CopyShedule g_Params.BatchReportingShedules, m_Shedule
     CopyReports g_Params.BatchReports, m_Reports
     InitControls
@@ -518,13 +514,17 @@ Private Sub AddNewReport()
     
     Dim aNewReport As clsBatchReport
     Set aNewReport = New clsBatchReport
-
+    
+    Sleep 100
+    
     aNewReport.Init
     aNewReport.UserName = g_Params.UserName
     aNewReport.Status = SS_NEW
+    aNewReport.ID = CLng(Format(Now, "DDHHSSNN"))
+    aNewReport.UseDefaultLayout = True
+    aNewReport.LayoutFile = STR_DEFAULT
 
-    m_Reports.Add aNewReport
-    m_nRowsCount = m_nRowsCount + 1
+    m_Reports.Add aNewReport, CStr(aNewReport.ID)
 
     Set aNewReport = Nothing
     
@@ -532,13 +532,14 @@ Private Sub AddNewReport()
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting AddNewReport Exit.", GetCaption
 End Sub
 
-Private Sub DeleteReport(ByVal Idx As Long)
+Private Sub DeleteReport(ByRef aReport As clsBatchReport)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting DeleteReport Enter. Idx = " & CStr(Idx), GetCaption
-    
-    m_Reports(Idx).Status = SS_DELETED
-    m_nRowsCount = m_nRowsCount - 1
+        g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting DeleteReport Enter.", GetCaption
+        
+    If (Not aReport Is Nothing) Then
+        aReport.Status = SS_DELETED
+    End If
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting DeleteReport Exit.", GetCaption
@@ -557,7 +558,6 @@ Private Sub InitControls()
     m_bInit = True
     
     fgShedule.Cols = BRC_COLUMN_COUNT
-    fgShedule.Rows = m_nRowsCount
     
     fgShedule.TextMatrix(0, BRC_ID) = "#"
     fgShedule.TextMatrix(0, BRC_USER) = "User"
@@ -571,7 +571,7 @@ Private Sub InitControls()
     fgShedule.TextMatrix(0, BRC_LAST_RUN) = "Last Run"
     fgShedule.TextMatrix(0, BRC_RESULT_FILE) = "Result File"
     
-    fgShedule.ColComboList(BRC_LAYOUT) = "..."
+    fgShedule.ColComboList(BRC_LAYOUT) = "#0;" & STR_DEFAULT & "|#1;Custom"
     fgShedule.ColComboList(BRC_RESULT_FILE) = "..."
     
     fgShedule.ColComboList(BRC_STATUS) = "#1;Active|#0;Disabled"
@@ -619,12 +619,8 @@ Private Sub InitControls()
     fgShedule.ColDataType(BRC_LAST_RUN) = flexDTDate
     fgShedule.ColFormat(BRC_LAST_RUN) = "hh:mm:ss AMPM"
     
-    fgShedule.ColHidden(BRC_USER) = True 'Not g_Params.m_bExecProjectionsForAll
-    
-    
-    btnEnableDisable.Caption = IIf(m_bEnableAll, "Enable All", "Disable All")
-    
-    
+    fgShedule.ColHidden(BRC_USER) = True
+              
     fgExecution.TextMatrix(0, 0) = "Execution 1"
     fgExecution.TextMatrix(0, 1) = "Execution 2"
     fgExecution.TextMatrix(0, 2) = "Execution 3"
@@ -673,19 +669,18 @@ Private Sub RefreshData()
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting RefreshData Enter.", GetCaption
 
     m_bInit = True
+    
+    fgShedule.Rows = 1
 
     Dim nRow As Long
-    Dim Idx As Long
     For Each aReport In m_Reports
-        Idx = Idx + 1
-
-        If aReport.Status <> SS_DELETED Then
+        If aReport.Status <> SS_DELETED And (aReport.UserName = g_Params.UserName Or g_Params.AllReportsAvalable = True) Then
             nRow = nRow + 1
-    
-            fgShedule.TextMatrix(nRow, BRC_ID) = Idx
+            fgShedule.Rows = fgShedule.Rows + 1
+            fgShedule.TextMatrix(nRow, BRC_ID) = nRow
             fgShedule.TextMatrix(nRow, BRC_USER) = aReport.UserName
             fgShedule.TextMatrix(nRow, BRC_STATUS) = IIf(aReport.IsActive, 1, 0)
-            fgShedule.TextMatrix(nRow, BRC_LAYOUT) = aReport.LayoutFile
+            fgShedule.TextMatrix(nRow, BRC_LAYOUT) = IIf(aReport.UseDefaultLayout, STR_DEFAULT, aReport.LayoutFile)
             fgShedule.TextMatrix(nRow, BRC_GROUP) = aReport.GroupID
             fgShedule.TextMatrix(nRow, BRC_TRADER) = aReport.TraderID
             fgShedule.TextMatrix(nRow, BRC_STRATEGY) = aReport.strategyID
@@ -694,13 +689,11 @@ Private Sub RefreshData()
             fgShedule.TextMatrix(nRow, BRC_LAST_RUN) = IIf(aReport.LastRun > 0, aReport.LastRun, "")
             fgShedule.TextMatrix(nRow, BRC_RESULT_FILE) = aReport.ResultFile
 
-            fgShedule.RowData(nRow) = aReport.ID
+            fgShedule.RowData(nRow) = aReport
         End If
     Next
 
     fgShedule.AutoSize 0, fgShedule.Cols - 1, , 100
-
-    RefreshProgressBar
     
     Dim nCol As Long
     For Each aShedule In m_Shedule
@@ -725,26 +718,6 @@ Private Sub RefreshData()
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting RefreshData Exit.", GetCaption
 End Sub
 
-Private Sub RefreshProgressBar()
-    On Error Resume Next
-'    Dim nOverallCount As Double
-'    nOverallCount = m_CurProjection.Shift
-'
-'    If nOverallCount > 0 And Not m_bLastShift Then
-'        pbOverall.Value = (m_ShiftIdx / nOverallCount) * 100
-'
-'        pbOverall.Visible = True
-'        lblOverall.Visible = True
-'        imgOverallStop.Visible = True
-'    Else
-'        pbOverall.Value = pbOverall.Min
-'
-'        pbOverall.Visible = False
-'        lblOverall.Visible = False
-'        imgOverallStop.Visible = False
-'    End If
-End Sub
-
 Private Sub btnAddNew_Click()
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
@@ -753,7 +726,6 @@ Private Sub btnAddNew_Click()
     If m_bInit Then Exit Sub
     
     AddNewReport
-    InitControls
     RefreshData
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -786,6 +758,7 @@ End Sub
 Private Sub btnDelete_Click()
     On Error Resume Next
     Dim nRow As Long
+    Dim aReportTask As clsBatchReport
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting btnDelete_Click Enter.", GetCaption
@@ -794,9 +767,12 @@ Private Sub btnDelete_Click()
     
     nRow = fgShedule.RowSel
     If nRow > 0 Then
-        DeleteReport (CLng(fgShedule.TextMatrix(nRow, BRC_ID)))
-        InitControls
-        RefreshData
+        Set aReportTask = fgShedule.RowData(nRow)
+        If (Not aReportTask Is Nothing) Then
+            DeleteReport aReportTask
+            RefreshData
+            Set aReportTask = Nothing
+        End If
     End If
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -813,9 +789,13 @@ Private Sub btnEnableDisable_Click()
     m_nDisableReportsCount = 0
     
     For Each aReport In m_Reports
-        aReport.IsActive = m_bEnableAll
+        If (aReport.UserName = g_Params.UserName Or g_Params.AllReportsAvalable = True) Then
+            aReport.IsActive = m_bEnableAll
         
-        If Not aReport.IsActive Then m_nDisableReportsCount = m_nDisableReportsCount + 1
+            If (aReport.Status <> SS_NEW And aReport.Status <> SS_DELETED) Then aReport.Status = SS_UPDATED
+        
+            If Not aReport.IsActive Then m_nDisableReportsCount = m_nDisableReportsCount + 1
+        End If
     Next
     
     m_bEnableAll = CBool(m_nDisableReportsCount > 0)
@@ -844,7 +824,6 @@ Private Sub btnSave_Click()
 
     CopyShedule g_Params.BatchReportingShedules, m_Shedule
     CopyReports g_Params.BatchReports, m_Reports
-    InitControls
     RefreshData
     Screen.MousePointer = vbDefault
     
@@ -855,6 +834,7 @@ End Sub
 Private Sub btnStart_Click()
     On Error Resume Next
     Dim nRow As Long
+    Dim aReportTask As clsBatchReport
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting btnStart_Click Enter.", GetCaption
@@ -863,7 +843,12 @@ Private Sub btnStart_Click()
     
     If nRow > 0 And Not m_bCalc Then
         m_bManualStart = True
-        CalcReport m_Reports(CLng(fgShedule.TextMatrix(nRow, BRC_ID)))
+        
+        Set aReportTask = fgShedule.RowData(nRow)
+        If (Not aReportTask Is Nothing) Then
+            CalcReport aReportTask
+            Set aReportTask = Nothing
+        End If
     End If
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -890,9 +875,7 @@ Private Sub ctlRMView_OnRefreshCancel()
     
     Set m_CurReport = Nothing
     m_bManualStart = False
-    
-    RefreshProgressBar
-    
+        
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting RM_OnRefreshCancel Exit.", GetCaption
 End Sub
@@ -939,9 +922,7 @@ Private Sub ctlView_OnRefreshCancel()
     
     Set m_CurReport = Nothing
     m_bManualStart = False
-    
-    RefreshProgressBar
-        
+            
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting RV_OnRefreshCancel Exit.", GetCaption
 End Sub
@@ -1009,45 +990,64 @@ End Sub
 Private Sub fgShedule_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     On Error Resume Next
     Dim dtValue As Date
+    Dim aReportTask As clsBatchReport
+    Dim sFileName As String
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting fgShedule_AfterEdit Enter. Row/Col = " & CStr(Row) & "/" & CStr(Col), GetCaption
     
     If m_bInit Then Exit Sub
     
-    Dim Idx As Long
-    Idx = CLng(fgShedule.TextMatrix(Row, BRC_ID))
-    
-    Select Case Col
-        Case BRC_STATUS
-            m_Reports(Idx).IsActive = CBool(fgShedule.TextMatrix(Row, Col))
-            If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-            
-            m_nDisableReportsCount = m_nDisableReportsCount + IIf(m_Reports(Idx).IsActive, -1, 1)
-            m_bEnableAll = CBool(m_bDisableReportsCount > 0)
-            btnEnableDisable.Caption = IIf(m_bEnableAll, "Enable All", "Disable All")
-            
-        Case BRC_GROUP
-            m_Reports(Idx).GroupID = fgShedule.TextMatrix(Row, Col)
-            If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-            
-        Case BRC_TRADER
-            m_Reports(Idx).TraderID = fgShedule.TextMatrix(Row, Col)
-            If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-            
-        Case BRC_STRATEGY
-            m_Reports(Idx).strategyID = fgShedule.TextMatrix(Row, Col)
-            If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-            
-        Case BRC_TRADER_GROUP
-            m_Reports(Idx).TraderGroupID = fgShedule.TextMatrix(Row, Col)
-            If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-            
-        Case BRC_POSITIONS
-            m_Reports(Idx).IsPosExpanded = CBool(fgShedule.TextMatrix(Row, Col))
-            If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
+    Set aReportTask = fgShedule.RowData(Row)
+    If (Not aReportTask Is Nothing) Then
+        Select Case Col
+            Case BRC_STATUS
+                aReportTask.IsActive = CBool(fgShedule.TextMatrix(Row, Col))
+                If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+                
+                m_nDisableReportsCount = m_nDisableReportsCount + IIf(aReportTask.IsActive, -1, 1)
+                m_bEnableAll = CBool(m_bDisableReportsCount > 0)
+                btnEnableDisable.Caption = IIf(m_bEnableAll, "Enable All", "Disable All")
+                
+            Case BRC_GROUP
+                aReportTask.GroupID = fgShedule.TextMatrix(Row, Col)
+                If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+                
+            Case BRC_TRADER
+                aReportTask.TraderID = fgShedule.TextMatrix(Row, Col)
+                If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+                
+            Case BRC_STRATEGY
+                aReportTask.strategyID = fgShedule.TextMatrix(Row, Col)
+                If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+                
+            Case BRC_TRADER_GROUP
+                aReportTask.TraderGroupID = fgShedule.TextMatrix(Row, Col)
+                If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+                
+            Case BRC_POSITIONS
+                aReportTask.IsPosExpanded = CBool(fgShedule.TextMatrix(Row, Col))
+                If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+            Case BRC_LAYOUT
+                If (fgShedule.ValueMatrix(Row, Col) <> 0) Then
+                
+                    aReportTask.UseDefaultLayout = False
+                    
+                    sFileName = LayoutFileDialog
+                    If sFileName <> STR_NA Then
+                        aReportTask.LayoutFile = ExtractFileName(sFileName)
+                        aReportTask.LayoutFilePath = ExtractFilePath(sFileName)
+                        If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
         
-        Case Else
-    End Select
+                        fgShedule.TextMatrix(Row, Col) = aReportTask.LayoutFile
+                    End If
+                Else
+                    aReportTask.UseDefaultLayout = True
+                    aReportTask.LayoutFile = STR_DEFAULT
+                End If
+            
+            Case Else
+        End Select
+    End If
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting fgShedule_AfterEdit Exit.", GetCaption
@@ -1066,35 +1066,25 @@ End Sub
 
 Private Sub fgShedule_CellButtonClick(ByVal Row As Long, ByVal Col As Long)
     On Error Resume Next
-    Dim Idx As Long
     Dim sFilePath As String
     Dim sFileName As String
+    Dim aReportTask As clsBatchReport
     
     If m_bInit Then Exit Sub
 
-    Idx = CLng(fgShedule.TextMatrix(Row, BRC_ID))
-
-    Select Case Col
-        Case BRC_RESULT_FILE
-            sFilePath = m_Reports(Idx).ResultFilePath
-            If BrowseForFolder(Me, "Select folder for result file", sFilePath) And Len(sFilePath) > 0 Then
-                m_Reports(Idx).ResultFilePath = sFilePath + "\"
-                If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-            End If
-
-        Case BRC_LAYOUT
-            sFileName = LayoutFileDialog
-            If sFileName <> STR_NA Then
-                m_Reports(Idx).LayoutFile = ExtractFileName(sFileName)
-                m_Reports(Idx).LayoutFilePath = ExtractFilePath(sFileName)
-                If m_Reports(Idx).Status = SS_COMMON Then m_Reports(Idx).Status = SS_UPDATED
-
-                fgShedule.TextMatrix(Row, Col) = m_Reports(Idx).LayoutFile
-            End If
-
-        Case Else
-    End Select
+    Set aReportTask = fgShedule.RowData(Row)
     
+    If (Not aReportTask Is Nothing) Then
+        Select Case Col
+            Case BRC_RESULT_FILE
+                sFilePath = aReportTask.ResultFilePath
+                If BrowseForFolder(Me, "Select folder for result file", sFilePath) And Len(sFilePath) > 0 Then
+                    aReportTask.ResultFilePath = sFilePath + "\"
+                    If aReportTask.Status = SS_COMMON Then aReportTask.Status = SS_UPDATED
+                End If
+            Case Else
+        End Select
+    End If
 End Sub
 
 Private Function LayoutFileDialog() As String
@@ -1128,9 +1118,7 @@ Private Sub Form_Load()
     
     m_nFrmHeight = Me.Height
     m_nFrmWidth = Me.Width
-    
-    m_nRowsCount = 1
-    
+        
     tmrCalc.Enabled = g_Params.ExecuteBatchReporting 'True
     tmrClearView.Enabled = False
 End Sub
@@ -1200,7 +1188,6 @@ Private Sub imgOverallStop_Click()
     
     m_bManualStart = False
     
-    RefreshProgressBar
 End Sub
 
 Private Sub tmrCalc_Timer()
@@ -1263,23 +1250,26 @@ Private Sub CalcReport(ByRef aReport As clsBatchReport)
 
     InitRisksView
     InitRMView
-
     Set aStorage = New clsSettingsStorage
-    aStorage.Init aReport.LayoutFilePath + aReport.LayoutFile
-    aStorage.ReadData
-    If aStorage.GetStringValue("Type", "Value") = "RisksView" Then
-        m_bIsRM = False
-        ctlView.OpenFromFile aStorage, "", False
-    ElseIf aStorage.GetStringValue("Type", "Value") = "RiskMatrix" Then
-        m_bIsRM = True
-        ctlRMView.OpenFromFile aStorage, "", False
+    
+    If (Not aReport.UseDefaultLayout) Then
+        aStorage.Init aReport.LayoutFilePath + aReport.LayoutFile
+        aStorage.ReadData
+        If aStorage.GetStringValue("Type", "Value") = "RisksView" Then
+            m_bIsRM = False
+            ctlView.OpenFromFile aStorage, "", False
+        ElseIf aStorage.GetStringValue("Type", "Value") = "RiskMatrix" Then
+            m_bIsRM = True
+            ctlRMView.OpenFromFile aStorage, "", False
+        Else
+            m_bCalc = False
+            LogEvent EVENT_ERROR, "Can't start report calculation, invalid file " & aReport.LayoutFilePath + aReport.LayoutFile
+            Exit Sub
+        End If
     Else
-        m_bCalc = False
-        LogEvent EVENT_ERROR, "Can't start report calculation, invalid file " & aReport.LayoutFilePath + aReport.LayoutFile
-        Exit Sub
+        m_bIsRM = False
+        ctlView.InitColumns
     End If
-
-    RefreshProgressBar
 
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting CalcReport. " & GetCurInfo, GetCaption
@@ -1300,6 +1290,8 @@ Private Sub CalcReport(ByRef aReport As clsBatchReport)
         ctlRMView.ImmediateRefresh
         ctlRMView.ShowDataByFilter aFilters
     End If
+    
+    If (aReport.Status <> SS_NEW And aReport.Status <> SS_DELETED) Then aReport.Status = SS_UPDATED
     
     Set aFilters = Nothing
 
@@ -1369,6 +1361,7 @@ Private Sub CopyReports(ByRef aSrc As Collection, ByRef aDst As Collection)
         aDstItem.LastRun = aSrcItem.LastRun
         aDstItem.ResultFile = aSrcItem.ResultFile
         aDstItem.ResultFilePath = aSrcItem.ResultFilePath
+        aDstItem.UseDefaultLayout = aSrcItem.UseDefaultLayout
         
         aDstItem.Status = SS_COMMON
 
@@ -1408,7 +1401,7 @@ Private Sub InitRisksView()
     Set ctlView.imgStop = imgStop
     Set ctlView.imgStopDis = imgStopDis
     
-    ctlView.Init 'False
+    ctlView.Init
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting InitRisksView Exit.", GetCaption
@@ -1432,7 +1425,7 @@ Private Sub InitRMView()
     Set ctlRMView.imgStop = imgStop
     Set ctlRMView.imgStopDis = imgStopDis
     
-    ctlRMView.Init 'False
+    ctlRMView.Init
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "BatchReporting InitRMView Exit.", GetCaption
@@ -1459,12 +1452,6 @@ Private Sub ClearRMView()
     imgStop.Visible = False
     imgStopDis.Visible = False
 End Sub
-
-'Private Function GetHeader() As String
-'    On Error Resume Next
-'
-'    GetHeader = "Group," & m_CurShift.Symbol & ",Day Shift," & m_CurShift.DateShift & ",Stock Shift," & m_CurShift.Shift & ",Volatility Shift," & m_CurShift.VolaShift
-'End Function
 
 Private Function GetFileName(dtDate As Date) As String
     On Error Resume Next

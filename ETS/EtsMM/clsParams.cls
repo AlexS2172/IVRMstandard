@@ -20,6 +20,7 @@ Public Enum PnLCalcTypeEnum
     PNLCT_DAILY = 1
 End Enum
 
+
 Public Event ActiveRealTimeChange()
 Public Event EventLogVisibleChange()
 Public Event CalcModelChange()
@@ -251,6 +252,7 @@ Public BR_SendEmail As Boolean
 Public BR_FilterDisplay As Boolean
 
 Public ExecuteBatchReporting As Boolean
+Public AllReportsAvalable As Boolean
 
 Public Property Get IsVSCalcEnabled() As Boolean
     IsVSCalcEnabled = m_VSCalcEnabled
@@ -422,6 +424,7 @@ Public Sub LoadSettings()
     
     CalcDefUndExchID = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcDefUndExchID", 0)
     CalcDefOptExchID = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcDefOptExchID", 0)
+    AllReportsAvalable = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "AllReportsAvalable", 0) <> 0
         
     m_VSCalcEnabled = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "VSCalcEnabled", 0) > 0, True, False)
     
@@ -1763,6 +1766,8 @@ Public Sub LoadBatchReports()
         aReport.ResultFile = ReadStr(rs!vcResultFile)
         aReport.ResultFilePath = ReadStr(rs!vcFilePath)
         
+        aReport.UseDefaultLayout = CBool(aReport.LayoutFilePath = "Default")
+        
         aReport.Init
         
         m_BatchReports.Add aReport, CStr(aReport.ID)
@@ -1790,7 +1795,9 @@ Public Sub SaveBatchReports()
                                         aReport.strategyID, _
                                         aReport.TraderGroupID, _
                                         aReport.IsPosExpanded, _
-                                        aReport.ResultFilePath
+                                        aReport.ResultFilePath, _
+                                        aReport.LastRun, _
+                                        aReport.ResultFile
                 aReport.Status = SS_COMMON
             Case SS_UPDATED
                 gDBW.usp_BR_Report_Save aReport.UserName, _
@@ -1802,6 +1809,8 @@ Public Sub SaveBatchReports()
                                         aReport.TraderGroupID, _
                                         aReport.IsPosExpanded, _
                                         aReport.ResultFilePath, _
+                                        aReport.LastRun, _
+                                        aReport.ResultFile, _
                                         aReport.ID
                 aReport.Status = SS_COMMON
             Case SS_DELETED

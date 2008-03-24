@@ -36,6 +36,7 @@ Public IsPosExpanded As Long
 Public LastRun As Date
 Public ResultFile As String
 Public ResultFilePath As String
+Public UseDefaultLayout As Boolean
 
 
 Public Function Init() As Boolean
@@ -66,6 +67,7 @@ Private Sub Class_Initialize()
     LastRun = 0
     ResultFile = ""
     ResultFilePath = g_Params.CurrentUserPrivateFolder
+    UseDefaultLayout = True
 End Sub
 
 Private Sub Class_Terminate()

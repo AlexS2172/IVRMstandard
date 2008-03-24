@@ -172,7 +172,7 @@ Begin VB.Form frmCustomDivs
          _ExtentX        =   2566
          _ExtentY        =   556
          _Version        =   393216
-         Format          =   20709377
+         Format          =   55771137
          CurrentDate     =   38251
       End
       Begin VB.Label lblStep 
@@ -546,9 +546,13 @@ Public Function UpdateCollection() As Boolean
            m_rs.MoveNext
         Wend
         m_rs.MoveLast
-        
-       
+                
         Set aCurUnd.Dividend.CustomDivs = m_CustDivs
+        
+        If (Not aCurUnd.Dividend.Holidays Is Nothing) Then
+                Set m_CustDivs.Holidays = aCurUnd.Dividend.Holidays
+        End If
+        
         UpdateCollection = True
         Exit Function
 EH:

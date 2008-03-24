@@ -1137,7 +1137,7 @@ End Function
 '    CheckTradeFilter = bMatched
 'End Function
 
-Private Sub InitColumns()
+Public Sub InitColumns()
     On Error Resume Next
     g_DefGrids(GT_MATRIX_FILTER).CopyTo m_gdFlt
     g_DefGrids(GT_MATRIX_SCENARIO).CopyTo m_gdScn
@@ -1657,6 +1657,11 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
 
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
+
     ' common info
     For i = MFC_SYMBOL To MFC_COLUMN_COUNT
         aStorage.SetLongValue "MatrixFlt" & sKey, "Filter" & CStr(i), m_aFilter.Data(i)
@@ -1675,6 +1680,11 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
+    
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
     
     ' common info
     For i = MFC_SYMBOL To MFC_COLUMN_COUNT

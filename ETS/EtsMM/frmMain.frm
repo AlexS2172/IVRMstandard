@@ -1,11 +1,11 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Begin VB.Form frmMain 
    Appearance      =   0  'Flat
    Caption         =   "ETS"
    ClientHeight    =   870
    ClientLeft      =   165
-   ClientTop       =   735
+   ClientTop       =   855
    ClientWidth     =   6495
    Icon            =   "frmMain.frx":0000
    LinkTopic       =   "Form1"
@@ -428,7 +428,7 @@ Private Sub Form_Load()
     mnuToolsShowEventsLog.Checked = g_Params.ShowEventLog
     mnuToolsAlwaysOnTop.Checked = g_Params.MainWinAlwaysOnTop
     
-    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
     
     mnuFileOrderView.Visible = g_Params.OrdersVisible
     mnuFileOrderView.Enabled = g_Params.OrdersEnabled
@@ -1005,7 +1005,7 @@ Private Sub ReadFromFile(aStorage As clsSettingsStorage)
                     
             End Select
 
-            If Not g_PerformanceLog Is Nothing Then _
+            If Not g_PerformanceLog Is Nothing And Not aFrm Is Nothing Then _
                 g_PerformanceLog.FinishLogMmOperation nOperation, OPER_OPENWINDOW, aFrm.GetCaption
             
             Set aFrm = Nothing
@@ -1512,7 +1512,7 @@ Public Sub WindowsShowInTaskBar(ByVal bShow As Boolean)
     Dim i&, nCount&
     
     g_Params.ShowWindowsInTaskbar = bShow
-    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
     
     nCount = g_ViewFrm.Count
     For i = 1 To nCount

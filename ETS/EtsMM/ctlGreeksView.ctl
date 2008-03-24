@@ -2296,6 +2296,7 @@ Private Sub UnderlyingsCalc()
     Dim OptUpdated As Long
     Dim UndUpdated As Long
     Dim FutUpdated As Long
+    Dim dtNewYorkTime As Date
     
 
     If m_View.Und.Count > 0 Then
@@ -2309,10 +2310,11 @@ Private Sub UnderlyingsCalc()
         lblProcess.Caption = "Calculation..."
         lblProcess.Visible = True
         lblProcess.Refresh
+        dtNewYorkTime = GetNewYorkTime
         
         m_View.Calc False, GM_ALL, True, True, False, Nothing, False, g_Params.CalcModel, _
         g_Params.UseTheoVolatility, g_Params.UseTheoNoBid, _
-        g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, OptUpdated, UndUpdated, FutUpdated, Now
+        g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, OptUpdated, UndUpdated, FutUpdated, dtNewYorkTime
         
         imgStop.Visible = False
         imgStopDis.Visible = False
@@ -3393,7 +3395,12 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
-
+    
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
+    
     ' common info
     For i = GFC_SYMBOL To GFC_LAST_COLUMN
         aStorage.SetLongValue "GreekFlt" & sKey, "Filter" & CStr(i), m_aFilter.Data(i)
@@ -3416,6 +3423,10 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
         m_aFilter.Data(i) = aStorage.GetLongValue("GreekFlt" & sKey, "Filter" & CStr(i), m_aFilter.Data(i))
     Next
     
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
     
     m_gdFlt.ReadFromStorage "GreekFltGrid" & sKey, aStorage, False
     m_gdUnd.ReadFromStorage "GreekUndGrid" & sKey, aStorage

@@ -326,6 +326,61 @@ Private Sub ClearBatchBuffer()
     m_nVolaShiftCount = -1
 End Sub
 
+Public Function GenerateCSS(ByRef fgData As VSFlexGrid) As String
+On Error GoTo ErrHandler:
+
+    Dim nCol As Long: nCol = 1
+    Dim sStyleCSS As String: Dim sName As String
+    Dim sKov As String: sKov = """"
+    
+    
+    If (Not fgData Is Nothing) Then
+        sName = fgData.Name
+        
+        'table css class
+        sStyleCSS = sStyleCSS & "table." & sName & "{"
+        sStyleCSS = sStyleCSS & "font-family: """ & fgData.FontName & """;"
+        sStyleCSS = sStyleCSS & "font-size: " & CStr(fgData.FontSize) & "px;"
+        sStyleCSS = sStyleCSS & "border-style: solid; border-width: 1px; border-color: RGB(200, 200, 200); BORDER-COLLAPSE: collapse;"
+        If (fgData.FontBold) Then
+            sStyleCSS = sStyleCSS & "font-weight: bolder;"
+        End If
+        If (fgData.FontItalic) Then
+            sStyleCSS = sStyleCSS & "font-style: italic;"
+        End If
+        sStyleCSS = sStyleCSS & "}" & vbCrLf
+        
+        'cols headers css class
+        sStyleCSS = sStyleCSS & "th.table_header{ background-color: RGB(125, 125, 125); border-color: RGB(200, 200, 200);}" & vbCrLf
+        
+        'cols css class
+        If (fgData.Cols > 0) Then
+            For nCol = 0 To fgData.Cols - 1
+                If (Not fgData.ColHidden(nCol)) Then
+                    'make value col header
+                    sStyleCSS = sStyleCSS & "td." & sName & "_Val_Col" & CStr(nCol) & "{"
+                    If (fgData.FixedCols > nCol) Then
+                        sStyleCSS = sStyleCSS & " font-weight: bolder;"
+                    End If
+                    sStyleCSS = sStyleCSS & "color: #" & CStr(IIf(Hex(fgData.Cell(flexcpBackColor, 1, nCol)) = "FFFFFF", 0, Hex(fgData.Cell(flexcpBackColor, 1, nCol)))) & ";"
+                    'sStyleCSS = sStyleCSS & "background-color: #" & CStr(Hex(fgData.Cell(flexcpForeColor, 1, nCol))) & ";"
+                    sStyleCSS = sStyleCSS & " border-color: RGB(200, 200, 200);" & vbCrLf
+                    sStyleCSS = sStyleCSS & "}" & vbCrLf
+                End If
+            Next
+        End If
+        
+        sStyleCSS = sStyleCSS & "tr.bold_line {font-weight: bolder; background-color: RGB(175, 175, 175);}" & vbCrLf
+        
+    End If
+    
+    GenerateCSS = sStyleCSS
+    
+    Exit Function
+ErrHandler:
+    Debug.Print "Wrong fgData value."
+End Function
+
 Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
                             ByRef fgVal As VSFlexGrid, _
                             Optional ByRef fgTot As VSFlexGrid = Null, _
@@ -333,7 +388,8 @@ Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String,
                             Optional ByVal bSaveAll As Boolean = True) As Boolean
     On Error Resume Next
     Dim hFile As Long
-    
+    Dim sHtmlReport As String
+
     SaveToHTML = False
     
     hFile = FreeFile
@@ -344,63 +400,230 @@ Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String,
     Kill sFilePath & sFileName
     Open sFilePath & sFileName For Binary Access Write As #hFile
     
-    Put #hFile, , CStr(HTML_HEADER & vbCrLf)
+    sHtmlReport = "<html><head><title>Report</title><STYLE type=""text/css"">" & vbCrLf & "<!--" & vbCrLf
+    If (Not fgFlt Is Nothing) Then
+        sHtmlReport = sHtmlReport & GenerateCSS(fgFlt)
+    End If
+    If (Not fgTot Is Nothing) Then
+        sHtmlReport = sHtmlReport & GenerateCSS(fgTot)
+    End If
+    If (Not fgVal Is Nothing) Then
+        sHtmlReport = sHtmlReport & GenerateCSS(fgVal)
+    End If
+    sHtmlReport = sHtmlReport & "-->" & vbCrLf & "</STYLE></head>"
     
-    If Not fgFlt Is Nothing Then GridToHTML hFile, fgFlt, True
-    If Not fgTot Is Nothing Then GridToHTML hFile, fgTot, True
-    GridToHTML hFile, fgVal, bSaveAll
+    Put #hFile, , sHtmlReport
+        
+    'sHtmlReport = sHtmlReport & "<Body>"
+    sHtmlReport = "<Body>"
+    Put #hFile, , sHtmlReport
     
-    Put #hFile, , CStr(HTML_FOOTER)
+    If (Not fgFlt Is Nothing) Then
+        'sHtmlReport = sHtmlReport & GridToHTML(fgFlt, bSaveAll)
+         GridToHTML fgFlt, bSaveAll, hFile
+    End If
+    If (Not fgTot Is Nothing) Then
+        'sHtmlReport = sHtmlReport & GridToHTML(fgTot, bSaveAll)
+        GridToHTML fgTot, bSaveAll, hFile
+    End If
+    If (Not fgVal Is Nothing) Then
+        'sHtmlReport = sHtmlReport & GridToHTML(fgVal, bSaveAll)
+        GridToHTML fgVal, bSaveAll, hFile
+    End If
+    'sHtmlReport = sHtmlReport & "</Body></html>"
+    sHtmlReport = "</Body></html>"
+    Put #hFile, , sHtmlReport
+  
     Close #hFile
-    
+
     SaveToHTML = True
 
 End Function
 
-Private Sub GridToHTML(ByVal hFile As Long, ByRef fgData As VSFlexGrid, ByVal bSaveAll As Boolean)
-    On Error Resume Next
+Private Function GetCellTextValue(ByRef fgData As VSFlexGrid, ByVal nCol As Long, ByVal nRow As Long) As String
+On Error Resume Next
+        Dim dTmp As Double
+        Dim nTmp As Long
+        ' select user friendly cell value
+        Select Case fgData.ColDataType(nCol)
+            Case flexDTBoolean
+                If Len(fgData.ColFormat(nCol)) > 0 Then
+                    GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+                Else
+                    If fgData.Cell(flexcpChecked, nRow, nCol) = flexChecked Then
+                        GetCellTextValue = "Yes"
+                    End If
+                    If fgData.Cell(flexcpChecked, nRow, nCol) = flexUnchecked Then
+                        GetCellTextValue = "No"
+                    End If
+                End If
+                        
+'            Case flexDTDouble, flexDTSingle, flexDTDecimal
+'                Err.Clear
+'                dTmp = CDbl(fgData.TextMatrix(nRow, nCol))
+'                If Err.Number <> 0 Then
+'                    GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+'                Else
+'                    GetCellTextValue = CStr(Round(dTmp, DECIMAL_PLACES))
+'                End If
+'
+'            Case flexDTLong, flexDTShort
+'                Err.Clear
+'                nTmp = CLng(fgData.TextMatrix(nRow, nCol))
+'                If Err.Number <> 0 Then
+'                    GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+'                Else
+'                    GetCellTextValue = CStr(nTmp)
+'                End If
+
+            Case Else
+                GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+        End Select
+
+End Function
+
+Private Function GridToHTML(ByRef fgData As VSFlexGrid, ByVal bSaveAll As Boolean, ByVal hFile As Long) As String
+On Error Resume Next
+
     Dim bFirstRow As Boolean
     Dim bFirstCol As Boolean
     Dim bLastCol As Boolean
     Dim nRow, nCol As Long
+    Dim sHtmlReport As String
+    Dim sName As String
+    Dim sKov As String: sKov = """"
+    Dim sBoldAgg As String
+    Dim sTab As String
         
-    If Not fgData.Rows > 0 Or Not fgData.Rows > 0 Then
-        Exit Sub
+    If Not fgData.Rows > 0 Or Not fgData.Cols > 0 Then
+        Exit Function
     End If
     
-    nRow = 0
-    While nRow < fgData.Rows And nRow > -1
-        bFirstRow = CBool(nRow = 0)
-        
-        For nCol = 0 To fgData.Cols - 1
-            If Not fgData.ColHidden(nCol) Then
-                
-                bFirstCol = CBool(nCol = 0)
-                bLastCol = CBool(nCol = fgData.Cols - 1)
-                
-                Select Case fgData.ColDataType(nCol)
-                    Case flexDTDate
-                        If bFirstCol Then Put #hFile, , CStr(" <tr> " & vbCrLf)
-                        Put #hFile, , CStr(IIf(bFirstRow, "  <td class=xl25>", "  <td class=xl24>") & GetValidXMLText(fgData.Cell(flexcpTextDisplay, nRow, nCol)) & "</td>" & vbCrLf)
-                        If bLastCol Then Put #hFile, , CStr(" </tr> " & vbCrLf)
-        
-                    Case Else
-                        If bFirstCol Then Put #hFile, , CStr(" <tr> " & vbCrLf)
-                        Put #hFile, , CStr(IIf(bFirstRow, "  <td class=xl25>", "  <td>") & GetValidXMLText(fgData.Cell(flexcpTextDisplay, nRow, nCol)) & "</td>" & vbCrLf)
-                        If bLastCol Then Put #hFile, , CStr(" </tr> " & vbCrLf)
-                End Select
-                    
-            End If
-        Next
-        
-        If fgData.IsSubtotal(nRow) And Not bSaveAll Then
-            nRow = fgData.GetNodeRow(nRow, flexNTNextSibling)
-        Else
-            nRow = nRow + 1
-        End If
-    Wend
+    sName = fgData.Name
     
-End Sub
+    sHtmlReport = "<table class=" & sKov & sName & sKov
+    sHtmlReport = sHtmlReport & " rules=" & sKov & "all" & sKov
+    sHtmlReport = sHtmlReport & ">" & vbCrLf
+    
+    'Generate header
+    For nCol = 0 To fgData.Cols - 1
+        If (Not fgData.ColHidden(nCol)) Then
+            sHtmlReport = sHtmlReport & "<th nowrap class=" & sKov & "table_header" & sKov & ">" & fgData.Cell(flexcpTextDisplay, 0, nCol) & "</th>" & vbCrLf
+        End If
+    Next
+    
+    Put #hFile, , sHtmlReport
+    
+    'Generate value table
+    For nRow = 1 To fgData.Rows - 1
+    
+        If (fgData.RowOutlineLevel(nRow) = 0 And fgData.Rows > 2 And fgData.IsSubtotal(nRow)) Then
+            sBoldAgg = " class=" & sKov & "bold_line" & sKov 'make underlying level bold and gray colored
+        Else
+            sBoldAgg = ""
+        End If
+               
+        'sHtmlReport = sHtmlReport & "<tr" & sBoldAgg & " >" & vbCrLf
+        sHtmlReport = "<tr" & sBoldAgg & " >" & vbCrLf
+        If ((fgData.IsSubtotal(nRow) And fgData.RowOutlineLevel(nRow) = 0) Or bSaveAll Or fgData.Rows <= 2) Then
+            For nCol = 0 To fgData.Cols - 1
+                If (Not fgData.ColHidden(nCol)) Then
+                    sHtmlReport = sHtmlReport & "<td nowrap class=" & sKov & sName & "_Val_Col" & CStr(nCol) & sKov & ">"
+                    sHtmlReport = sHtmlReport & vbTab & GetValidXMLText(GetCellTextValue(fgData, nCol, nRow))
+                    sHtmlReport = sHtmlReport & "</td>" & vbCrLf
+                End If
+            Next
+        End If
+        sHtmlReport = sHtmlReport & "</tr>" & vbCrLf
+        Put #hFile, , sHtmlReport
+    Next
+    'sHtmlReport = sHtmlReport & "</table>"
+    sHtmlReport = "</table>"
+    Put #hFile, , sHtmlReport
+    
+    GridToHTML = sHtmlReport
+    
+End Function
+
+'--------------------------------------------------------------------------------------------------------------------------
+'Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
+'                            ByRef fgVal As VSFlexGrid, _
+'                            Optional ByRef fgTot As VSFlexGrid = Null, _
+'                            Optional ByRef fgFlt As VSFlexGrid = Null, _
+'                            Optional ByVal bSaveAll As Boolean = True) As Boolean
+'    On Error Resume Next
+'    Dim hFile As Long
+'
+'    SaveToHTML = False
+'
+'    hFile = FreeFile
+'    If hFile = 0 Then
+'        Exit Function
+'    End If
+'
+'    Kill sFilePath & sFileName
+'    Open sFilePath & sFileName For Binary Access Write As #hFile
+'
+'    Put #hFile, , CStr(HTML_HEADER & vbCrLf)
+'
+'    If Not fgFlt Is Nothing Then GridToHTML hFile, fgFlt, True
+'    If Not fgTot Is Nothing Then GridToHTML hFile, fgTot, True
+'    GridToHTML hFile, fgVal, bSaveAll
+'
+'    Put #hFile, , CStr(HTML_FOOTER)
+'    Close #hFile
+'
+'    SaveToHTML = True
+'
+'End Function
+
+
+'Private Sub GridToHTML(ByVal hFile As Long, ByRef fgData As VSFlexGrid, ByVal bSaveAll As Boolean)
+'    On Error Resume Next
+'    Dim bFirstRow As Boolean
+'    Dim bFirstCol As Boolean
+'    Dim bLastCol As Boolean
+'    Dim nRow, nCol As Long
+'
+'    If Not fgData.Rows > 0 Or Not fgData.Rows > 0 Then
+'        Exit Sub
+'    End If
+'
+'    nRow = 0
+'    While nRow < fgData.Rows And nRow > -1
+'        bFirstRow = CBool(nRow = 0)
+'
+'        For nCol = 0 To fgData.Cols - 1
+'            If Not fgData.ColHidden(nCol) Then
+'
+'                bFirstCol = CBool(nCol = 0)
+'                bLastCol = CBool(nCol = fgData.Cols - 1)
+'
+'                Debug.Print fgData.ColKey(nCol)
+'
+'                Select Case fgData.ColDataType(nCol)
+'                    Case flexDTDate
+'                        If bFirstCol Then Put #hFile, , CStr(" <tr> " & vbCrLf)
+'                        Put #hFile, , CStr(IIf(bFirstRow, "  <td class=xl25>", "  <td class=xl24>") & GetValidXMLText(fgData.Cell(flexcpTextDisplay, nRow, nCol)) & "</td>" & vbCrLf)
+'                        If bLastCol Then Put #hFile, , CStr(" </tr> " & vbCrLf)
+'
+'                    Case Else
+'                        If bFirstCol Then Put #hFile, , CStr(" <tr> " & vbCrLf)
+'                        Put #hFile, , CStr(IIf(bFirstRow, "  <td class=xl25>", "  <td>") & GetValidXMLText(fgData.Cell(flexcpTextDisplay, nRow, nCol)) & "</td>" & vbCrLf)
+'                        If bLastCol Then Put #hFile, , CStr(" </tr> " & vbCrLf)
+'                End Select
+'
+'            End If
+'        Next
+'
+'        If fgData.IsSubtotal(nRow) And Not bSaveAll Then
+'            nRow = fgData.GetNodeRow(nRow, flexNTNextSibling)
+'        Else
+'            nRow = nRow + 1
+'        End If
+'    Wend
+'
+'End Sub
 
 Private Function GetValidXMLText(sStr As String) As String
     On Error Resume Next

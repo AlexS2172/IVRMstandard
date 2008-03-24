@@ -1409,7 +1409,12 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim aUnd As EtsMmHedgeLib.MmHsUndAtom, aStocks As EtsMmHedgeLib.MmHsUndColl
     
     If Len(sKey) > 0 Then sKey = "." & sKey
-
+    
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
+    
     ' common info
     For i = HFC_GROUP To HFC_COLUMN_COUNT
         aStorage.SetLongValue "HedgeSummaryFlt" & sKey, "Filter" & CStr(i), m_nFilter(i)
@@ -1443,6 +1448,11 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Set m_NewInsts = Nothing
     Set m_NewInsts = New Collection
     
+    
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
         
     ' set new instruments info
     nCount = aStorage.GetLongValue("HedgeSummaryInst" & sKey, "InstCount", 0)

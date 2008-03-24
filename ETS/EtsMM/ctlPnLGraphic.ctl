@@ -1,7 +1,7 @@
 VERSION 5.00
 Object = "{54850C51-14EA-4470-A5E4-8C5DB32DC853}#1.0#0"; "vsprint8.ocx"
 Object = "{C115893A-A3BF-43AF-B28D-69DB846077F3}#1.0#0"; "vsflex8u.ocx"
-Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
+Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1Sizer.ocx"
 Object = "{0BE3824E-5AFE-4B11-A6BC-4B3AD564982A}#8.0#0"; "olch2x8.ocx"
 Begin VB.UserControl ctlPnLGraphic 
    ClientHeight    =   9705
@@ -4241,7 +4241,7 @@ Private Function Validate_Und() As Boolean
     Dim aUnd As EtsGeneralLib.UndAtom, nUndPos&, dwLI&
     
     Validate_Und = False
-    cmbTradeUnd.Text = UCase(cmbTradeUnd.Text)
+    'cmbTradeUnd.Text = UCase(cmbTradeUnd.Text)
     
     For dwLI = 0 To cmbTradeUnd.ListCount
         If cmbTradeUnd.List(dwLI) = cmbTradeUnd.Text Then
@@ -4459,8 +4459,8 @@ End Sub
 
 Private Sub InitPrinter()
    On Error Resume Next
-   If Not VSPrinter Is Nothing Then
-    With VSPrinter
+   If Not vsPrinter Is Nothing Then
+    With vsPrinter
         .PhysicalPage = True
         .NavBar = vpnbNone
         .Track = True

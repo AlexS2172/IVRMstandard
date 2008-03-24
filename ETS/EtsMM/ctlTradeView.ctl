@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "Vsflex7.ocx"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Begin VB.UserControl ctlTradeView 
    ClientHeight    =   7350
    ClientLeft      =   0
@@ -91,7 +91,7 @@ Begin VB.UserControl ctlTradeView
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -185,7 +185,7 @@ Begin VB.UserControl ctlTradeView
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -1572,7 +1572,7 @@ Private Sub ShowPopup()
                         
                             mnuCtxTradeExercise.Enabled = aTrd.Status <> enTsSimulated _
                                                             And (aTrd.ContractType = enCtOption Or aTrd.ContractType = enCtFutOption) _
-                                                            And aTrd.Price <> 0# And IIf(aTrd.IsPosition, False, True)
+                                                            And aTrd.price <> 0# And IIf(aTrd.IsPosition, False, True)
                             mnuCtxTradeExpiry.Enabled = mnuCtxTradeExercise.Enabled
                         End If
                     Else
@@ -1928,7 +1928,7 @@ Private Sub mnuCtxTradeExercise_Click()
 '                        End If
                     End If
                             
-                    If aTrd.Price <> 0 Then
+                    If aTrd.price <> 0 Then
                         Set aTrdExec = collTrades.Add(CStr(aTrd.TradeID))
                         aTrdExec.IsExec = True
                         aTrdExec.QtyToExec = aTrd.Quantity
@@ -1965,7 +1965,7 @@ Private Sub mnuCtxTradeExpiry_Click()
             Set aTrd = m_AuxTradeView.RowData(m_nMenuGridRow)
             If Not aTrd Is Nothing And Not aTrd.IsPosition Then
                 If aTrd.ContractType = enCtOption Or aTrd.ContractType = enCtFutOption Then
-                    If aTrd.Price <> 0 Then
+                    If aTrd.price <> 0 Then
                         Set aTrdExec = collTrades.Add(CStr(aTrd.TradeID))
                         aTrdExec.IsExec = True
                         aTrdExec.QtyToExec = aTrd.Quantity
@@ -2193,7 +2193,7 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                     End If
                     
                     bBuy = aTrd.IsBuy
-                    dPrice = IIf(bIsStock = (aTrd.ContractType = enCtStock Or aTrd.ContractType = enCtIndex), aTrd.Price, 0#)
+                    dPrice = IIf(bIsStock = (aTrd.ContractType = enCtStock Or aTrd.ContractType = enCtIndex), aTrd.price, 0#)
                     
                     Set aTrd = Nothing
                 End If
@@ -2543,7 +2543,12 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
-
+    
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
+    
     ' common info
     For i = TFC_UNDERLYING To TFC_STRATEGY
         aStorage.SetLongValue "TradeFlt" & sKey, "Filter" & CStr(i), m_AuxTradeView.TradeViewFilter(i)
@@ -2560,6 +2565,11 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
+    
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
     
     ' common info
     For i = TFC_UNDERLYING To TFC_STRATEGY

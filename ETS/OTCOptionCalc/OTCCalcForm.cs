@@ -825,15 +825,15 @@ namespace OTCOptionCalc
 			}
 			else
 			{
-				int lCurExpDate = 0;
-				int lDTE =  0;
+				double lCurExpDate = 0;
+				double lDTE =  0;
 
 				DateTime dtMinExpiry = DateTime.Today;
 				dtMinExpiry.AddDays(MIN_EXPIRY_DAYS);
-				lDTE = System.Convert.ToInt32(tbDTE.Text);
+				lDTE = System.Convert.ToDouble(tbDTE.Text);
 
 				dtMinExpiry.AddDays(MIN_EXPIRY_DAYS);
-				lCurExpDate = System.Convert.ToInt32(dtMinExpiry.ToOADate()) + lDTE;
+				lCurExpDate = System.Convert.ToDouble(dtMinExpiry.ToOADate()) + lDTE;
 	
 				ReadExpCommand.CommandText= "usp_UnderlyingExpiry_Get";
 				ReadExpCommand.CommandType = CommandType.StoredProcedure;
@@ -1742,7 +1742,7 @@ namespace OTCOptionCalc
 			bGotAtmPut = false;
 			bGotAtmCall = false;
 
-			sSymbol = sSymbol.ToUpper();
+			//sSymbol = sSymbol.ToUpper();
 			//tbSymbol.Text = sSymbol;
 
             m_dPriceLast = 0.0;
@@ -1779,12 +1779,12 @@ namespace OTCOptionCalc
 					break;
 				case (long)EtsGeneralLib.EtsContractTypeEnum.enCtFuture:
 					aArgParam.Type = PRICEPROVIDERSLib.InstrumentTypeEnum.enFUT;
-                    sRequestSymbol =sSymbol.ToUpper();
+                    sRequestSymbol =sSymbol;
                     aArgParam.Symbol = sRequestSymbol;
 					break;
 				case (long)EtsGeneralLib.EtsContractTypeEnum.enCtIndex:
 					aArgParam.Type = PRICEPROVIDERSLib.InstrumentTypeEnum.enIDX;
-                    aArgParam.Symbol = sSymbol.ToUpper();
+                    aArgParam.Symbol = sSymbol;//.ToUpper();
                     break;
 				case (long)EtsGeneralLib.EtsContractTypeEnum.enCtOption:
 					aArgParam.Type = PRICEPROVIDERSLib.InstrumentTypeEnum.enOPT;
@@ -1792,7 +1792,7 @@ namespace OTCOptionCalc
                     break;
 				case (long)EtsGeneralLib.EtsContractTypeEnum.enCtStock:
 					aArgParam.Type = PRICEPROVIDERSLib.InstrumentTypeEnum.enSTK;
-                    sRequestSymbol = sSymbol.ToUpper();
+                    sRequestSymbol = sSymbol;//.ToUpper();
 
                     aArgParam.Symbol = sRequestSymbol;
                     break;
@@ -2237,7 +2237,7 @@ namespace OTCOptionCalc
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(104, 16);
             this.label6.TabIndex = 12;
-            this.label6.Text = "Days to Expiration:";
+            this.label6.Text = "TimeToExp";
             // 
             // label8
             // 
@@ -3172,7 +3172,7 @@ namespace OTCOptionCalc
             // dtpExpirationDate
             // 
             this.dtpExpirationDate.EditValue = new System.DateTime(2008, 2, 15, 17, 37, 9, 0);
-            this.dtpExpirationDate.Location = new System.Drawing.Point(93, 12);
+            this.dtpExpirationDate.Location = new System.Drawing.Point(107, 12);
             this.dtpExpirationDate.Name = "dtpExpirationDate";
             this.dtpExpirationDate.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
             this.dtpExpirationDate.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
@@ -3183,7 +3183,7 @@ namespace OTCOptionCalc
             this.dtpExpirationDate.Properties.EditFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
             this.dtpExpirationDate.Properties.Mask.EditMask = "d/M/yyyy hh:mm:ss tt";
             this.dtpExpirationDate.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.dtpExpirationDate.Size = new System.Drawing.Size(156, 20);
+            this.dtpExpirationDate.Size = new System.Drawing.Size(135, 20);
             this.dtpExpirationDate.TabIndex = 3;
             this.dtpExpirationDate.Leave += new System.EventHandler(this.dtpExpirationDate_Leave);
             this.dtpExpirationDate.EditValueChanged += new System.EventHandler(this.dtpExpirationDate_EditValueChanged);
@@ -3213,9 +3213,9 @@ namespace OTCOptionCalc
             this.label7.BackColor = System.Drawing.Color.Gainsboro;
             this.label7.Location = new System.Drawing.Point(8, 16);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(88, 16);
+            this.label7.Size = new System.Drawing.Size(93, 16);
             this.label7.TabIndex = 103;
-            this.label7.Text = "Expiration Date:";
+            this.label7.Text = "Expiration for OV:";
             // 
             // StyleGroupBox
             // 
@@ -5069,7 +5069,7 @@ namespace OTCOptionCalc
 
 		private int CheckTheStock(bool bManual)
 		{
-			if (sOldSymbol.ToUpper() != tbSymbol.Text.ToUpper())
+			if (sOldSymbol != tbSymbol.Text)
 			{
 				tbContinousRate.Text = "0.00";
 				tbDivAmount.Text  = "0.00";
@@ -5732,7 +5732,7 @@ namespace OTCOptionCalc
                 String[] sCLParams = Environment.GetCommandLineArgs();
                 if (sCLParams.Length > 1)
                 {
-                    if (sCLParams[1] == this.tbSymbol.Text.ToUpper())
+                    if (sCLParams[1] == this.tbSymbol.Text/*.ToUpper()*/)
                     {
                         m_bManual = false;
                         return;

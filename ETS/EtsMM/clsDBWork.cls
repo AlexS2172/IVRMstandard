@@ -2016,6 +2016,8 @@ Public Function usp_BR_Report_Save(ByVal vcUserName As String, _
                                    ByVal iTraderGroupID As Long, _
                                    ByVal tiPositions As Boolean, _
                                    ByVal vcResultFilePath As String, _
+                                   ByVal dtLastRun As Date, _
+                                   ByVal vcResultFile As String, _
                                    Optional ByVal iReportID As Long = BAD_LONG_VALUE) As Long
     usp_BR_Report_Save = Execute(False, "usp_BR_Report_Save", IIf(iReportID <> BAD_LONG_VALUE, iReportID, Null), _
                                                                 vcUserName, _
@@ -2026,7 +2028,9 @@ Public Function usp_BR_Report_Save(ByVal vcUserName As String, _
                                                                 iStrategyID, _
                                                                 iTraderGroupID, _
                                                                 tiPositions, _
-                                                                vcResultFilePath)
+                                                                vcResultFilePath, _
+                                                                dtLastRun, _
+                                                                vcResultFile)
 End Function
 
 Public Function usp_BR_Report_Complete(ByVal iReportID As Long, ByVal dtDate As Date, ByVal vcFileName As String) As Long

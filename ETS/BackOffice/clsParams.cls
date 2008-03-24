@@ -53,6 +53,8 @@ Private m_sAppIVRmTitle As String
 
 Public DoNotCheckDbVersion As Boolean
 Public ExchangeRate As Double
+Public SECFees As Double
+Public CustodianDesc As String
 Private m_hResource As Long
 
 Public Enum WindowCode
@@ -87,6 +89,9 @@ Public Sub LoadSettings()
     ExchangeRate = CDbl(g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\ExchangeRates", CAN_REGION, "1"))
     
     m_bCommodity = g_aMainXMLParams.GetLongValue(GROUP_XML_KEY & sUserGroup, "Commodity", 0) <> 0
+    
+    SECFees = CDbl(g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup, "SECFees", CStr(0.000157)))
+    CustodianDesc = g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup, "CustodianDesc", "AAA-BBB-CCC")
     
     m_nPriceProviderType = 6 'Activ '1 ' Hyperfeed ' EtsSettings.PriceProvider
     m_sPriceProviderProgID = ""

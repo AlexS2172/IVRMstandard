@@ -584,9 +584,7 @@ STDMETHODIMP CMmQvUndAtom::CalcOptionGreeks(IMmQvOptAtom* aOpt,
 		//DOUBLE	dtNow			=	dtNYDT;//(DOUBLE)vt_date::GetCurrentDate();
 		DOUBLE	dtCalcNow		=	dtCalcDate;
 		DOUBLE	dYTE			=	(dtExpiryOV - dtCalcNow) / 365.0;
-
-		//bool bCalcDelta = (dDaySift!=DOUBLE(0.) && dYTE <= 0 && (dtExpiryOV - dtNow)>=0);
-		bool	bCalcDelta = (dYTE >= 0);
+		bool	bCalcDelta		=	(dYTE <= 0.);
 
 		long   nDivCount = 0L;
 		double dYield    = 0.;
@@ -1320,8 +1318,7 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 				DOUBLE dtExpiryOV   = pExpiry->m_dtExpiryOV;
 				DOUBLE dYte			= (dtExpiryOV - dtCalcDate) / 365.;
 				DOUBLE dtCloseTime	= pExpiry->m_dtTradingClose;
-				//bool bCalcDelta		= (dDaySift != 0. && dYte <= 0 && (dtExpiryOV - dtNow)>=0);
-				bool	bCalcDelta	=	(dYte >= 0.);
+				bool	bCalcDelta	=	(dYte <= 0.);
 
 				CMmQvStrikeColl::CollType::iterator itStrikeBegin = pExpiry->m_pStrike->m_coll.begin();
 				CMmQvStrikeColl::CollType::iterator itStrikeEnd   = pExpiry->m_pStrike->m_coll.end();

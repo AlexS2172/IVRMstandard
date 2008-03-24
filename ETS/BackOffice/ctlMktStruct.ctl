@@ -567,7 +567,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentY        =   529
          _Version        =   393216
          CustomFormat    =   "MMM,dd yyy hh:mm tt"
-         Format          =   20578305
+         Format          =   55312385
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -693,7 +693,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20578305
+         Format          =   55312385
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -867,7 +867,7 @@ Begin VB.UserControl ctlMktStruct
             _ExtentY        =   529
             _Version        =   393216
             CustomFormat    =   "MMM,dd yyy hh:mm tt"
-            Format          =   20578307
+            Format          =   55312387
             CurrentDate     =   38974.5416666667
          End
       End
@@ -984,7 +984,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20578305
+         Format          =   55312385
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -3097,7 +3097,8 @@ Private Function ContractSave() As Boolean
     
     If bExpiryOVChanged Then OptionPairEdit (False)
     
-    sSymbol = UCase$(Trim$(txtSymbol.Text))
+    'sSymbol = UCase$(Trim$(txtSymbol.Text))
+    sSymbol = Trim$(txtSymbol.Text)
     
     ' checking valid contract simbol
     If sSymbol = "" Then
@@ -3107,7 +3108,7 @@ Private Function ContractSave() As Boolean
     End If
     
     ' checking if symbol already exists
-    If sSymbol <> UCase$(m_Contract.Symbol) Then
+    If UCase$(sSymbol) <> UCase$(m_Contract.Symbol) Then
         With m_rsContractList
             .Filter = "vcSymbol='" & FixDbString(sSymbol) & "'"
             If .RecordCount > 0 Then

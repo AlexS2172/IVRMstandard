@@ -1754,7 +1754,7 @@ End Function
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
 Public Function usp_IndexUnderlyingBeta_Save( _
-    ByVal IndexID As Variant, _
+    ByVal IndexId As Variant, _
     ByVal UnderlyingID As Variant, _
     ByVal Beta As Double, _
     Optional ByVal IndexSymbol As Variant = Null, _
@@ -1762,7 +1762,7 @@ Public Function usp_IndexUnderlyingBeta_Save( _
 ) As Boolean
     usp_IndexUnderlyingBeta_Save = 0 = _
     Execute(False, "usp_IndexUnderlyingBeta_Save" _
-        , IndexID _
+        , IndexId _
         , UnderlyingID _
         , Beta _
         , IndexSymbol _
@@ -3070,4 +3070,8 @@ Public Function usp_GroupAsset_Del(iHeadID As Variant) As ADODB.Recordset
 End Function
 Public Function usp_AssetGroup_Save(vcXML As Variant) As ADODB.Recordset
     Set usp_AssetGroup_Save = Execute(True, "usp_AssetGroup_Save", vcXML)
+End Function
+
+Public Function usp_BoTradesForExport_Get() As ADODB.Recordset
+    Set usp_BoTradesForExport_Get = Execute(True, "usp_BoTradesForExport_Get")
 End Function

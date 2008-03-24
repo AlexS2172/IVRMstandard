@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Object = "{0D452EE1-E08F-101A-852E-02608C4D0BB4}#2.0#0"; "FM20.DLL"
 Begin VB.Form frmStockClosePrice 
    BorderStyle     =   1  'Fixed Single
@@ -214,12 +214,12 @@ On Error GoTo Err
     m_PriceColl.Clear
     Set rs = gDBW.usp_BoAllStocksGet
     While Not rs.EOF
-        sKey = Trim$(UCase$(gCmn.ReadStr(rs!sSymbol)))
+        sKey = Trim$(gCmn.ReadStr(rs!sSymbol))
         If (m_PriceColl(sKey) Is Nothing And gCmn.ReadLng(rs!iContractType) = 2) Then
             Set aCPA = m_PriceColl.Add(sKey)
             aCPA.ContractID = gCmn.ReadLng(rs!iContractID)
             aCPA.Exchange = Trim$(UCase$(gCmn.ReadStr(rs!sExchange)))
-            aCPA.Symbol = Trim$(UCase$(gCmn.ReadStr(rs!sSymbol)))
+            aCPA.Symbol = Trim$(gCmn.ReadStr(rs!sSymbol))
             aCPA.ContractType = gCmn.ReadLng(rs!iContractType)
             aCPA.IsUpdated = False
             Set aCPA = Nothing
@@ -330,7 +330,7 @@ On Error GoTo Err
     End If
     
     
-    sKey = Trim$(UCase$(Params.Stock))
+    sKey = Trim$(Params.Stock)
     
     If (m_bCanadianOnly) Then
         If (Results.Currency = "CAD") Then

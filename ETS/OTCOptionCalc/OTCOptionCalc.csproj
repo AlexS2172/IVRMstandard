@@ -4,9 +4,12 @@
     <ProductVersion>8.0.50727</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{3D33E918-D5BB-4BE4-A722-EAFC6E0CA001}</ProjectGuid>
-    <SccProjectName>SAK</SccProjectName>
-    <SccLocalPath>.</SccLocalPath>
-    <SccProvider>MSSCCI:ClearCase</SccProvider>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccProvider>
+    </SccProvider>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ApplicationIcon>AppIcon.ico</ApplicationIcon>
@@ -29,6 +32,8 @@
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <IsWebBootstrapper>false</IsWebBootstrapper>
+    <SccAuxPath>
+    </SccAuxPath>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>

@@ -800,10 +800,7 @@ bool CMmTradeInfoAtom::GetField(TradesListColumnEnum field, _variant_t& vtRet, b
 				}
 			}break;
 		default:
-			if(bForCompare)
-				vtRet = _variant_t(-1L);
-			else
-				vtRet = bsEmpty;
+			vtRet = bsEmpty;
 		}
 		break;
 	case TLC_EXPIRY:

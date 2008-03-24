@@ -54,6 +54,7 @@ Public EADaysToDiv As Long
 Public CheckExpiredOptions  As Boolean
 Public EADaysToDivDays As Long
 
+Public ExchangeRate As Double
 
 Public HedgeUseExtPosition As Boolean
 
@@ -312,6 +313,8 @@ Public Sub LoadSettings()
     Else
         CheckExpiredOptions = False
     End If
+        
+    ExchangeRate = (CDbl(g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\ExchangeRates", "CAD", "1")))
         
     longBuff = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "EADaysToDivDays", 0)
     EADaysToDivDays = longBuff

@@ -23,6 +23,8 @@ Private m_collRoots As clsRecOptRootColl
 Private m_collPrices As clsRecContrPriceColl
 Private m_collTraderContracts As clsTraderContractColl
 Private m_collFut As clsRecPosFutColl
+Private m_CollTrades As clsTradesColl
+Private m_collExch As clsExchColl
 
 Private m_collStrategy As clsStrategyColl
 Private m_collStrategyByName As clsStrategyColl
@@ -69,6 +71,8 @@ Private Sub Class_Initialize()
     Set m_collStrategyByName = Nothing
     Set m_collUndForVolaClear = Nothing
     Set m_collFieldsPosition = Nothing
+    Set m_CollTrades = Nothing
+    Set m_collExch = Nothing
     m_btFileFormat = 0
     m_bStrategySupport = False
 End Sub
@@ -87,6 +91,8 @@ Public Sub Init(ByRef Form As frmEndOfDay)
     Set m_collStrategyByName = New clsStrategyColl
     Set m_collUndForVolaClear = New clsRecPosUndColl
     Set m_collFieldsPosition = New clsFieldPositionColl
+    Set m_CollTrades = New clsTradesColl
+    Set m_collExch = New clsExchColl
     
     m_bStrategySupport = False
 End Sub
@@ -360,7 +366,7 @@ Private Sub LoadStrategies()
         Set aStrategy = m_collStrategy(CStr(nId))
         If aStrategy Is Nothing Then
             Set aStrategy = m_collStrategy.Add(CStr(nId))
-            aStrategy.StrategyId = nId
+            aStrategy.StrategyID = nId
             aStrategy.StrategyName = sName
             
             If m_collStrategyByName(UCase$(sName)) Is Nothing Then
@@ -372,6 +378,267 @@ Private Sub LoadStrategies()
         rs.MoveNext
     Wend
     Set rs = Nothing
+End Sub
+Private Sub LoadExchange()
+On Error GoTo ErrHandler
+
+    Dim rs As ADODB.Recordset
+    Dim aExch As clsExchAtom
+    Dim sKey As String
+    
+    m_collExch.Clear
+
+    Set rs = gDBW.usp_Exchange_Get(Null)
+    While Not rs.EOF
+        sKey = UCase$(Trim$(gCmn.ReadLng(rs!iExchangeId)))
+        
+        If m_collExch(sKey) Is Nothing Then
+            Set aExch = m_collExch.Add(sKey)
+            aExch.ID = gCmn.ReadLng(rs!iExchangeId)
+            aExch.Code = gCmn.ReadStr(rs!vcExchangeCode)
+            aExch.Symbol = gCmn.ReadStr(rs!vcExchangeName)
+            Set aExch = Nothing
+        End If
+        
+        rs.MoveNext
+    Wend
+    Set rs = Nothing
+    
+Exit Sub
+ErrHandler:
+    Debug.Print "Error on Loading Exchanges"
+End Sub
+
+
+Private Sub LoadTrades(Optional ByVal bSupportStrategy As Boolean = True)
+    Dim rs As ADODB.Recordset, sKey$
+    Dim aTrade As clsTradeAtom
+    Dim nKeyCounter As Long: nKeyCounter = 0
+    Dim aExch As clsExchAtom
+    
+    m_CollTrades.Clear
+    Set rs = gDBW.usp_BoTradesForExport_Get()
+    
+    If (rs.RecordCount > 0) Then
+        If (bSupportStrategy) Then
+            rs.Sort = "lContractID, lTraderID, lStrategyID, bIsPosition DESC, lSeqNum"
+        Else
+            rs.Sort = "lContractID, lTraderID, bIsPosition DESC, lSeqNum"
+        End If
+    End If
+    
+    While Not rs.EOF
+        sKey = gCmn.ReadStr(rs!lSeqNum)
+        Set aTrade = m_CollTrades(sKey)
+        If aTrade Is Nothing Then
+            Set aTrade = m_CollTrades.Add(sKey)
+            
+            aTrade.ActionDate = gCmn.ReadDate(rs!dtActionDate)
+            aTrade.BrokerID = gCmn.ReadLng(rs!lBrokerID)
+            aTrade.BrokerName = gCmn.ReadStr(rs!vcBrokerName)
+            aTrade.ExchangeID = gCmn.ReadLng(rs!lExchangeID)
+            
+            aTrade.CCY = "USD"
+            If (Not m_collExch Is Nothing) Then
+                If (Not m_collExch(CStr(aTrade.ExchangeID)) Is Nothing) Then
+                    Set aExch = m_collExch(CStr(aTrade.ExchangeID))
+                    If (aExch.Code = "TO" Or aExch.Code = "TV") Then
+                        aTrade.CCY = "CAD"
+                    End If
+                End If
+            End If
+    
+            aTrade.Comission = gCmn.ReadDbl(rs!fBrokerCommission)
+            aTrade.ContractID = gCmn.ReadLng(rs!lContractID)
+            aTrade.ContractType = gCmn.ReadLng(rs!lContractType)
+            aTrade.FutureID = gCmn.ReadLng(rs!lFutureID)
+            aTrade.FutureRootID = gCmn.ReadLng(rs!lFutureRootID)
+            aTrade.ImportID = gCmn.ReadStr(rs!vcImportID)
+            aTrade.IsBuy = gCmn.ReadByte(rs!bIsBuy)
+            aTrade.LotSize = gCmn.ReadLng(rs!lLotSize)
+            aTrade.OptionRootID = gCmn.ReadLng(rs!lOptionRootID)
+            aTrade.Price = gCmn.ReadDbl(rs!fPrice)
+            aTrade.Qty = gCmn.ReadLng(rs!lQty)
+            aTrade.RealQty = aTrade.Qty * IIf(aTrade.IsBuy, 1, -1)
+            aTrade.SeqNum = gCmn.ReadLng(rs!lSeqNum)
+            aTrade.StrategyName = gCmn.ReadStr(rs!vcStrategyName)
+            aTrade.Symbol = gCmn.ReadStr(rs!vcSymbol)
+            aTrade.TradeDate = gCmn.ReadDate(rs!dtTradeDate)
+            aTrade.TradeID = gCmn.ReadLng(rs!lID)
+            aTrade.TraderID = gCmn.ReadLng(rs!lTraderID)
+            aTrade.TraderName = gCmn.ReadStr(rs!vcTraderName)
+            aTrade.StrategyID = gCmn.ReadLng(rs!lStrategyID)
+            aTrade.UnderlyingID = gCmn.ReadLng(rs!lUnderlyingID)
+            aTrade.IsPos = gCmn.ReadByte(rs!bIsPosition)
+            
+            aTrade.Strike = gCmn.ReadDbl(rs!dStrike)
+            aTrade.IsCall = gCmn.ReadByte(rs!bIsCall)
+            aTrade.Expiry = gCmn.ReadDate(rs!dtExpiry)
+            aTrade.RootName = gCmn.ReadStr(rs!vcRootSymbol)
+                       
+            Set aTrade = Nothing
+        End If
+        rs.MoveNext
+    Wend
+    Set rs = Nothing
+End Sub
+
+Private Function GetTradeKey(ByRef aTrade As clsTradeAtom, ByVal bSupportStrategy As Boolean) As String
+    If (bSupportStrategy) Then
+        GetTradeKey = CStr(aTrade.ContractID) & "_" & CStr(aTrade.TraderID) & "_" & CStr(aTrade.StrategyID)
+    Else
+        GetTradeKey = CStr(aTrade.ContractID) & "_" & CStr(aTrade.TraderID)
+    End If
+End Function
+
+Private Function GetExternalKeyByTrade(ByRef aTrade As clsTradeAtom) As String
+    If (Not aTrade Is Nothing) Then
+        GetExternalKeyByTrade = "iVol" & Format(aTrade.SeqNum, "0000000") & "N"
+    End If
+End Function
+
+Private Function GetTradeStringLine(ByRef aTrade As clsTradeAtom, ByVal sID As String, ByVal sTradeType As String, ByVal sCustodian As String, ByVal dFeesCoef As Double) As String
+On Error GoTo ErrHandler:
+    Dim sLine As String: sLine = ""
+    Dim sDelimetr As String: sDelimetr = ";"
+    Dim bIsOption As Boolean
+    
+    If (Not aTrade Is Nothing) Then
+        sLine = sLine & Replace(GetExternalKeyByTrade(aTrade), "N", sID) & sDelimetr
+        sLine = sLine & aTrade.Symbol & sDelimetr
+        sLine = sLine & aTrade.GetOCCCode & sDelimetr
+        sLine = sLine & Format(aTrade.TradeDate, "M/D/YYYY") & sDelimetr
+        
+        If (aTrade.ContractType = enCtFutOption Or aTrade.ContractType = enCtOption) Then
+            sLine = sLine & Format(aTrade.TradeDate + 1, "M/D/YYYY") & sDelimetr
+            bIsOption = True
+        Else
+            sLine = sLine & Format(aTrade.TradeDate + 3, "M/D/YYYY") & sDelimetr
+            bIsOption = False
+        End If
+        
+        sLine = sLine & sCustodian & sDelimetr
+        sLine = sLine & aTrade.TraderName & sDelimetr
+        sLine = sLine & IIf(Len(aTrade.StrategyName) > 0, aTrade.StrategyName, " ") & sDelimetr
+        sLine = sLine & sTradeType & sDelimetr
+        sLine = sLine & CStr(aTrade.RealQty) & sDelimetr
+        sLine = sLine & CStr(Abs(aTrade.RealQty)) & sDelimetr
+        sLine = sLine & CStr(aTrade.Price) & sDelimetr
+        sLine = sLine & CStr(aTrade.Price * IIf(bIsOption, aTrade.LotSize, 1)) & sDelimetr
+        sLine = sLine & CStr(aTrade.Price * CDbl(IIf(bIsOption, aTrade.LotSize, 1) * Abs(aTrade.RealQty)) * dFeesCoef) & sDelimetr
+        sLine = sLine & IIf(Len(aTrade.BrokerName) > 0, aTrade.BrokerName, " ") & sDelimetr
+        sLine = sLine & aTrade.CCY & vbCrLf
+        
+        GetTradeStringLine = sLine
+    End If
+    
+Exit Function
+ErrHandler:
+    Debug.Print "Error on getting trade export text line."
+End Function
+
+Public Sub ExportTradesCFI(ByVal sFileName As String, Optional ByVal bSupportStrategy As Boolean = True)
+On Error GoTo ErrHandler:
+    Dim aTrd As clsTradeAtom
+    Dim aTrdS As clsTradeAtom
+    Dim sKey As String
+    Dim nPosQty As Long: nPosQty = 0
+    Dim nTrdQty As Long: nTrdQty = 0
+    Dim sCustodian As String
+    Dim dFeesCoef As Double
+    
+    Dim hFile As Long
+    
+    hFile = FreeFile
+    If hFile = 0 Then
+        Exit Sub
+    End If
+    
+    Open sFileName For Binary Access Write As #hFile
+    
+    
+    sCustodian = g_Params.CustodianDesc
+    dFeesCoef = g_Params.SECFees
+    
+    Dim aTradeComputeColl As clsTradesColl
+    Set aTradeComputeColl = New clsTradesColl
+    
+    LoadExchange
+    
+    If (Not m_CollTrades Is Nothing) Then
+        If (m_CollTrades.Count = 0) Then
+            LoadTrades bSupportStrategy
+        End If
+        
+        'Begin export procedure
+        For Each aTrd In m_CollTrades
+        
+            sKey = GetTradeKey(aTrd, bSupportStrategy)
+            Set aTrdS = aTradeComputeColl(sKey)
+            
+            If (aTrdS Is Nothing) Then
+                Set aTrdS = aTradeComputeColl.Add(sKey)
+                aTrdS.RealQty = 0
+                If (aTrd.IsPos) Then
+                    aTrdS.RealQty = aTrd.RealQty
+                End If
+            End If
+            
+            nPosQty = aTrdS.RealQty
+            nTrdQty = aTrd.RealQty
+            
+            If (Not aTrd.IsPos) Then ' Export only trades
+                If (aTrd.ContractType = enCtFutOption Or aTrd.ContractType = enCtOption) Then
+                    Put #hFile, , GetTradeStringLine(aTrd, "1", IIf(aTrd.IsBuy, "Buy", "Sell"), sCustodian, dFeesCoef)
+                Else
+                    If (nPosQty = 0) Then
+                        Put #hFile, , GetTradeStringLine(aTrd, "1", IIf(aTrd.IsBuy, "Buy", "Sell Short"), sCustodian, dFeesCoef)
+                    Else
+                        If (nPosQty > 0) Then 'Long position
+                            If (nTrdQty > 0) Then
+                                Put #hFile, , GetTradeStringLine(aTrd, "1", "Buy", sCustodian, dFeesCoef)
+                            Else
+                                If (nPosQty + nTrdQty >= 0) Then
+                                    Put #hFile, , GetTradeStringLine(aTrd, "1", "Sell", sCustodian, dFeesCoef)
+                                Else
+                                    aTrd.RealQty = -nPosQty
+                                    Put #hFile, , GetTradeStringLine(aTrd, "1", "Sell", sCustodian, dFeesCoef)
+                                    aTrd.RealQty = nPosQty + nTrdQty
+                                    Put #hFile, , GetTradeStringLine(aTrd, "2", "Sell Short", sCustodian, dFeesCoef)
+                                    aTrd.RealQty = aTrd.Qty * IIf(aTrd.IsBuy, 1, -1)
+                                End If
+                            End If
+                        Else
+                            If (nTrdQty < 0) Then
+                                Put #hFile, , GetTradeStringLine(aTrd, "2", "Sell Short", sCustodian, dFeesCoef)
+                            Else
+                                If (nPosQty + nTrdQty > 0) Then
+                                    aTrd.RealQty = Abs(nPosQty)
+                                    Put #hFile, , GetTradeStringLine(aTrd, "1", "Buy Cover", sCustodian, dFeesCoef)
+                                    aTrd.RealQty = nPosQty + nTrdQty
+                                    Put #hFile, , GetTradeStringLine(aTrd, "2", "Buy", sCustodian, dFeesCoef)
+                                    aTrd.RealQty = aTrd.Qty * IIf(aTrd.IsBuy, 1, -1)
+                                Else
+                                    Put #hFile, , GetTradeStringLine(aTrd, "1", "Buy Cover", sCustodian, dFeesCoef)
+                                End If
+                            End If
+                        End If
+                    End If
+                End If
+                aTrdS.RealQty = aTrdS.RealQty + nTrdQty
+            End If
+                        
+            Set aTrdS = Nothing
+        Next
+    End If
+    
+    Set aTradeComputeColl = Nothing
+    
+    Close #hFile
+    
+Exit Sub
+ErrHandler:
+    Debug.Print "Error on trade export. " & Err.Description
 End Sub
 
 Private Sub LoadTraders()
@@ -405,7 +672,7 @@ Private Sub LoadTraderContracts()
         Set aTrdCnt = m_collTraderContracts(sKey)
         If aTrdCnt Is Nothing Then
             Set aTrdCnt = m_collTraderContracts.Add(sKey)
-            aTrdCnt.TraderId = gCmn.ReadLng(rs!iTraderID)
+            aTrdCnt.TraderID = gCmn.ReadLng(rs!iTraderID)
             aTrdCnt.ContractID = gCmn.ReadLng(rs!iContractID)
             Set aTrdCnt = Nothing
         End If
@@ -458,8 +725,8 @@ Private Sub LoadFutures()
             aFut.IndexSymbol = gCmn.ReadStr(rs!vcUnderlyingSymbol)
             aFut.ExportSymbol = gCmn.ReadStr(rs!vcFutureRootExportSymbol)
                 
-            aFut.IndexID = gCmn.ReadLng(rs!iUnderlyingID)
-            aFut.FutureRootId = gCmn.ReadLng(rs!iFutureRootID)
+            aFut.IndexId = gCmn.ReadLng(rs!iUnderlyingID)
+            aFut.FutureRootID = gCmn.ReadLng(rs!iFutureRootID)
             aFut.SymbolDisplay = gCmn.ReadStr(rs!vcFutureRootSymbol) & " " & UCase(Format$(aFut.Maturity, "MMMYY"))
             
             Set aFut = Nothing
@@ -794,7 +1061,7 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
             bStructureExist = False
             Exit Function
         End If
-        CheckTraderContract aTrader.ID, aFut.IndexID
+        CheckTraderContract aTrader.ID, aFut.IndexId
     Else 'STOCK or OPTION
         Set aUnd = m_collUnd(sStockSymbol)
         If aUnd Is Nothing Then
@@ -960,7 +1227,7 @@ Private Function ParseLineOfFileFormatGoldmanSachs(ByVal nLineNumber As Long, By
             bStructureExist = False
             Exit Function
         End If
-        CheckTraderContract aTrader.ID, aFut.IndexID
+        CheckTraderContract aTrader.ID, aFut.IndexId
         sImportSymbol = aFut.Symbol
     ElseIf (sSeqType = "EQUITY" Or sSeqType = "OPTION") Then
         Set aUnd = m_collUnd(sUnderlyingSymbol)
@@ -1538,7 +1805,7 @@ Private Function ParseLineOfFileFormatNew(ByVal nLineNumber As Long, ByRef sLine
             bStructureExist = False
             Exit Function
         End If
-        CheckTraderContract aTrader.ID, aFut.IndexID
+        CheckTraderContract aTrader.ID, aFut.IndexId
     ElseIf (sSeqType = "O" Or sSeqType = "S") Then
         Set aUnd = m_collUnd(sUndSymbol)
         If aUnd Is Nothing Then
@@ -1714,7 +1981,7 @@ Private Sub AddPositionFromText(ByRef aOpt As clsRecPosOptAtom, _
     
     Set aStrategy = m_collStrategyByName(UCase$(sStrategy))
     If Not aStrategy Is Nothing Then
-        aPos.StrategyNewID = aStrategy.StrategyId
+        aPos.StrategyNewID = aStrategy.StrategyID
         aPos.StrategyNew = aStrategy.StrategyName
         Set aStrategy = Nothing
     End If
@@ -1827,7 +2094,7 @@ Private Sub CheckTraderContract(ByVal nTraderId As Long, ByVal nUndId As Long)
         gDBW.usp_BoTraderContract_Save nTraderId, nUndId
         Set aTrdCnt = m_collTraderContracts.Add(sKey)
         aTrdCnt.ContractID = nUndId
-        aTrdCnt.TraderId = nTraderId
+        aTrdCnt.TraderID = nTraderId
     End If
 End Sub
 
@@ -2129,13 +2396,13 @@ Public Function SavePositionsToDatabase(ByVal bIsSaveHistory As Boolean) As Long
                     nId = aPos.FutOpt.ID
                     sSymbol = aPos.FutOpt.SymbolDisplay
                     nTypeId = 5
-                    vFutRootId = aPos.Fut.FutureRootId
+                    vFutRootId = aPos.Fut.FutureRootID
                     vFutId = aPos.Fut.ID
                 ElseIf Not aPos.Fut Is Nothing Then
                     nId = aPos.Fut.ID
                     sSymbol = aPos.Fut.SymbolDisplay
                     nTypeId = 4
-                    vFutRootId = aPos.Fut.FutureRootId
+                    vFutRootId = aPos.Fut.FutureRootID
                     vFutId = aPos.Fut.ID
                 Else
                     nId = aPos.Und.ID
@@ -2166,7 +2433,7 @@ Public Function SavePositionsToDatabase(ByVal bIsSaveHistory As Boolean) As Long
                 If (Not aPos.Und Is Nothing) Then
                     iUndID = aPos.Und.ID
                 Else
-                    iUndID = aPos.Fut.IndexID
+                    iUndID = aPos.Fut.IndexId
                 End If
                 
                 nSeqNum = gDBW.usp_Trade_New(nId, _
@@ -2263,6 +2530,8 @@ Private Sub Class_Terminate()
     Set m_collFut = Nothing
     Set m_collStrategy = Nothing
     Set m_collStrategyByName = Nothing
+    Set m_CollTrades = Nothing
+    Set m_collExch = Nothing
 End Sub
 
 Public Function LoadTradesFromText(ByVal Buffer As String) As Boolean
@@ -2645,13 +2914,13 @@ Public Function SaveTradesToDatabase&()
                 nId = aPos.FutOpt.ID
                 sSymbol = aPos.FutOpt.SymbolDisplay
                 nTypeId = 5
-                vFutRootId = aPos.Fut.FutureRootId
+                vFutRootId = aPos.Fut.FutureRootID
                 vFutId = aPos.Fut.ID
             ElseIf Not aPos.Fut Is Nothing Then
                 nId = aPos.Fut.ID
                 sSymbol = aPos.Fut.SymbolDisplay
                 nTypeId = 4
-                vFutRootId = aPos.Fut.FutureRootId
+                vFutRootId = aPos.Fut.FutureRootID
                 vFutId = aPos.Fut.ID
             Else
                 nId = aPos.Und.ID
@@ -2790,7 +3059,7 @@ Private Sub AddTradeFromText(ByRef aOpt As clsRecPosOptAtom, _
     
     Set aStrategy = m_collStrategyByName(UCase$(sStrategy))
     If Not aStrategy Is Nothing Then
-        aPos.StrategyNewID = aStrategy.StrategyId
+        aPos.StrategyNewID = aStrategy.StrategyID
         aPos.StrategyNew = aStrategy.StrategyName
         Set aStrategy = Nothing
     End If

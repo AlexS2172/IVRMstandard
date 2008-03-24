@@ -948,6 +948,11 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                             Set aCustDivColl = New EtsGeneralLib.EtsDivColl
                             Set aUnd.Dividend.CustomDivs = aCustDivColl
                         End If
+                        
+                        If (Not aUnd.Dividend.Holidays Is Nothing) Then
+                            Set aCustDivColl.Holidays = aUnd.Dividend.Holidays
+                        End If
+                        
                 
                         dDate = ReadDate(rsCust!DivYtes)
                         dAmount = ReadDbl(rsCust!DivAmnt)

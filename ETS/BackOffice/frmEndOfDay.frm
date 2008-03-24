@@ -456,7 +456,7 @@ Begin VB.Form frmEndOfDay
          Left            =   120
          TabIndex        =   7
          Tag             =   "1"
-         Top             =   4800
+         Top             =   5160
          Visible         =   0   'False
          Width           =   2655
          VariousPropertyBits=   746588179
@@ -476,7 +476,7 @@ Begin VB.Form frmEndOfDay
          Left            =   120
          TabIndex        =   6
          Tag             =   "1"
-         Top             =   5160
+         Top             =   5520
          Visible         =   0   'False
          Width           =   2535
          VariousPropertyBits=   746588179
@@ -581,6 +581,25 @@ Begin VB.Form frmEndOfDay
          Size            =   "4260;556"
          Value           =   "0"
          Caption         =   "Reconcile Positions"
+         SpecialEffect   =   0
+         FontHeight      =   165
+         FontCharSet     =   204
+         FontPitchAndFamily=   2
+      End
+      Begin MSForms.CheckBox chkExportAllTrades 
+         Height          =   315
+         Left            =   120
+         TabIndex        =   36
+         Tag             =   "1"
+         Top             =   4800
+         Width           =   2655
+         VariousPropertyBits=   746588179
+         BackColor       =   -2147483633
+         ForeColor       =   -2147483630
+         DisplayStyle    =   4
+         Size            =   "4683;556"
+         Value           =   "0"
+         Caption         =   "Export Trades"
          SpecialEffect   =   0
          FontHeight      =   165
          FontCharSet     =   204
@@ -723,6 +742,7 @@ Enum enmStatus
     st13_ImportCurve
     st14_ImportGroups
     st15_LoadStockClosePrice
+    st16_ExportAllTrades
 End Enum
 
 Private Type tAction
@@ -795,6 +815,10 @@ Private Sub chkDivsImport_Click()
 End Sub
 
 Private Sub chkExpiredContr_Click()
+    ValidateState
+End Sub
+
+Private Sub chkExportAllTrades_Click()
     ValidateState
 End Sub
 
@@ -1206,6 +1230,13 @@ Private Function ExecuteEOD() As Boolean
     If chkLoadClosePrice.Value <> 0 Then
         Dim frmSCP As New frmStockClosePrice
         frmSCP.Execute
+    End If
+    
+    SetAlarm 0
+    SetStatus st16_ExportAllTrades
+    Idle
+    If chkExportAllTrades.Value <> 0 Then
+        ExportAllTrades
     End If
     
     SetAlarm 0
@@ -4270,6 +4301,32 @@ EH:
     End If
     On Error Resume Next
     LogMsg Msg
+End Function
+
+Private Function ExportAllTrades() As Boolean
+On Error GoTo ErrHandler
+    Dim sFileName As String
+    
+    If m_clsPosRecProcessor Is Nothing Then
+        Set m_clsPosRecProcessor = New clsPosReconcileProcessor
+        m_clsPosRecProcessor.Init Me
+    End If
+            
+    sFileName = ExecuteSaveFileDialog("Export Trades", "TRADES" & Format(Date, "YYYYDDMM"), "(*.csv)|*.csv")
+    LogMsg "Export to: " & sFileName
+    If (Len(sFileName) > 0) Then
+        LogMsg "Export Started at " & Format(Now, "DD/MMM/YYYY HH:MM:SS")
+        m_clsPosRecProcessor.ExportTradesCFI sFileName, True
+        LogMsg "Export Finished at " & Format(Now, "DD/MMM/YYYY HH:MM:SS")
+    Else
+        LogMsg "Trade export procedure aborted."
+    End If
+    
+    ExportAllTrades = True
+    Exit Function
+ErrHandler:
+    LogMsg "Error on export trade procedure."
+    ExportAllTrades = False
 End Function
 
 Private Function ExecutePositionNetting() As Boolean

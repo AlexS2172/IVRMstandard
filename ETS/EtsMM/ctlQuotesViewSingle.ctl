@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
-Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1sizer.ocx"
+Object = "{0AFE7BE0-11B7-4A3E-978D-D4501E9A57FE}#1.0#0"; "c1Sizer.ocx"
 Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomct2.ocx"
 Begin VB.UserControl ctlQuotesViewSingle 
    ClientHeight    =   8265
@@ -410,7 +410,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   61276163
+      Format          =   20643843
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -3524,7 +3524,7 @@ End Sub
 Private Sub fgUnd_SetupEditStyle(ByVal Row As Long, ByVal Col As Long, ByVal IsCombo As Boolean, style As Long, StyleEx As Long)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
-    If Row = m_nUndMainRow And fgUnd.ColKey(Col) = QUC_SYMBOL Then style = style Or CBS_UPPERCASE
+    'If Row = m_nUndMainRow And fgUnd.ColKey(Col) = QUC_SYMBOL Then style = style Or CBS_UPPERCASE
 End Sub
 
 Private Sub fgVol_DblClick()
@@ -5339,7 +5339,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     RaiseEvent OnScreenRefresh
                         
                     Debug.Assert Row = m_nUndMainRow
-                    sValue = UCase$(sValue)
+                    'sValue = UCase$(sValue)
                     If Not g_PerformanceLog Is Nothing Then _
                         g_PerformanceLog.LogMmInfo enLogUserAction, "Underlying Filter AfterEdit New Symbol: " & sValue, m_frmOwner.GetCaption
                     
@@ -6203,7 +6203,7 @@ Private Sub mnuCtxCustomDividend_Click()
                     Set aCustDivs = Nothing
                 End If
             
-            
+            m_Aux.Grp.Und.SetDirty
             m_AuxOut.DivsUpdate
             SaveDividendsInfo
             Recalculate False
@@ -11815,6 +11815,11 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     
     If Len(sKey) > 0 Then sKey = "." & sKey
+    
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
 
     ' common info
     aStorage.SetStringValue "Quote" & sKey, "Symbol", m_Aux.Grp.Symbol
@@ -11957,8 +11962,13 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     
     If Len(sKey) > 0 Then sKey = "." & sKey
     
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
+    
     ' common info
-    sSym = UCase$(Trim$(aStorage.GetStringValue("Quote" & sKey, "Symbol")))
+    sSym = Trim$(aStorage.GetStringValue("Quote" & sKey, "Symbol"))
     m_Aux.CalcModelVisible = aStorage.GetLongValue("Quote" & sKey, "ShowModel", True)
     'm_Aux.ExpCalendarVisible = aStorage.GetLongValue("Quote" & sKey, "ShowCalendar", True)
     m_Aux.DividendsVisible = aStorage.GetLongValue("Quote" & sKey, "ShowDivs", True)

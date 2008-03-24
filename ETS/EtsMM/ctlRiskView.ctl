@@ -21,7 +21,7 @@ Begin VB.UserControl ctlRiskView
       _Version        =   393216
       CheckBox        =   -1  'True
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   61669379
+      Format          =   58785795
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -1103,7 +1103,7 @@ EH:
     GoTo Ex
 End Function
 
-Private Sub InitColumns()
+Public Sub InitColumns()
     On Error Resume Next
     g_DefGrids(GT_RISKS_FILTER).CopyTo m_gdFlt
     g_DefGrids(GT_RISKS_TOTALS).CopyTo m_gdTot
@@ -7377,22 +7377,6 @@ EH:
 End Function
 
 Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
-'    On Error GoTo EH
-'    If m_bShutDown Then Exit Sub
-'    Dim i&
-'    If Len(sKey) > 0 Then sKey = "." & sKey
-'
-'    ' common info
-'    For i = RFC_GROUP To RFC_EXPIRY
-'        aStorage.SetLongValue "RiskFlt" & sKey, "Filter" & CStr(i), m_Aux.Filter(i)
-'    Next
-'
-'    m_gdFlt.WriteToStorage "RiskFltGrid" & sKey, aStorage, False
-'    m_gdTot.WriteToStorage "RiskTotGrid" & sKey, aStorage
-'    m_gdPos.WriteToStorage "RiskPosGrid" & sKey, aStorage
-'    Exit Sub
-'EH:
-'    gCmn.ErrorHandler ""
     On Error GoTo EH
     If m_bShutDown Then Exit Sub
     Dim i&
@@ -7402,6 +7386,11 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     For i = RFC_SYMBOL To RFC_LAST_COLUMN
         aStorage.SetLongValue "RiskFlt" & sKey, "Filter" & CStr(i), m_Aux.Filter(i)
     Next
+    
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
     
     m_gdFlt.WriteToStorage "RiskFltGrid" & sKey, aStorage, True
     m_gdTot.WriteToStorage "RiskTotGrid" & sKey, aStorage
@@ -7413,27 +7402,6 @@ End Sub
 
 Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
                         Optional ByVal bRefreshData As Boolean = True)
-'    On Error GoTo EH
-'    If m_bShutDown Then Exit Sub
-'    Dim i&
-'    If Len(sKey) > 0 Then sKey = "." & sKey
-'
-'    ' common info
-'    For i = RFC_GROUP To RFC_EXPIRY
-'        m_Aux.Filter(i) = aStorage.GetLongValue("RiskFlt" & sKey, "Filter" & CStr(i), m_Aux.Filter(i))
-'    Next
-'
-'    If m_Aux.Filter(RFC_TYPE) < 0 Or m_Aux.Filter(RFC_TYPE) > 6 Then m_Aux.Filter(RFC_TYPE) = 0
-'    m_nOpenedExpiry = m_Aux.Filter(RFC_EXPIRY)
-'
-'    m_gdFlt.ReadFromStorage "RiskFltGrid" & sKey, aStorage, False
-'    m_gdTot.ReadFromStorage "RiskTotGrid" & sKey, aStorage
-'    m_gdPos.ReadFromStorage "RiskPosGrid" & sKey, aStorage
-'
-'    tmrShow.Enabled = True
-'    Exit Sub
-'EH:
-'    gCmn.ErrorHandler ""
     On Error GoTo EH
     If m_bShutDown Then Exit Sub
     Dim i&
@@ -7441,14 +7409,16 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
     
     ' common info
     For i = RFC_SYMBOL To RFC_LAST_COLUMN
-        'If i <> RFC_TIME_TILL_IV_RECALCULATION And i <> RFC_CALCULATION_DATE And i <> RFC_INDXCALCPRICE Then
-            m_Aux.Filter(i) = aStorage.GetLongValue("RiskFlt" & sKey, "Filter" & CStr(i), m_Aux.Filter(i))
-        'End If
+        m_Aux.Filter(i) = aStorage.GetLongValue("RiskFlt" & sKey, "Filter" & CStr(i), m_Aux.Filter(i))
     Next
-    
-    
+        
     If m_Aux.Filter(RFC_TRADES) < 0 Or m_Aux.Filter(RFC_TRADES) > 6 Then m_Aux.Filter(RFC_TRADES) = 0
     m_nOpenedExpiry = m_Aux.Filter(RFC_EXPIRY)
+    
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
     
     m_gdFlt.ReadFromStorage "RiskFltGrid" & sKey, aStorage, True
     m_gdTot.ReadFromStorage "RiskTotGrid" & sKey, aStorage

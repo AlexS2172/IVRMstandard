@@ -3749,6 +3749,11 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim i&, aUnd As EtsMmVolaAnalysisLib.MmVaUndAtom, sTmp$
     If Len(sKey) > 0 Then sKey = "." & sKey
 
+    aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
+    aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
+    aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
+    aStorage.SetLongValue "Coordinates" & sKey, "Height", m_frmOwner.Height
+
     ' common info
     For i = AFC_GROUP To AFC_COLUMN_COUNT
         aStorage.SetLongValue "VolaFlt" & sKey, "Filter" & CStr(i), m_nFilter(i)
@@ -3782,6 +3787,11 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim i&, nCount&, aEnt As EtsGeneralLib.EtsMmEntityAtom, sLine$, arrValues() As String, nUBound&
     Dim aGUnd As EtsGeneralLib.UndAtom, dValue#, sID$
     If Len(sKey) > 0 Then sKey = "." & sKey
+
+    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
 
     ' common info
     For i = AFC_GROUP To AFC_COLUMN_COUNT
