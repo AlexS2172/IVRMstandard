@@ -360,6 +360,12 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 			IEtsContractAtomPtr spContract = spContractAll->Item[lUnderlutingID];
 			IEtsFutRootCollPtr spFutRootsColl = spContract->Und->FutRoots;
 
+			IEtsFutAtomPtr	spActiveFuture;
+			spContract->Und->get_ActiveFuture(&spActiveFuture);
+
+			if (spActiveFuture)
+				m_pGrp->m_pUnd->m_spActiveFuture = AddNewFutureToUnderlying(spActiveFuture, m_pGrp->m_spUnd);
+
 			if(m_Connection.IsOpened())
 			{
 				CStoredProc<CClientRecordset> spFutures(m_Connection, L"usp_MmFutureByUnderlying_Get");
@@ -413,8 +419,8 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 							}
 
 							bool bIsActiveFutures =     spFutures[L"bUseInCalculation"];
-							if(bIsActiveFutures)
-								m_pGrp->m_pUnd->m_spActiveFuture = pFuture;
+							/*if(bIsActiveFutures)
+								m_pGrp->m_pUnd->m_spActiveFuture = pFuture;*/
 
 							IEtsFutAtomPtr spFutAtom = spFutRootAtom->Futures->Item[lFuturesID];
 							if(spFutAtom)

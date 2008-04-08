@@ -1702,7 +1702,9 @@ Public Sub DivsUpdate()
     Dim dDate() As Double
     ReDim dAmount(1)
     ReDim dDate(1)
-        
+    Dim dtNYTime As Date
+    
+    dtNYTime = GetNewYorkTime
 
     With fgDiv
         m_Aux.GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
@@ -1736,14 +1738,14 @@ Public Sub DivsUpdate()
             
                 Case enDivCustomStream
                     .TextMatrix(1, QDC_DIV) = "2"
-                    aDiv.GetNearest CLng(Date), 0, dAmount(0), dDate(0)
+                    aDiv.GetNearest2 dtNYTime, CDate("01/01/2999"), CDate("00:00:00"), dAmount(0), dDate(0)
                     nDivFreq = 0
                     dDivAmt = dAmount(0)
                     dtDivDate = dDate(0)
                     
                 Case enDivStockBasket
                     .TextMatrix(1, QDC_DIV) = "3"
-                    m_Aux.Grp.Und.BasketIndex.BasketDivs.GetNearest CLng(Date), CDate("01/01/2999"), dAmount(0), dDate(0)
+                    m_Aux.Grp.Und.BasketIndex.BasketDivs.GetNearest2 dtNYTime, CDate("01/01/2999"), CDate("00:00:00"), dAmount(0), dDate(0)
                     nDivFreq = 0
                     dDivAmt = dAmount(0)
                     dtDivDate = dDate(0)
@@ -2014,6 +2016,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
     Dim iCol As Long, iRow As Long, i As Long
     Dim enPriceStatus As EtsReplacePriceStatusEnum
     Dim bDriverUsed As Boolean
+    Dim sCaption As String
     
     With fgVol
         m_Aux.GridLock(GT_QUOTES_VOLA).LockRedraw
@@ -2038,13 +2041,23 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                                       
             'Get ATM strike
             dUndPrice = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
-                      
             'Calc volatility
             '-20% -10% 0% 10% 20%
             iRow = 2
             For i = -2 To 2
                 iCol = 1
                 dStrike = dUndPrice * (1# - (CDbl(i) * 0.1))
+                
+                If (dStrike > 0#) Then
+                    If (i <> 0) Then
+                        sCaption = IIf(i < 0, "+", "") + CStr((-i) * 10) + "%"
+                    Else
+                        sCaption = "ATM"
+                    End If
+                    sCaption = sCaption + CStr("(") + Format(dStrike, "####.##") + CStr(")")
+                    .TextMatrix(iRow, 0) = sCaption
+                End If
+                
                 For Each aExp In aExpColl
                 
                     'Get Theoretical Vola
@@ -2091,6 +2104,16 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                 iRow = 2
                 For i = -2 To 2
                     dStrike = dUndPrice * (1# - (CDbl(i) * 0.1)) 'calc Strike
+                    
+                    If (dStrike > 0#) Then
+                        If (i <> 0) Then
+                            sCaption = IIf(i < 0, "+", "") + CStr((-i) * 10) + "%"
+                        Else
+                            sCaption = "ATM"
+                        End If
+                        sCaption = sCaption + CStr("(") + Format(dStrike, "####.##") + CStr(")")
+                        .TextMatrix(iRow, 0) = sCaption
+                    End If
                     
                     'Get Theoretical Vola
                     dVola = aUnd.VolaSrv.OptionVola(aFutExp.ExpiryOV, dStrike)

@@ -221,7 +221,7 @@ End Sub
 
 Public Sub FixSteps()
     On Error Resume Next
-    If m_Step(RMA_HORZ) <= 0 Then Step(RMA_HORZ) = 1
+    If m_Step(RMA_HORZ) < 0 Then Step(RMA_HORZ) = 0
     If m_Units(RMA_HORZ) <> RMUT_PERC Then
         Select Case m_Axis(RMA_HORZ)
             Case RMAT_VOLA
@@ -236,7 +236,7 @@ Public Sub FixSteps()
         If m_Step(RMA_HORZ) > MAX_STEP_ALL_PERC Then Step(RMA_HORZ) = MAX_STEP_ALL_PERC
     End If
 
-    If m_Step(RMA_VERT) <= 0 Then Step(RMA_VERT) = 1
+    If m_Step(RMA_VERT) < 0 Then Step(RMA_VERT) = 0
     If m_Units(RMA_VERT) <> RMUT_PERC Then
         Select Case m_Axis(RMA_VERT)
             Case RMAT_VOLA

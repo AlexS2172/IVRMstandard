@@ -355,8 +355,8 @@ Public Sub FormatVolGrid()
         .FixedRows = 2
         .FixedCols = 1
         
-        .TextMatrix(0, QVC_VOLA) = "Monyeness" 'gdVol.Col(QVC_VOLA).Caption
-        .TextMatrix(1, QVC_VOLA) = "Monyeness" 'gdVol.Col(QVC_VOLA).Caption
+        .TextMatrix(0, QVC_VOLA) = "Moneyness"
+        .TextMatrix(1, QVC_VOLA) = "Moneyness"
         
         .TextMatrix(2, 0) = "+20%"
         .TextMatrix(3, 0) = "+10%"

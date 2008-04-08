@@ -579,53 +579,54 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double Un
 	
 	double	dVola = 0.;
 
-	if (m_vola.find(ExpDate(dtExpDate)) == m_vola.end())
-	{
+	// this part is for further realization of vola interpolation for fop
+	//if (m_vola.find(ExpDate(dtExpDate)) == m_vola.end())
+	//{
+	//	// no volatilities for this expiration
+	//	// perform interpolation between expirations
+	//	dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
+	//	if( (dtExpDate > 32874) && ( Strike>(0.1)) ) 
+	//		AddPoint(dtExpDate, Strike, dVola, false, true);
+	//	return dVola;
+	//}
+	//else
+	//{
+	//	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
+	//	double dStrikeDelta = 0.0f;
+	//	if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
+	//	{
+	//		if( !m_bDiscreteAcceleration )
+	//			dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
+	//		else
+	//			dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
+	//			skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
+	//	}
+
+	//	dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
+	//	dVola = dVola > 0 ? dVola : 0.0f;
+	//}
+
+	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
+	if (!skew.GetUsefulPtCount()) {
 		// no volatilities for this expiration
 		// perform interpolation between expirations
 		dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
-		/*if( (dtExpDate > 32874) && ( Strike>(0.1)) ) 
-			AddPoint(dtExpDate, Strike, m_dVola, false, true);*/
+		if(Strike > 0.1) 
+			AddPoint(dtExpDate, Strike, dVola, false, true);
 		return dVola;
 	}
-	else
+	double dStrikeDelta = 0.0f;
+	if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
 	{
-		CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
-		double dStrikeDelta = 0.0f;
-		if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
-		{
-			if( !m_bDiscreteAcceleration )
-				dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
-			else
-				dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
-				skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
-		}
-
-		dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
-		dVola = dVola > 0 ? dVola : 0.0f;
+		if( !m_bDiscreteAcceleration )
+			dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
+		else
+			dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
+						   skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
 	}
 
-	//CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
-	//if (!skew.GetUsefulPtCount()) {
-	//	// no volatilities for this expiration
-	//	// perform interpolation between expirations
-	//	double m_dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
-	//	if( (dtExpDate > 32874) && ( Strike>(0.1)) ) 
-	//		AddPoint(dtExpDate, Strike, m_dVola, false, true);
-	//	return m_dVola;
-	//}
-	//double dStrikeDelta = 0.0f;
-	//if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
-	//{
-	//	if( !m_bDiscreteAcceleration )
-	//		dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
-	//	else
-	//		dStrikeDelta = skew.GetATMPoint( UnderlinePrice, false ).GetStrike() -
-	//					   skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
-	//}
-
-	//double dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
-	//dVola = dVola > 0 ? dVola : 0.0f;
+	dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
+	dVola = dVola > 0 ? dVola : 0.0f;
 
 	return dVola;
 }

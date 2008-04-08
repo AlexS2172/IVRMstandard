@@ -65,6 +65,7 @@ library EtsMmVolaAnalysisLib
 		ETSGENERAL_PROP_DEF(16,			DOUBLE,					VegaAsk)
 		ETSGENERAL_PROP_DEF(17,			DOUBLE,					DeltaBid)
 		ETSGENERAL_PROP_DEF(18,			DOUBLE,					DeltaAsk)
+		ETSGENERAL_PROP_DEF(22,			DATE,					ExpiryOV)
 
 		[id(19), helpstring("method ClearValues")]
 		HRESULT ClearValues([in] VARIANT_BOOL WithIV);

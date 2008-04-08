@@ -316,7 +316,7 @@ EH:
     AddToLog Err.Description & " " & Err.Source
 End Sub
 
-Private Sub SymbolIVPointSave(ByVal Symbol As String, ByVal Strike As Double, ByVal Expiration As Date, ByVal Vola As Double)
+Private Sub SymbolIVPointSave(ByVal Symbol As String, ByVal Strike As Double, ByVal Expiration As Date, ByVal Vola As Double, ByVal ExpiryOV As Date)
 
     On Error GoTo EH
 
@@ -1679,11 +1679,11 @@ Private Sub m_PriceProvider_OnFuturesOption(Params As PRICEPROVIDERSLib.FuturesO
 '        else if m_enUndType = GINT_INTEREST Then dTradingClose = DateSerial(1900, 1, 1) + "15:00:00"
         End If
 
-        dExpiryOV = .Last
+        dExpiryOV = .LastTradingDate
         Select Case m_enUndType
             Case GINT_COMMODITIES
                 dExpiryOV = dExpiryOV + "14:00:00"
-            Case GINT_FUTUREOPTIONS
+            Case GINT_INDEXES, GINT_FUTURES
                 dExpiryOV = dExpiryOV + "16:15:00"
 '           Case GINT_INTEREST
 '                dExpiryOV = dExpiryOV + "13:00:00"
@@ -1785,17 +1785,6 @@ Private Sub m_PriceProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, R
         End Select
     End With
     
-'    If Len(sOptSymb) > 2 And fStrike > 0# Then _
-'        gDBW.usp_Option_Import _
-'            m_nUndID, _
-'            sOptSymb, _
-'            bIsCall, _
-'            fStrike, _
-'            dExpiry, _            Incompatible Version
-'            LotSize, _
-'            dExpiryOV, _
-'            TradingClose
-
    If fStrike > 0 And Len(sOptSymb) > 2 Then
         If Len(m_sOptionsImportText) = 0 Then m_sOptionsImportText = "<Import>"
         If Len(sOptSymb) > 2 And fStrike > 0# Then
@@ -2022,7 +2011,7 @@ Private Sub ImportDefaultVolas()
             dVola = DBRead(!fIV)
             dtExpiration = DBRead(!dtExpDate)
             
-            SymbolIVPointSave m_sUndSymbol, dStrike, dtExpiration, dVola
+            SymbolIVPointSave m_sUndSymbol, dStrike, dtExpiration, dVola, Date
             
             pbOptions.Value = Min(pbOptions.Value + pbStep, pbOptions.Max)
             .MoveNext
@@ -2108,7 +2097,7 @@ Private Sub LoadFutureRoots()
 End Sub
 
 Private Sub m_QuotesProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdateParams, Results As PRICEPROVIDERSLib.QuoteUpdateInfo)
-    Dim aFuture As clsFutureAtom, nId&, price As Double
+    Dim aFuture As clsFutureAtom, nId&, Price As Double
     On Error GoTo EH
     If m_bCancelFlag Then
         Exit Sub
@@ -2121,13 +2110,13 @@ Private Sub m_QuotesProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdate
     m_bGotLastFuture = True
     
     If m_iPriceToLoad = PRICE_LAST Then
-        price = Results.LastPrice
+        Price = Results.LastPrice
     ElseIf m_iPriceToLoad = PRICE_YEST Then
-        price = Results.ClosePrice
+        Price = Results.ClosePrice
     End If
         
     
-    If IsBadValue(price) Then
+    If IsBadValue(Price) Then
         AddToLog "The price for " & Params.Symbol & " is not in the range."
         Exit Sub
     End If
@@ -2153,7 +2142,7 @@ Private Sub m_QuotesProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdate
     With Results
             nId = gDBW.usp_Contract_ClosePrice_Save( _
                 m_collFuturesPointer(m_nCurrentFutureIdx).ID, _
-                price)
+                Price)
     End With
     Exit Sub
 EH:

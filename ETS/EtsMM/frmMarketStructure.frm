@@ -845,13 +845,13 @@ Private Sub SaveUnderlyingData()
                                     m_Und.Description, Null, IIf(m_Und.ID = 0, 0, Null), _
                                     IIf(m_Und.ID = 0, IIf(m_Und.IsAmerican, 1, 0), Null), Null, m_Und.ExpCalendarID, Null, Null, _
                                     IIf(m_bWithIvData, m_Und.Skew, Null), IIf(m_bWithIvData, m_Und.Kurt, Null), Null, _
-                                    1, 0, m_Und.UndPriceProfile.ID, m_Und.OptPriceProfile.ID)
+                                    1, 0, m_Und.UndPriceProfile.ID, m_Und.OptPriceProfile.ID, enDivIndexYield)
     End If
     
     gDBW.usp_Stock_Import m_Und.ID, IIf(m_Und.UndType = enCtStock, 1, 0), m_Und.Description, aDiv.DivFreq, aDiv.DivAmt, _
                                     IIf(aDiv.DivDate >= #1/1/1990#, aDiv.DivDate, Null), m_Und.PriceAsk, m_Und.PriceBid, _
                             m_Und.PriceOpen, m_Und.PriceClose, m_Und.PriceLow, m_Und.PriceHigh, m_Und.Volume, Null
-    
+
     IncProgress pbProgress
     DoEvents
     If m_enState <> enMsSaveData Then Exit Sub

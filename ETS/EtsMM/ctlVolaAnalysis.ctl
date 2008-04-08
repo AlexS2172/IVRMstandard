@@ -2675,6 +2675,7 @@ Private Function ExpiryOptionsLoad() As Boolean
                                 aOpt.Symbol = sSymbol
                                 aOpt.OptType = enOptType
                                 aOpt.Expiry = aExp.Expiry
+                                aOpt.ExpiryOV = aExp.ExpiryOV
                                 aOpt.Strike = dStrike
                                 aOpt.PriceClose = ReadDbl(rsOpt!fPriceClose)
                                 aOpt.PriceTheoclose = ReadDbl(rsOpt!fPriceTheoClose)
@@ -4141,6 +4142,7 @@ Public Sub PortfolioCreate()
                         aTrd.Opt.RootID = aTrd.OptRoot.ID
                         aTrd.Opt.OptType = aOpt.OptType
                         aTrd.Opt.Expiry = aOpt.Expiry
+                        aTrd.Opt.ExpiryOV = aOpt.ExpiryOV
                         aTrd.Opt.Strike = aOpt.Strike
                         aTrd.Opt.PriceClose = aOpt.PriceClose
                         aTrd.Opt.PriceTheoclose = aOpt.PriceTheoclose

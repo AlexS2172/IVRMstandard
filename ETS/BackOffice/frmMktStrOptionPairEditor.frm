@@ -9,13 +9,13 @@ Begin VB.Form frmMktStrOptionPairEditor
    ClientHeight    =   3585
    ClientLeft      =   45
    ClientTop       =   330
-   ClientWidth     =   5160
+   ClientWidth     =   5550
    Icon            =   "frmMktStrOptionPairEditor.frx":0000
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
    ScaleHeight     =   3585
-   ScaleWidth      =   5160
+   ScaleWidth      =   5550
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
    Begin VB.PictureBox Picture1 
@@ -25,10 +25,23 @@ Begin VB.Form frmMktStrOptionPairEditor
       Height          =   2895
       Left            =   120
       ScaleHeight     =   2865
-      ScaleWidth      =   4905
+      ScaleWidth      =   5265
       TabIndex        =   0
       Top             =   120
-      Width           =   4935
+      Width           =   5295
+      Begin MSComCtl2.DTPicker dtpExpiryOV 
+         Height          =   300
+         Left            =   3000
+         TabIndex        =   20
+         Top             =   480
+         Width           =   2175
+         _ExtentX        =   3836
+         _ExtentY        =   529
+         _Version        =   393216
+         CustomFormat    =   "MMM, dd yyyy hh:mm tt"
+         Format          =   20578307
+         CurrentDate     =   39540.5652777778
+      End
       Begin VB.CheckBox chkManuallyEntered 
          Appearance      =   0  'Flat
          BackColor       =   &H80000005&
@@ -45,7 +58,7 @@ Begin VB.Form frmMktStrOptionPairEditor
          Alignment       =   1  'Right Justify
          Appearance      =   0  'Flat
          Height          =   300
-         Left            =   1080
+         Left            =   720
          TabIndex        =   1
          Text            =   "txtStrike"
          Top             =   120
@@ -59,7 +72,7 @@ Begin VB.Form frmMktStrOptionPairEditor
          Height          =   1575
          Left            =   120
          TabIndex        =   3
-         Top             =   720
+         Top             =   840
          Width           =   2295
          Begin VB.TextBox txtExportSymbol 
             Appearance      =   0  'Flat
@@ -136,9 +149,9 @@ Begin VB.Form frmMktStrOptionPairEditor
          Caption         =   "Put"
          ForeColor       =   &H80000008&
          Height          =   1575
-         Left            =   2520
+         Left            =   2760
          TabIndex        =   6
-         Top             =   720
+         Top             =   840
          Width           =   2415
          Begin VB.TextBox txtExportSymbol 
             Appearance      =   0  'Flat
@@ -211,16 +224,29 @@ Begin VB.Form frmMktStrOptionPairEditor
       End
       Begin MSComCtl2.DTPicker dtpExpire 
          Height          =   300
-         Left            =   3480
+         Left            =   3000
          TabIndex        =   2
          Top             =   120
-         Width           =   1215
-         _ExtentX        =   2143
+         Width           =   2175
+         _ExtentX        =   3836
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   25493505
+         Format          =   20578305
          CurrentDate     =   38718
          MinDate         =   38718
+      End
+      Begin VB.Label Label1 
+         Alignment       =   1  'Right Justify
+         Appearance      =   0  'Flat
+         BackColor       =   &H80000005&
+         BackStyle       =   0  'Transparent
+         Caption         =   "ExpiryOV:"
+         ForeColor       =   &H80000008&
+         Height          =   255
+         Left            =   2040
+         TabIndex        =   21
+         Top             =   480
+         Width           =   735
       End
       Begin VB.Label lblStrike 
          Alignment       =   1  'Right Justify
@@ -230,10 +256,10 @@ Begin VB.Form frmMktStrOptionPairEditor
          Caption         =   "Strike :"
          ForeColor       =   &H80000008&
          Height          =   255
-         Left            =   240
+         Left            =   120
          TabIndex        =   14
          Top             =   120
-         Width           =   735
+         Width           =   495
       End
       Begin VB.Label Label3 
          Alignment       =   1  'Right Justify
@@ -243,16 +269,16 @@ Begin VB.Form frmMktStrOptionPairEditor
          Caption         =   "Expiry :"
          ForeColor       =   &H80000008&
          Height          =   255
-         Left            =   2520
+         Left            =   2160
          TabIndex        =   13
          Top             =   120
-         Width           =   855
+         Width           =   615
       End
    End
    Begin ElladaFlatControls.FlatButton btnCancel 
       Cancel          =   -1  'True
       Height          =   300
-      Left            =   3720
+      Left            =   4080
       TabIndex        =   10
       Top             =   3120
       Width           =   1335
@@ -272,7 +298,7 @@ Begin VB.Form frmMktStrOptionPairEditor
    Begin ElladaFlatControls.FlatButton btnOK 
       Default         =   -1  'True
       Height          =   300
-      Left            =   2280
+      Left            =   2640
       TabIndex        =   9
       Top             =   3120
       Width           =   1335
@@ -394,6 +420,7 @@ On Error GoTo EH
     
     txtStrike.Text = gCmn.FmtDbl(m_OptPair.fStrike)
     dtpExpire.Value = m_OptPair.dExpiry
+    dtpExpiryOV.Value = m_OptPair.dExpiryOV
     
     mbLoading = False
 Exit Sub
@@ -487,9 +514,10 @@ End Sub
 
 Private Function CheckData() As Boolean
     On Error GoTo EH
-    Dim s As String, l As Long, rs As ADODB.Recordset, dtExpiry As Date
+    Dim s As String, l As Long, rs As ADODB.Recordset, dtExpiry As Date, dtExpiryOV As Date
     
     mdExpiry = dtpExpire.Value
+    dtExpiryOV = dtpExpiryOV.Value
        
     s = Trim(txtStrike.Text)
     If IsNumeric(s) Then
@@ -506,6 +534,7 @@ Private Function CheckData() As Boolean
     
     With m_OptPair
         .dExpiry = mdExpiry
+        .dExpiryOV = dtExpiryOV
         .fStrike = mfStrike
         .sCallSymbol = Trim(UCase(txtSymbol(1).Text))
         .bCallManual = chkManuallyEntered(1).Value <> 0
@@ -570,6 +599,13 @@ On Error Resume Next
 End Sub
 
 Private Sub dtpExpire_Change()
+On Error Resume Next
+    If mbLoading Then Exit Sub
+    m_bChanged = True
+    dtpExpiryOV.Value = dtpExpire.Value
+End Sub
+
+Private Sub dtpExpiryOV_Change()
 On Error Resume Next
     If mbLoading Then Exit Sub
     m_bChanged = True

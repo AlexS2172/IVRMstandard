@@ -168,20 +168,23 @@ Public Sub Init(ByVal nUnderlyingID As Long, ByVal dtDivDate As Date)
                 If (Not aUnd Is Nothing And aComp.Weight > 0) Then
                    If (Not aUnd.Dividend Is Nothing) Then
                       iRetCount = 0
-                      aUnd.Dividend.GetDividendCount2 dtNow, CDate("31/12/3000"), 0#, iDivCount
-                      aUnd.Dividend.GetDividends2 dtNow, CDate("31/12/3000"), 0#, iDivCount, DivAmounts, DivDates, iRetCount
+                      aUnd.Dividend.GetDividendCount2 dtNow, CDate("31/12/3000"), CDate("00:00:00"), iDivCount
                       
-                      If iRetCount > 0 Then
-                        For iCycle = 0 To iRetCount - 1
-                          If (CDate(DivDates(iCycle) * 365 + Date) = m_dtDivDate) Then
-                                                      
-                              fgDivComp.AddItem aUnd.Symbol
-                              iRowCounter = iRowCounter + 1
-                              fgDivComp.TextMatrix(iRowCounter, IDX_DIVAMOUNT) = DivAmounts(iCycle)
-                              fgDivComp.TextMatrix(iRowCounter, IDX_WEIGHTAMOUNT) = aComp.Weight * DivAmounts(iCycle)
-                                                           
-                          End If
-                        Next iCycle
+                      If (iDivCount > 0) Then
+                        aUnd.Dividend.GetDividends2 dtNow, CDate("31/12/3000"), CDate("00:00:00"), iDivCount, DivAmounts, DivDates, iRetCount
+                        
+                        If iRetCount > 0 Then
+                          For iCycle = 0 To iRetCount - 1
+                            If (Abs(CDate(DivDates(iCycle) * 365 + dtNow) - m_dtDivDate) < 0.001) Then
+                                                        
+                                fgDivComp.AddItem aUnd.Symbol
+                                iRowCounter = iRowCounter + 1
+                                fgDivComp.TextMatrix(iRowCounter, IDX_DIVAMOUNT) = DivAmounts(iCycle)
+                                fgDivComp.TextMatrix(iRowCounter, IDX_WEIGHTAMOUNT) = aComp.Weight * DivAmounts(iCycle)
+                                                             
+                            End If
+                          Next iCycle
+                        End If
                         
                       End If
                    End If

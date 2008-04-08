@@ -319,7 +319,7 @@ Private Sub btnCancel_Click()
     End If
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub btnOk_Click()
     On Error Resume Next
     m_mbResult = vbOK
     
@@ -582,7 +582,7 @@ Private Sub TradeCalcCommission(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
         If Not .Broker Is Nothing Or Not .ClearingBroker Is Nothing Then
             If .ContractType = enCtOption Or .ContractType = enCtFutOption Then
                 
-                If .Price > g_Params.CommissionLowPremiumLimit Then
+                If .price > g_Params.CommissionLowPremiumLimit Then
                     nCommType = 0
                 Else
                     nCommType = 1
@@ -668,6 +668,7 @@ End Sub
 Private Sub TradeUpdate(ByVal nRow As Long)
     On Error Resume Next
     Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nCol&
+    Dim dtDte As Date
     
     With fgTrd
         m_GridLock.LockRedraw
@@ -690,6 +691,10 @@ Private Sub TradeUpdate(ByVal nRow As Long)
             
                 nCol = .ColIndex(TLC_EXPIRY)
                 If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.Opt.Expiry
+                
+                nCol = .ColIndex(TLC_DTE)
+                dtDte = aTrd.Opt.ExpiryOV - GetNewYorkTime
+                If nCol >= 0 Then .TextMatrix(nRow, nCol) = CStr(CLng(dtDte)) + " day(s) " + CStr(Hour(dtDte)) + CStr(":") + CStr(Minute(dtDte))
             
                 nCol = .ColIndex(TLC_STRIKE)
                 If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.Opt.Strike
@@ -708,7 +713,7 @@ Private Sub TradeUpdate(ByVal nRow As Long)
             If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.IsBuy
             
             nCol = .ColIndex(TLC_PRICE)
-            If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.Price
+            If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.price
             
             nCol = .ColIndex(TLC_QTY)
             If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.Quantity

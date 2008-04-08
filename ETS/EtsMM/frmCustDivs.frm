@@ -172,7 +172,7 @@ Begin VB.Form frmCustomDivs
          _ExtentX        =   2566
          _ExtentY        =   556
          _Version        =   393216
-         Format          =   55771137
+         Format          =   55508993
          CurrentDate     =   38251
       End
       Begin VB.Label lblStep 
@@ -422,14 +422,16 @@ Public Property Let BasketDivs(ByRef div As EtsGeneralLib.EtsIndexDivColl)
     On Error GoTo Ex
     fgDividend.Redraw = flexRDNone
     Dim dte As Integer
+    Dim dtNYTime As Date
     
+    dtNYTime = GetNewYorkTime
     If m_BasketDivs.Count > 0 Then
     
-      m_BasketDivs.GetDividendCount Date, m_dtLastExpity, iCount
-      m_BasketDivs.GetDividends Date, m_dtLastExpity, iCount, DivAmounts, DivDates, iCount
+      m_BasketDivs.GetDividendCount2 dtNYTime, m_dtLastExpity, CDate("00:00:00"), iCount
+      m_BasketDivs.GetDividends2 dtNYTime, m_dtLastExpity, CDate("00:00:00"), iCount, DivAmounts, DivDates, iCount
       For i = 0 To iCount - 1
       m_rs.AddNew
-          m_rs.Fields.Item("Dividend Date") = DivDates(i) * 365 + Date
+          m_rs.Fields.Item("Dividend Date") = DivDates(i) * 365 + dtNYTime
           m_rs.Fields.Item("Dividend Amount") = DivAmounts(i)
       m_rs.Update
       

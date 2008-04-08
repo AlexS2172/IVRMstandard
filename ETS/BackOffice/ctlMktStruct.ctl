@@ -567,7 +567,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentY        =   529
          _Version        =   393216
          CustomFormat    =   "MMM,dd yyy hh:mm tt"
-         Format          =   55312385
+         Format          =   20578305
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -693,7 +693,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   55312385
+         Format          =   20578305
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -867,7 +867,7 @@ Begin VB.UserControl ctlMktStruct
             _ExtentY        =   529
             _Version        =   393216
             CustomFormat    =   "MMM,dd yyy hh:mm tt"
-            Format          =   55312387
+            Format          =   20578307
             CurrentDate     =   38974.5416666667
          End
       End
@@ -984,7 +984,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   55312385
+         Format          =   20578305
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -1742,7 +1742,6 @@ Private PrevV As eContractType
 
 Dim m_Roots As New clsFutureRootColl
 Dim bMatChanged As Boolean
-Dim bExpiryOVChanged As Boolean
 Dim bDblClickHandled As Boolean
 Dim dtFutMaturity As Date
 
@@ -2237,109 +2236,6 @@ Private Sub dtMaturityPicker_LostFocus()
     End If
 End Sub
 
-'**************************************************
-'              datepicker events
-'**************************************************
-Private Sub DTPicker2_Change()
-On Error Resume Next
-    grdOptions.Text = IIf(dtPicker2.Value = "", dtPicker2.Tag, Format$(dtPicker2.Value, "MMM,dd yyyy hh:mm AM/PM"))
-    bExpiryOVChanged = True
-    If m_State = STATE_NONE Then
-        SetState STATE_CONTRACT_EDIT
-        m_OldContract = m_Contract
-        SetContractButtonsState
-    End If
-End Sub
-
-'Private Sub DTPicker2_Click()
-'    On Error Resume Next
-'    If m_State = STATE_NONE Then
-'        SetState STATE_CONTRACT_EDIT
-'        m_OldContract = m_Contract
-'        SetContractButtonsState
-'    End If
-'    SendKeys "{F4}"
-'End Sub
-
-Private Sub DTPicker2_CloseUp()
-    If (bExpiryOVChanged) Then
-        On Error Resume Next
-        If m_State = STATE_NONE Then
-            SetState STATE_CONTRACT_EDIT
-            m_OldContract = m_Contract
-            SetContractButtonsState
-        End If
-        Timer1.Enabled = True
-        m_bDTPIsDroppedDown = False
-    End If
-End Sub
-
-Private Sub DTPicker2_DropDown()
-    m_bDTPIsDroppedDown = True
-End Sub
-
-Private Sub DTPicker2_KeyDown(KeyCode As Integer, Shift As Integer)
-    On Error Resume Next
-    ' close date picker when user hits escape or return or tab
-    Select Case KeyCode
-        Case vbKeyEscape
-            grdOptions.Text = dtPicker2.Tag
-            dtPicker2.Visible = False
-        Case vbKeyReturn
-            SendKeys "{TAB}"
-        Case vbKeyTab
-            dtPicker2.Visible = False
-            bExpiryOVChanged = True
-            bDblClickHandled = True
-            grdOptions.SetFocus
-    End Select
-End Sub
-
-Private Sub DTPicker2_LostFocus()
-On Error Resume Next
-    If (bExpiryOVChanged) Then
-        If m_State = STATE_NONE Then
-            SetState STATE_CONTRACT_EDIT
-            m_OldContract = m_Contract
-            SetContractButtonsState
-        End If
-'        grdOptions.Text = IIf(dtPicker2.Value = "", dtPicker2.Tag, Format$(dtPicker2.Value, "MMM,dd yyyy hh:mm am/pm"))
-'        bExpiryOVChanged = False
-    End If
-    Timer1.Enabled = True
-    dtPicker2.Refresh
-    dtPicker2.Visible = False
-    'SendKeys "{ESC}"
-    grdOptions.SetFocus
-End Sub
-
-Private Sub DTPicker2_Validate(Cancel As Boolean)
-'    grdOptions.SetFocus
-    bExpiryOVChanged = True
-End Sub
-
-Private Sub ExpirationForOV_Click()
-    On Error Resume Next
-    
-    With grdOptions
-        bDblClickHandled = False
-        ' position date picker control over cell
-        dtPicker2.Move .CellLeft, .CellTop - 10, .CellWidth + 500, .CellHeight + 50
-            
-        ' initialize value, save original in tag in case user hits escape
-        dtPicker2.Value = IIf(.Text = "", Format$(Date, "MMM,dd yyyy hh:mm AM/PM"), .Text)
-        dtPicker2.Tag = .Text
-                        
-        grdOptions.Text = dtPicker2.Tag
-            
-        ' show and activate date picker control
-        dtPicker2.Visible = True
-        dtPicker2.SetFocus
-            
-        ' make it drop down the calendar
-        SendKeys "{f4}"
-    End With
-End Sub
 
 Private Sub fgRoots_AfterEdit(ByVal Row As Long, ByVal Col As Long)
 Dim sValue$, aRoot As clsFutureRootAtom
@@ -3048,9 +2944,6 @@ Public Function ContractCanProceed() As Boolean
     If m_State = STATE_CONTRACT_ADD Or m_State = STATE_CONTRACT_EDIT Then
         Select Case gCmn.MyMsgBox("Do you wish to save changes?", vbYesNoCancel)
             Case vbYes
-'                If bExpiryOVChanged Then OptionPairEdit (False)
-'                If bExpiryOVChanged Then ContractCanProceed = SaveData(aRoot) 'sosed
-
                 ' save contract
                 ContractCanProceed = ContractSave
             Case vbNo
@@ -3094,8 +2987,6 @@ Private Function ContractSave() As Boolean
         m_State = m_State1
         Exit Function
     End If
-    
-    If bExpiryOVChanged Then OptionPairEdit (False)
     
     'sSymbol = UCase$(Trim$(txtSymbol.Text))
     sSymbol = Trim$(txtSymbol.Text)
@@ -4514,6 +4405,7 @@ Public Sub OptionPairAdd()
     On Error GoTo EH
     Dim Opt As New clsOptionPairAtom
     Opt.dExpiry = Date
+    Opt.dExpiryOV = Date + CDate("16:00:00")
     If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt, True) Then GeneralOptionListLoad
     Exit Sub
 EH:
@@ -5142,10 +5034,8 @@ Private Sub grdOptions_DblClick()
             Select Case iCol
                 Case OPT_CALLSYMBOL, OPT_CALLCLOSEPRICE, OPT_CALLIMPORTSYMBOL
                     mnuOptionCallPrices_Click
-                Case OPT_STRIKE, OPT_EXPIRATION
+                Case OPT_STRIKE, OPT_EXPIRATION, OPT_EXPIRYVALUATION
                     OptionPairEdit (True)
-                Case OPT_EXPIRYVALUATION
-                    ExpirationForOV_Click
                 Case OPT_PUTSYMBOL, OPT_PUTCLOSEPRICE, OPT_PUTIMPORTSYMBOL
                     mnuOptionPutPrices_Click
             End Select

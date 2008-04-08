@@ -334,24 +334,30 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividendCount2(DATE dtNow, DATE dtExpiryOV, DA
 			dtDivDate =	m_dtDivDate;
 		}
 
-		::OleDateToUnixDate(dtDivDate, &ttDivDate);
-		ptDivDate = from_time_t(ttDivDate);
-		month_adder	real_month_adder(12 / nDivFreq);
+		VARIANT_BOOL	bIsValidAtom;
+		IsValidDivs(m_enDivType, &bIsValidAtom);
 
-		while(true){
-			tmDivDate = to_tm(ptDivDate);
-			::TmToDateEx(&tmDivDate, &dtCurDivDate);
-			dtCurWorkDate = dtCurDivDate;
+		if (bIsValidAtom != VARIANT_FALSE){
+			//valid dividend
+			::OleDateToUnixDate(dtDivDate, &ttDivDate);
+			ptDivDate = from_time_t(ttDivDate);
+			month_adder	real_month_adder(12 / nDivFreq);
 
-			if (m_spHolidays)
-				m_spHolidays->GetPreviousWorkingDate(dtCurDivDate, &dtCurWorkDate);
+			while(true){
+				tmDivDate = to_tm(ptDivDate);
+				::TmToDateEx(&tmDivDate, &dtCurDivDate);
+				dtCurWorkDate = dtCurDivDate;
 
-			dtCurWorkDate += tmCloseTime;
+				if (m_spHolidays)
+					m_spHolidays->GetPreviousWorkingDate(dtCurDivDate, &dtCurWorkDate);
 
-			if (dtCurWorkDate >= dtExpiryOV) break;
-			if (dtCurWorkDate >= dtNow)	nCount++;
+				dtCurWorkDate += tmCloseTime;
 
-			ptDivDate = ptDivDate + real_month_adder.get_offset(ptDivDate.date());
+				if (dtCurWorkDate >= dtExpiryOV) break;
+				if (dtCurWorkDate >= dtNow)	nCount++;
+
+				ptDivDate = ptDivDate + real_month_adder.get_offset(ptDivDate.date());
+			}
 		}
 		*pnCount = nCount;
 	}

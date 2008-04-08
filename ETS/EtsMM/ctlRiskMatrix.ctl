@@ -1441,8 +1441,6 @@ Private Sub FormatValGrid()
     On Error Resume Next
     Dim i&, p&, g&, nLastCol&, nLastRow&, nCount&, sCaption$
     Dim dtDate As Date
-    Dim dShift#, dValue#
-    Dim aUnd As EtsGeneralLib.UndAtom
     
     With fgVal
         m_GridLock(GT_MATRIX_VALUES).LockRedraw
@@ -1491,24 +1489,11 @@ Private Sub FormatValGrid()
         
         .Cell(flexcpText, 0, 0, 0, 0) = m_Scn.AxisName(RMA_VERT)
         .Cell(flexcpText, 0, 1, 0, 1) = m_Scn.AxisName(RMA_HORZ)
-        '.Cell(flexcpText, 0, 0, 0, 2) = " "
-        
-        Set aUnd = g_Underlying(m_aFilter.Data(MFC_SYMBOL))
         
         nCount = m_Scn.Points(RMA_HORZ)
         For p = 1 To nCount
             If m_Scn.Axis(RMA_HORZ) <> RMAT_TIME Then
-                dShift = (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ)
-                If (m_Und(aUnd.ID).price.IsUseManualActive) Then
-                    dValue = m_Und(aUnd.ID).price.Active
-                Else
-                    dValue = m_Und(aUnd.ID).UndPriceProfile.GetUndPriceMid(m_Und(aUnd.ID).price.Bid, m_Und(aUnd.ID).price.Ask, m_Und(aUnd.ID).price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-                End If
-                If dShift < 0 And m_Und.Count > 0 And Abs(dShift) > dValue And dValue <> 0# Then
-                    dShift = -1 * dValue
-'                    .ColWidth(p + 1) = 2000
-                End If
-                .Cell(flexcpText, 0, p + 1) = dShift
+                .Cell(flexcpText, 0, p + 1) = (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ)
             Else
                 dtDate = DateAdd("d", (p - m_BasePoint(RMA_HORZ)) * m_Scn.Step(RMA_HORZ), GetNewYorkTime)
                 dtDate = DateAdd("h", (p - m_BasePoint(RMA_HORZ)) * m_Scn.Hour(RMA_HORZ), dtDate)
@@ -1519,7 +1504,6 @@ Private Sub FormatValGrid()
         Next
         
         .MergeCol(0) = True
-        .MergeRow(0) = True
         
         .AutoSize 0, 1, , 100
 
@@ -2176,7 +2160,7 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case MSC_HORZ_STEP
                     dOldValue = m_Scn.Step(RMA_HORZ)
                     dValue = ReadDbl(sValue)
-                    If dValue > 0# Then
+                    If dValue >= 0# Then
                         m_Scn.Step(RMA_HORZ) = dValue
                         m_Scn.FixSteps
                     End If
@@ -2190,7 +2174,7 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case MSC_HORZ_STEP_HOUR
                     dOldValue = m_Scn.Step(RMA_HORZ)
                     dValue = ReadDbl(sValue)
-                    If dValue >= 0# Then
+                    If dValue >= 0# And dValue <= 24# Then
                         m_Scn.Hour(RMA_HORZ) = dValue
                         m_Scn.FixSteps
                     End If
@@ -2204,7 +2188,7 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case MSC_HORZ_STEP_MIN
                     dOldValue = m_Scn.Step(RMA_HORZ)
                     dValue = ReadDbl(sValue)
-                    If dValue >= 0# Then
+                    If dValue >= 0# And dValue <= 60# Then
                         m_Scn.Minute(RMA_HORZ) = dValue
                         m_Scn.FixSteps
                     End If
@@ -2243,7 +2227,7 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case MSC_VERT_STEP
                     dOldValue = m_Scn.Step(RMA_VERT)
                     dValue = ReadDbl(sValue)
-                    If dValue > 0# Then
+                    If dValue >= 0# Then
                         m_Scn.Step(RMA_VERT) = dValue
                         m_Scn.FixSteps
                     End If
@@ -2258,7 +2242,7 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case MSC_VERT_STEP_HOUR
                     dOldValue = m_Scn.Hour(RMA_VERT)
                     dValue = ReadDbl(sValue)
-                    If dValue >= 0# Then
+                    If dValue >= 0# And dValue <= 24# Then
                         m_Scn.Hour(RMA_VERT) = dValue
                         m_Scn.FixSteps
                     End If
@@ -2273,7 +2257,7 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case MSC_VERT_STEP_MIN
                     dOldValue = m_Scn.Minute(RMA_VERT)
                     dValue = ReadDbl(sValue)
-                    If dValue >= 0# Then
+                    If dValue >= 0# And dValue <= 60# Then
                         m_Scn.Minute(RMA_VERT) = dValue
                         m_Scn.FixSteps
                     End If
@@ -2778,7 +2762,7 @@ Private Sub InitResults()
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim dtDate As Date
     Dim dtNow As Date: dtNow = GetNewYorkTime
-    Dim aUnd As EtsGeneralLib.UndAtom
+    'Dim aUnd As EtsGeneralLib.UndAtom
     
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
@@ -2802,23 +2786,13 @@ Private Sub InitResults()
         m_BasePoint(RMA_VERT) = 1
     End If
     
-    Set aUnd = g_Underlying(m_aFilter.Data(MFC_SYMBOL))
     
     For nX = 0 To nLastX
         Select Case m_Scn.Axis(RMA_HORZ)
             Case RMAT_SPOT
                 dShift = (nX - nLastX \ 2) * m_Scn.Step(RMA_HORZ)
                 If m_Scn.Units(RMA_HORZ) = RMUT_PERC Then dShift = dShift / 100#
-                
-                If (m_Und(aUnd.ID).price.IsUseManualActive) Then
-                    dValue = m_Und(aUnd.ID).price.Active
-                Else
-                    dValue = m_Und(aUnd.ID).UndPriceProfile.GetUndPriceMid(m_Und(aUnd.ID).price.Bid, m_Und(aUnd.ID).price.Ask, m_Und(aUnd.ID).price.Last, dToleranceValue, enRoundingRule)
-                End If
-                If dShift < 0 And m_Und.Count > 0 And Abs(dShift * 100) > dValue And dValue <> 0# Then
-                    dShift = -1 * dValue
-                End If
-            
+                            
             Case RMAT_VOLA
                 dShift = (nX - nLastX \ 2) * m_Scn.Step(RMA_HORZ) / 100#
                 
@@ -2911,7 +2885,6 @@ Private Sub InitResults()
         End If
     
         If m_Scn.Units(RMA_VERT) = RMUT_ABS And m_Scn.Axis(RMA_VERT) = RMAT_SPOT Then
-'            dValue = PriceMidEx(m_Und(1).PriceBid, m_Und(1).PriceAsk, m_Und(1).PriceLast)
             Debug.Assert (Not m_Und(1).UndPriceProfile Is Nothing)
             
             If (m_Und(1).price.IsUseManualActive) Then
@@ -2949,8 +2922,6 @@ Private Sub CalcMatrix()
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, bCorrelatedShift As Boolean, nModel As EtsGeneralLib.EtsCalcModelTypeEnum
     Dim nLastX&, nLastY&, nX&, nY&, nUndCount&, i&, nRow&, nMask&, nBadForeColor&, nForeColor&
     Dim aPos As EtsMmRisksLib.MmRvPosAtom
-    Dim dValue#, dShift#
-    Dim aUnder As EtsGeneralLib.UndAtom
     
     nUndCount = m_Und.Count
     If m_bInProc Or m_bRecalc Then Exit Sub
@@ -3062,15 +3033,8 @@ ExitFor:
     With fgVal
         m_GridLock(GT_MATRIX_VALUES).LockRedraw
         
-        Set aUnder = g_Underlying(m_aFilter.Data(MFC_SYMBOL)) 'sosed
-        If (m_Und(aUnder.ID).price.IsUseManualActive) Then
-            dValue = m_Und(aUnder.ID).price.Active
-        Else
-            dValue = m_Und(aUnder.ID).UndPriceProfile.GetUndPriceMid(m_Und(aUnder.ID).price.Bid, m_Und(aUnder.ID).price.Ask, m_Und(aUnder.ID).price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-        End If
         If m_bRecalc Then
             For nX = 0 To nLastX
-                dShift = .TextMatrix(0, nX + 2)
                 
                 For nY = 0 To nLastY
                     If nX <> m_BasePoint(RMA_HORZ) - 1 Or nY <> m_BasePoint(RMA_HORZ) - 1 Then
@@ -3084,12 +3048,6 @@ ExitFor:
                     nRow = nY * m_nGreeks + 1
                     For i = 0 To MFC_LAST_COLUMN - MFC_PNL
                         If m_aFilter.Data(MFC_PNL + i) <> 0 Then
-                            If dShift = -dValue And dValue <> 0# Then
-                                .TextMatrix(nRow, nX + 2) = STR_NA
-                                .Cell(flexcpForeColor, nRow, nX + 2) = nBadForeColor
-                                .Cell(flexcpAlignment, nRow, nX + 2) = flexAlignCenterCenter
-'                                .ColWidth(nX + 2) = 2000
-                            Else
                             Select Case MFC_PNL + i
                                 Case MFC_PNL
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).PnL > BAD_DOUBLE_VALUE, m_Res(nX, nY).PnL, STR_NA)
@@ -3131,7 +3089,6 @@ ExitFor:
                                     .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).WtdVega > BAD_DOUBLE_VALUE, m_Res(nX, nY).WtdVega, STR_NA)
                                     .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadWtdVega, nBadForeColor, nForeColor)
                             End Select
-                            End If
                             nRow = nRow + 1
                         End If
                     Next
@@ -4540,6 +4497,11 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             
                         ElseIf (aPos.ContractType = enCtFuture) Then
                         
+                            If dUndSpot <= 0# Then
+                                SetResultsBadStatus m_Res(nX, nY)
+                                GoTo NextPos
+                            End If
+                            
                             CalcUndPnL aPos, m_Res(nX, nY), dtToday, dFutSpot, dFutBid, dFutAsk
 
                             If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
@@ -4556,7 +4518,12 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                             End If
                             
                         Else
-                        
+                            
+                            If dUndSpot <= 0# Then
+                                SetResultsBadStatus m_Res(nX, nY)
+                                GoTo NextPos
+                            End If
+                            
                             CalcUndPnL aPos, m_Res(nX, nY), dtToday, dUndSpot, dUndBid, dUndAsk
                             
                             If m_Res(nX, nY).Delta <= BAD_DOUBLE_VALUE Then m_Res(nX, nY).Delta = 0#
