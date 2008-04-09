@@ -10,6 +10,19 @@ Begin VB.UserControl ctlQuotesViewSingle
    KeyPreview      =   -1  'True
    ScaleHeight     =   8265
    ScaleWidth      =   10155
+   Begin MSComCtl2.DTPicker dtDivDatePicker 
+      Height          =   255
+      Left            =   7680
+      TabIndex        =   9
+      Top             =   920
+      Visible         =   0   'False
+      Width           =   2295
+      _ExtentX        =   4048
+      _ExtentY        =   450
+      _Version        =   393216
+      Format          =   56360961
+      CurrentDate     =   39547
+   End
    Begin VB.Timer tmrPriceProviderIdle 
       Enabled         =   0   'False
       Interval        =   1000
@@ -709,9 +722,9 @@ Begin VB.UserControl ctlQuotesViewSingle
    End
    Begin VB.Image imgInSpreadBadPrice 
       Height          =   240
-      Left            =   8520
+      Left            =   9720
       Picture         =   "ctlQuotesViewSingle.ctx":0000
-      Top             =   960
+      Top             =   0
       Width           =   240
    End
    Begin VB.Image Image1 
@@ -722,16 +735,16 @@ Begin VB.UserControl ctlQuotesViewSingle
    End
    Begin VB.Image imgInSpread 
       Height          =   240
-      Left            =   8040
+      Left            =   9360
       Picture         =   "ctlQuotesViewSingle.ctx":058A
-      Top             =   960
+      Top             =   0
       Width           =   240
    End
    Begin VB.Image imgBadPrice 
       Height          =   240
-      Left            =   7680
+      Left            =   9120
       Picture         =   "ctlQuotesViewSingle.ctx":0B14
-      Top             =   960
+      Top             =   0
       Width           =   75
    End
    Begin VB.Menu mnuCtx 
@@ -1012,7 +1025,7 @@ Private m_bDateChanged As Boolean
 Private m_frmCustDivs As frmCustomDivs
 Private m_bInRefreshMode As Boolean
 Private m_bFiersTealtimeCalculation As Boolean
-
+Private m_bDivDateChanged As Boolean
 
 
 Private m_bIsDblClick As Boolean
@@ -3107,7 +3120,6 @@ Private Sub dtCalculationDate_Change()
 On Error Resume Next
     m_bDateChanged = True
     fgDiv.TextMatrix(1, fgDiv.Cols - 2) = dtCalculationDate.Value
-    
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Vola Filter changed date. New date: " & dtCalculationDate.Value, m_frmOwner.GetCaption
 End Sub
@@ -3142,6 +3154,37 @@ Private Sub dtCalculationDate_LostFocus()
         UpdateTotals
         m_bDateChanged = False
    End If
+End Sub
+
+Private Sub dtDivDatePicker_Change()
+On Error Resume Next
+    If (Not fgDiv Is Nothing) Then
+        fgDiv.TextMatrix(1, QDC_DATE) = dtDivDatePicker.Value
+        m_bDivDateChanged = True
+    End If
+End Sub
+
+Private Sub dtDivDatePicker_KeyDown(KeyCode As Integer, Shift As Integer)
+On Error Resume Next
+    Select Case KeyCode
+        Case vbKeyEscape
+            fgDiv = dtDivDatePicker.Tag
+            dtDivDatePicker.Visible = False
+        Case vbKeyReturn
+            dtDivDatePicker.Visible = False
+    End Select
+End Sub
+
+Private Sub dtDivDatePicker_LostFocus()
+On Error Resume Next
+    dtDivDatePicker.Visible = False
+End Sub
+
+Private Sub dtDivDatePicker_Validate(Cancel As Boolean)
+On Error Resume Next
+    If (Not fgDiv Is Nothing) Then
+        fgDiv_AfterEdit 1, QDC_DATE
+    End If
 End Sub
 
 Private Sub fgDiv_DblClick()
@@ -4292,19 +4335,6 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                         & "OldValue=""" & CLng(enDivType) & """ " _
                                                                         & "NewValue=""" & lValue & """. " & GetStockInfo, m_frmOwner.GetCaption
                             
-                            If (enDivType = enDivMarket) And (lValue = 1) Then
-                                If (aDiv.DivAmtCust = 0) Then
-                                    aDiv.DivAmtCust = aDiv.DivAmt
-                                End If
-                                
-                                If (aDiv.DivDateCust = 0) Or (aDiv.DivDateCust = CLng(Now)) Then
-                                    aDiv.DivDateCust = aDiv.DivDate
-                                End If
-                                
-                                If (aDiv.DivFreqCust = 0) Then
-                                    aDiv.DivFreqCust = aDiv.DivFreq
-                                End If
-                            End If
                             
                             m_Aux.Grp.Und.Dividend.DivType = lValue
                             
@@ -4324,7 +4354,7 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     mnuCtxCustomDividend.Enabled = m_Aux.Grp.ID <> 0
                     
                 Case QDC_FREQ
-                    If m_Aux.Grp.ContractType = enCtStock Then
+                    If m_Aux.Grp.ContractType = enCtStock Or m_Aux.Grp.ContractType = enCtIndex Then
                         nValue = -1
                         nValue = ReadLng(sValue)
                         If nValue = 0 Or nValue = 1 Or nValue = 2 Or nValue = 4 Or nValue = 12 Then
@@ -4339,16 +4369,10 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                         & "OldValue=""" & IIf(enDivType = enDivMarket, aDiv.DivFreq, aDiv.DivFreqCust) & """ " _
                                                                         & "NewValue=""" & nValue & """. " & GetStockInfo, m_frmOwner.GetCaption
 
-                                If aDiv.DivType = enDivCustomPeriodical Then
+                                If (aDiv.DivType = enDivMarket) Then
+                                    aDiv.DivFreq = nValue
+                                ElseIf (aDiv.DivType = enDivCustomPeriodical) Then
                                     aDiv.DivFreqCust = nValue
-                                End If
-                                 
-                                If (aDiv.DivType = enDivMarket) And (aDiv.DivFreq <> nValue) Then
-                                    aDiv.DivAmtCust = aDiv.DivAmt
-                                    aDiv.DivDateCust = aDiv.DivDate
-                                    aDiv.DivFreqCust = nValue
-                                    
-                                    aDiv.DivType = enDivCustomPeriodical
                                 End If
                                 
                             End If
@@ -4356,15 +4380,17 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             SaveDividendsInfo
                                                         
                             bNeedRecalc = True
+                            bForceRecalc = True
                         
                         End If
                     End If
                     m_AuxOut.DivsUpdate
                     
                 Case QDC_DATE
-                    If m_Aux.Grp.ContractType = enCtStock Then
+                    If (m_Aux.Grp.ContractType = enCtStock Or m_Aux.Grp.ContractType = enCtIndex) And m_bDivDateChanged Then
                         dtValue = 0#
                         dtValue = ReadDate(sValue)
+                        Debug.Print "Edit DivDate: " & Format(dtValue)
                         If dtValue > 0# Then
                             Set aDiv = m_Aux.Grp.Und.Dividend
                             enDivType = m_Aux.Grp.Und.Dividend.DivType
@@ -4372,24 +4398,26 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             If enDivType = enDivMarket And aDiv.DivDate <> dtValue _
                                 Or enDivType = enDivCustomPeriodical And aDiv.DivDateCust <> dtValue Then
                                 
-                                aDiv.DivDateCust = dtValue
-                                If enDivType = enDivMarket Then
-                                    aDiv.DivFreqCust = aDiv.DivFreq
-                                    aDiv.DivAmtCust = aDiv.DivAmt
-                                    aDiv.DivType = enDivCustomPeriodical
+                                If (enDivType = enDivMarket) Then
+                                    aDiv.DivDate = dtValue
+                                ElseIf (enDivType = enDivCustomPeriodical) Then
+                                    aDiv.DivDateCust = dtValue
                                 End If
                                 
+                                SaveDividendsInfo
+                                
+                                m_bDivDateChanged = False
+                                bNeedRecalc = True
+                                bForceRecalc = True
+                                
+                                m_AuxOut.DivsUpdate
+                                
                             End If
-                        
-                        SaveDividendsInfo
-                        bNeedRecalc = True
-                            
                         End If
                     End If
-                    m_AuxOut.DivsUpdate
                 
                 Case QDC_AMT
-                    If m_Aux.Grp.ContractType = enCtStock Then
+                    If m_Aux.Grp.ContractType = enCtStock Or m_Aux.Grp.ContractType = enCtIndex Then
                         dValue = 0#
                         dValue = ReadDbl(sValue)
                         If dValue > 0# Then
@@ -4399,25 +4427,23 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             If enDivType = enDivMarket And aDiv.DivAmt <> dValue _
                                 Or enDivType = enDivCustomPeriodical And aDiv.DivAmtCust <> dValue Then
                                 
-                                aDiv.DivAmtCust = dValue
-                                If enDivType = enDivMarket Then
-                                    aDiv.DivFreqCust = aDiv.DivFreq
-                                    aDiv.DivDateCust = aDiv.DivDate
-                                    enDivType = enDivCustomPeriodical
+                                If (enDivType = enDivMarket) Then
+                                    aDiv.DivAmt = dValue
+                                ElseIf (enDivType = enDivCustomPeriodical) Then
+                                    aDiv.DivAmtCust = dValue
+                                End If
+                            ElseIf (m_Aux.Grp.ContractType = enCtIndex And enDivType = enDivIndexYield) Then
+                                dValue = dValue / 100#
+                                If (dValue >= 0) Then
+                                    m_Aux.Grp.Und.Yield = dValue
+                                    If (Not g_Underlying(m_Aux.Grp.Und.ID) Is Nothing) Then
+                                        g_Underlying(m_Aux.Grp.Und.ID).Yield = dValue
+                                    End If
                                 End If
                             End If
                             SaveDividendsInfo
                             bNeedRecalc = True
-                        End If
-                    ElseIf (m_Aux.Grp.ContractType = enCtIndex And m_Aux.Grp.Und.Dividend.DivType = enDivIndexYield) Then
-                        dValue = ReadDbl(sValue) / 100#
-                        If (dValue >= 0) Then
-                            m_Aux.Grp.Und.Yield = dValue
-                            If (Not g_Underlying(m_Aux.Grp.Und.ID) Is Nothing) Then
-                                g_Underlying(m_Aux.Grp.Und.ID).Yield = dValue
-                                SaveDividendsInfo
-                                bNeedRecalc = True
-                            End If
+                            bForceRecalc = True
                         End If
                     End If
                     m_AuxOut.DivsUpdate
@@ -4547,7 +4573,23 @@ Private Sub fgDiv_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     If m_bInProc Or m_bDataLoad Or m_bLastQuoteReqNow Or m_bSubscribingNow Then Exit Sub
     If IsDblClickHandled Then Exit Sub
     
-    If fgDiv.ColDataType(Col) = flexDTDate And m_Aux.Grp.ID <> 0 And Not m_Aux.RealTime Then
+    'Dividend Date
+    If fgDiv.ColDataType(Col) = flexDTDate And Col = QDC_DATE Then
+        
+        Cancel = False
+        dtDivDatePicker.Move fgDiv.CellLeft, fgDiv.CellTop + fgDiv.Top, fgDiv.CellWidth, fgDiv.CellHeight
+        
+        dtDivDatePicker.Value = fgDiv
+        dtDivDatePicker.Tag = fgDiv
+        
+        dtDivDatePicker.Visible = True
+        dtDivDatePicker.SetFocus
+        
+        SendKeys "{f4}"
+        
+    End If
+    
+    If fgDiv.ColDataType(Col) = flexDTDate And Col <> QDC_DATE And m_Aux.Grp.ID <> 0 And Not m_Aux.RealTime Then
     
         Cancel = True
         dtCalculationDate.Move fgDiv.CellLeft, fgDiv.CellTop + fgDiv.Top, fgDiv.CellWidth, fgDiv.CellHeight

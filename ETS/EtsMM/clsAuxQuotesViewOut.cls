@@ -1763,7 +1763,7 @@ Public Sub DivsUpdate()
         .TextMatrix(1, QDC_DATE) = Format$(dtDivDate, gdDiv.Col(QDC_DATE).Format)
         .TextMatrix(1, QDC_AMT) = IIf(dDivAmt > BAD_DOUBLE_VALUE, dDivAmt, "")
         
-        If m_Aux.DividendsVisible And (m_Aux.Grp.ContractType = enCtStock Or enCtIndex) Then
+        If m_Aux.DividendsVisible And (m_Aux.Grp.ContractType = enCtStock Or m_Aux.Grp.ContractType = enCtIndex) Then
             If aDiv.DivType = enDivCustomStream Then
                 If dtDivDate = 0 Then
                     .ColHidden(QDC_DATE) = True
@@ -1802,7 +1802,7 @@ Public Sub DivsUpdate()
                 Else
                     .ColHidden(QDC_DATE) = True
                     .ColHidden(QDC_AMT) = True
-                    .ColHidden(QDC_FREQ) = False
+                    .ColHidden(QDC_FREQ) = True
                 End If
                     gdDiv.Col(QDC_DATE).CanEdit = False
                     gdDiv.Col(QDC_AMT).CanEdit = False
@@ -1814,7 +1814,7 @@ Public Sub DivsUpdate()
                 If dtDivDate = 0 Then
                     .ColHidden(QDC_DATE) = True
                     .ColHidden(QDC_AMT) = True
-                    .ColHidden(QDC_FREQ) = False
+                    .ColHidden(QDC_FREQ) = True
                 Else
                     .ColHidden(QDC_DATE) = False
                     .ColHidden(QDC_AMT) = False

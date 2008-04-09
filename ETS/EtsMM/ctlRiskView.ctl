@@ -19,9 +19,8 @@ Begin VB.UserControl ctlRiskView
       _ExtentX        =   3016
       _ExtentY        =   450
       _Version        =   393216
-      CheckBox        =   -1  'True
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   58785795
+      Format          =   56360963
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -4352,6 +4351,8 @@ Private Sub tmrShow_Timer()
     
     'Screen.MousePointer = vbArrow
     'DoEvents
+    m_AuxClc.CalcDate = GetNewYorkTime
+    fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
     
     If m_Aux.Grp.ID <> 0 And Not PriceProvider Is Nothing Then
         If m_bLastQuoteReqNow Then
