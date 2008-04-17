@@ -26,7 +26,7 @@ public:
 	void UpdateCustomVolatility( UINT nMessage, CCustomVolaNotification *pNotification );
 #endif //_VOLA_MANAGER
 	
-	bool UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, long& dtMonth );
+	bool UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, double& dtMonth );
 	void InterpolateCustomVolaToImplied();
 	void RestoreCustomVola();
 	void UpdateCustomVola();

@@ -9,6 +9,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+
 #define BAD_DOUBLE_VALUE	-1E+308
 
 struct CContractData;
@@ -27,6 +28,8 @@ struct COptionData
 {
 	long   m_lOptionRootID;
 	DATE m_dtExpiration;
+	DATE	m_dtExpiryOV;
+	DATE	m_dtTradingClose;
 	bool m_bIsCall;
 	double m_dStrike;
 	double m_dPrice;
@@ -47,6 +50,13 @@ struct COptionData
 		EgLib::vt_date dtCurrent(vt_date::GetCurrentDate());
 		
 		return static_cast<long>(m_dtExpiration) - static_cast<long>(dtCurrent);
+	}
+
+	DOUBLE	GetYTE()
+	{
+		DOUBLE	dNYDateTime;
+		GetNYDateTimeAsDATE(&dNYDateTime);
+		return	(static_cast<DOUBLE>(m_dtExpiryOV) - dNYDateTime) / 365.;
 	}
 };
 
@@ -233,9 +243,9 @@ struct CVolaNotification
 	};
 
 	Type m_enType;
-	long m_dtMonth;
+	DATE m_dtMonth;
 
-	CVolaNotification (Type enType, long dtMonth = 0 ):
+	CVolaNotification (Type enType, DATE dtMonth = 0 ):
 		m_enType (enType), m_dtMonth (dtMonth)
 	{
 	}
@@ -271,7 +281,7 @@ public:
 
 	}
 		
-	void VolaChangedNotification (bool bTSChanged, long m_dtMonth )
+	void VolaChangedNotification (bool bTSChanged, DATE m_dtMonth )
 	{
 		m_csNotifs.Lock();
 		if (m_notifs.find (CVolaNotification::enAll) == m_notifs.end()   )
@@ -347,9 +357,9 @@ struct CCustomVolaNotification
 	};
 
 	Type m_enType;
-	long m_dtMonth;
+	double m_dtMonth;
 
-	CCustomVolaNotification( Type enType, long dtMonth = 0 ):
+	CCustomVolaNotification( Type enType, double dtMonth = 0. ):
 		m_enType(enType), 
 		m_dtMonth(dtMonth)
 	{}
@@ -492,6 +502,24 @@ struct CGroupSymbolData
 
 typedef std::vector<CGroupSymbolData>	CGroupSymbolsVector;
 
+class CExpDate{
+public:
+	double date_;
+public:
+	CExpDate(): date_(0.) {}
+	CExpDate(const double &r): date_(r) {}
+	bool operator==( const CExpDate& r) const {
+		return fabs( r.date_ - date_) < (1./(24.*60.));
+	}
+	bool operator<( const CExpDate& r) const {
+		return  !(*this==r) && ( (date_ - r.date_) < 0. );
+	}
+	CExpDate& operator=(const double& r)
+	{
+		date_	=	r;
+		return *this;
+	}
+};
 /////////////////////////////////////////////////////////////////////////////
 //
 struct CGroupData
@@ -667,7 +695,7 @@ typedef std::vector<CDualQuadParam>   CDualQuadParVector;
 
 //////////////////////////////////////////////////////////////////
 
-typedef std::map <long, CTimeSkewData > time_skew_map;
+typedef std::map <CExpDate, CTimeSkewData > time_skew_map;
 typedef std::multimap <long, CHistRangeData > hist_ranges_map;
 typedef std::multimap <long, CVolaBandsData > vola_bands_map;
 

@@ -20,7 +20,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   56360963
+      Format          =   56229891
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -7752,7 +7752,7 @@ Public Sub CallOtcOptionCalcRV()
     Dim dStrike As Double
     Dim dBid As Double
     Dim dAsk As Double
-    Dim dtExpiry As Date
+    Dim dtExpiryOV As Date
     Dim lCalcModel As Long
     
     Dim lContractType As Long
@@ -7813,7 +7813,7 @@ Public Sub CallOtcOptionCalcRV()
             End If
             
             
-            dtExpiry = Now
+            dtExpiryOV = Now
               
               lDivType = 0 'aUnd.DivType
               dYield = aUnd.Yield
@@ -7847,7 +7847,7 @@ Public Sub CallOtcOptionCalcRV()
                 dStrike = aPos.Strike
                 dBid = aPos.Quote.price.Bid
                 dAsk = aPos.Quote.price.Ask
-                dtExpiry = aPos.Expiry
+                dtExpiryOV = aPos.ExpiryOV
                 dRate = aPos.Rate
                 dVola = aPos.Quote.Vola
                 Set aPos = Nothing
@@ -7856,14 +7856,13 @@ Public Sub CallOtcOptionCalcRV()
                     nUndID = aUnd.ID
                     nID = nUndID
                     sOptionSymbol = aPos.Symbol
-                    'dtExpiry = aUnd.Ex.Expiry
                     For Each aPos In aUnd.Pos
                         If (Not aPos Is Nothing) And (aPos.Expiry > 0) Then
                             sOptionSymbol = aPos.Symbol
                             dStrike = aPos.Strike
                             dBid = aPos.Quote.price.Bid
                             dAsk = aPos.Quote.price.Ask
-                            dtExpiry = aPos.Expiry
+                            dtExpiryOV = aPos.ExpiryOV
                             dRate = aPos.Rate
                             dVola = aPos.Quote.Vola
                             Exit For
@@ -7919,15 +7918,11 @@ Public Sub CallOtcOptionCalcRV()
     Dim sParams As String
     sPath = App.Path & "\OTCCalc\OTCOptionCalc.exe"
     sParams = sStockSymbol & " " & sOptionSymbol & " " & CStr(lSymbolType) & " " & CStr(dStrike) & " " & CStr(dBid) & " " & CStr(dAsk) & " " & _
-    CStr(dtExpiry) & " " & _
+    """" & CStr(dtExpiryOV) & """" & " " & _
     CStr(lContractType) & " " & CStr(dYield) & " " & CStr(lDivType) & " " & _
     CStr(dDivAmount) & " " & CStr(dDivDate) & " " & CStr(dDivFreq) & " " & _
     CStr(lCDStockID) & " " & CStr(lCDCount) & " " & CStr(dRate) & " " & CStr(dVola) & " " & CStr(lCalcModel)
 
-    'For Each aCustDiv In aUnd.CustomDivs
-    ' sParams = sParams & " " & aCustDiv.DivDate & " " & aCustDiv.DivAmount
-    'Next
-    'MsgBox sParams
     If ShellExecute(0&, "Open", sPath, sParams, "", SW_SHOWNORMAL) <= 32 Then
          gCmn.MyMsgBox Me, "Fail to open OTC OptionCalc at '" & sPath & "'.", vbCritical
     End If

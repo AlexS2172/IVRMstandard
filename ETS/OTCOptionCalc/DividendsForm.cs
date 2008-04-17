@@ -37,7 +37,6 @@ namespace OTCOptionCalc
 		private DevExpress.XtraGrid.Views.Grid.GridView gridDividends;
 		//private EtsGeneralLib.IEtsDivColl mDivColl; // custom dividends are temporary disabled
 
-
 		public DivStreamForm()
 		{
 			//
@@ -421,16 +420,12 @@ namespace OTCOptionCalc
 				bTheFirstTime = false;
 				if (listDataSourceVisible.Count == 0)
 				{
-					string sToday;
-					sToday = DateTime.Today.ToShortDateString();
-					dtDate.Text = sToday;
-					listDataSource.Add(new Record(DateTime.Today, 0.0));
 
                     CloneData(ref listDataSourceVisible, ref listDataSource);
 //                    listDataSourceVisible = (ArrayList)listDataSource.Clone();
                     gridDivs.DataSource = listDataSourceVisible;
 					gridDivs.MainView.PopulateColumns();
-					listDataSourceVisible.Clear();
+					//listDataSourceVisible.Clear();
                     listDataSource.Clear();
 				}
 			}
@@ -671,40 +666,12 @@ namespace OTCOptionCalc
 		{
             return listDataSourceVisible.Count;
 		}
-/*
-		private int FillCustDivColl()
-		{
-			mDivColl.Clear();
-			if (listDataSource.Count > 0 )
-			{
-				Record tmpRecord;
-				DateTime dtTmp;
-				for (int iCount = 0; iCount<listDataSource.Count; iCount++)
-				{
-					
-					tmpRecord = (Record)listDataSource[iCount];
-					dtTmp = DateTime.Parse(tmpRecord.DivDate);
-					mDivColl.Add(dtTmp, Convert.ToDouble(tmpRecord.DivAmount));
-				}
-			}
-			return 0;
-		}
 
-
-		public int GetCustDivColl(ref EtsGeneralLib.IEtsDivColl rColl)
-		{
-			rColl = mDivColl;
-			return 0;
-		}
-
-*/
-		public int GetCustomDividendList(ref ArrayList rList)
+        public int GetCustomDividendList(ref ArrayList rList)
 		{
 			rList =  (ArrayList)listDataSource.Clone();
 			return 0;
 		}
-
-
 
 		public int SetCustomDividendList(ref ArrayList arInList)
 		{
@@ -737,13 +704,9 @@ namespace OTCOptionCalc
 			
 			if (listDataSource.Count > 0 )
 			{
-				//dDivAmounts = new double[listDataSource.Count];
-				//dDivYears = new double[listDataSource.Count];
 				Record tmpRecord;
 				DateTime dtTmp;
-				
-				
-				
+								
 				for (int iCount = 0; iCount<listDataSource.Count; iCount++)
 				{
 					

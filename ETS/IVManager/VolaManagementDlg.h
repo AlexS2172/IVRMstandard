@@ -87,7 +87,7 @@ public:
 	void   UpdateByPrice();
 	void   UpdateRules();
 	void   PostNotification( UINT nMessage );
-	void   PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, long dtMonth = 0 );
+	void   PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, double dtMonth = 0 );
 	double GetInterpolationFactor();
 	bool   OpenNextDaySurface( long nSurfaceID );
 	bool   OpenDefaultSurface( long nSurfaceID );

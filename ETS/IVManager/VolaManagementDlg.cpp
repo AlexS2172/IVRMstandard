@@ -341,7 +341,7 @@ void CVolaManagementDlg::PostNotification( UINT nMessage )
 
 /////////////////////////////////////////////////////////////////////////////
 //
-void CVolaManagementDlg::PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, long dtMonth )
+void CVolaManagementDlg::PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, double dtMonth )
 {
 	CWnd *pNotificationWnd = AfxGetMainWnd();
 	if( pNotificationWnd )
@@ -1557,7 +1557,7 @@ void CVolaManagementDlg::OnVolaAfterEdit(long Row, long Col)
 		GridInit();
 		GridFill();
 
-		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew,static_cast<long>(dtExpDate) );
+		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExpDate) );
 
 		m_fgVola.SetRow( Row );
 		m_fgVola.SetCol( Col );
@@ -1601,7 +1601,7 @@ void CVolaManagementDlg::OnVolaKeyUp(short FAR* KeyCode, short Shift)
 			catch( ... ) 
 			{}
 
-			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, static_cast<long>(dtExpDate) );
+			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExpDate) );
 			GridInit();
 			GridFill();
 
@@ -1636,7 +1636,7 @@ void CVolaManagementDlg::OnVolaMouseUp(short Button, short Shift, float X, float
 		GridInit();
 		GridFill();
 
-		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, static_cast<long>(dtExp) );
+		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExp) );
 
 		m_nMouseRow = -1;
 		m_nMouseCol = -1;
@@ -1725,7 +1725,7 @@ void CVolaManagementDlg::OnVmMakeBasePoint()
 
 		GridInit();
 		GridFill();
-		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enPoint, static_cast<long>(dtExpDate) );
+		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enPoint, (dtExpDate) );
 	}
 	catch( ... )
 	{
@@ -1754,7 +1754,7 @@ void CVolaManagementDlg::OnVmMakeComomonPoint()
 
 		GridInit();
 		GridFill();
-		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enPoint, static_cast<long>(dtExpDate) );
+		PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enPoint, (dtExpDate) );
 	}
 	catch( ... )
 	{
@@ -2557,7 +2557,7 @@ void CVolaManagementDlg::OnVolaRegenerate()
 				}
 				else
 				{
-					PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, static_cast<long>(dtExpDate) );
+					PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExpDate) );
 					continue;
 				}
 
@@ -2787,7 +2787,7 @@ void CVolaManagementDlg::OnVolaRegenerate()
 				_ExtrapolateMonthVolatility( col, spSkew, g_DataProcessor.GetFlatOutRange() ,dStrikePostLow,  dStrikePreHi);
 			}
 
-			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew,static_cast<long> (dtExpDate) );
+			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExpDate) );
 		}
 
 		SetupControls();
@@ -2825,7 +2825,7 @@ void CVolaManagementDlg::OnVolaClear()
 			VME::IVMStrikeSkewVolatilitiesPtr spSkew = m_spSurface->StrikeSkew[dtExpDate];
 			spSkew->RemoveAll();
 
-			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, static_cast<long> (dtExpDate) );
+			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExpDate) );
 		}
 
 		GridInit();
@@ -2969,7 +2969,7 @@ void CVolaManagementDlg::OnVolaFittoimplied()
 				_ExtrapolateMonthVolatility( col, spSkew,bFlatNoBid,dStrikeFirstWithBid,dStrikeLastWithBid );
 			}
 
-			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, static_cast<long>(dtExpDate) );
+			PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (dtExpDate) );
 		}
 	
 		GridInit();

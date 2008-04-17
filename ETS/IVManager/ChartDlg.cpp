@@ -918,7 +918,7 @@ void CChartDlg::OnMouseUpTsChart(short Button, short Shift, long X, long Y)
 		bool bVolaInPercent = true; //m_rMgr.GetShowVolatilityInPercents();
 		long lVolaMultiplier = bVolaInPercent ? 100L : 1L;
 		
-		long dtMonth;
+		double dtMonth;
 		bool bUpdated = false;
 		if( m_nShifted )
 		{
@@ -974,7 +974,7 @@ void CChartDlg::OnDblClickTsChart()
 			bool bVolaInPercent = true; //m_rMgr.GetShowVolatilityInPercents();
 			long lVolaMultiplier = bVolaInPercent ? 100L : 1L;
 			
-			long dtMonth;
+			double dtMonth;
 			if( UpdateCustomVolaPoint( lPtIdx, ve.m_dNewVola / lVolaMultiplier, dtMonth ) )
 			{
 				SetIsDirty( TRUE );
@@ -1167,7 +1167,7 @@ BOOL CChartDlg::OnEraseBkgnd(CDC* pDC)
 
 
 #ifdef _VOLA_MANAGER
-void CChartDlg::PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, long dtMonth )
+void CChartDlg::PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, double dtMonth )
 {
 	CWnd *pNotificationWnd = AfxGetMainWnd();
 	if( pNotificationWnd )

@@ -209,6 +209,13 @@ public:
 		theApp.GetOptions(m_opts);
 	}
 
+	DATE GetNewYorkTime()
+	{
+		DOUBLE	dNYDateTime;
+		GetNYDateTimeAsDATE(&dNYDateTime);
+		return static_cast<DATE>(dNYDateTime);
+	}
+
 	bool GetRangeInfo( double& dStartStrike, double& dEndStrike );
 	long GetOptionsDataByEpiration( const COleDateTime& dtMonth, COleDateTime& dtExpiration, strikes_map& strikesData,  bool bUseRange = false );
 
@@ -436,7 +443,7 @@ protected:
 	
 	void UnderlyingChangedNotification( int ID, double fBidPrice, double fAskPrice, double fLastPrice );
 
-	double CalcRates(int DTE);
+	double CalcRates(DOUBLE dYTE);
 
 	bool CalcIV( COptionData& opt );
 	void LoadStructure( int nID );

@@ -162,6 +162,7 @@ namespace OTCOptionCalc
 		private bool bHTB = false;
 		private System.Data.OleDb.OleDbCommand ReadCustCommand;
 		private EtsGeneralLib.IEtsDivColl m_CustDivs;		// - custom dividends are temporary disabled
+        private EtsGeneralLib.IEtsIndexDivAtom m_UndDivs;
 		private ArrayList listTmpCust;
 		private ArrayList listNewDBDivs;
 		private ArrayList listDBDivs;
@@ -336,6 +337,7 @@ namespace OTCOptionCalc
             double dPriceAsk = Results.AskPrice;
             double dPriceLast = Results.LastPrice;
             double dMidPrice = 0;
+
             try
             {
 
@@ -628,14 +630,14 @@ namespace OTCOptionCalc
 				return -1;
 			double dStrikePrice = dSpot;
 			
-			int lDTE;
+			double lDTE;
 			int lCurExpDate;
 			
-			lDTE = System.Convert.ToInt32(tbDTE.Text);
+			lDTE = GetDTE(tbDTE.Text);
 
 			DateTime dtMinExpiry = DateTime.Today;
 			dtMinExpiry.AddDays(MIN_EXPIRY_DAYS);
-			lCurExpDate = System.Convert.ToInt32(dtMinExpiry.ToOADate()) + lDTE;
+			lCurExpDate = System.Convert.ToInt32(dtMinExpiry.ToOADate()) + (int)lDTE;
 			
 			ReadExpCommand.CommandText= "usp_UnderlyingExpiry_Get";
 			ReadExpCommand.CommandType = CommandType.StoredProcedure;
@@ -829,8 +831,10 @@ namespace OTCOptionCalc
 				double lDTE =  0;
 
 				DateTime dtMinExpiry = DateTime.Today;
+                DateTime dtExpiryOV = dtMinExpiry;
+                DateTime dtTradingClose;
 				dtMinExpiry.AddDays(MIN_EXPIRY_DAYS);
-				lDTE = System.Convert.ToDouble(tbDTE.Text);
+				//lDTE = System.Convert.ToDouble(tbDTE.Text);
 
 				dtMinExpiry.AddDays(MIN_EXPIRY_DAYS);
 				lCurExpDate = System.Convert.ToDouble(dtMinExpiry.ToOADate()) + lDTE;
@@ -852,15 +856,19 @@ namespace OTCOptionCalc
 				{
 					dtTmp = DateTime.Parse(ReadExp["dtExpiryDate"].ToString());
 					dDifference = Math.Abs(lCurExpDate - dtTmp.ToOADate());
+
 					if (dMinDiff > dDifference)
 					{
 						dMinDiff = dDifference;
 						dtMinExp = dtTmp;
+                        dtExpiryOV = DateTime.Parse(ReadExp["dtExpiryOV"].ToString());
+                        dtTradingClose = DateTime.Parse(ReadExp["dtTradingClose"].ToString());
 					}
 				}
+
 				if (m_bManual)
 				{
-					dtpExpirationDate.DateTime = dtMinExp;
+					dtpExpirationDate.DateTime = dtExpiryOV;
 				}
 	
 				ReadExp.Close();
@@ -1178,6 +1186,17 @@ namespace OTCOptionCalc
 						OleDbDataReader oDBReader;
 						ReadCommand.CommandText = "select top 1 isHTB, divFreq, divAmt, divDate, isDivCustom, divAmtCustom, divDateCustom, divFreqCustom, CalcOptionType from  StockView where StockId = " + Convert.ToString(iStockID);
 						oDBReader = ReadCommand.ExecuteReader();
+                        if (oDBReader.HasRows)
+                        {
+                            bGotDivs = true;
+                        }
+                        else
+                        {
+                            oDBReader.Close();
+                            ReadCommand.CommandText = "select top 1 isHTB, divFreq, divAmt, divDate, isDivCustom, divAmtCustom, divDateCustom, divFreqCustom, CalcOptionType from  IndexView where IndexId = " + Convert.ToString(iStockID);
+                            oDBReader = ReadCommand.ExecuteReader();
+                            bGotDivs = false;
+                        }
 						while (oDBReader.Read())
 						{
 							string sTmp;
@@ -1213,7 +1232,7 @@ namespace OTCOptionCalc
                                 else
                                     rbAmerican.Checked = true;	// American at list
                             }
-					
+					        
 							iDivCustom = Convert.ToInt32(oDBReader["isDivCustom"].ToString());
 							if ( iDivCustom == 0 )
 							{
@@ -1225,20 +1244,24 @@ namespace OTCOptionCalc
 								{
 									tbDivAmount.Text = sTmp;
 									bGotDivs = true;
+                                    m_UndDivs.DivAmt = Convert.ToDouble(sTmp);
 								}
 									
 
 								sTmp = oDBReader["divDate"].ToString();
-								if (sTmp.Length > 0)
-									dtpDivDate.DateTime = DateTime.Parse(sTmp);
-								else
-									dtpDivDate.DateTime = DateTime.Today;
+                                if (sTmp.Length > 0){
+                                    dtpDivDate.DateTime = DateTime.Parse(sTmp);
+                                    m_UndDivs.DivDate = dtpDivDate.DateTime;
+                                }
+                                else
+                                    dtpDivDate.DateTime = DateTime.Today;
 
 								bGotFreq = false;
 						
 								try
 								{
 									iTmp = Convert.ToInt32(oDBReader["divFreq"].ToString());
+                                    m_UndDivs.DivFreq = iTmp;
 								}
 								catch
 								{
@@ -1282,13 +1305,16 @@ namespace OTCOptionCalc
 								else
 								{
 									tbDivAmount.Text = sTmp;
+                                    m_UndDivs.DivAmtCust = Convert.ToDouble(sTmp);
 									bGotDivs = true;
 								}
 									
 
 								sTmp = oDBReader["divDateCustom"].ToString();
-								if (sTmp.Length > 0)
-									dtpDivDate.DateTime = DateTime.Parse(sTmp);
+								if (sTmp.Length > 0){
+                                    dtpDivDate.DateTime = DateTime.Parse(sTmp);
+                                    m_UndDivs.DivDateCust = dtpDivDate.DateTime;
+                                }
 								else
 									dtpDivDate.DateTime = DateTime.Today;
 
@@ -1297,6 +1323,7 @@ namespace OTCOptionCalc
 								try
 								{
 									iTmp = Convert.ToInt32(oDBReader["divFreqCustom"].ToString());
+                                    m_UndDivs.DivFreqCust = iTmp;
 								}
 								catch
 								{
@@ -1698,12 +1725,8 @@ namespace OTCOptionCalc
 			try
 			{
 				
-				//dRes = GetCustomLinearInterpolatedVola(sSymbol, dtExpDate, dStrikePrice);
-				//if (dRes < 0)
-				//{
 				dRes = GetMMVola(sSymbol, dtExpDate, dStrikePrice, iStockID);
 				dRes = dRes * 100; // to %
-				//}
 				
 				if (!IsCorrectDouble(dRes)||dRes<0 )
 				{
@@ -1713,11 +1736,8 @@ namespace OTCOptionCalc
 				}
 				else
 				{
-					
-					
 					tbVolatility.Text = dRes.ToString("N", nfi);
 					barStatusText.Caption = "Got volatility for " + tbSymbol.Text;
-
 				}
 
 
@@ -1998,34 +2018,34 @@ namespace OTCOptionCalc
             //
             InitializeComponent();
 
-            try
-            {
-                System.Data.OleDb.OleDbConnection oleDbConnection1;
-                ETSMANAGERLib.Settings oSettings = new ETSMANAGERLib.Settings();
-                sDBConnection = oSettings.DatabaseConnection;
-                int at;
-                at = sDBConnection.IndexOf("Initial Catalog=");
-                sDBUserGroup = sDBConnection.Substring(at + 16);
-                at = sDBUserGroup.IndexOf(";");
-                sDBUserGroup = sDBUserGroup.Remove(at);
+            //try
+            //{
+            //    System.Data.OleDb.OleDbConnection oleDbConnection1;
+            //    ETSMANAGERLib.Settings oSettings = new ETSMANAGERLib.Settings();
+            //    sDBConnection = oSettings.DatabaseConnection;
+            //    int at;
+            //    at = sDBConnection.IndexOf("Initial Catalog=");
+            //    sDBUserGroup = sDBConnection.Substring(at + 16);
+            //    at = sDBUserGroup.IndexOf(";");
+            //    sDBUserGroup = sDBUserGroup.Remove(at);
 
-                oleDbConnection1 = new System.Data.OleDb.OleDbConnection();
-                oleDbConnection1.ConnectionString = sDBConnection;
-                oleDbConnection1.Open();
-                this.UserActionControl.Connection = oleDbConnection1;
-                this.UserActionControl.CommandText = "usp_RegUserAction_Save";
-                this.UserActionControl.Parameters["@i_dtTime"].Value = DateTime.Now;
-                this.UserActionControl.Parameters["@i_bLogOnOut"].Value = 6;
-                this.UserActionControl.Parameters["@i_DBLogin"].Value = Environment.UserName;
-                this.UserActionControl.Parameters["@i_ServerPath"].Value = SystemInformation.ComputerName;
-                this.UserActionControl.Parameters["@i_CompanyName"].Value = sDBUserGroup;
-                this.UserActionControl.ExecuteReader();
-                oleDbConnection1.Close();
-            }
-            catch
-            {
+            //    oleDbConnection1 = new System.Data.OleDb.OleDbConnection();
+            //    oleDbConnection1.ConnectionString = sDBConnection;
+            //    oleDbConnection1.Open();
+            //    this.UserActionControl.Connection = oleDbConnection1;
+            //    this.UserActionControl.CommandText = "usp_RegUserAction_Save";
+            //    this.UserActionControl.Parameters["@i_dtTime"].Value = DateTime.Now;
+            //    this.UserActionControl.Parameters["@i_bLogOnOut"].Value = 6;
+            //    this.UserActionControl.Parameters["@i_DBLogin"].Value = Environment.UserName;
+            //    this.UserActionControl.Parameters["@i_ServerPath"].Value = SystemInformation.ComputerName;
+            //    this.UserActionControl.Parameters["@i_CompanyName"].Value = sDBUserGroup;
+            //    this.UserActionControl.ExecuteReader();
+            //    oleDbConnection1.Close();
+            //}
+            //catch
+            //{
 
-            }
+            //}
 
 			this.ReadFutOptsCommand = new System.Data.OleDb.OleDbCommand();
 			this.ReadFutOptsCommand.Connection = this.oleDbConnection;
@@ -3137,13 +3157,18 @@ namespace OTCOptionCalc
             // 
             // tbDTE
             // 
-            this.tbDTE.EditValue = "0";
-            this.tbDTE.Location = new System.Drawing.Point(136, 37);
+            this.tbDTE.EditValue = "0 days 00:00";
+            this.tbDTE.Location = new System.Drawing.Point(107, 37);
             this.tbDTE.Name = "tbDTE";
             this.tbDTE.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.tbDTE.Properties.Mask.MaskType = DevExpress.XtraEditors.Mask.MaskType.Numeric;
+            this.tbDTE.Properties.Mask.AutoComplete = DevExpress.XtraEditors.Mask.AutoCompleteType.Optimistic;
+            this.tbDTE.Properties.Mask.EditMask = "(0\\d?\\d?\\d?\\d?) day\\(s\\) (0\\d|1\\d|2[0-4])\\:(0\\d|1\\d|2\\d|3\\d|4\\d|5\\d|6[0-0])";
+            this.tbDTE.Properties.Mask.IgnoreMaskBlank = false;
+            this.tbDTE.Properties.Mask.MaskType = DevExpress.XtraEditors.Mask.MaskType.RegEx;
+            this.tbDTE.Properties.Mask.PlaceHolder = '0';
+            this.tbDTE.Properties.Mask.UseMaskAsDisplayFormat = true;
             this.tbDTE.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.tbDTE.Size = new System.Drawing.Size(88, 20);
+            this.tbDTE.Size = new System.Drawing.Size(117, 20);
             this.tbDTE.TabIndex = 4;
             this.tbDTE.Leave += new System.EventHandler(this.tbDTE_Leave);
             this.tbDTE.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tbDTE_KeyPress);
@@ -3177,11 +3202,11 @@ namespace OTCOptionCalc
             this.dtpExpirationDate.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
             this.dtpExpirationDate.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
             new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
-            this.dtpExpirationDate.Properties.DisplayFormat.FormatString = "d/M/yyyy hh:mm:ss tt";
+            this.dtpExpirationDate.Properties.DisplayFormat.FormatString = "d/M/yyyy hh:mm tt";
             this.dtpExpirationDate.Properties.DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
-            this.dtpExpirationDate.Properties.EditFormat.FormatString = "d/M/yyyy hh:mm:ss tt";
+            this.dtpExpirationDate.Properties.EditFormat.FormatString = "d/M/yyyy hh:mm tt";
             this.dtpExpirationDate.Properties.EditFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
-            this.dtpExpirationDate.Properties.Mask.EditMask = "d/M/yyyy hh:mm:ss tt";
+            this.dtpExpirationDate.Properties.Mask.EditMask = "d/M/yyyy hh:mm tt";
             this.dtpExpirationDate.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.dtpExpirationDate.Size = new System.Drawing.Size(135, 20);
             this.dtpExpirationDate.TabIndex = 3;
@@ -3694,16 +3719,16 @@ namespace OTCOptionCalc
 				lModel		= 2;		// standard binomial
 
 			DateTime    dtNow, dtLastDivDate, dtCloseTime;
-            long        uxNow, uxLastDivDate;
 
-            double dDTE = System.Convert.ToDouble(tbDTE.Text);
+            double dDTE = GetDTE(tbDTE.Text);
             double dYTE = dDTE / 365.0;
-            dtCloseTime = Convert.ToDateTime("1900/01/01 00:00:00.000");
+            dtCloseTime = Convert.ToDateTime("1899/12/30 16:00:00.000");
+
+            double dCl = dtCloseTime.ToOADate();
 			
             try
 			{
-                dtNow = DateTime.Now.ToLocalTime();
-                oOCWrapper.OCWOleDateToUnixDate(dtNow.ToOADate(), out uxNow);
+                dtNow = oOCWrapper.GetNewYorkTime();
 			}
 			catch
 			{
@@ -3714,7 +3739,6 @@ namespace OTCOptionCalc
             try
             {
                 dtLastDivDate = dtpDivDate.DateTime.Date;
-                oOCWrapper.OCWOleDateToUnixDate(dtLastDivDate.ToOADate(), out uxLastDivDate);
             }
             catch
             {
@@ -3775,7 +3799,6 @@ namespace OTCOptionCalc
 				//barStatusText.Caption = "Wrong call option price, nothing calculated";
 				tbCOptionPrice.Text = "0.00";
 				dCOptionPrice = 0;
-				//return;
 			}			
 
 
@@ -3788,7 +3811,6 @@ namespace OTCOptionCalc
 				//barStatusText.Caption = "Wrong put option price, nothing calculated";
 				tbPOptionPrice.Text = "0.00";
 				dPOptionPrice = 0;
-				//return;
 			}			
 			
 
@@ -3825,7 +3847,6 @@ namespace OTCOptionCalc
 			if (rbContinous.Checked)
 			{
 				// Continuous
-				
 				try
 				{
 					dForeignRate = ((double)System.Convert.ToDouble(tbContinousRate.Text))/100.0;
@@ -3860,7 +3881,6 @@ namespace OTCOptionCalc
 							break;      
 					}
 					
-					
 					try
 					{
 						if (tbDivAmount.Text.Length==0)
@@ -3872,39 +3892,36 @@ namespace OTCOptionCalc
 					{
 						barStatusText.Caption = "Wrong dividend amount, nothing calculated";
 						return;
-					}			
-							
-
-					try
-					{
-
-						lDivCount = oOCWrapper.OCWGetDividendsCount(uxNow, dYTE, uxLastDivDate, lDivFrequency);
-					}
-					catch(Exception /*ex*/)
-					{
-						barStatusText.Caption = "OptionCalc GetDividendsCount failed, nothing calculated";
-						return;
-					}			
-
-					if (dAmount < 0.000001)
-					{
-						lDivCount = 0;
-						dAmount = 0;
 					}
 
-					if (((lDivCount > 0)&&( dAmount > 0 ))&&(uxLastDivDate > 0))
-					{
-						iGotCount = (int)lDivCount;
-						Array.Clear(dAmounts, 0, dAmounts.Length );
-						Array.Clear(dYears, 0, dYears.Length );
-						dAmounts = new double[lDivCount];
-						dYears	= new double[lDivCount];
-						oOCWrapper.OCWGetDividends(uxNow, dYTE, uxLastDivDate, lDivFrequency, dAmount, (int)lDivCount, ref dAmounts, ref dYears, out iGotCount);
-					
-					}
-					
-					
-				
+                    DateTime dtExpiryOV = dtpExpirationDate.DateTime;
+
+                    m_UndDivs.DivType = EtsGeneralLib.EtsDivTypeEnum.enDivCustomPeriodical;
+                    m_UndDivs.DivFreqCust = lDivFrequency;
+                    m_UndDivs.DivAmtCust = dAmount;
+                    m_UndDivs.DivDateCust = dtLastDivDate;
+
+                    int nRetCount = 0;
+					int iCount = 0;
+					System.Array arTmpAmounts = new double[0];
+					System.Array arTmpDates = new double[0];
+
+                    Array.Clear(dAmounts, 0, dAmounts.Length);
+                    Array.Clear(dYears, 0, dYears.Length);
+
+                    m_UndDivs.GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, out iCount);
+
+                    if (iCount > 0)
+                    {
+                        dAmounts = new double[iCount];
+                        dYears = new double[iCount];
+                        m_UndDivs.GetDividends2(dtNow, dtExpiryOV, dtCloseTime, iCount, out arTmpAmounts, out arTmpDates, out iCount);
+                        double dN = dtCloseTime.ToOADate();
+                        arTmpAmounts.CopyTo(dAmounts, 0);
+                        arTmpDates.CopyTo(dYears, 0);
+                    }
+                    
+                    lDivCount = iCount;
 				}
 				else
 				{
@@ -3915,6 +3932,8 @@ namespace OTCOptionCalc
 					
 					Array.Clear(dAmounts, 0, dAmounts.Length );
 					Array.Clear(dYears, 0, dYears.Length);
+
+                    DateTime dtExpiryOV = dtpExpirationDate.DateTime;
 
                     dtLastDivDate = dtNow;
                     dtLastDivDate = dtLastDivDate.AddDays(dDTE); //= System.Convert.ToDateTime(dDTE + dNow);
@@ -3939,12 +3958,12 @@ namespace OTCOptionCalc
 						}
 					}
 					
-					m_CustDivs.GetDividendCount2(dtNow, dtLastDivDate, dtCloseTime, out iCount);
+					m_CustDivs.GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, out iCount);
 					if (iCount > 0)
 					{
 						dAmounts = new double[iCount];
 						dYears = new double[iCount];
-						m_CustDivs.GetDividends2(dtNow, dtLastDivDate, dtCloseTime, iCount, out arTmpAmounts, out arTmpDates, out nRetCount);
+						m_CustDivs.GetDividends2(dtNow, dtExpiryOV, dtCloseTime, iCount, out arTmpAmounts, out arTmpDates, out nRetCount);
 						
 						arTmpAmounts.CopyTo(dAmounts, 0);
 						arTmpDates.CopyTo(dYears, 0);
@@ -3953,35 +3972,7 @@ namespace OTCOptionCalc
 						
 					}
 					lDivCount = iCount;
-					
 				}
-				
-				// cust divs
-				/***************************************************** 
-
-					// Stream
-				
-					Array.Clear(dAmounts, 0, dAmounts.Length );
-					Array.Clear(dYears, 0, dYears.Length);
-
-					lDivCount =  m_StreamDivAmounts.Length;
-					if (lDivCount > 0)
-					{
-						dAmounts = new double[lDivCount];
-						dYears	= new double[lDivCount];
-						double dToday = DateTime.Now.ToOADate();
-
-						m_StreamDivAmounts.CopyTo(dAmounts, 0);
-						//m_StreamDivYears.CopyTo(dYears, 0);
-						for (int i = 0; i < lDivCount; i++)
-						{
-							dYears[i] = (m_StreamDivYears[i] - dToday)/365.0;
-					
-						}
-
-					}
-					*/
-				//}
 			}
 
 			// Calculating Greeks
@@ -3995,12 +3986,11 @@ namespace OTCOptionCalc
 					try
 					{
 						iGotCount = 0;
-
-						//dCIV = oOCWrapper.OCWCalcFutureOptionVolatilityMM( dDomesticRate, dSpotPrice, dCOptionPrice, dStrikePrice , (int)lDTE, 1 /* Call */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis ,(int)lDivCount, ref dAmounts  ,  ref dYears , (int)lModel, out iGotCount);
 						dCIV = oOCWrapper.OCWCalcFutureOptionVolatility( dDomesticRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican,  (int)lSteps , dSkew,  dKurtosis , (int)lModel, out iGotCount);
 					}
 					catch
 					{
+
 						dCIV = 0;
 					}
 				}
@@ -4008,7 +3998,7 @@ namespace OTCOptionCalc
 				{
 					try
 					{
-						dCIV = oOCWrapper.OCWCalcVolatilityMM( dDomesticRate, dForeignRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
+						dCIV = oOCWrapper.OCWCalcVolatilityMM3( dDomesticRate, dForeignRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
 					}
 					catch
 					{
@@ -4030,10 +4020,6 @@ namespace OTCOptionCalc
 			{
 				try
 				{
-					//	if (lDivCount>0)
-					//	iRet = oOCWrapper.OCWCalcFutureOptionGreeksMM(dDomesticRate,dForeignRate,  dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts  ,  ref dYears ,  refResults);			
-					//	else
-					//	iRet = oOCWrapper.OCWCalcFutureOptionGreeks(dDomesticRate, dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel,  refResults);							
 					iRet = oOCWrapper.OCWCalcFutureOptionGreeks3(dDomesticRate, dForeignRate, dSpotPrice, bSpotGreeks,   dStrikePrice , dVolatility, dYTE, 1 /* Call */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts, ref dYears , refResults);
 				}
 				catch(Exception /*ex*/)
@@ -4141,7 +4127,7 @@ namespace OTCOptionCalc
 				{
 					try
 					{
-						dPIV = oOCWrapper.OCWCalcVolatilityMM(dDomesticRate, dForeignRate, dSpotPrice, dPOptionPrice, dStrikePrice , dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
+						dPIV = oOCWrapper.OCWCalcVolatilityMM3(dDomesticRate, dForeignRate, dSpotPrice, dPOptionPrice, dStrikePrice , dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
 					}
 					catch
 					{
@@ -4167,8 +4153,6 @@ namespace OTCOptionCalc
 			{
 				try
 				{
-					//iRet = oOCWrapper.OCWCalcFutureOptionGreeksMM(dDomesticRate,dForeignRate,  dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts  ,  ref dYears ,  refResults);			
-					//iRet = oOCWrapper.OCWCalcFutureOptionGreeks(dDomesticRate, dSpotPrice, dStrikePrice , dVolatility, (int)lDTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel,  refResults);			
 					iRet = oOCWrapper.OCWCalcFutureOptionGreeks3(dDomesticRate, dForeignRate, dSpotPrice, bSpotGreeks,   dStrikePrice , dVolatility, dYTE, 0 /* Put */, (int)lIsAmerican, (int)lSteps , dSkew,  dKurtosis , (int)lModel, (int)lDivCount, ref dAmounts, ref dYears , refResults);
 				}
 				catch
@@ -4192,19 +4176,6 @@ namespace OTCOptionCalc
 
 			if (iRet == 1) // Calc OK
 			{
-				/*
-				tbResPPrice.Text =	refResults.dTheoPrice.ToString("N", nfi);
-				tbResPAlpha.Text = 	refResults.dAlpha.ToString("N", nfi);
-				tbResPDelta.Text = 	refResults.dDelta.ToString("N", nfi);
-				tbResPGamma.Text = 	refResults.dGamma.ToString("N", nfi);
-				tbResPVega.Text = 	refResults.dVega.ToString("N", nfi);
-				tbResPTheta.Text = 	refResults.dTheta.ToString("N", nfi);
-				tbResPRho.Text = 	refResults.dRho.ToString("N", nfi);
-				tbResPDeltaVega.Text = 	refResults.dDeltaVega.ToString("N", nfi);
-				tbResPDeltaTheta.Text = 	refResults.dDeltaTheta.ToString("N", nfi);
-				tbResPGammaVega.Text = 	refResults.dGammaVega.ToString("N", nfi);
-				tbResPGammaTheta.Text = 	refResults.dGammaTheta.ToString("N", nfi);
-				*/
 				if (IsCorrectDouble(refResults.dTheoPrice))
 					tbResPPrice.Text =	refResults.dTheoPrice.ToString("N", nfi);
 				else
@@ -4304,7 +4275,7 @@ namespace OTCOptionCalc
 			double dDte;
 			try
 			{
-				dDte = System.Convert.ToDouble(tbDTE.Text);
+                dDte = GetDTE(tbDTE.Text);
 			}
 			catch
 			{
@@ -4316,12 +4287,10 @@ namespace OTCOptionCalc
 			{
 				tbDTE.Text = "0";
 				dDte = 0;
-				dtpExpirationDate.DateTime = DateTime.Now;
 			}
 			else
 			{
-				dtpExpirationDate.DateTime = DateTime.Now;
-				dtpExpirationDate.DateTime = dtpExpirationDate.DateTime.AddDays(dDte);
+				dtpExpirationDate.DateTime = oOCWrapper.GetNewYorkTime().AddDays(dDte);
 			}
 			
 			bPreventCheckDate = false;
@@ -4333,34 +4302,58 @@ namespace OTCOptionCalc
 		{
 			if (bPreventCheckDate)
 				return -1;
-			if (dtpExpirationDate.DateTime.ToOADate()  < DateTime.Now.ToOADate()  )
+
+            DateTime dtNow = oOCWrapper.GetNewYorkTime();
+
+			if (dtpExpirationDate.DateTime.ToOADate()  < dtNow.ToOADate()  )
 			{
-				dtpExpirationDate.DateTime = DateTime.Now;
-				tbDTE.Text = "0";
-				tbDomesticRate.Text = "0.00";
-				return 0;
-			}
-			
-			if (dtpExpirationDate.DateTime.ToOADate()  == DateTime.Now.ToOADate()  )
-			{
+                dtpExpirationDate.DateTime = dtNow;
 				tbDTE.Text = "0";
 				tbDomesticRate.Text = "0.00";
 				return 0;
 			}
 
-			//TimeSpan dtTmp = dtpExpirationDate.DateTime.Subtract(DateTime.Now);
-            double dDTE = dtpExpirationDate.DateTime.ToOADate() - DateTime.Now.ToOADate();
-			tbDTE.Text = Convert.ToString(dDTE);
+            if (dtpExpirationDate.DateTime.ToOADate() == dtNow.ToOADate())
+			{
+				tbDTE.Text = "0";
+				tbDomesticRate.Text = "0.00";
+				return 0;
+			}
+            
+            double dDTE = dtpExpirationDate.DateTime.ToOADate() - dtNow.ToOADate();
+
+            
+            tbDTE.Text = GetDTE(dDTE);
 			TryGetRates();
 
 			return 0;
 		}
 
+
+        private String GetDTE(double dValue)
+        {
+            double d1Hour = 1.0 / 24.0;
+            double d1Minute = 1.0 / (24.0 * 60.0);
+
+            double dDays = Math.Floor(dValue);
+            double dHour = Math.Floor((dValue - dDays) / d1Hour);
+            double dMinute = Math.Floor((dValue - dDays - dHour * d1Hour) / d1Minute) + 1.0;
+
+            String strRet;
+            strRet = "0" + Convert.ToString((int)dDays) + " day(s) ";
+
+            if ((int)dHour < 10) strRet = strRet + "0";
+            strRet = strRet + Convert.ToString((int)dHour) + ":";
+
+            if((int)dMinute < 10) strRet = strRet + "0";
+            strRet = strRet + Convert.ToString((int)dMinute);
+
+            return strRet;
+        }
+
 		private void dtpExpirationDate_ValueChanged(object sender, System.EventArgs e)
 		{
 			ClearResults(0);
-			CheckDate();
-			//tbDTE_KeyPressed();
 		}
 
 		private void rbContinous_CheckedChanged(object sender, System.EventArgs e)
@@ -4407,42 +4400,34 @@ namespace OTCOptionCalc
 
 		private void tbDTE_KeyPress(object sender, System.Windows.Forms.KeyPressEventArgs e)
 		{
-			if(e.KeyChar == (char)13)
+		if(e.KeyChar == (char)13)
 			{
 				e.Handled=true;
 				bPreventCheckDate = true;
-				double dDte;
-				try
-				{
-					dDte = System.Convert.ToDouble(tbDTE.Text);
-				}
-				catch
-				{
-					barStatusText.Caption = "Wrong DTE";
-					dDte = 0;
-				}
+				double dDte = 0;
+                try
+                {
+                    dDte = GetDTE(tbDTE.Text);
+                }
+                catch
+                {
+                    barStatusText.Caption = "Wrong DTE";
+                    dDte = 0;
+                }
 				if (dDte <= 0)
 				{
 					tbDTE.Text = "0";
 					dDte = 0;
-					dtpExpirationDate.DateTime = DateTime.Now;
 				}
 				else
 				{
-					dtpExpirationDate.DateTime = DateTime.Now;
-					dtpExpirationDate.DateTime = dtpExpirationDate.DateTime.AddDays(dDte);
+					dtpExpirationDate.DateTime = oOCWrapper.GetNewYorkTime().AddDays(dDte);
 
 					TryGetRates();
-
-
 				}
-				//if (tbSymbol.Text.Length > 0)
-				//	TryToGetDivs(tbSymbol.Text, false);
                 FeedRequestLastQuotes(tbSymbol.Text, true);
 				bPreventCheckDate = false;
 			}
-            
-
 		}
 
 		private void btnSetCustomDividends_Click(object sender, System.EventArgs e)
@@ -4566,8 +4551,7 @@ namespace OTCOptionCalc
 						}
 						
 					}
-					
-					
+
 					if (CLParams.Length >=5)
 					{
 						tbStrikePrice.Text  = CLParams[4];
@@ -4587,9 +4571,12 @@ namespace OTCOptionCalc
 
 					if (CLParams.Length >=8)
 					{
+                        String strExpiry;
 						try
 						{
-							dtpExpirationDate.DateTime = DateTime.Parse(CLParams[7]);
+                            strExpiry = Convert.ToString(CLParams[7]);
+                            strExpiry.Replace('"',' ');
+                            dtpExpirationDate.DateTime = DateTime.Parse(strExpiry);
 						}
 						catch
 						{
@@ -4879,7 +4866,6 @@ namespace OTCOptionCalc
 			
 			if (oIRCurve.iPointsCount > 0)
 			{
-				//TimeSpan tsTmp = dtDate.Subtract(dtToday);
                 double dYTE = (dtDate.ToOADate() - dtToday.ToOADate()) / 365.0;
 				dRet = oOCWrapper.OCWInterpolateRates((int)oIRCurve.iPointsCount, ref oIRCurve.drNeutralHTBRateValue, ref oIRCurve.irNeutralHTBRateYTE, dYTE);
 			}
@@ -5030,23 +5016,24 @@ namespace OTCOptionCalc
 		{
 			double dRet = 0;
 
+            DateTime dtNow = oOCWrapper.GetNewYorkTime();
 			try
 			{
 				if (bUseMidRate)
 				{
 					if (bHTB)
-						dRet = GetNeutralHTBRate(DateTime.Today , dtpExpirationDate.DateTime );
+						dRet = GetNeutralHTBRate(dtNow , dtpExpirationDate.DateTime );
 					else
-						dRet = GetNeutralRate(DateTime.Today , dtpExpirationDate.DateTime );
+						dRet = GetNeutralRate(dtNow , dtpExpirationDate.DateTime );
 						
 				
 				}
 				else
 				{
 					if (bHTB)
-						dRet = GetNeutralHTBRate(DateTime.Today , dtpExpirationDate.DateTime );
+						dRet = GetNeutralHTBRate(dtNow , dtpExpirationDate.DateTime );
 					else
-						dRet = GetNeutralRate(DateTime.Today , dtpExpirationDate.DateTime );
+						dRet = GetNeutralRate(dtNow , dtpExpirationDate.DateTime );
 						
 
 				}
@@ -5183,6 +5170,43 @@ namespace OTCOptionCalc
 			return 0;
 		}
 
+
+        private void TryToLoadHolidays()
+        {
+            if (m_UndDivs != null)
+            {
+                OleDbDataReader oDBIDReader;
+                try
+                {
+                    int iActionID = 0;
+                    DateTime dtHoliday;
+
+                    m_UndDivs.Holidays.Clear();
+
+                    ReadCommand.CommandText = "exec usp_Holiday_Get";
+                    oDBIDReader = ReadCommand.ExecuteReader();
+                    if (oDBIDReader.HasRows)
+                    {
+                        while (oDBIDReader.Read())
+                        {
+                            iActionID = Convert.ToInt32(oDBIDReader["tiActionID"].ToString());
+
+                            if (iActionID < 3)
+                            {
+                                dtHoliday = Convert.ToDateTime(oDBIDReader["dtHolidayDate"].ToString());
+                                m_UndDivs.Holidays.Add(dtHoliday);
+                            }
+                        }
+                    }
+                    oDBIDReader.Close();
+                }
+                catch
+                {
+                    
+                }
+            }
+        }
+
 		private void InitTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
 			InitTimer.Enabled = false;
@@ -5197,6 +5221,11 @@ namespace OTCOptionCalc
 			}
 			
 			m_CustDivs = new EtsGeneralLib.EtsDivCollClass();
+            m_CustDivs.Holidays = new EtsGeneralLib.EtsHolidayAtomClass();
+
+            m_UndDivs = new EtsGeneralLib.EtsIndexDivAtomClass();
+            m_UndDivs.Holidays = m_CustDivs.Holidays;
+
 
 			nfi = new CultureInfo( "en-US", false ).NumberFormat;
 			nfi.NumberDecimalDigits = 4;
@@ -5211,6 +5240,8 @@ namespace OTCOptionCalc
 			long lParams = ParseCalcCommandLine();
 			if (GetInfoSources() > 0)
 			{
+                TryToLoadHolidays();
+
 				if (tbSymbol.Text.Length > 0)
 					TryToGetDivs(tbSymbol.Text, false); //?!
 				LoadInterestRates();
@@ -5441,6 +5472,46 @@ namespace OTCOptionCalc
 			ClearResults(0);
 		}
 
+        private double GetDTE(String strValue)
+        {
+            double dDte = 0;
+            double dHour = 1.0 / 24.0;
+            double dMinute = 1.0 / (24.0 * 60.0); 
+            try
+            {
+                if (strValue.Length > 0)
+                {
+                    String [] split = strValue.Split(new String [] {"day(s)", ":"}, 3, StringSplitOptions.RemoveEmptyEntries);
+                    if (split.Length == 3)
+                    {
+                        try
+                        {
+                            dDte = Convert.ToDouble(split[0]); //days
+                        }
+                        catch { dDte = 0.0; }
+                        
+                        try
+                        {
+                            dDte = dDte + Convert.ToDouble(split[1]) * dHour; //hours
+                        }
+                        catch { dDte = dDte + 0.0; }
+                        
+                        try 
+                        {
+                            dDte = dDte + Convert.ToDouble(split[2]) * dMinute; //minute
+                        }
+                        catch { dDte = dDte + 0.0; }
+
+                    }
+                }
+            }
+            catch
+            {
+                dDte = 0;
+            }
+            return dDte;
+        }
+
 		private void tbVolatility_TextChanged(object sender, System.EventArgs e)
 		{
 			ClearResults(0);
@@ -5569,6 +5640,9 @@ namespace OTCOptionCalc
 				{
 					dCurDivAmount	 = Convert.ToDouble(oDBReader["DivAmnt"].ToString());
 					dtDate = DateTime.Parse(oDBReader["DivYtes"].ToString());
+
+                    m_CustDivs.AddNonUnique(dtDate, dCurDivAmount);
+
 					listNewDBDivs.Add(new Record(dtDate, dCurDivAmount));
 					lstTmp.Add(new Record(dtDate, dCurDivAmount));
 				}
@@ -5627,13 +5701,14 @@ namespace OTCOptionCalc
 			listDBDivs = new ArrayList();
 			listNewDBDivs= new ArrayList();
 			listDBDivs.Clear();
-			//listNewDBDivs.Clear();
 
 			try
 			{
 
 				ReadCustCommand.CommandText = "select * from CustomDividend where StockID = " + Convert.ToString(iStockID);
 				oDBReader = ReadCustCommand.ExecuteReader();
+
+                m_UndDivs.CustomDivs = (EtsGeneralLib.EtsDivColl)m_CustDivs;
 				while (oDBReader.Read())
 				{
 					dCurDivAmount	 = Convert.ToDouble(oDBReader["DivAmnt"].ToString());
@@ -5645,10 +5720,9 @@ namespace OTCOptionCalc
 					
 
 				}
-				oDBReader.Close();
+
+				oDBReader.Close();			
 				
-				
-				//listNewDBDivs = (ArrayList)listTmpCust.Clone();
 				fDivForm.SetCustomDividendList(ref listTmpCust);
 			}
 			catch
@@ -5709,9 +5783,7 @@ namespace OTCOptionCalc
 			if(e.KeyChar == (char)13)
 			{
 				e.Handled=true;
-
-				//if (tbSymbol.Text.Length > 0)
-				//	TryToGetDivs(tbSymbol.Text, false);
+                CheckDate();
                 FeedRequestLastQuotes(tbSymbol.Text, true);
 			}
 		}
@@ -5801,31 +5873,31 @@ namespace OTCOptionCalc
 
         private void LogExiting()
         {
-            try
-            {
-                System.Data.OleDb.OleDbConnection oleDbConnection1;
-                System.Data.OleDb.OleDbCommand oleDbCommand1;
+            //try
+            //{
+            //    System.Data.OleDb.OleDbConnection oleDbConnection1;
+            //    System.Data.OleDb.OleDbCommand oleDbCommand1;
 
-                oleDbCommand1 = UserActionControl.Clone();
-                oleDbConnection1 = new System.Data.OleDb.OleDbConnection();
-                oleDbConnection1.ConnectionString = sDBConnection;
-                oleDbConnection1.Open();
+            //    oleDbCommand1 = UserActionControl.Clone();
+            //    oleDbConnection1 = new System.Data.OleDb.OleDbConnection();
+            //    oleDbConnection1.ConnectionString = sDBConnection;
+            //    oleDbConnection1.Open();
 
-                oleDbCommand1.Connection = oleDbConnection1;
-                oleDbCommand1.CommandText = "usp_RegUserAction_Save";
-                oleDbCommand1.Parameters["@i_dtTime"].Value = DateTime.Now;
-                oleDbCommand1.Parameters["@i_bLogOnOut"].Value = 7;
-                oleDbCommand1.Parameters["@i_DBLogin"].Value = Environment.UserName;
-                oleDbCommand1.Parameters["@i_ServerPath"].Value = SystemInformation.ComputerName;
-                oleDbCommand1.Parameters["@i_CompanyName"].Value = sDBUserGroup;
-                oleDbCommand1.ExecuteReader();
+            //    oleDbCommand1.Connection = oleDbConnection1;
+            //    oleDbCommand1.CommandText = "usp_RegUserAction_Save";
+            //    oleDbCommand1.Parameters["@i_dtTime"].Value = DateTime.Now;
+            //    oleDbCommand1.Parameters["@i_bLogOnOut"].Value = 7;
+            //    oleDbCommand1.Parameters["@i_DBLogin"].Value = Environment.UserName;
+            //    oleDbCommand1.Parameters["@i_ServerPath"].Value = SystemInformation.ComputerName;
+            //    oleDbCommand1.Parameters["@i_CompanyName"].Value = sDBUserGroup;
+            //    oleDbCommand1.ExecuteReader();
                 
-                oleDbConnection1.Close();
-            }
-            catch
-            {
+            //    oleDbConnection1.Close();
+            //}
+            //catch
+            //{
 
-            }
+            //}
         }
 
         private void OptionCalculatorForm_FormClosing(object sender, FormClosingEventArgs e)

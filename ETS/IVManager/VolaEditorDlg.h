@@ -44,7 +44,7 @@ public:
 	double	m_dCurStrike;
 	double	m_dNewStrike;
 
-	long	m_dtExpiration;
+	DATE	m_dtExpiration;
 	double	m_dPrice;	
 	bool	m_bIsCall;
 
@@ -69,7 +69,7 @@ protected:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnChangeNewVola();
 	virtual void OnOK();
-	afx_msg void OnChangeNewPrice();
+	afx_msg void OnChangeNewPrice();	  
 	//}}AFX_MSG
 	void OnCommitNewVola();
 	void OnDiscardNewVola();

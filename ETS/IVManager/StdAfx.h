@@ -112,7 +112,6 @@ extern CIVAnalyzerModule _Module;
 #else
 #include  <OptionCalc\OptionCalc.h>
 #endif
- 
 
 #include <afxext.h>         // MFC extensions
 #include <afxdisp.h>        // MFC Automation classes

@@ -40,7 +40,7 @@ struct CMonthData
 // Months map - maps month to the strike skew window
 // Used long - is is DATE without the time
 class  months_map:
-	public std::map <long, CMonthData >,
+	public std::map <CExpDate, CMonthData >,
 	public months_container
 {
 public:
@@ -84,9 +84,9 @@ public:
 
 	void addMonth (DATE dt)
 	{
-		iterator it = find ((long)dt);
+		iterator it = find (CExpDate(dt));
 		if ( it == end() )
-			insert ( std::make_pair ((long)dt, CMonthData ( NULL, true ))  );
+			insert ( std::make_pair (CExpDate(dt), CMonthData ( NULL, true ))  );
 		else
 			it->second.m_bValid = true; 
 	}
@@ -96,7 +96,7 @@ public:
 
 		for (const_iterator it = begin(); it != end(); it++ )
 			if( it->second.m_bValid )
-				month.push_back( it->first );
+				month.push_back( it->first.date_);
 
 		return month;
 	}

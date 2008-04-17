@@ -688,10 +688,10 @@ BOOL CStrikeSkewDlg::OnInitDialog()
 
 	return TRUE;
 }
-bool CStrikeSkewDlg::UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, long& dtMonth )
+bool CStrikeSkewDlg::UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, double& dtMonth )
 {
 #ifdef _VOLA_MANAGER
-	dtMonth = static_cast<long>((DATE)m_dtMonth);
+	dtMonth = (double)m_dtMonth;
 
 	if( lMovingPtIdx > 0 && m_ssv[lMovingPtIdx-1].m_dVola != dVola )
 	{
@@ -916,7 +916,7 @@ void CStrikeSkewDlg::InterpolateCustomVolaToImplied()
 
 	}
 
-	PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, static_cast<long>(m_dtMonth) );
+	PostNotification( WM_CUSTOM_VOLA_CHANGED, CCustomVolaNotification::enSkew, (m_dtMonth) );
 #endif //_VOLA_MANAGER
 }
 
@@ -927,7 +927,7 @@ void CStrikeSkewDlg::RestoreCustomVola()
 
 	m_spSkew->Reload();
 
-	PostNotification( WM_CUSTOM_VOLA_RESTORED, CCustomVolaNotification::enSkew, static_cast<long>(m_dtMonth) );
+	PostNotification( WM_CUSTOM_VOLA_RESTORED, CCustomVolaNotification::enSkew, (m_dtMonth) );
 #endif //_VOLA_MANAGER
 }
 
@@ -941,7 +941,7 @@ void CStrikeSkewDlg::UpdateCustomVola()
 		{
 		m_spSkew->Save();
 
-		PostNotification( WM_CUSTOM_VOLA_SAVED, CCustomVolaNotification::enSkew, static_cast<long>(m_dtMonth) );
+		PostNotification( WM_CUSTOM_VOLA_SAVED, CCustomVolaNotification::enSkew, (m_dtMonth) );
 		}
 	catch( const _com_error& e )
 		{

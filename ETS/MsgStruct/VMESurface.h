@@ -11,7 +11,7 @@
 struct VolaPointData
 {	
 	long	__nPointID;
-	long	__ExpDate;
+	double	__ExpDate;
 	double	__fStrike;
 	double	__fVola;
 	BYTE	__bStatus;

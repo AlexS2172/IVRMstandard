@@ -10,6 +10,8 @@
 //#include "..\\include\\NetMsgStruct.h"
 
 
+
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -825,7 +827,7 @@ bool CDataProcessor::GetData( LPCTSTR szSymbol, int nID, months_container& mnths
 
 		for( options_map::iterator it = m_optsData.begin(); it != m_optsData.end(); it++ )
 		{
-			COleDateTime dtExp = it->second.m_dtExpiration;
+			COleDateTime dtExp = it->second.m_dtExpiryOV;
 			//COleDateTime dtMonth ( dtExp.GetYear(), dtExp.GetMonth(), 1, 0, 0, 0);
 
 			mnths.addMonth( dtExp );
@@ -988,6 +990,8 @@ void CDataProcessor::LoadStructure (int nID)
 			opt.m_bIsCall = rs[L"bIsCall"].GetValue();
 			opt.m_lOptionRootID =  rs[L"iOptionRootID"];
 			opt.m_bIsFitEnabled =   (long(rs[L"tiIsFitEnabled"]))!=0;
+			opt.m_dtExpiryOV = (double) rs[L"dtExpiryOV"];
+			opt.m_dtTradingClose = (double) rs[L"dtTradingClose"] - 2;
 
 	#ifdef _IVAN_DB_ACCESS
 			opt.m_lOptionID = rs[L"iOptionID"];
@@ -1385,10 +1389,12 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 			if(m_contractData.m_mapOptionRoots.find(opt.m_lOptionRootID) != m_contractData.m_mapOptionRoots.end())
 				pRoot = m_contractData.m_mapOptionRoots[opt.m_lOptionRootID];
 			
-			DATE dtToday = COleDateTime::GetCurrentTime();
-			int nDTE = opt.GetDTE();
+			DATE	dtNow		= GetNewYorkTime();
+			DATE	dtExpiryOV	= opt.m_dtExpiryOV;
+			DATE	dtCloseTime = opt.m_dtTradingClose;
+			DOUBLE	dYTE		= opt.GetYTE();
 
-			double dRate = CalcRates(nDTE);
+			double dRate = CalcRates(dYTE);
 
 			if(pRoot && !pRoot->m_bIsSynthetic && !fEQZero( m_contractData.m_dPrice ) )
 			{
@@ -1398,11 +1404,13 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 
 				if(m_contractData.m_bIsIndex && m_contractData.m_Divs!=NULL)
 				{
-					m_contractData.m_Divs->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);				
+					m_contractData.m_Divs->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
+					//m_contractData.m_Divs->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);				
 
 					if (nDivCount > 0)
 					{
-						m_contractData.m_Divs->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+						//m_contractData.m_Divs->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+						m_contractData.m_Divs->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 						::SafeArrayLock(psaDates);
 						::SafeArrayLock(psaAmounts);
 						::SafeArrayAccessData(psaDates, &lpDateData);
@@ -1419,13 +1427,15 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 					if (m_contractData.m_spDividend != NULL)
 					{
 						nDivCount = 0;
-						m_contractData.m_spDividend->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);
+						//m_contractData.m_spDividend->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);
+						m_contractData.m_spDividend->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
 						if (nDivCount< 0)
 							nDivCount = 0;
 
 						if (nDivCount> 0)
 						{
-							m_contractData.m_spDividend->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+							//m_contractData.m_spDividend->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+							m_contractData.m_spDividend->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 							::SafeArrayLock(psaDates);
 							::SafeArrayLock(psaAmounts);
 							::SafeArrayAccessData(psaDates, &lpDateData);
@@ -1455,7 +1465,7 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 					break;
 				}
 
-				dVola = CalcVolatilityMM2 (dRate, m_contractData.m_dYield, BAD_DOUBLE_VALUE, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
+				dVola = CalcVolatilityMM2 (dRate, m_contractData.m_dYield, BAD_DOUBLE_VALUE, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, dYTE, 
 					opt.m_bIsCall, m_contractData.m_bIsAmerican, nDivCount, pDivAmts, pDivYears, 100, 
 					m_contractData.m_dSkew, m_contractData.m_dKurt, lPrModel );
 
@@ -1493,11 +1503,12 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 
 				if(pSynthRoot->m_bIsBasket && pSynthRoot->m_Divs != NULL)
 				{
-					pSynthRoot->m_Divs->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);				
-
+					//pSynthRoot->m_Divs->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);				
+					pSynthRoot->m_Divs->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);				
 					if (nDivCount > 0)
 					{
-						pSynthRoot->m_Divs->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+						//pSynthRoot->m_Divs->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+						pSynthRoot->m_Divs->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 						::SafeArrayLock(psaDates);
 						::SafeArrayLock(psaAmounts);
 						::SafeArrayAccessData(psaDates, &lpDateData);
@@ -1528,7 +1539,7 @@ bool CDataProcessor::CalcIV( COptionData & opt )
 					break;
 				}			
 
-				dVola = CalcVolatilityMM2 (dRate, pSynthRoot->m_dYield, BAD_DOUBLE_VALUE, dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
+				dVola = CalcVolatilityMM2 (dRate, pSynthRoot->m_dYield, BAD_DOUBLE_VALUE, dPrice, opt.m_dPrice, opt.m_dStrike, dYTE, 
 					opt.m_bIsCall, m_contractData.m_bIsAmerican, nDivCount, pDivAmts, pDivYears, 100, 
 					pSynthRoot->m_dSkew,pSynthRoot->m_dKurt, lPrModel );
 
@@ -1593,22 +1604,28 @@ void CDataProcessor::CalcOptPrice( COptionData& opt )
 		DOUBLE* pdDivAmt = NULL;
 
 		// Get DTE
-		DATE dtToday = COleDateTime::GetCurrentTime();
-		int nDTE	 = opt.GetDTE();
+		//DATE dtToday = COleDateTime::GetCurrentTime();
+		//int nDTE	 = opt.GetDTE();
+		DATE	dtNow		=	GetNewYorkTime();
+		DATE	dtCloseTime =	opt.m_dtTradingClose;
+		DATE	dtExpiryOV	=	opt.m_dtExpiryOV;
+		DOUBLE	dYTE		=	opt.GetYTE();
 
 		// Get rates
-		double dRate = CalcRates(nDTE);
+		double dRate = CalcRates(dYTE);
 
 		// Get dividends
 		DIVIDEND * pDiv = NULL;
 
         if (m_contractData.m_spDividend != NULL)			
 		{
-			m_contractData.m_spDividend->GetDividendCount((long)dtToday, ((long)dtToday)+nDTE, &nDivCount);
+			//m_contractData.m_spDividend->GetDividendCount((long)dtToday, ((long)dtToday)+nDTE, &nDivCount);
+			m_contractData.m_spDividend->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
 			if(nDivCount > 0L) 
 			{
 				//spDiv->GetDividends(nToday, nExpiry, nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-				m_contractData.m_spDividend->GetDividends((long)dtToday, ((long)dtToday)+nDTE, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+				//m_contractData.m_spDividend->GetDividends((long)dtToday, ((long)dtToday)+nDTE, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+				m_contractData.m_spDividend->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 				::SafeArrayLock(psaAmounts);
 				::SafeArrayLock(psaDates);
 
@@ -1647,7 +1664,7 @@ void CDataProcessor::CalcOptPrice( COptionData& opt )
 					   m_contractData.m_dPrice, 
 					   opt.m_dStrike,
 					   opt.m_dVola, 
-					   nDTE,
+					   dYTE,
 					   opt.m_bIsCall, TRUE, nDivCount, pdDivAmt, pdDivDte, 100, m_contractData.m_dSkew, m_contractData.m_dKurt, lPrModel, &g );
 		opt.m_dPrice = g.dTheoPrice;
 
@@ -1691,26 +1708,32 @@ void CDataProcessor::CalcOptIVola( COptionData& opt )
 		DOUBLE* pdDivAmt = NULL;
 
 		// Get DTE
-		DATE dtToday = COleDateTime::GetCurrentTime();
-		int nDTE	 = opt.GetDTE();
+		//DATE dtToday = COleDateTime::GetCurrentTime();
+		//int nDTE	 = opt.GetDTE();
+		DATE	dtNow	=	GetNewYorkTime();
+		DATE	dtExpiryOV	=	opt.m_dtExpiryOV;
+		DATE	dtCloseTime =	opt.m_dtTradingClose;
+		DOUBLE	dYTE = opt.GetYTE();
 
 		// Get rates
 		double dShortRate = 0;
 		if( m_ratesAsk.size() > 0 )
-			dShortRate = InterpolateRates( m_ratesAsk.size(),  &m_ratesAsk[0], nDTE );
+			dShortRate = InterpolateRates( m_ratesAsk.size(),  &m_ratesAsk[0], dYTE );
 		double dLongRate = 0;
 		if( m_ratesBid.size() > 0 )
-			dLongRate = InterpolateRates( m_ratesBid.size(),  &m_ratesBid[0], nDTE );
+			dLongRate = InterpolateRates( m_ratesBid.size(),  &m_ratesBid[0], dYTE );
 		double dRate = (dShortRate + dLongRate)/2;
 
 		// Get dividends
 		if (m_contractData.m_spDividend != NULL)
 		{
-			m_contractData.m_spDividend->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);
+			//m_contractData.m_spDividend->GetDividendCount((long)dtToday, nDTE+(long)dtToday, &nDivCount);
+			m_contractData.m_spDividend->GetDividendCount2(dtNow, dtExpiryOV, dtCloseTime, &nDivCount);
 			if(nDivCount > 0L) 
 			{
 				//spDiv->GetDividends(nToday, nExpiry, nDivCount, pdDivAmt, pdDivDte, &nRetCount);
-				m_contractData.m_spDividend->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+				//m_contractData.m_spDividend->GetDividends((long)dtToday, nDTE+(long)dtToday, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+				m_contractData.m_spDividend->GetDividends2(dtNow, dtExpiryOV, dtCloseTime, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 				::SafeArrayLock(psaAmounts);
 				::SafeArrayLock(psaDates);
 
@@ -1727,7 +1750,7 @@ void CDataProcessor::CalcOptIVola( COptionData& opt )
 		// Calc ivola
 		LONG nFlag = VF_OK;
 
-		double dVola = CalcVolatilityMM3 (dRate, m_contractData.m_dYield, BAD_DOUBLE_VALUE, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, nDTE, 
+		double dVola = CalcVolatilityMM3 (dRate, m_contractData.m_dYield, BAD_DOUBLE_VALUE, m_contractData.m_dPrice, opt.m_dPrice, opt.m_dStrike, dYTE, 
 			opt.m_bIsCall , TRUE, nDivCount, pdDivAmt,pdDivDte, 100, m_contractData.m_dSkew, m_contractData.m_dKurt, 0, &nFlag); 
 
 		opt.m_dVola = dVola > 0 ? dVola : 0;
@@ -1759,14 +1782,12 @@ void CDataProcessor::VolaChangedNotification (const COptionData & opt)
 	{
 		bool bTSChanged = false;
 
-		COleDateTime dtExp = opt.m_dtExpiration;
+		COleDateTime dtExp = opt.m_dtExpiryOV;
 
-		time_skew_map ::iterator it = m_time_skewData.find (static_cast<long>((DATE)dtExp));
+		time_skew_map ::iterator it = m_time_skewData.find (CExpDate((DATE)dtExp));
 		if( it != m_time_skewData.end() )
 			bTSChanged = it->second.m_pOption == &opt;
-		
-		//COleDateTime dtMonth( dtExp.GetYear(), dtExp.GetMonth(), 1, 0, 0, 0 );
-		
+				
 		theApp.GetVolaNotificationClient()->VolaChangedNotification( bTSChanged, (long)dtExp );
 	}
 	_CATCH_UNHANDLED_EXCEPTION;
@@ -2207,7 +2228,8 @@ void CDataProcessor::CalcTimeSkew()
 		for( options_map::iterator it = m_optsData.begin(); it != m_optsData.end(); it++ )
 		{
 			COptionData & opt = it->second;
-			long dtExp = (long)opt.m_dtExpiration;
+			CExpDate dtExp(opt.m_dtExpiryOV);
+			
 			
 			bool bValid = m_opts.m_enCurveMode == enCall || 
 						  m_opts.m_enCurveMode == enPut	 || 
@@ -2744,7 +2766,7 @@ long CDataProcessor::GetOptionsDataByEpiration( const COleDateTime& dtMonth, COl
 	return nCntVola;
 }
 
-double CDataProcessor::CalcRates(int nDTE)
+double CDataProcessor::CalcRates(DOUBLE dYTE)
 {
 
 	double dShortRate = 0;
@@ -2769,10 +2791,10 @@ double CDataProcessor::CalcRates(int nDTE)
 		
 
 		if (m_ratesAsk.size() > 0)
-			dShortRate = InterpolateRates (m_ratesAsk.size(),  &m_ratesAsk[0], nDTE);
+			dShortRate = InterpolateRates (m_ratesAsk.size(),  &m_ratesAsk[0], dYTE);
 
 		if (m_ratesBid.size() > 0)
-			dLongRate = InterpolateRates ( m_ratesBid.size(),  &m_ratesBid[0], nDTE );
+			dLongRate = InterpolateRates ( m_ratesBid.size(),  &m_ratesBid[0], dYTE );
 
 	}
 	_CATCH_UNHANDLED_EXCEPTION;

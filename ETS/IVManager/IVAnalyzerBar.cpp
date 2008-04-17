@@ -576,7 +576,7 @@ void CIVAnalyzerBar::OnStrikeSkew(UINT nID)
 	{
 		if (nID == ID_STRIKE_SKEW_FIRST + i)
 		{
-			ShowStrikeSkew (it->first, it->second);
+			ShowStrikeSkew (it->first.date_, it->second);
 			break;
 		}
 	}	
@@ -847,7 +847,7 @@ void CIVAnalyzerBar::OnToolbarDropDown(NMHDR* pnmtb, LRESULT *plr)
 			i = 0;
 			for (months_map::iterator it = m_months.begin(); it != m_months.end(); it++, i++)
 			{
-				COleDateTime dtExp = (DATE) it->first;
+				COleDateTime dtExp = (DATE) it->first.date_;
 				
 				CString str = dtExp.Format (_T("%B,%d %Y"));
 				pMenu->AppendMenu (MF_STRING, ID_STRIKE_SKEW_FIRST + i, str, 
@@ -1766,7 +1766,7 @@ void CIVAnalyzerBar::OnStrikeSkew()
 	{
 		if (it->second.m_bValid)
 		{
-			if ( ! ShowStrikeSkew (it->first, it->second) )
+			if ( ! ShowStrikeSkew (it->first.date_, it->second) )
 				break;
 		}
 	}
@@ -1856,7 +1856,7 @@ void CIVAnalyzerBar::OnCharts()
 	{
 		if (rit->second.m_bValid)
 		{
-			if ( ! ShowStrikeSkew (rit->first, rit->second) )
+			if ( ! ShowStrikeSkew (rit->first.date_, rit->second) )
 				break;
 		}
 	}

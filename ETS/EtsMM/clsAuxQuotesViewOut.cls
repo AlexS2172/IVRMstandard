@@ -2008,6 +2008,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     Dim aFutCalc As EtsMmQuotesLib.MmQvFutAtom, aExpOpt As EtsMmQuotesLib.MmQvExpAtom
     Dim aUnd As EtsMmQuotesLib.MmQvUndAtom, aFutExp As EtsMmQuotesLib.MmQvExpAtom
+    Dim aSearchExp As EtsMmQuotesLib.MmQvExpAtom
     
     Dim aGrp As EtsMmQuotesLib.MmQvGrpAtom
     Dim iColCount&, iExpCount&
@@ -2017,6 +2018,9 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
     Dim enPriceStatus As EtsReplacePriceStatusEnum
     Dim bDriverUsed As Boolean
     Dim sCaption As String
+    
+    Dim dMinLeft As Double, dMinRight As Double, dBuffVola As Double
+    Dim aLExp As EtsMmQuotesLib.MmQvExpAtom, aRExp As EtsMmQuotesLib.MmQvExpAtom
     
     With fgVol
         m_Aux.GridLock(GT_QUOTES_VOLA).LockRedraw
@@ -2037,10 +2041,12 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
         
         .Cols = iColCount
             
+        dUndPrice = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
+        
         If m_Aux.Grp.IsStockOrIndex Then
                                       
             'Get ATM strike
-            dUndPrice = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
+            'dUndPrice = aUnd.GetUnderlyingPrice(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
             'Calc volatility
             '-20% -10% 0% 10% 20%
             iRow = 2
@@ -2066,7 +2072,47 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                     
                     'Get Implied Vola
                     dVola = aExp.Vola(dStrike, dUndPrice)
-                    .TextMatrix(iRow, iCol) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
+                    
+                    If (dVola < 0) Then 'Interpolate
+                    
+                        dMinLeft = 10000000#
+                        dMinRight = 10000000#
+                        Dim dDiff As Double
+                        dDiff = 0#
+                        Set aLExp = aExp
+                        Set aRExp = aExp
+                        'Search boundary expiry's
+                        For Each aSearchExp In aExpColl
+                            If (aSearchExp.ExpiryOV <> aExp.ExpiryOV) Then
+                                dDiff = CDbl(aSearchExp.ExpiryOV - aExp.ExpiryOV)
+                                If (dDiff < 0#) Then
+                                    If (dMinLeft > Abs(dDiff)) Then
+                                        dMinLeft = Abs(dDiff)
+                                        Set aLExp = aSearchExp
+                                    End If
+                                Else
+                                    If (dMinRight > dDiff) Then
+                                        dMinRight = dDiff
+                                        Set aRExp = aSearchExp
+                                    End If
+                                End If
+                            End If
+                        Next
+                        
+                        'Calc vola
+                        Dim dLeftVola As Double, dRightVola As Double
+                        If (aLExp.ExpiryOV <> aExp.ExpiryOV And aRExp.ExpiryOV <> aExp.ExpiryOV) Then
+                            dLeftVola = aLExp.Vola(dStrike, dUndPrice)
+                            dRightVola = aRExp.Vola(dStrike, dUndPrice)
+                            dVola = ((Sqr(aExp.ExpiryOV) - Sqr(aLExp.ExpiryOV)) / (Sqr(aRExp.ExpiryOV) - Sqr(aLExp.ExpiryOV))) * (dRightVola - dLeftVola) + dLeftVola
+                        ElseIf (aLExp.ExpiryOV = aExp.ExpiryOV) Then
+                            dVola = aRExp.Vola(dStrike, dUndPrice)
+                        ElseIf (aRExp.ExpiryOV = aExp.ExpiryOV) Then
+                            dVola = aLExp.Vola(dStrike, dUndPrice)
+                        End If
+                        
+                    End If
+                    .TextMatrix(iRow, iCol) = IIf(dStrike > 0#, IIf(dVola > 0#, dVola * 100#, STR_NA), STR_NA)
                     
                     iCol = iCol + 1
                 Next
@@ -2086,7 +2132,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                             If iExp >= 2 Then
                                 If aFut.MaturityDate < aFutCalc.MaturityDate Then
                                     Set aFutCalc = aFut 'aFutCalc - future for vola calculation
-                                    Set aFutExp = aExp
+                                    'Set aFutExp = aExp
                                 End If
                             End If
                             If iExp = 1 Then
@@ -2098,7 +2144,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                 Next
                               
                 'Get ATM Strike
-                dUndPrice = aFutCalc.GetFuturePrice(aUnd, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
+                'dUndPrice = aFutCalc.GetFuturePrice(aUnd, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, enPriceStatus, bDriverUsed)
                               
                 'Calc volatility -20% -10% 0% 10% 20%
                 iRow = 2
@@ -2116,13 +2162,16 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                     End If
                     
                     'Get Theoretical Vola
-                    dVola = aUnd.VolaSrv.OptionVola(aFutExp.ExpiryOV, dStrike)
+                    dVola = aUnd.VolaSrv.OptionVola(aExpOpt.ExpiryOV, dStrike)
                     .TextMatrix(iRow, iCol + iExpCount) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
+                    dBuffVola = dVola
                     
                     'Get Implied Vola
                     dVola = aFutExp.Vola(dStrike, dUndPrice)
-                    .TextMatrix(iRow, iCol) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
                     
+                    If (dVola < 0#) Then dVola = dBuffVola
+                    .TextMatrix(iRow, iCol) = IIf(dStrike > 0#, IIf(dVola > 0#, dVola * 100#, STR_NA), STR_NA)
+                                        
                     iRow = iRow + 1
                 Next
                 iCol = iCol + 1

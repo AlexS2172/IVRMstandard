@@ -40,7 +40,7 @@ public:
 #endif //_VOLA_MANAGER
 
 	// Vola management overrides
-	virtual bool   UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, long& dtMonth ) = 0;
+	virtual bool   UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, double& dtMonth ) = 0;
 	virtual void   InterpolateCustomVolaToImplied() = 0;
 	virtual void   RestoreCustomVola() = 0;
 	virtual void   UpdateCustomVola() = 0;
@@ -78,7 +78,7 @@ public:
 #ifdef _VOLA_MANAGER
 	void   SetIsDirty( bool bIsDirty );
 	void   EnableVolaManagement( bool bManagement, bool bFitToImplied );
-	void PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, long dtMonth );
+	void PostNotification( UINT nMessage, CCustomVolaNotification::Type enType, double dtMonth );
 #endif //_VOLA_MANAGER
 	void SetManageableVola( bool bEnable = true );
 

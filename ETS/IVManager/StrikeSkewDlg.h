@@ -26,7 +26,7 @@ public:
 #endif //_VOLA_MANAGER
 
 	// Vola management overrides
-	bool UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, long& dtMonth );
+	bool UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, double& dtMonth );
 	void InterpolateCustomVolaToImplied();
 	void RestoreCustomVola();
 	void UpdateCustomVola();

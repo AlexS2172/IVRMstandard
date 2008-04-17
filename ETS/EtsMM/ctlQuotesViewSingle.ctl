@@ -20,7 +20,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   56360961
+      Format          =   20709377
       CurrentDate     =   39547
    End
    Begin VB.Timer tmrPriceProviderIdle 
@@ -423,7 +423,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   55508995
+      Format          =   20643843
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -12525,6 +12525,7 @@ Public Sub OTCOptionCalcCall()
     Dim dBid As Double
     Dim dAsk As Double
     Dim dtExpiry As Date
+    Dim dtExpiryOV As Date
     
     Dim lContractType As Long
     Dim dYield As Double
@@ -12600,6 +12601,7 @@ Public Sub OTCOptionCalcCall()
                         
                         dStrike = aOpt.Strike
                         dtExpiry = aOpt.Expiry
+                        dtExpiryOV = aOpt.ExpiryOV
                         dVola = aOpt.Vola
                         
                         If m_enMenuGrid = GT_QUOTES_UNDERLYING Then
@@ -12608,9 +12610,9 @@ Public Sub OTCOptionCalcCall()
                         End If
                         Set aExp = m_Aux.Grp.Und.Exp(dtExpiry)
                         
-                        dtDate = CDate(CDbl(dtExpiry) - CDbl(Day(dtExpiry)))
+                        'dtDate = CDate(CDbl(dtExpiry) - CDbl(Day(dtExpiry)))
                         For Each aExp In m_Aux.Grp.Und.Exp
-                            If aExp.ExpiryMonth > dtDate Then
+                            If aExp.ExpiryMonth >= dtExpiry Then
                                 dRate = aExp.Rate
                                 If (aExp.RateCust > 0) And (aExp.Rate = 0) Then
                                    dRate = aExp.RateCust
@@ -12663,7 +12665,7 @@ Public Sub OTCOptionCalcCall()
     Dim sParams As String
     sPath = App.Path & "\OTCCalc\OTCOptionCalc.exe"
     sParams = sStockSymbol & " " & sOptionSymbol & " " & CStr(lSymbolType) & " " & CStr(dStrike) & " " & CStr(dBid) & " " & CStr(dAsk) & " " & _
-    CStr(dtExpiry) & " " & _
+    """" & CStr(dtExpiryOV) & """" & " " & _
     CStr(lContractType) & " " & CStr(dYield * 100) & " " & CStr(lDivType) & " " & _
     CStr(dDivAmount) & " " & CStr(dDivDate) & " " & CStr(dDivFreq) & " " & _
     CStr(lCDStockID) & " " & CStr(lCDCount) & " " & CStr(dRate) & " " & CStr(dVola) & " " & CStr(lCalcModel)

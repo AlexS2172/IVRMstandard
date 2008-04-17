@@ -424,7 +424,7 @@ void CTimeSkewDlg::UpdateChart( bool bReinitialize )
 		i = 0;
 		for(it = tsdata.begin(); it != tsdata.end(); it++, i++ )
 		{
-			COleDateTime dtExpiration = (DATE) it->first;
+			COleDateTime dtExpiration = (DATE)it->first.date_;
 
 			CString str = dtExpiration.Format(fmt);
 			
@@ -661,7 +661,7 @@ void CTimeSkewDlg::InterpolateCustomVolaToImplied()
 		if( tit == tsdata.end() )
 			tit--;
 		
-		dtTime = tit->first;
+		dtTime = tit->first.date_;
 		dVola  = tit->second.m_pOption->m_dVola;
 
 		UpdateSkewPoint( *it, dVola );
@@ -672,10 +672,10 @@ void CTimeSkewDlg::InterpolateCustomVolaToImplied()
 }
 
 	
-bool CTimeSkewDlg::UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, long& dtMonth )
+bool CTimeSkewDlg::UpdateCustomVolaPoint( long lMovingPtIdx, double dVola, double& dtMonth )
 {
 #ifdef _VOLA_MANAGER
-	dtMonth = m_nShifted ? 0 : static_cast<long>(m_tsv[lMovingPtIdx-1].m_dtMonth);
+	dtMonth = m_nShifted ? 0 : (m_tsv[lMovingPtIdx-1].m_dtMonth);
 	
 	if( lMovingPtIdx > 0 )
 		return UpdateSkewPoint( m_tsv[lMovingPtIdx-1], dVola );
@@ -728,7 +728,7 @@ void CTimeSkewDlg::UpdateCustomVola()
 bool CTimeSkewDlg::SetupVolaEditor( long lPtIdx, CVolaEditorDlg& ve )
 {
 #ifdef _VOLA_MANAGER
-	ve.m_dtExpiration = static_cast<long>(m_ptPrev.m_dtExpDate);
+	ve.m_dtExpiration = (m_ptPrev.m_dtExpDate);
 	ve.m_dPrice		  = g_DataProcessor.GetContractPrice();
 	ve.m_bIsCall	  = true;
 
@@ -792,7 +792,7 @@ void CTimeSkewDlg::ConstructSkew( const time_skew_map & tsdata )
 		long nIndex = 0;
 		for( time_skew_map::const_iterator it = tsdata.begin(); it != tsdata.end(); it++ )
 		{
-			dtExp = (DATE)it->first;
+			dtExp = (DATE)it->first.date_;
 			if( dtMonth.GetYear() == dtExp.GetYear() && dtMonth.GetMonth() == dtExp.GetMonth() )
 			{
 				pt.m_dtExpDate = dtExp;

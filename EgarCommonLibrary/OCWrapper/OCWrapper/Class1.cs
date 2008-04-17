@@ -124,10 +124,13 @@ namespace OCWrapper
 			double	dYte
 			);
 
-		
+        [System.Runtime.InteropServices.DllImport("OptionCalc.dll", SetLastError = true, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool GetNYDateTimeAsDATE(
+            [Out, MarshalAs(UnmanagedType.R8)] out  double dtDate
+            );
 		
 		[System.Runtime.InteropServices.DllImport("OptionCalc.dll", SetLastError=true, CallingConvention=CallingConvention.Cdecl)]
-		private static extern double CalcVolatilityMM(
+		private static extern double CalcVolatilityMM3(
 			double	dDomesticRate,
 			double	dForeignRate,
             double  dHTBRate,
@@ -137,11 +140,14 @@ namespace OCWrapper
 			double  dYTE,		
 			int		nIsCall,	
 			int		nIsAmerican,
-			int		nCount, 	
+			int		nCount,
 			[MarshalAs(UnmanagedType.LPArray) ]  double[]   pDivAmnts,
 			[MarshalAs(UnmanagedType.LPArray)]   double[]   pDivYears,
-			int		nSteps,		
-			int		nModel	
+            int     nSteps,
+            double  dSkew,
+            double  dKurt,
+            int     nModel,
+            [Out, MarshalAs(UnmanagedType.I4)] out int pnFlag	
 			);
 
 		
@@ -267,6 +273,13 @@ namespace OCWrapper
 			[In, Out, MarshalAs(UnmanagedType.LPStruct)] GREEKS   pGreeks);
 	
 	
+        public DateTime GetNewYorkTime()
+        {
+            double dNYTime = 0;
+            bool bRet = GetNYDateTimeAsDATE(out dNYTime);
+            return DateTime.FromOADate(dNYTime);
+        }
+
         public bool OCWOleDateToUnixDate(double dtOleDate, out long dtUnixDate)
         {
             bool bRet = OleDateToUnixDate(dtOleDate, out dtUnixDate);
@@ -374,7 +387,7 @@ namespace OCWrapper
 		}		
 
 
-		public double OCWCalcVolatilityMM(
+		public double OCWCalcVolatilityMM3(
 			double	dDomesticRate,
 			double	dForeignRate,
 			double	dSpotPrice,
@@ -386,14 +399,15 @@ namespace OCWrapper
 			long		nCount, 	
 			ref  double[]   pDivAmnts,
 			ref  double[]   pDivYears,
-			long		nSteps,		
+			long	nSteps,		
 			double	dSkew,			
 			double	dKurtosis,		
-			long		nModel	
+			long	nModel	
 			)
 		{
-			double dRet = 0;
-			dRet = CalcVolatilityMM(
+			double  dRet = 0;
+            int     pnFlag = 0; 
+			dRet = CalcVolatilityMM3(
 				dDomesticRate,
 				dForeignRate,
                 (double)-1E+308, 
@@ -406,8 +420,11 @@ namespace OCWrapper
 				(int)nCount, 	
 				pDivAmnts,
 				pDivYears,
-				(int)nSteps,		
-				(int)nModel	
+				(int)nSteps,
+		        dSkew,
+                dKurtosis,
+				(int)nModel,
+	            out pnFlag
 				);		
 			return dRet;
 		}		

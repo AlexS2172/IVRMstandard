@@ -270,7 +270,7 @@ STDMETHODIMP CVMESurface::Pack(BSTR *pRetVal)
 				pPointData->__nPointID = m_spPoints->Fields->Item[L"iCustomStrikeSkewPointID"]->Value.lVal;
 				pPointData->__fStrike = m_spPoints->Fields->Item[L"fStrike"]->Value;
 				pPointData->__fVola = m_spPoints->Fields->Item[L"fVolatility"]->Value;
-				pPointData->__ExpDate = (long)m_spPoints->Fields->Item[L"dtExpDate"]->Value.date;
+				pPointData->__ExpDate = m_spPoints->Fields->Item[L"dtExpDate"]->Value.date;
 				pPointData->__IsBasePoint = m_spPoints->Fields->Item[L"iIsBasePoint"]->Value.lVal != 0;
 				pPointData->__bStatus = m_spPoints->Fields->Item[L"iStatus"]->Value.bVal;
 
