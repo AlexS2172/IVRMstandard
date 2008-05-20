@@ -4221,6 +4221,7 @@ Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, By
     
             Dim dtNow As Date
             dtNow = GetNewYorkTime
+            dtToday = dtNow
     
             Select Case m_Scn.Axis(RMA_HORZ)
                 Case RMAT_SPOT

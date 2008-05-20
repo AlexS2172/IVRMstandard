@@ -1236,13 +1236,13 @@ Private Sub ShiftVola(ByRef aUnd As clsVmUndAtom, ByVal bShiftAllExpiries As Boo
         nExpCount = aUnd.Expiry.Count
         For e = 1 To nExpCount
             Err.Clear
-            aUnd.VolaSrv.ShiftExpiryVola aUnd.Expiry(e).ExpiryMonth, dShiftValue
+            aUnd.VolaSrv.ShiftExpiryVola aUnd.Expiry(e).ExpiryOV, dShiftValue
             If Err.Number <> 0 Then LogEvent EVENT_ERROR, aUnd.Symbol & ": " & Err.Description
         Next
     Else
         If Not aUnd.CurExpiry1 Is Nothing Then
             Err.Clear
-            aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry1.ExpiryMonth, dShiftValue
+            aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry1.ExpiryOV, dShiftValue
             If Err.Number <> 0 Then LogEvent EVENT_ERROR, aUnd.Symbol & ": " & Err.Description
         End If
     
@@ -1250,12 +1250,12 @@ Private Sub ShiftVola(ByRef aUnd As clsVmUndAtom, ByVal bShiftAllExpiries As Boo
             bAlreadyShifted = False
             
             If Not aUnd.CurExpiry1 Is Nothing Then
-                If aUnd.CurExpiry2.ExpiryMonth = aUnd.CurExpiry1.ExpiryMonth Then bAlreadyShifted = True
+                If aUnd.CurExpiry2.ExpiryOV = aUnd.CurExpiry1.ExpiryOV Then bAlreadyShifted = True
             End If
             
             If Not bAlreadyShifted Then
                 Err.Clear
-                aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry2.ExpiryMonth, dShiftValue
+                aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry2.ExpiryOV, dShiftValue
                 If Err.Number <> 0 Then LogEvent EVENT_ERROR, aUnd.Symbol & ": " & Err.Description
             End If
         End If

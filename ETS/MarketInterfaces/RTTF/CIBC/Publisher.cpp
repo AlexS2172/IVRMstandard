@@ -275,6 +275,8 @@ HRESULT CPublisher::FillTradeUpdate(CClientRecordset& rs, CTrade& Trade)
 		m_spTradeUpdate->UndSymbolID = rs[L"iUnderlyingContractID"];
 		m_spTradeUpdate->UndSymbol = rs[L"vcUnderlyingSymbol"];
 		m_spTradeUpdate->Expiry = rs[L"dtExpiry"];
+		m_spTradeUpdate->ExpiryOV = rs[L"dtExpiryOV"];
+		m_spTradeUpdate->TradingClose = rs[L"dtTradingClose"];
 		m_spTradeUpdate->IsCall = rs[L"tiIsCall"];
 		m_spTradeUpdate->Strike = rs[L"fStrike"];
 		m_spTradeUpdate->PriceClose = rs[L"fPriceClose"];
