@@ -1257,10 +1257,10 @@ Private Sub CalcReport(ByRef aReport As clsBatchReport)
         aStorage.ReadData
         If aStorage.GetStringValue("Type", "Value") = "RisksView" Then
             m_bIsRM = False
-            ctlView.OpenFromFile aStorage, "", False
+            ctlView.OpenFromFile aStorage, "", False, False
         ElseIf aStorage.GetStringValue("Type", "Value") = "RiskMatrix" Then
             m_bIsRM = True
-            ctlRMView.OpenFromFile aStorage, "", False
+            ctlRMView.OpenFromFile aStorage, "", False, False
         Else
             m_bCalc = False
             LogEvent EVENT_ERROR, "Can't start report calculation, invalid file " & aReport.LayoutFilePath + aReport.LayoutFile

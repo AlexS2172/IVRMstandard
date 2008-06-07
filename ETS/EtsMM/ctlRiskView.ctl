@@ -20,7 +20,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   56229891
+      Format          =   51249155
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -7402,7 +7402,8 @@ EH:
 End Sub
 
 Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
-                        Optional ByVal bRefreshData As Boolean = True)
+                        Optional ByVal bRefreshData As Boolean = True, _
+                        Optional ByVal bAllowResize As Boolean = True)
     On Error GoTo EH
     If m_bShutDown Then Exit Sub
     Dim i&
@@ -7416,10 +7417,12 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
     If m_Aux.Filter(RFC_TRADES) < 0 Or m_Aux.Filter(RFC_TRADES) > 6 Then m_Aux.Filter(RFC_TRADES) = 0
     m_nOpenedExpiry = m_Aux.Filter(RFC_EXPIRY)
     
-    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
-    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
-    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
-    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
+    If (bAllowResize = True) Then
+        m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+        m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+        m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+        m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
+    End If
     
     m_gdFlt.ReadFromStorage "RiskFltGrid" & sKey, aStorage, True
     m_gdTot.ReadFromStorage "RiskTotGrid" & sKey, aStorage

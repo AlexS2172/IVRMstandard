@@ -1660,16 +1660,18 @@ EH:
 End Sub
 
 Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
-                        Optional ByVal bRefreshData As Boolean = True)
+                        Optional ByVal bRefreshData As Boolean = True, _
+                        Optional ByVal bAllowResize As Boolean = True)
     On Error GoTo EH
     Dim i&
     If Len(sKey) > 0 Then sKey = "." & sKey
     
-    m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
-    m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
-    m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
-    m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
-    
+    If (bAllowResize = True) Then
+        m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
+        m_frmOwner.Top = aStorage.GetLongValue("Coordinates" & sKey, "Top", m_frmOwner.Top)
+        m_frmOwner.Width = aStorage.GetLongValue("Coordinates" & sKey, "Width", m_frmOwner.Width)
+        m_frmOwner.Height = aStorage.GetLongValue("Coordinates" & sKey, "Height", m_frmOwner.Height)
+    End If
     ' common info
     For i = MFC_SYMBOL To MFC_COLUMN_COUNT
         m_aFilter.Data(i) = aStorage.GetLongValue("MatrixFlt" & sKey, "Filter" & CStr(i), m_aFilter.Data(i))

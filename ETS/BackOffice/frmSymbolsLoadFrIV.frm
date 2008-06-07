@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
 Begin VB.Form frmSymbolsLoadFrIV 
    Appearance      =   0  'Flat
    BackColor       =   &H80000005&
@@ -135,13 +135,13 @@ Herr:
 End Function
 
 
-Private Sub DHIVDataLoader_LogMessage(ByVal Message As String)
+Private Sub DHIVDataLoader_LogMessage(ByVal message As String)
     DebugSave "DHIVDataLoader_LogMessage:"
-    DebugSave Message
+    DebugSave message
 End Sub
 
-Private Sub DHIVDataLoader_Status(ByVal Message As String)
-    AddToLog Message
+Private Sub DHIVDataLoader_Status(ByVal message As String)
+    AddToLog message
 End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -279,7 +279,7 @@ Private Sub DHIVDataLoader_SaveSymbol(ByVal Symbol As String, ByVal SymbolType A
     If UCase$(SymbolType) = "S" Or UCase$(SymbolType) = "F" Then
         vId = gDBW.usp_Stock_Save(, , Symbol, Company, , , , , , , , 0, 1, , , btIsActive, , , 0)
     ElseIf UCase$(SymbolType) = "I" Then
-        vId = gDBW.usp_Index_Save(, Symbol, Company, , , , , , , btIsActive, , , 0)
+        vId = gDBW.usp_Index_Save(, Symbol, Company, , , , , , , btIsActive, , , 0, , 1)
     Else
         AddToLog "Can't save Symbol '" & Symbol & "' "
         AddToLog "Unknown symbol type: '" & SymbolType & "' "
@@ -322,31 +322,31 @@ End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Private Sub DHHttpFeeder_GotReply(ByVal Message As String)
+Private Sub DHHttpFeeder_GotReply(ByVal message As String)
     DebugSave "DHHttpFeeder_GotReply:"
-    DebugSave Message
+    DebugSave message
 End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Private Sub DHHttpFeeder_GotRequest(ByVal Message As String)
+Private Sub DHHttpFeeder_GotRequest(ByVal message As String)
     DebugSave "DHHttpFeeder_GotRequest:"
-    DebugSave Message
+    DebugSave message
 End Sub
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Private Sub DHHttpFeeder_LogMessage(ByVal Message As String)
+Private Sub DHHttpFeeder_LogMessage(ByVal message As String)
     DebugSave "DHHttpFeeder_LogMessage:"
-    DebugSave Message
+    DebugSave message
 End Sub
 
 #End If
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '
-Public Sub DebugSave(ByVal Message As String)
-    Debug.Print Message
+Public Sub DebugSave(ByVal message As String)
+    Debug.Print message
 End Sub
 
 

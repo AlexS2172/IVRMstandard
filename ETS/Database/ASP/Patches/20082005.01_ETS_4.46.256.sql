@@ -756,7 +756,18 @@ where idx.actionID < 3
 	from ETS_ASP_EOD.dbo.IndexBeta eod_ib
 		inner join EodUnderlyingMap eod_i on eod_i.eodContractID = eod_ib.indexID
 		inner join EodUnderlyingMap eod_u on eod_u.eodContractID = eod_ib.contractID
-		inner join [IndexView] iv on iv.indexID = eod_i.contractID and iv.isHedgeSymbol = 1 	where eod_ib.actionID <3 
+		inner join [IndexView] iv on iv.indexID = eod_i.contractID and iv.isHedgeSymbol = 1 	where eod_ib.actionID <3
+	
+	--Update Self Correlation for Stocks that marked like isHedge
+	insert IndexBeta(indexID, ContractID, beta)
+	select StockID, StockID, 1
+	from Stock where isHedgeSymbol = 1 and actionID < 3
+
+	--Update Self Correlation for Indeces that marked like isHedge
+	insert IndexBeta(indexID, ContractID, beta)
+	select IndexID, IndexID, 1
+	from [Index] where isHedgeSymbol = 1 and actionID < 3
+ 
 
  if @@error != 0
  begin

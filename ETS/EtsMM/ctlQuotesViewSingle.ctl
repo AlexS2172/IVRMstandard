@@ -20,7 +20,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   20709377
+      Format          =   20578305
       CurrentDate     =   39547
    End
    Begin VB.Timer tmrPriceProviderIdle 
@@ -423,7 +423,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   20643843
+      Format          =   51249155
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -9140,7 +9140,7 @@ Private Sub RealTimeQuotesUpdate()
 '   Update grid data
     nTime = timeGetTime
                         
-    If (ProcessRealTime Or bForceRecalc) And Not m_bShutDown Then
+    If Not m_bShutDown Then
         If Not g_PerformanceLog Is Nothing Then nOperation2 = g_PerformanceLog.BeginLogMmOperation
         
         nUnds = m_AuxOut.UnderlyingUpdate(False, True)
@@ -9150,8 +9150,7 @@ Private Sub RealTimeQuotesUpdate()
         If bUndUpd Or bVolaChangedExt Then m_AuxOut.VolaUpdateValues
         m_AuxOut.UnderlyingUpdateTotals
         UpdateTotals
-    Else
-        nUnds = m_AuxOut.UnderlyingUpdate(False, True)
+
     End If
     m_AuxOut.FuturesUpdateColors
     m_AuxOut.OptionsUpdateColors
