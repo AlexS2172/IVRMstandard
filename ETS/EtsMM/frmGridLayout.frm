@@ -974,8 +974,8 @@ Private Sub UpdateControls()
     
     lblStatus.Caption = sStatus
     
-    btnOK.Enabled = (lstDest.ListCount > 0)
-    btnApply.Enabled = btnOK.Enabled And m_bDirty
+    btnOk.Enabled = (lstDest.ListCount > 0)
+    btnApply.Enabled = btnOk.Enabled And m_bDirty
     
     nCount = lstSrc.ListCount
     bCanMoveUp = False
@@ -1076,7 +1076,7 @@ Private Sub ApplyToAll()
                     aForm.Frm.SetGridLayout m_enGridType, m_gdGrid
                 End If
                 
-            Case GT_GREEKS_FILTER, GT_GREEKS_UNDERLYING
+            Case GT_GREEKS_FILTER, GT_GREEKS_COLUMNS
                 If TypeOf aForm.Frm Is frmGreeksView Then
                     aForm.Frm.SetGridLayout m_enGridType, m_gdGrid
                 End If
@@ -1111,7 +1111,7 @@ Private Sub ApplyToAll()
     Next
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub btnOk_Click()
     On Error Resume Next
     SaveSettings
     'Me.Hide

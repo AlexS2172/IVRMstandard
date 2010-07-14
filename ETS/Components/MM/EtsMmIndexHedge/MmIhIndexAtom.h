@@ -109,7 +109,8 @@ private:
 	HRESULT CalcOptionGreeks(IMmIhOptAtomPtr aOpt, DOUBLE dSpotPriceMid,
 				EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility, 
 				VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
-				DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule);
+				DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
+				ICalculationParametrs* pParams);
 	
 	void _GetBasketIndexDividends(REGULAR_DIVIDENDS* pDivs, LONG nMaxCount) throw();
 
@@ -147,7 +148,8 @@ public:
 								DOUBLE dUndPriceTolerance,
 								enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								LONG nCalcSleepFreq,
-								LONG nCalcSleepAmt);
+								LONG nCalcSleepAmt,
+								ICalculationParametrs* pParams);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmIhIndexAtom), CMmIhIndexAtom)

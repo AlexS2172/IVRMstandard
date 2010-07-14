@@ -76,6 +76,10 @@ DWORD CFileMonitor::FileOpen(LPCTSTR lpszFileName)
 
 	_tcscpy_s(m_szFileName, sizeof(m_szFileName), szName);
 	_tcscat_s(m_szFileName, sizeof(m_szFileName), szExt);
+	
+	USES_CONVERSION;
+	wcscpy_s(m_szFileNameW, sizeof(m_szFileNameW)/sizeof(wchar_t), T2W(m_szFileName));
+	
 
 	unsigned int nThreadID;
 	m_hThread = (HANDLE)_beginthreadex(NULL, 0, WaitAppendThread, m_hCompPort, 0, &nThreadID);
@@ -85,7 +89,7 @@ DWORD CFileMonitor::FileOpen(LPCTSTR lpszFileName)
 
 UINT APIENTRY CFileMonitor::WaitAppendThread(void* pParam)
 {
-	USES_CONVERSION;
+	//USES_CONVERSION;
 
 	DWORD numBytes;
 	DWORD cbOffset;
@@ -109,7 +113,7 @@ UINT APIENTRY CFileMonitor::WaitAppendThread(void* pParam)
 			do
 			{
 				if(fni->Action== FILE_ACTION_MODIFIED &&
-					0 == wcsncmp(fni->FileName, T2W(pThis->m_szFileName),
+					0 == wcsncmp(fni->FileName, pThis->m_szFileNameW,
 					fni->FileNameLength / sizeof(WCHAR)))
 				{
 					do

@@ -210,8 +210,14 @@ Begin VB.UserControl ctlUnderlyingsView
       Begin VB.Menu mnuCtxSeparator11 
          Caption         =   "-"
       End
+      Begin VB.Menu mnuCtxNewSymbol 
+         Caption         =   "Add New Symbol"
+      End
       Begin VB.Menu mnuCtxCustomDividend 
          Caption         =   "Custom Dividends"
+      End
+      Begin VB.Menu mnuCtxHTBRates 
+         Caption         =   "HTB Rates ..."
       End
       Begin VB.Menu mnuCtxSeparator1 
          Caption         =   "-"
@@ -367,8 +373,8 @@ Private WithEvents frmLayout As frmGridLayout
 Attribute frmLayout.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
 
 Private m_gdFlt As New clsGridDef
 Private m_gdUnd As New clsGridDef
@@ -397,6 +403,7 @@ Private m_bKeyDown(GT_UNDERLYINGS_FILTER To GT_UNDERLYINGS_LIST) As Boolean
 Private m_GridLock(GT_UNDERLYINGS_FILTER To GT_UNDERLYINGS_LIST) As New clsGridLock
 Private m_nUndCount As Long
 Private m_frmCustDivs As New frmCustomDivs
+Private m_frmHTBRates As frmHTBRates
 
 Private m_sComboList(NLC_TYPE To NLC_DIV_FREQ) As String
 
@@ -447,6 +454,7 @@ Public Function Init() As Boolean
     fgFlt.Col = NFC_TRADER
     fgFlt.Row = 1
     
+    Set m_frmHTBRates = New frmHTBRates
     Set frmLayout = New frmGridLayout
     Set aParams = g_Params
     Init = True
@@ -1025,6 +1033,18 @@ Private Sub UnderlyingUpdate(ByVal nRow As Long, ByVal bUpdateDirtyStatus As Boo
                             .TextMatrix(nRow, nCol) = " "
                         End If
                         
+                    Case NLC_ALLOW_LENDING
+                        If aUnd.UndType <> enCtFuture And aUnd.IsHTB Then
+                            If aUnd.IsAllowLending Then
+                                .Cell(flexcpChecked, nRow, nCol) = flexChecked
+                            Else
+                                .Cell(flexcpChecked, nRow, nCol) = flexUnchecked
+                            End If
+                        Else
+                            .Cell(flexcpChecked, nRow, nCol) = flexNoCheckbox
+                            .TextMatrix(nRow, nCol) = " "
+                        End If
+
                     Case NLC_HAS_POS
                         .TextMatrix(nRow, nCol) = aUnd.HavePos
     
@@ -1546,8 +1566,8 @@ Private Sub FormatUndColumns()
                     
                     If nIdx = NLC_TYPE Or nIdx = NLC_ACTIVE Or nIdx = NLC_HAS_POS _
                         Or nIdx = NLC_HAS_OPTIONS Or nIdx = NLC_HAS_SYNTH _
-                        Or nIdx = NLC_HEDGE_SYMBOL _
-                        Or nIdx = NLC_HAS_FUTURES Or nIdx = NLC_HTB Then
+                        Or nIdx = NLC_HAS_FUTURES Or nIdx = NLC_HTB Or nIdx = NLC_ALLOW_LENDING _
+                        Or nIdx = NLC_HEDGE_SYMBOL Then
                         .ColAlignment(i) = flexAlignCenterCenter
                     Else
                         .ColAlignment(i) = flexAlignGeneral
@@ -1858,6 +1878,9 @@ Private Sub fgUnd_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
                         End If
                     Case NLC_HEDGE_SYMBOL
                         Cancel = (aUnd.UndType = enCtFuture)
+
+                    Case NLC_ALLOW_LENDING
+                        Cancel = (aUnd.UndType = enCtFuture Or Not aUnd.IsHTB)
                     
                     Case NLC_YIELD
                         Cancel = (aUnd.UndType <> enCtIndex)
@@ -2076,9 +2099,18 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             bValue = CBool(sValue)
                             If aUnd.IsHTB <> bValue Then
                                 aUnd.IsHTB = bValue
+                                If Not aUnd.IsHTB Then aUnd.IsAllowLending = False
                             End If
                         End If
-                        
+
+                    Case NLC_ALLOW_LENDING
+                        If aUnd.UndType <> enCtFuture And aUnd.IsHTB Then
+                            bValue = CBool(sValue)
+                            If aUnd.IsAllowLending <> bValue Then
+                                aUnd.IsAllowLending = bValue
+                            End If
+                        End If
+
                     Case NLC_COEFF
                         dValue = Abs(.ValueMatrix(Row, Col))
                         If aUnd.Coeff <> dValue And dValue > 0 Then
@@ -2207,7 +2239,7 @@ End Sub
 Private Sub ShowPopup()
     On Error Resume Next
     If m_nMenuGridCol < 0 Or m_nMenuGridRow < 0 Then Exit Sub
-    Dim aUnd As clsUvUndAtom, aMenu As VB.Menu
+    Dim aUnd As clsUvUndAtom, aMenu As vB.Menu
     Dim bUseCustomDiv As Boolean
 
     'mnuCtxTradeNew          "New Trade..."
@@ -2261,6 +2293,7 @@ Private Sub ShowPopup()
                     If bUseCustomDiv = False Then bUseCustomDiv = (Not aUnd.Dividend Is Nothing And (aUnd.Dividend.DivType = enDivCustomStream Or aUnd.Dividend.DivType = enDivStockBasket))
                     mnuCtxCustomDividend.Enabled = bUseCustomDiv
                     
+                    mnuCtxHTBRates.Enabled = aUnd.IsHTB
                 End If
                 
                 If Not m_bInProc And Not aUnd Is Nothing _
@@ -2832,6 +2865,25 @@ EH:
     Set aUnd = Nothing
 End Sub
 
+Private Sub mnuCtxHTBRates_Click()
+    On Error Resume Next
+    Dim nUndID As Long: nUndID = BAD_LONG_VALUE
+    Dim bIsAllowLending As Boolean: bIsAllowLending = True
+    Dim nRow As Long
+
+    nRow = GetFirstVisibleSelectedRow()
+    If nRow > 0 Then
+        fgUnd.Row = nRow
+        nUndID = fgUnd.RowData(nRow).UndID
+        bIsAllowLending = fgUnd.RowData(nRow).IsAllowLending
+        
+        If Not m_frmHTBRates Is Nothing And nUndID <> BAD_LONG_VALUE Then
+            m_frmHTBRates.ShowHTBRates nUndID, m_frmOwner, bIsAllowLending
+        End If
+    End If
+    
+End Sub
+
 Private Sub mnuCtxOrderNewOption_Click()
     On Error Resume Next
     OrderNew False
@@ -2861,6 +2913,29 @@ Private Sub mnuCtxTntCardNew_Click()
 '    gCmn.ErrorMsgBox m_frmOwner, "Underlyings View: Fail to create new trade message."
 '    ResetMenuData
 '    Set aUnd = Nothing
+End Sub
+Public Sub AddNewSymbol()
+On Error Resume Next
+    Dim frmSym As New frmSymbol
+    Dim frmMS As New frmMarketStructure
+    Dim lNewSymbolID As Long
+   
+    frmSym.Show vbModal
+    
+    If (frmSym.IsComplete) Then
+        lNewSymbolID = frmMS.Execute(frmSym.SymbolName, g_frmOwner)
+        If lNewSymbolID <> 0 Then
+            DoEvents
+            Screen.MousePointer = vbHourglass
+            g_Params.MakeUnderlingComboLists
+            Screen.MousePointer = vbDefault
+        End If
+    End If
+    
+End Sub
+Private Sub mnuCtxNewSymbol_Click()
+On Error Resume Next
+    AddNewSymbol
 End Sub
 
 Private Sub mnuCtxTradeNew_Click()
@@ -2936,7 +3011,7 @@ Private Sub tmrShow_Timer()
     UnderlyingsShow True
 End Sub
 
-Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     Dim nRow&, aUnd As clsUvUndAtom
     
@@ -2957,7 +3032,7 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     End With
 End Sub
 
-Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
     If m_bInProc Then Exit Sub
     
@@ -2969,7 +3044,7 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
     End Select
 End Sub
 
-Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, aTrdTo As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If m_bInProc Then Exit Sub
 
@@ -3018,6 +3093,7 @@ Public Sub Term()
     Set lblStatus = Nothing
     Set geUnd = Nothing
     
+    Set m_frmHTBRates = Nothing
     Set frmLayout = Nothing
     Set TradeChannel = Nothing
     Set aParams = Nothing
@@ -3271,12 +3347,12 @@ Private Function SaveUnderlying(ByRef aUnd As clsUvUndAtom) As Boolean
             Case enCtStock
                 gDBW.usp_Stock_Save .ID, Null, Null, .ContractName, IIf(.IsHTB, 1, 0), .Dividend.DivFreq, .Dividend.DivAmt, IIf(.Dividend.DivDate > 0, .Dividend.DivDate, Null), _
                                 CLng(.Dividend.DivType), .Dividend.DivAmtCust, .Dividend.DivFreqCust, IIf(.Dividend.DivDateCust > 0, .Dividend.DivDateCust, Null), IIf(.IsAmerican, 1, 0), Null, _
-                                0, IIf(.IsActive, 1, 0), .Skew, .Kurt, .IsHedgeSymbol, 0, .UndPriceProfile.ID, .OptPriceProfile.ID
+                                0, IIf(.IsActive, 1, 0), .Skew, .Kurt, .IsHedgeSymbol, 0, .UndPriceProfile.ID, .OptPriceProfile.ID, .IsAllowLending
                             
             Case enCtIndex
                 gDBW.usp_Index_Save .ID, Null, .ContractName, .Yield, IIf(.IsHTB, 1, 0), IIf(.IsAmerican, 1, 0), Null, _
                                     0, IIf(.IsBasket, 1, 0), IIf(.IsActive, 1, 0), .Skew, .Kurt, .IsHedgeSymbol, _
-                                    0, .SOQ, .UndPriceProfile.ID, .OptPriceProfile.ID, .Dividend.DivType
+                                    0, .SOQ, .UndPriceProfile.ID, .OptPriceProfile.ID, .Dividend.DivType, .IsAllowLending
                                 
             Case enCtFuture
                 gDBW.usp_MmFuture_Save .ID, .UndPriceProfile.ID, .OptPriceProfile.ID, .ContractName, 0, IIf(.IsAmerican, 1, 0), _
@@ -3289,6 +3365,7 @@ Private Function SaveUnderlying(ByRef aUnd As clsUvUndAtom) As Boolean
         .SaveChanges
     End With
     
+    PubChanges aUnd
     SaveUnderlying = True
     Exit Function
 EH:
@@ -3391,8 +3468,6 @@ Private Sub HandleGridDblClick(ByVal bTradeNewAvailable As Boolean)
     End If
 End Sub
 
-
-
 Private Sub mnuCtxCustomDividend_Click()
     On Error Resume Next
     If m_bInProc Then Exit Sub
@@ -3489,4 +3564,41 @@ EH:
     'ResetMenuData
 End Sub
 
+Private Sub PubChanges(ByRef aUnd As clsUvUndAtom)
+On Error GoTo Exception
 
+    Dim aData As MSGSTRUCTLib.UnderlyingUpdate
+    Set aData = New MSGSTRUCTLib.UnderlyingUpdate
+    
+    aData.UpdStatus = enUndDividendUpdate Or enUndSettingsUpdate
+    
+    'Set underlying params
+    aData.UndID = aUnd.ID
+    aData.AllowLending = aUnd.IsAllowLending
+    aData.Skew = aUnd.Skew
+    aData.Kurt = aUnd.Kurt
+    aData.OptProfile = aUnd.OptPriceProfile.ID
+    aData.StkProfile = aUnd.UndPriceProfile.ID
+    aData.IsActive = aUnd.IsActive
+    aData.Yield = aUnd.Yield
+    aData.IsHTB = aUnd.IsHTB
+    aData.IsHedgeSymbol = aUnd.IsHedgeSymbol
+    aData.Region = aUnd.IsAmerican
+    aData.SOQ = aUnd.SOQ
+    
+    'Set dividend params
+    aData.DivAmt = aUnd.Dividend.DivAmt
+    aData.DivAmtCust = aUnd.Dividend.DivAmtCust
+    aData.DivDate = aUnd.Dividend.DivDate
+    aData.DivDateCust = aUnd.Dividend.DivDateCust
+    aData.DivFreq = aUnd.Dividend.DivFreq
+    aData.DivFreqCust = aUnd.Dividend.DivFreqCust
+    aData.DivType = aUnd.Dividend.DivType
+    
+    'Publicate
+    g_TradeChannel.PubUnderlyingUpdate aData
+    
+Exit Sub
+Exception:
+    gCmn.ErrorMsgBox m_frmOwner, "Unable To Pub Changes. Please, restart application."
+End Sub

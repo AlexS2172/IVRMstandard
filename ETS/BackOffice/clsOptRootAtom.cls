@@ -42,6 +42,8 @@ Public synthDividends As New clsDividendsArr
 
 Public SyntheticIndexBetas As New clsIndexBetaColl
 
+Public VolaSurfaceID As Long
+Public VolaSurfaceGroupID As Long
 
 'for PoP calculation
 Public synthPriceBid As Double

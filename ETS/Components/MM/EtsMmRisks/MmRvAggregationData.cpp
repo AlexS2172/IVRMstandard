@@ -248,10 +248,8 @@ bool CMmRvAggData::IsAggregationRowVisible( const CMmRvAggData* pAgg)
 	}
 	return false;
 }
-bool CMmRvAggData::CreateRow(CMmRvUndAtom* pUndAtom, unsigned outlnLvl, std::vector<IMmRvRowDataPtr>& aggRows){
 
-	Positions::iterator itrCurPos = Positions_.begin();
-	Positions::iterator itrEndPos = Positions_.end();
+bool CMmRvAggData::CreateRow(CMmRvUndAtom* pUndAtom, unsigned outlnLvl, std::vector<IMmRvRowDataPtr>& aggRows){
 
 	IMmRvRowDataPtr spAggRowData;
 	CComObject<CMmRvRowData>* pRow = NULL;
@@ -269,6 +267,7 @@ bool CMmRvAggData::CreateRow(CMmRvUndAtom* pUndAtom, unsigned outlnLvl, std::vec
 		return false;
 	return true;
 }
+
 size_t CMmRvAggData::CreateRowsForPositions(CMmRvUndAtom* pUndAtom, long lExpiryFilter, unsigned outlineLevel, 
 														const CRiskViewFieldSort *sortCmp, std::vector<IMmRvRowDataPtr>& positionsRows, 
 														long& optPos,long& undPos, CComObject<CMmRvUndColl>* pUndColl ){
@@ -278,45 +277,37 @@ size_t CMmRvAggData::CreateRowsForPositions(CMmRvUndAtom* pUndAtom, long lExpiry
 	// underlyings aggregations in synthetic 
 	CMmRiskView::CRowsData synthUndRows;
 
-		/*for (; pUndColl && itrCurPos != itrEndPos; ++itrCurPos) {
-		MmRvPosAtomPtr pPos = *itrCurPos;
-		if (!pPos) continue;
-		if	( !lExpiryFilter ||
-			(( enCtOption == pPos->m_enContractType ||  enCtFutOption == pPos->m_enContractType ) && static_cast<long>(pPos->m_dtExpiry) == lExpiryFilter ) ) {	*/
-
-			if (pUndAtom->m_spSynthGreeks) 
-			{
-				IMmRvUndAtomPtr spUndAtom;
-				CMmRvSynthGreeksColl* pSynthColl = dynamic_cast<CMmRvSynthGreeksColl*>(pUndAtom->m_spSynthGreeks.GetInterfacePtr());
-				CMmRvSynthGreeksColl::EnumCollType::iterator itrSynth    =  pSynthColl->m_coll.begin();
-				CMmRvSynthGreeksColl::EnumCollType::iterator itrSynthEnd =  pSynthColl->m_coll.end();
-				for(; itrSynth != itrSynthEnd; ++itrSynth) {
-					CMmRvSynthGreeksAtom* pSynthAtom = dynamic_cast<CMmRvSynthGreeksAtom*>(itrSynth->second);
-					if(pSynthAtom)	{
-						pUndColl->get_Item(pSynthAtom->m_nSynthUndID, &spUndAtom );
-						if ( spUndAtom ) {
-							CComObject<CMmRvRowData>* pSynthUndRow = NULL;
-							if(SUCCEEDED(CComObject<CMmRvRowData>::CreateInstance(&pSynthUndRow))) 	{
-								IMmRvRowDataPtr spSynthRowData;
-								spSynthRowData.Attach(pSynthUndRow, TRUE);
-								//pSynthUndRow->m_spPos.Attach(pPos.get(), TRUE);
-								//pSynthUndRow->m_pPos = pPos.get();
-								pSynthUndRow->m_Type = RDT_UNDAGG;
-								pSynthUndRow->m_spUnd = spUndAtom; //pRowData->m_spUnd;
-								pSynthUndRow->m_pUnd = static_cast<CMmRvUndAtom*>(spUndAtom.GetInterfacePtr());
-								pSynthUndRow->m_pAgg = MmRvAggDataPtr(pSynthUndRow->m_pUnd, null_deleter());
-								pSynthUndRow->m_spSynthGreeks.Attach(pSynthAtom, TRUE);
-								pSynthUndRow->m_pSynthGreeks = pSynthAtom;
-								pSynthUndRow->m_nLevel = outlineLevel + 1;
-								synthUndRows.push_back( spSynthRowData );
-							}
-						}
+	if (pUndAtom->m_spSynthGreeks) 
+	{
+		IMmRvUndAtomPtr spUndAtom;
+		CMmRvSynthGreeksColl* pSynthColl = dynamic_cast<CMmRvSynthGreeksColl*>(pUndAtom->m_spSynthGreeks.GetInterfacePtr());
+		CMmRvSynthGreeksColl::EnumCollType::iterator itrSynth    =  pSynthColl->m_coll.begin();
+		CMmRvSynthGreeksColl::EnumCollType::iterator itrSynthEnd =  pSynthColl->m_coll.end();
+		for(; itrSynth != itrSynthEnd; ++itrSynth) {
+			CMmRvSynthGreeksAtom* pSynthAtom = dynamic_cast<CMmRvSynthGreeksAtom*>(itrSynth->second);
+			if(pSynthAtom)	{
+				pUndColl->get_Item(pSynthAtom->m_nSynthUndID, &spUndAtom );
+				if ( spUndAtom ) {
+					CComObject<CMmRvRowData>* pSynthUndRow = NULL;
+					if(SUCCEEDED(CComObject<CMmRvRowData>::CreateInstance(&pSynthUndRow))) 	{
+						IMmRvRowDataPtr spSynthRowData;
+						spSynthRowData.Attach(pSynthUndRow, TRUE);
+						//pSynthUndRow->m_spPos.Attach(pPos.get(), TRUE);
+						//pSynthUndRow->m_pPos = pPos.get();
+						pSynthUndRow->m_Type = RDT_UNDAGG;
+						pSynthUndRow->m_spUnd = spUndAtom; //pRowData->m_spUnd;
+						pSynthUndRow->m_pUnd = static_cast<CMmRvUndAtom*>(spUndAtom.GetInterfacePtr());
+						pSynthUndRow->m_pAgg = MmRvAggDataPtr(pSynthUndRow->m_pUnd, null_deleter());
+						pSynthUndRow->m_spSynthGreeks.Attach(pSynthAtom, TRUE);
+						pSynthUndRow->m_pSynthGreeks = pSynthAtom;
+						pSynthUndRow->m_nLevel = outlineLevel + 1;
+						synthUndRows.push_back( spSynthRowData );
 					}
 				}
-
 			}
-		//}
-	//}
+		}
+	}
+
 	sort(synthUndRows.begin(), synthUndRows.end(), *sortCmp );
 	positionsRows.reserve(positionsRows.size() + synthUndRows.size() );
 	copy(synthUndRows.begin(), synthUndRows.end(), back_inserter(positionsRows));
@@ -385,8 +376,7 @@ void CMmRvAggData::CreateRows(CMmRvUndAtom* pUndAtom, long lExpiryFilter, unsign
 										const CRiskViewFieldSort *sortCmp, std::vector<IMmRvRowDataPtr>& Rows,
 										long& nOptPositions,long& nUndPositions,CComObject<CMmRvUndColl>* pUndColl ){
 	CMmRiskView::CRowsData aggregationRows;
-// 	if(!CheckPositions(lExpiryFilter))
-// 		return;
+
 	// first, create row for this aggregation
 	if(!CreateRow(pUndAtom, outlineLevel, aggregationRows))
 		return;
@@ -502,530 +492,3 @@ void CMmRvAggData::CreateRows(CMmRvUndAtom* pUndAtom, long lExpiryFilter, unsign
 		}
 	}
 }
-
-// void __MmRvAggregationData::Calc(
-// 		  CMmRvPosColl*		 pPosColl,
-// 		  CMmRvUndColl*		 pUndColl,
-// 		  CMmRvUndAtom*		 pIdx,
-// 		  VARIANT_BOOL		 bIsPnlLTD,
-// 		  EtsCalcModelTypeEnum enCalcModel,
-// 		  VARIANT_BOOL		 bUseTheoVolatility,
-// 		  VARIANT_BOOL		 bUseTheoVolaNoBid,
-// 		  VARIANT_BOOL	     bUseTheoVolaBadMarket,
-// 		  DOUBLE				 dUndPriceTolerance,
-// 		  EtsPriceRoundingRuleEnum enPriceRoundingRule,
-// 		  DATE				 dtCalcDate)
-// {
-// 	try
-// 	{
-// 		Clear(true, false);
-// 		if(pPosColl)
-// 		{
-// 			CMmRvPosColl::EnumCollType::iterator itrPos    = pPosColl->m_coll.begin();
-// 			CMmRvPosColl::EnumCollType::iterator itrPosEnd = pPosColl->m_coll.end();
-// 			for(;itrPos!=itrPosEnd; ++itrPos)
-// 			{
-// 				CMmRvPosAtom* pPosAtom = dynamic_cast<CMmRvPosAtom*>(itrPos->second);
-// 				if(pPosAtom != NULL)
-// 				{
-// 					VARIANT_BOOL bVisible = VARIANT_FALSE;
-// 					//_CHK(pPosAtom->get_Visible(&bVisible));
-// 					//if(bVisible)
-// 					{
-// 						EtsContractTypeEnum enContractType = pPosAtom->m_enContractType;
-// 						LONG nPosQty = pPosAtom->m_nQty;
-// 						LONG nPosQtyInShares = pPosAtom->m_nQtyInShares;
-// 
-// 						// options
-// 						if(enContractType == enCtOption || enContractType == enCtFutOption)
-// 						{
-// 							if(m_nOptQty <= BAD_LONG_VALUE) m_nOptQty = 0L;
-// 							m_nOptQty += nPosQty;
-// 
-// 							DATE dtExpiry = 0.;
-// 							_CHK(pPosAtom->get_Expiry(&dtExpiry));
-// 							DOUBLE dStrike = 0.;
-// 							_CHK(pPosAtom->get_Strike(&dStrike));
-// 
-// 							if(dtExpiry >= dtCalcDate)
-// 							{
-// 								double dUndMidPrice = 0;
-// 								if(enContractType == enCtOption)
-// 								{
-// 									IEtsPriceProfileAtomPtr spUndPriceProfile;
-// 									IEtsPriceProfileAtomPtr spOptPriceProfile;
-// 									ISynthRootAtomPtr       spSynthRoot;
-// 									IMmRvUndAtomPtr spUnd =	pUndColl->GetUnderlying(pPosAtom->m_nUndID);
-// 
-// 									_CHK(spUnd->get_UndPriceProfile(&spUndPriceProfile));
-// 									_CHK(spUnd->get_OptPriceProfile(&spOptPriceProfile));
-// 
-// 									if(pPosAtom->m_bIsSynthetic)
-// 									{
-// 										ISynthRootCollPtr spSynthRootColl;
-// 										_CHK(spUnd->get_SynthRoots(&spSynthRootColl));
-// 										if(spSynthRootColl != NULL)
-// 										{
-// 											spSynthRoot = spSynthRootColl->Item[pPosAtom->m_nOptionRootID];
-// 											if(spSynthRoot != NULL)
-// 											{
-// 												DOUBLE dSynthBid = 0., dSynthAsk = 0., dSynthLast = 0.;
-// 												_CHK(spUnd->GetSyntheticUnderlyingPrice(pUndColl, spSynthRoot, &dSynthBid, &dSynthAsk, &dSynthLast));
-// 												dUndMidPrice = spUndPriceProfile->GetUndPriceMid(dSynthBid, dSynthAsk, dSynthLast, dUndPriceTolerance, enPriceRoundingRule, NULL);
-// 											}
-// 										}
-// 									}
-// 									else
-// 									{
-// 										CMmRvUndAtom*  pUnd = dynamic_cast<CMmRvUndAtom*>(spUnd.GetInterfacePtr());
-// 
-// 										dUndMidPrice = spUndPriceProfile->GetUndPriceMid(pUnd->m_pPrice->m_dPriceBid, pUnd->m_pPrice->m_dPriceAsk,
-// 											pUnd->m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, NULL);
-// 									}
-// 
-// 									pPosAtom->_CalcOptPositionData(spOptPriceProfile,
-// 										spSynthRoot,
-// 										bIsPnlLTD,
-// 										bUseTheoVolatility,
-// 										bUseTheoVolaNoBid, 
-// 										bUseTheoVolaBadMarket,
-// 										dUndPriceTolerance,
-// 										enPriceRoundingRule,
-// 										pUndColl,
-// 										dUndMidPrice,
-// 										pPosAtom->m_nUndID
-// 										);									
-// 
-// 
-// 								}
-// 								else
-// 								{
-// 									IMmRvUndAtomPtr spUnd =	pUndColl->GetUnderlying(pPosAtom->m_nUndID);
-// 									CMmRvUndAtom*   pUnd  = dynamic_cast<CMmRvUndAtom*>(spUnd.GetInterfacePtr());
-// 									IEtsPriceProfileAtomPtr spUndPriceProfile;
-// 									IEtsPriceProfileAtomPtr spOptPriceProfile;
-// 
-// 
-// 									_CHK(spUnd->get_UndPriceProfile(&spUndPriceProfile));
-// 									_CHK(spUnd->get_OptPriceProfile(&spOptPriceProfile));
-// 
-// 									dUndMidPrice = spUndPriceProfile->GetUndPriceMid(pUnd->m_pPrice->m_dPriceBid, pUnd->m_pPrice->m_dPriceAsk,
-// 										pUnd->m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, NULL);
-// 
-// 									pPosAtom->_CalcFutPositionData(spOptPriceProfile,
-// 										bIsPnlLTD,
-// 										bUseTheoVolatility,
-// 										bUseTheoVolaNoBid, 
-// 										bUseTheoVolaBadMarket,
-// 										dUndPriceTolerance,
-// 										enPriceRoundingRule,	dUndMidPrice);
-// 
-// 								}
-// 								_CalcTotalsForOptionPos(pPosAtom, dUndMidPrice);
-// 							}
-// 							else
-// 							{
-// 								pPosAtom->put_LogEnhansement ( L"The option is expired" ) ;
-// 
-// 								WCHAR strparam[200] ;
-// 								_snwprintf_s ( strparam, sizeof(strparam), L"Expiration Date %f" , dtExpiry  ) ;
-// 
-// 								IRvMmQuoteAtomPtr spQuote;
-// 								pPosAtom->get_Quote(&spQuote);
-// 
-// 								if(spQuote!=NULL)
-// 									spQuote->put_VolaCalculatedParametrs( strparam ) ;
-// 
-// 								SetAllValuesAsBad();
-// 							}
-// 						}
-// 
-// 						// underlyings
-// 						else if(enContractType == enCtStock || enContractType == enCtIndex)
-// 						{
-// 							if(m_nQty <= BAD_LONG_VALUE) m_nQty = 0L;
-// 							m_nQty += nPosQtyInShares;
-// 
-// 
-// 							IMmRvUndAtomPtr spUnd =	pUndColl->GetUnderlying(pPosAtom->m_nID);
-// 							CMmRvUndAtom*   pUnd  = dynamic_cast<CMmRvUndAtom*>(spUnd.GetInterfacePtr());
-// 							IEtsPriceProfileAtomPtr spUndPriceProfile;
-// 							double dUndPriceBid = 0;
-// 							double dUndPriceAsk = 0;
-// 							double dUndPriceMid = 0;
-// 							EtsReplacePriceStatusEnum enUndPriceStatusMid = enRpsNone;
-// 							EtsReplacePriceStatusEnum enUndPriceStatusBid = enRpsNone;
-// 							EtsReplacePriceStatusEnum enUndPriceStatusAsk = enRpsNone;
-// 
-// 							_CHK(spUnd->get_UndPriceProfile(&spUndPriceProfile));
-// 
-// 							dUndPriceMid = spUndPriceProfile->GetUndPriceMid(pUnd->m_pPrice->m_dPriceBid, pUnd->m_pPrice->m_dPriceAsk,
-// 								pUnd->m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid);
-// 
-// 							dUndPriceBid = spUndPriceProfile->GetUndPriceBidForPnL(pUnd->m_pPrice->m_dPriceBid, pUnd->m_pPrice->m_dPriceAsk,
-// 								pUnd->m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
-// 
-// 							dUndPriceAsk = spUndPriceProfile->GetUndPriceAskForPnL(pUnd->m_pPrice->m_dPriceBid, pUnd->m_pPrice->m_dPriceAsk,
-// 								pUnd->m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
-// 
-// 
-// 
-// 							_CHK(pPosAtom->CalcPnlMtm(bIsPnlLTD, dUndPriceBid, dUndPriceAsk, VARIANT_TRUE));
-// 
-// 							if(dUndPriceMid > DBL_EPSILON)
-// 							{
-// 								if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-// 								m_dDeltaEq += nPosQtyInShares * dUndPriceMid;
-// 							}
-// 							else
-// 								m_bBadDeltaEq = VARIANT_TRUE;
-// 
-// 							if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-// 							m_dNetDelta += nPosQtyInShares;
-// 						}
-// 
-// 						// futures
-// 						else if(enContractType == enCtFuture)
-// 						{
-// 							if(m_nFutQty <= BAD_LONG_VALUE) m_nFutQty = 0L;
-// 							m_nFutQty += nPosQty;
-// 
-// 							if(m_nQty <= BAD_LONG_VALUE) m_nQty = 0L;
-// 							m_nQty += nPosQtyInShares;
-// 
-// 
-// 							IMmRvFutAtomPtr spFut;
-// 							_CHK(pPosAtom->get_Fut(&spFut));
-// 
-// 							IMmRvUndAtomPtr spUnd =	pUndColl->GetUnderlying(pPosAtom->m_nUndID);
-// 							CMmRvUndAtom*   pUnd  = dynamic_cast<CMmRvUndAtom*>(spUnd.GetInterfacePtr());
-// 
-// 							IEtsPriceProfileAtomPtr spUndPriceProfile;
-// 							double dUndPriceMid = 0;
-// 							EtsReplacePriceStatusEnum enUndPriceStatusMid = enRpsNone;
-// 
-// 							_CHK(spUnd->get_UndPriceProfile(&spUndPriceProfile));
-// 
-// 							dUndPriceMid = spUndPriceProfile->GetUndPriceMid(pUnd->m_pPrice->m_dPriceBid, pUnd->m_pPrice->m_dPriceAsk,
-// 								pUnd->m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid);
-// 
-// 
-// 							if(spFut != NULL)
-// 							{
-// 								EtsReplacePriceStatusEnum enFutPriceStatusMid = enRpsNone;
-// 								EtsReplacePriceStatusEnum enFutPriceStatusBid = enRpsNone;
-// 								EtsReplacePriceStatusEnum enFutPriceStatusAsk = enRpsNone;
-// 								DOUBLE dFutPriceMid = 0., dFutPriceBid = 0., dFutPriceAsk = 0.;
-// 								IEtsPriceProfileAtomPtr spUndPriceProfile;
-// 
-// 								_CHK(spFut->get_UndPriceProfile(&spUndPriceProfile));
-// 
-// 								if(spUndPriceProfile != NULL)
-// 								{
-// 									DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
-// 
-// 									_CHK(spFut->get_PriceBid(&dPriceBid));
-// 									_CHK(spFut->get_PriceAsk(&dPriceAsk));
-// 									_CHK(spFut->get_PriceLast(&dPriceLast));
-// 
-// 									dFutPriceMid = spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk,
-// 										dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusMid);
-// 
-// 									dFutPriceBid = spUndPriceProfile->GetUndPriceBidForPnL(dPriceBid, dPriceAsk,
-// 										dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusBid);
-// 
-// 									dFutPriceAsk = spUndPriceProfile->GetUndPriceAskForPnL(dPriceBid, dPriceAsk,
-// 										dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusAsk);
-// 								}
-// 
-// 								IRvMmQuoteAtomPtr spQuote;
-// 								_CHK(pPosAtom->get_Quote(&spQuote));
-// 								if( spQuote!=NULL )
-// 								{
-// 									_CHK(spQuote->put_ReplacePriceStatus(static_cast<EtsReplacePriceStatusEnum>(enFutPriceStatusMid | enFutPriceStatusBid | enFutPriceStatusAsk)));
-// 								}
-// 
-// 								_CHK(pPosAtom->CalcPnlMtm(bIsPnlLTD, dFutPriceBid, dFutPriceAsk, VARIANT_TRUE));
-// 							}
-// 
-// 							if(dUndPriceMid > DBL_EPSILON)
-// 							{
-// 								if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-// 								m_dDeltaEq += nPosQtyInShares * dUndPriceMid;
-// 							}
-// 							else
-// 								m_bBadDeltaEq = VARIANT_TRUE;
-// 
-// 							if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-// 							m_dNetDelta += nPosQtyInShares;
-// 						}
-// 
-// 						// PnlMtm
-// 						if(pPosAtom->m_dPnlMtm > BAD_DOUBLE_VALUE)
-// 						{
-// 							if(m_dPnlMtm <= BAD_DOUBLE_VALUE) m_dPnlMtm = 0.;
-// 							m_dPnlMtm += pPosAtom->m_dPnlMtm;
-// 						}
-// 						else
-// 							m_bBadPnlMtm = VARIANT_TRUE;
-// 
-// 						// PnlTheo
-// 						if(pPosAtom->m_dPnlTheo > BAD_DOUBLE_VALUE)
-// 						{
-// 							if(m_dPnlTheo <= BAD_DOUBLE_VALUE) m_dPnlTheo = 0.;
-// 							m_dPnlTheo += pPosAtom->m_dPnlTheo;
-// 						}
-// 						else
-// 							m_bBadPnlTheo = VARIANT_TRUE;
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// 	catch (_com_error& /*e*/)
-// 	{
-// 
-// 	}
-// }
-
-// void __MmRvAggregationData::_CalcTotalsForOptionPos(IMmRvPosAtomPtr spPos, DOUBLE dUndPriceMid)
-// {
-// 	DOUBLE dPosValue = BAD_DOUBLE_VALUE;
-// 	// DeltaInShares
-// 	_CHK(spPos->get_DeltaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
-// 		m_dOptDelta += dPosValue;
-// 		if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-// 		m_dNetDelta += dPosValue;
-// 		if(dUndPriceMid > DBL_EPSILON)
-// 		{
-// 			if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-// 			m_dDeltaEq += dPosValue * dUndPriceMid;
-// 		}
-// 		else
-// 			m_bBadDeltaEq = VARIANT_TRUE;
-// 	}
-// 	else
-// 	{
-// 		m_bBadNetDelta = VARIANT_TRUE;
-// 		m_bBadOptDelta = VARIANT_TRUE;
-// 		m_bBadDeltaEq = VARIANT_TRUE;
-// 	}
-// 
-// 	// GammaInSharesPerc
-// 	_CHK(spPos->get_GammaInSharesPerc(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dGammaPerc <= BAD_DOUBLE_VALUE) m_dGammaPerc = 0.;
-// 		m_dGammaPerc += dPosValue;
-// 		if(dUndPriceMid > DBL_EPSILON)
-// 		{
-// 			if(m_dGammaEq <= BAD_DOUBLE_VALUE) m_dGammaEq = 0.;
-// 			m_dGammaEq += dPosValue * dUndPriceMid;
-// 		}
-// 		else
-// 			m_bBadGammaEq = VARIANT_TRUE;
-// 	}
-// 	else
-// 	{
-// 		m_bBadGammaPerc = VARIANT_TRUE;
-// 		m_bBadGammaEq = VARIANT_TRUE;
-// 	}
-// 
-// 	// GammaInShares
-// 	_CHK(spPos->get_GammaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dGamma <= BAD_DOUBLE_VALUE) m_dGamma = 0.;
-// 		m_dGamma += dPosValue;
-// 	}
-// 	else
-// 		m_bBadGamma = VARIANT_TRUE;
-// 
-// 
-// 	// Net Gamma
-// 	_CHK(spPos->get_NetGamma(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dNetGamma <= BAD_DOUBLE_VALUE) m_dNetGamma = 0.;
-// 		m_dNetGamma += dPosValue;
-// 	}
-// 	else
-// 		m_bBadNetGamma = VARIANT_TRUE;
-// 
-// 
-// 	// VegaInShares
-// 	_CHK(spPos->get_VegaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dVega <= BAD_DOUBLE_VALUE) m_dVega = 0.;
-// 		m_dVega += dPosValue;
-// 	}
-// 	else
-// 		m_bBadVega = VARIANT_TRUE;
-// 
-// 	// WtdVega
-// 	_CHK(spPos->get_WtdVega(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dWtdVega <= BAD_DOUBLE_VALUE) m_dWtdVega = 0.;
-// 		m_dWtdVega += dPosValue;
-// 	}
-// 	else
-// 		m_bBadWtdVega = VARIANT_TRUE;
-// 
-// 	// ThetaInShares
-// 	_CHK(spPos->get_ThetaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dTheta <= BAD_DOUBLE_VALUE) m_dTheta = 0.;
-// 		m_dTheta += dPosValue;
-// 	}
-// 	else
-// 		m_bBadTheta = VARIANT_TRUE;
-// 
-// 	// RhoInShares
-// 	_CHK(spPos->get_RhoInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dRho <= BAD_DOUBLE_VALUE) m_dRho = 0.;
-// 		m_dRho += dPosValue;
-// 	}
-// 	else
-// 		m_bBadRho = VARIANT_TRUE;
-// 
-// 	// ThetaDeltaInShares
-// 	_CHK(spPos->get_ThetaDeltaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dThetaDelta <= BAD_DOUBLE_VALUE) m_dThetaDelta = 0.;
-// 		m_dThetaDelta += dPosValue;
-// 	}
-// 	else
-// 		m_bBadThetaDelta = VARIANT_TRUE;
-// 
-// 	// ThetaGammaInShares
-// 	_CHK(spPos->get_ThetaGammaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dThetaGamma <= BAD_DOUBLE_VALUE) m_dThetaGamma = 0.;
-// 		m_dThetaGamma += dPosValue;
-// 	}
-// 	else
-// 		m_bBadThetaGamma = VARIANT_TRUE;
-// 
-// 	// VegaDeltaInShares
-// 	_CHK(spPos->get_VegaDeltaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dVegaDelta <= BAD_DOUBLE_VALUE) m_dVegaDelta = 0.;
-// 		m_dVegaDelta += dPosValue;
-// 	}
-// 	else
-// 		m_bBadVegaDelta = VARIANT_TRUE;
-// 
-// 	// VegaGammaInShares
-// 	_CHK(spPos->get_VegaGammaInShares(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dVegaGamma <= BAD_DOUBLE_VALUE) m_dVegaGamma = 0.;
-// 		m_dVegaGamma += dPosValue;
-// 	}
-// 	else
-// 		m_bBadVegaGamma = VARIANT_TRUE;
-// 
-// 	// TimeValue
-// 	_CHK(spPos->get_TimeValue(&dPosValue));
-// 	if(dPosValue > BAD_DOUBLE_VALUE)
-// 	{
-// 		if(m_dTimeValue <= BAD_DOUBLE_VALUE) m_dTimeValue = 0.;
-// 		m_dTimeValue += dPosValue;
-// 	}
-// 	else
-// 		m_bBadTimeValue = VARIANT_TRUE;
-// 
-// // 	VARIANT_BOOL bPosIsSynthetic = VARIANT_FALSE;
-// // 	_CHK(spPos->get_IsSynthetic(&bPosIsSynthetic));
-// // 	if(bPosIsSynthetic)
-// // 	{
-// // 		IMmRvSynthGreeksCollPtr spPosSynthGreeksColl;
-// // 		_CHK(spPos->get_SynthGreeks(&spPosSynthGreeksColl));
-// // 
-// // 		if(spPosSynthGreeksColl != NULL)
-// // 		{
-// // 			IMmRvSynthGreeksAtomPtr spPosSynthGreeks;
-// // 			LONG nSynthUndID = 0L;
-// // 			DOUBLE dSelfValue = BAD_DOUBLE_VALUE;
-// // 
-// // 			IUnknownPtr spUnk;
-// // 			_variant_t varItem;
-// // 			ULONG nFetched = 0L;
-// // 			HRESULT hr;
-// // 
-// // 			_CHK(spPosSynthGreeksColl->get__NewEnum(&spUnk));
-// // 			IEnumVARIANTPtr spPosSynthGreekEnum(spUnk);
-// // 			_CHK(spPosSynthGreekEnum->Reset());
-// // 			while((hr = spPosSynthGreekEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-// // 			{
-// // 				ATLASSERT(varItem.vt == VT_DISPATCH);
-// // 				spPosSynthGreeks = varItem;
-// // 				if(spPosSynthGreeks != NULL)
-// // 				{
-// // 					_CHK(spPosSynthGreeks->get_SynthUndID(&nSynthUndID));
-// // 					IMmRvSynthGreeksAtomPtr spSynthGreeks;
-// // 					_CHK(m_spSynthGreeks->get_Item(nSynthUndID, &spSynthGreeks));
-// // 
-// // 					if(spSynthGreeks != NULL)
-// // 					{
-// // 						// DeltaInShares
-// // 						_CHK(spPosSynthGreeks->get_DeltaInShares(&dPosValue));
-// // 						if(dPosValue > BAD_DOUBLE_VALUE)
-// // 						{
-// // 							_CHK(spSynthGreeks->get_DeltaInShares(&dSelfValue));
-// // 							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-// // 							_CHK(spSynthGreeks->put_DeltaInShares(dSelfValue + dPosValue));
-// // 						}
-// // 						else
-// // 							_CHK(spSynthGreeks->put_BadDelta(VARIANT_TRUE));
-// // 
-// // 						// GammaInSharesPerc
-// // 						_CHK(spPosSynthGreeks->get_GammaInSharesPerc(&dPosValue));
-// // 						if(dPosValue > BAD_DOUBLE_VALUE)
-// // 						{
-// // 							_CHK(spSynthGreeks->get_GammaInSharesPerc(&dSelfValue));
-// // 							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-// // 							_CHK(spSynthGreeks->put_GammaInSharesPerc(dSelfValue + dPosValue));
-// // 						}
-// // 						else
-// // 							_CHK(spSynthGreeks->put_BadGammaPerc(VARIANT_TRUE));
-// // 
-// // 						// GammaInShares
-// // 						_CHK(spPosSynthGreeks->get_GammaInShares(&dPosValue));
-// // 						if(dPosValue > BAD_DOUBLE_VALUE)
-// // 						{
-// // 							_CHK(spSynthGreeks->get_GammaInShares(&dSelfValue));
-// // 							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-// // 							_CHK(spSynthGreeks->put_GammaInShares(dSelfValue + dPosValue));
-// // 						}
-// // 						else
-// // 							_CHK(spSynthGreeks->put_BadGamma(VARIANT_TRUE));
-// // 
-// // 						// Net Gamma
-// // 						_CHK(spPosSynthGreeks->get_NetGamma(&dPosValue));
-// // 						if(dPosValue > BAD_DOUBLE_VALUE)
-// // 						{
-// // 							_CHK(spSynthGreeks->get_NetGamma(&dSelfValue));
-// // 							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-// // 							_CHK(spSynthGreeks->put_NetGamma(dSelfValue + dPosValue));
-// // 						}
-// // 						else
-// // 							_CHK(spSynthGreeks->put_BadNetGamma(VARIANT_TRUE));
-// // 
-// // 					}
-// // 				}
-// // 			}
-// // 		}
-// // 	}
-// }

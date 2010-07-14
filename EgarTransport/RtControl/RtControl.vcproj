@@ -4,9 +4,6 @@
 	Version="8.00"
 	Name="RtControl"
 	ProjectGUID="{E4F13EF3-0A44-435F-ADB4-27C46DDD8A3C}"
-	SccProjectName="&quot;$/ETS/Work/RtControl&quot;, UTCAAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="MFCProj"
 	>
 	<Platforms>

@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 #include "MmRvRowData.h"
+#include "MmRiskView.h"
 const static _variant_t _vtEmpty(L"");
 const static _variant_t _vtCall(L"C");
 const static _variant_t _vtPut(L"P");
@@ -61,7 +62,7 @@ void CMmRvRowData::GetValue(long lValue, bool bForSorting, bool bNegativeFormatt
 				vtRet = _variant_t(lValue);
 }
 
-bool CMmRvRowData::GetField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting)
+bool CMmRvRowData::GetField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting)
 {
 	bool bNegativeFormatting = false;
 	long lRound              = 0 ;
@@ -70,17 +71,17 @@ bool CMmRvRowData::GetField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bF
 		switch(m_pPos->m_enContractType)
 		{
 			case enCtFutOption:
-				return GetFutOptionField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
+				return GetFutOptionField(view, enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
 				break;
 			case enCtOption:
-				return GetOptionField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
+				return GetOptionField(view, enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
 				break;
 			case enCtStock:
 			case enCtIndex:
-				return GetUndField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
+				return GetUndField(view, enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
 				break;
 			case enCtFuture:
-				return GetFutField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
+				return GetFutField(view, enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
 				break;
 			default:
 				ATLASSERT(false);
@@ -89,304 +90,11 @@ bool CMmRvRowData::GetField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bF
 	}
 	else
 		if( m_pAgg)
-			return GetAggregationField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
-	/*
-	else if ( m_Type == RDT_UNDAGG) {
-		return GetUndAggField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
-	}
-	else{
-		if(m_pAggregation ){
-			return GetAggField(enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
-		}
-	}*/
+			return GetAggregationField(view, enCol, vtRet, bForSorting, bNegativeFormatting, lRound);
 	return false;
 }
-/*bool CMmRvRowData::GetUndAggField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound){
-	if (!m_pUnd)
-		return false;
-	vtRet = vtMissing;
-	switch(enCol)
-	{
-		case RPC_SYMBOL:
-		case RPC_UND:
-			vtRet = _variant_t(m_pUnd->m_bstrSymbol);
-			break;
-		case RPC_VEGA:
-			GetValue(m_pUnd->m_dVega, bForSorting, bNegativeFormatting, lRound, vtRet);
-			break;
-		case RPC_BID:
-			{
-				if ( m_pUnd && m_pUnd->m_pPrice ) {
-					vtRet = (m_pUnd->m_pPrice->m_dPriceBid > BAD_DOUBLE_VALUE) ?
-						_variant_t(m_pUnd->m_pPrice->m_dPriceBid):
-					(bForSorting? _variant_t(0.0): STR_NA);
-				}
-				else
-					vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			}break;
-		case RPC_ASK:
-			{
-				if ( m_pUnd && m_pUnd->m_pPrice ) {
-					vtRet = m_pUnd->m_pPrice->m_dPriceAsk > BAD_DOUBLE_VALUE?
-						_variant_t(m_pUnd->m_pPrice->m_dPriceAsk):
-					bForSorting? _variant_t(0.0): STR_NA;
-				}
-				else
-					vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			}break;
-		case RPC_CLOSE:
-			{
-				if ( m_pUnd && m_pUnd->m_pPrice && m_pUnd->m_enContractType != enCtFutUnd) {
-					vtRet = m_pUnd->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE?
-					_variant_t(m_pUnd->m_pPrice->m_dPriceClose):
-					(bForSorting? _variant_t(0.0): STR_NA);
-				}
-				else
-					vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			}break;
-		case RPC_LAST:
-			{
-				if ( m_pUnd && m_pUnd->m_pPrice ) {
-					vtRet = m_pUnd->m_pPrice->m_dPriceLast > BAD_DOUBLE_VALUE?
-						_variant_t(m_pUnd->m_pPrice->m_dPriceLast):
-					(bForSorting? _variant_t(0.0): STR_NA);
-				}
-				else
-					vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			}break;
-		case RPC_OPT_TYPE:
-			vtRet = _vtEmpty;
-			break;
-		case RPC_DEL_UNIT:
-			vtRet = _variant_t(m_pUnd->m_nLotSize);
-			break;
-		case RPC_EXPIRY:
-		case RPC_STRIKE:
-			vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-			break;
-		case RPC_BETA_WTD_DELTA_USD:
-			if ( m_pUnd )
-				GetValue(m_pUnd->m_dBetaWtdDeltaEq, bForSorting, bNegativeFormatting, lRound, vtRet);
-			break;
-		case RPC_NET_DELTA_USD:
-			if ( m_pUnd )
-				GetValue(m_pUnd->m_dDeltaEq, bForSorting, bNegativeFormatting, lRound, vtRet);
-			break;
-		case RPC_NET_DELTA:
-			if ( m_pUnd )
-				GetValue(m_pUnd->m_dNetDelta, bForSorting, bNegativeFormatting, lRound, vtRet);
-			break;
-		case RPC_NETCHANGE:
-			if ( m_pUnd )
-				GetValue(m_pUnd->m_pPrice->m_dNetChange, bForSorting, bNegativeFormatting, lRound, vtRet);
-			else
-				vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-			break;
-		//case RPC_DELTAP:
-		//		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-		//	break;
-		case RPC_PNL_THEO:
-			if ( m_pUnd) 
-				GetValue( m_pUnd->m_dPnlTheo, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_PNL_MTM:
-			if ( m_pUnd) 
-				GetValue( m_pUnd->m_dPnlMtm, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_PNL_EDGE:
-			if ( m_pUnd && m_pUnd->m_dPnlMtm > BAD_DOUBLE_VALUE && m_pUnd->m_dPnlTheo > BAD_DOUBLE_VALUE ){
-				_variant_t pnlTheo, pnlMtm;
-				GetValue( m_pUnd->m_dPnlTheo, bForSorting, bNegativeFormatting, lRound, pnlTheo);
-				GetValue( m_pUnd->m_dPnlMtm, bForSorting, bNegativeFormatting, lRound, pnlMtm);
-				if ( ( double) pnlTheo > BAD_DOUBLE_VALUE && ( double) pnlMtm > BAD_DOUBLE_VALUE ) {
-					vtRet = ( double)pnlTheo - ( double)pnlMtm;
-					return utils::HasValue(vtRet);
-				}
-			}
-			vtRet = bForSorting?_variant_t(0.0):STR_NA;
-			break;
-		case RPC_OPT_QTY:
-			if ( m_pUnd) {
-				double d = ( m_pUnd->m_nOptQty == BAD_LONG_VALUE ? BAD_DOUBLE_VALUE : m_pUnd->m_nOptQty );
-				GetValue( d, bForSorting, bNegativeFormatting, lRound, vtRet );
-			}
-			break;
-		case RPC_OPT_DELTA:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dOptDelta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0.):STR_NA;
-			break;
-		case RPC_FUT_QTY:
-			if ( m_pUnd) {
-				double d = ( m_pUnd->m_nFutQty == BAD_LONG_VALUE ? BAD_DOUBLE_VALUE : m_pUnd->m_nFutQty );
-				GetValue( d, bForSorting, bNegativeFormatting, lRound, vtRet );
-			}
-			break;
-		case RPC_NET_GAMMA:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dNetGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_GAMMA:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dGammaPerc, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_GAMMA_SHARES:
-			if ( m_pUnd ) 
-				GetValue( m_pUnd->m_dGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		/*case RPC_GAMMAP:
-			if ( m_pUnd ) 
-				GetValue( m_pUnd->m_dGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_RHO:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dRho, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_THETA:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dTheta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_THETA_DELTA:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dThetaDelta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_THETA_GAMMA:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dThetaGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_TIME_VALUE:
-			if ( m_pUnd )
-				GetValue( m_pUnd->m_dTimeValue, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_VEGA_DELTA:
-			if ( m_pUnd ) 
-				GetValue( m_pUnd->m_dVegaDelta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_VEGA_GAMMA:
-			if ( m_pUnd ) 
-				GetValue( m_pUnd->m_dVegaGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_WTD_VEGA:
-			if ( m_pUnd ) 
-				GetValue( m_pUnd->m_dWtdVega, bForSorting, bNegativeFormatting, lRound, vtRet );
-			break;
-		case RPC_UND_POS:
-		case RPC_FUTURES:
-		case RPC_IMPORT_ID:
-		case RPC_FUT_ROOT:
-		case RPC_FUT_MATURITY:
-		case RPC_FQUOT_UNIT:
-		case RPC_FPRICE_FORMAT:
-		case RPC_GAMMAP:
-		case RPC_THETAP:
-		case RPC_VEGAP:
-		case RPC_RHOP:
-		case RPC_DELTAP:
-			vtRet = bForSorting ? _variant_t(0.0) : _vtEmpty;
-			break;
-		default:
-			vtRet = bForSorting ? _variant_t(0.0) : L"UA: --";
 
-	//case RPC_OPT_TYPE:
-	//	vtRet = _vtEmpty;
-	//	break;
-	//case RPC_FUT_ROOT:
-	//case RPC_FUTURES:
-	//	vtRet = _vtEmpty;
-	//	break;
-	//case RPC_EXPIRY:
-	//case RPC_STRIKE:
-	//	vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-	//	break;
-	//case RPC_BID:
-	//	{
-	//		vtRet = (m_pPos->m_pQuote->m_pPrice->m_dPriceBid > BAD_DOUBLE_VALUE) ?
-	//			_variant_t(m_pPos->m_pQuote->m_pPrice->m_dPriceBid):
-	//		(bForSorting? _variant_t(0.0): STR_NA);
-	//	}break;
-	//case RPC_ASK:
-	//	{
-	//		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceAsk > BAD_DOUBLE_VALUE?
-	//			_variant_t(m_pPos->m_pQuote->m_pPrice->m_dPriceAsk):
-	//		bForSorting? _variant_t(0.0): STR_NA;
-	//	}break;
-	//case RPC_LAST:
-	//	{
-	//		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceLast > BAD_DOUBLE_VALUE?
-	//			_variant_t(m_pPos->m_pQuote->m_pPrice->m_dPriceLast):
-	//		bForSorting? _variant_t(0.0): STR_NA;
-	//	}
-	//case RPC_UND_POS:
-	//	GetValue(m_pPos->m_nQtyInShares, bForSorting, bNegativeFormatting, vtRet);
-	//case RPC_FUT_QTY:
-	//case RPC_NET_DELTA:
-	//case RPC_NET_DELTA_USD:
-	//case RPC_BETA_WTD_DELTA_USD:
-	//case RPC_FUT_MATURITY:
-	//case RPC_OPT_QTY:
-	//	vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-	//	break;
-	//case RPC_PNL_MTM:
-	//	GetValue(m_pPos->m_dPnlMtm, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_PNL_THEO:
-	//	GetValue(m_pPos->m_dPnlTheo, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_PNL_EDGE:
-	//	if(m_pPos->m_dPnlTheo > BAD_DOUBLE_VALUE && m_pPos->m_dPnlMtm > BAD_DOUBLE_VALUE)
-	//		GetValue(m_pPos->m_dPnlTheo - m_pPos->m_dPnlMtm, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	else
-	//		vtRet = bForSorting?_variant_t(BAD_DOUBLE_VALUE):STR_NA;
-	//	break;
-	//case RPC_OPT_DELTA:
-	//case RPC_GAMMA:
-	//case RPC_NET_GAMMA:
-	//case RPC_GAMMA_SHARES:
-	//case RPC_VEGA:
-	//case RPC_WTD_VEGA:
-	//case RPC_THETA:
-	//case RPC_RHO:
-	//case RPC_VEGA_DELTA:
-	//case RPC_VEGA_GAMMA:
-	//case RPC_THETA_DELTA:
-	//case RPC_THETA_GAMMA:
-	//	vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-	//	break;
-	/*case RPC_DEL_UNIT:
-		vtRet = _variant_t(m_pUnd->m_nLotSize);
-		break;
-	case RPC_TIME_VALUE:
-		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-		break;
-	case RPC_CLOSE:
-		vtRet = m_pPos->m_pQuote->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE? _variant_t( m_pPos->m_pQuote->m_pPrice->m_dPriceClose): bForSorting?_variant_t(0):STR_NA;
-		break;
-	case RPC_IMPORT_ID:
-		vtRet = STR_NA;
-		break;
-	case RPC_NETCHANGE:
-		GetValue(m_pPos->m_pQuote->m_pPrice->m_dNetChange, bForSorting, bNegativeFormatting, lRound, vtRet);
-		break;
-	case RPC_DELTAP:
-	case RPC_GAMMAP:
-	case RPC_VEGAP:
-	case RPC_THETAP:
-	case RPC_RHOP:
-		//	case RPC_MIV:
-		//	case RPC_MIV_CALC_DATE:
-		//vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-		//	break;
-		//case RPC_EXT_POSITION:
-		//	GetValue(m_pPos->m_lExternalPosition, bForSorting, bNegativeFormatting, vtRet);
-		//	break;
-		//case RPC_DISTANSE_TO_STRIKE:
-		//	break;
-	}   
-	return utils::HasValue(vtRet);
-
-}*/
-bool CMmRvRowData::GetUndField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
+bool CMmRvRowData::GetUndField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
 {
 	vtRet = vtMissing;
 
@@ -460,6 +168,7 @@ bool CMmRvRowData::GetUndField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 	case RPC_VEGA_GAMMA:
 	case RPC_THETA_DELTA:
 	case RPC_THETA_GAMMA:
+	case RPC_IMPLIED_VOLA:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
 	case RPC_UND:
@@ -499,272 +208,33 @@ bool CMmRvRowData::GetUndField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 	case RPC_NET_EXPOSURE:
 		GetValue( m_pPos->m_dNetExposure, bForSorting, bNegativeFormatting, lRound, vtRet);
 		break;
-	//case RPC_DELTAP:
-	//case RPC_GAMMAP:
-	//case RPC_VEGAP:
-	//case RPC_THETAP:
-	//case RPC_RHOP:
-//	case RPC_MIV:
-//	case RPC_MIV_CALC_DATE:
+
 	default:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-	//	break;
-	//case RPC_EXT_POSITION:
-	//	GetValue(m_pPos->m_lExternalPosition, bForSorting, bNegativeFormatting, vtRet);
-	//	break;
-	//case RPC_DISTANSE_TO_STRIKE:
-	//	break;
-	}   
-	return utils::HasValue(vtRet);
-}
-/*bool CMmRvRowData::GetAggField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound){
-	vtRet = vtMissing;
-	switch(enCol)
-	{
-		case RPC_SYMBOL:
-			if ( m_pAggregation )
-				vtRet = m_pAggregation->m_bstrSymbol;
-			else
-				vtRet = bForSorting ? _variant_t(0.0) : AGGSTR_NA;
-			break;
-		case RPC_UND:
-			if ( m_pAggregation && m_pAggregation->m_pUnd )
-				vtRet = m_pAggregation->m_pUnd->m_bstrSymbol;
-			else
-				vtRet = bForSorting ? _variant_t(0.0) : AGGSTR_NA;
-			break;
-		case RPC_ASK:
-			if (m_pAggregation && m_pAggregation->m_pFut ) {
-				vtRet = m_pAggregation ->m_pFut->m_dPriceAsk > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pFut->m_dPriceAsk):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else if ( m_pAggregation && m_pAggregation ->m_pPrice ) {
-				vtRet = m_pAggregation ->m_pPrice->m_dPriceAsk > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pPrice->m_dPriceAsk):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else
-				vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			break;
-		case RPC_BID:
-			if (m_pAggregation && m_pAggregation->m_pFut ) {
-				vtRet = m_pAggregation ->m_pFut->m_dPriceBid > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pFut->m_dPriceBid):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else if ( m_pAggregation && m_pAggregation ->m_pPrice ) {
-				vtRet = m_pAggregation ->m_pPrice->m_dPriceBid > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pPrice->m_dPriceBid):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else
-				vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			break;
-		case RPC_CLOSE:
-			//if ( m_pAggregation && m_pAggregation ->m_pPrice ) {
-			//	vtRet = m_pAggregation ->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE?
-			//		_variant_t(m_pAggregation ->m_pPrice->m_dPriceClose):
-			//	(bForSorting? _variant_t(0.0): AGGSTR_NA);
-			//}
-			//else
-			//	vtRet = bForSorting? _variant_t(0.0): AGGSTR_NA;
-			//break;
-			if (m_pAggregation && m_pAggregation->m_pFut ) {
-				vtRet = m_pAggregation ->m_pFut->m_dPriceClose > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pFut->m_dPriceClose):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else if ( m_pAggregation && m_pAggregation ->m_pPrice ) {
-				vtRet = m_pAggregation ->m_pPrice->m_dPriceClose > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pPrice->m_dPriceClose):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else
-				vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			break;
-		case RPC_LAST:
-			if (m_pAggregation && m_pAggregation->m_pFut ) {
-				vtRet = m_pAggregation ->m_pFut->m_dPriceLast > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pFut->m_dPriceLast):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else if ( m_pAggregation && m_pAggregation ->m_pPrice ) {
-				vtRet = m_pAggregation ->m_pPrice->m_dPriceLast > BAD_DOUBLE_VALUE?
-					_variant_t(m_pAggregation ->m_pPrice->m_dPriceLast):
-				(bForSorting? _variant_t(0.0): STR_NA);
-			}
-			else
-				vtRet = bForSorting? _variant_t(0.0): STR_NA;
-			break;
-		case RPC_DEL_UNIT:
-		case RPC_OPT_TYPE:
-		case RPC_NETCHANGE:
-			vtRet = bForSorting? _variant_t(0.0): AGGSTR_NA;
-			break;
-		case RPC_NET_DELTA:
-			if ( m_pAggregation && m_pAggregation->m_dNetDelta > BAD_DOUBLE_VALUE )
-				vtRet = _variant_t( m_pAggregation->m_dNetDelta );
-			else
-				vtRet = bForSorting ? _variant_t(0.) : AGGSTR_NA;
-			break;
-		case RPC_NET_DELTA_USD:
-			if ( m_pAggregation && m_pAggregation->m_dDeltaEq > BAD_DOUBLE_VALUE )
-				vtRet = _variant_t( m_pAggregation->m_dDeltaEq );
-			else
-				vtRet = bForSorting ? _variant_t(0.) : AGGSTR_NA;
-			break;
-		case RPC_EXPIRY:
-			vtRet = bForSorting?_variant_t( (static_cast<long>(m_pAggregation->m_dtExpiry)) ? m_pAggregation->m_dtExpiry : 0.0):_vtEmpty;
-			break;
-		case RPC_BETA_WTD_DELTA_USD:
-			if ( m_pAggregation && m_pAggregation->m_dBetaWtdDeltaEq > BAD_DOUBLE_VALUE )
-				vtRet = _variant_t( m_pAggregation->m_dBetaWtdDeltaEq );
-			else
-				vtRet = bForSorting ? _variant_t(0.) : AGGSTR_NA;
-			break;
-		case RPC_GAMMAP:
-		case RPC_THETAP:
-		case RPC_VEGAP:
-		case RPC_RHOP:
-		case RPC_DELTAP:
-			vtRet = bForSorting ? _variant_t(0.) : AGGSTR_NA;
-			break;
-		case RPC_PNL_THEO:
-			if ( m_pAggregation && m_pAggregation->m_dPnlTheo > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dPnlTheo, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0.0):STR_NA;
-			break;
-		case RPC_PNL_MTM:
-			if ( m_pAggregation && m_pAggregation->m_dPnlMtm > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dPnlMtm, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0.0):STR_NA;
-			break;
-		case RPC_PNL_EDGE:
-			if ( m_pAggregation && m_pAggregation->m_dPnlTheo > BAD_DOUBLE_VALUE && m_pAggregation->m_dPnlMtm > BAD_DOUBLE_VALUE ) {
-				_variant_t pnlTheo, pnlMtm;
-				GetValue( m_pAggregation->m_dPnlTheo, bForSorting, bNegativeFormatting, lRound, pnlTheo);
-				GetValue( m_pAggregation->m_dPnlMtm, bForSorting, bNegativeFormatting, lRound, pnlMtm);
-				if ( ( double ) pnlTheo > BAD_DOUBLE_VALUE && (double) pnlMtm > BAD_DOUBLE_VALUE ) {
-					vtRet = ( double ) pnlTheo - ( double ) pnlMtm;
-					return utils::HasValue(vtRet);
-				}
-			}
-			vtRet = bForSorting?_variant_t(0.0):STR_NA;
-			break;
-		case RPC_OPT_QTY:
-			if ( m_pAggregation && m_pAggregation->m_nOptQty > BAD_LONG_VALUE ) 
-				GetValue( m_pAggregation->m_nOptQty, bForSorting, bNegativeFormatting, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_OPT_DELTA:
-			if ( m_pAggregation && m_pAggregation->m_dOptDelta > BAD_LONG_VALUE ) 
-				GetValue( m_pAggregation->m_dOptDelta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0.):STR_NA;
-			break;
-		case RPC_FUT_QTY:
-			if ( m_pAggregation && m_pAggregation->m_nFutQty > BAD_LONG_VALUE ) 
-				GetValue( m_pAggregation->m_nFutQty, bForSorting, bNegativeFormatting, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_NET_GAMMA:
-			if ( m_pAggregation && m_pAggregation->m_dNetGamma > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dNetGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_GAMMA:
-			if ( m_pAggregation && m_pAggregation->m_dGammaPerc > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dGammaPerc, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_GAMMA_SHARES:
-			if ( m_pAggregation && m_pAggregation->m_dGamma > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_RHO:
-			if ( m_pAggregation && m_pAggregation->m_dRho > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dRho, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_THETA:
-			if ( m_pAggregation && m_pAggregation->m_dTheta > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dTheta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_THETA_DELTA:
-			if ( m_pAggregation && m_pAggregation->m_dThetaDelta > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dThetaDelta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_THETA_GAMMA:
-			if ( m_pAggregation && m_pAggregation->m_dThetaGamma > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dThetaGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_TIME_VALUE:
-			if ( m_pAggregation && m_pAggregation->m_dTimeValue > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dTimeValue, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_VEGA:
-			if ( m_pAggregation && m_pAggregation->m_dVega > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dVega, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_VEGA_DELTA:
-			if ( m_pAggregation && m_pAggregation->m_dVegaDelta > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dVegaDelta, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_VEGA_GAMMA:
-			if ( m_pAggregation && m_pAggregation->m_dVegaGamma > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dVegaGamma, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_WTD_VEGA:
-			if ( m_pAggregation && m_pAggregation->m_dWtdVega > BAD_DOUBLE_VALUE ) 
-				GetValue( m_pAggregation->m_dWtdVega, bForSorting, bNegativeFormatting, lRound, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_UND_POS:
-			if ( m_pAggregation && m_pAggregation->m_nQty > BAD_LONG_VALUE ) 
-				GetValue( m_pAggregation->m_nQty, bForSorting, bNegativeFormatting, vtRet );
-			else
-				vtRet = bForSorting?_variant_t(0L):STR_NA;
-			break;
-		case RPC_FUTURES:
-		case RPC_STRIKE:
-		case RPC_IMPORT_ID:
-		case RPC_FUT_ROOT:
-		case RPC_FUT_MATURITY:
-		case RPC_FQUOT_UNIT:
-		case RPC_FPRICE_FORMAT:
-			vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-			break;
-		default:;
+
 	}
+
+	if (view != NULL && (bool)view->m_spCvRTContext){
+
+		LONG columnID = static_cast<LONG>(enCol);
+		if (columnID >= RPC_COLUMN_COUNT){
+
+			LONG cvID = view->getCvIDbyColumnImpl(CVLEVEL_POS, static_cast<LONG>(enCol));
+
+			if (cvID != 0){
+				_variant_t vtCvValue;
+				view->m_spCvRTContext->raw_GetCVValue(m_pPos->m_nPoolID, cvID, &vtCvValue.GetVARIANT());
+				double dValue = double(vtCvValue);
+
+				GetValue(dValue, bForSorting, bNegativeFormatting, lRound, vtRet);
+			}
+		}
+	}
+
 	return utils::HasValue(vtRet);
 }
-*/
-bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
+
+bool CMmRvRowData::GetFutField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
 {
 	vtRet = vtMissing;
 
@@ -854,9 +324,13 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 	case RPC_UND_POS:
 		GetValue( m_pPos->m_nQty*m_pPos->m_pQuote->m_nLotSize, bForSorting, bNegativeFormatting, vtRet );
 		break;
-	case RPC_BETA_WTD_DELTA_USD:
 	case RPC_NET_DELTA:
+		GetValue( m_pPos->m_dDeltaInShares, FALSE, bNegativeFormatting, vtRet);
+		break;
 	case RPC_NET_DELTA_USD:
+		GetValue( m_pPos->m_dDeltaEq, FALSE, bNegativeFormatting, vtRet);
+		break;
+	case RPC_BETA_WTD_DELTA_USD:
 	case RPC_OPT_QTY:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
@@ -884,6 +358,7 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 	case RPC_VEGA_GAMMA:
 	case RPC_THETA_DELTA:
 	case RPC_THETA_GAMMA:
+	case RPC_IMPLIED_VOLA:
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
 	case RPC_UND:
@@ -915,37 +390,31 @@ bool CMmRvRowData::GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool
 		else vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
 	default:
-	//case RPC_DELTAP:
-	//case RPC_GAMMAP:
-	//case RPC_VEGAP:
-	//case RPC_THETAP:
-	//case RPC_RHOP:
+
 		vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
 		break;
-	//case RPC_MIV:
-	//	vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-	//	break;
-	//case RPC_MIV_CALC_DATE:
-	//	vtRet = bForSorting?_variant_t(0.0):_vtEmpty;
-	//	break;
-	//case RPC_EXT_POSITION:
-	//	GetValue(m_pPos->m_lExternalPosition, bForSorting, bNegativeFormatting, vtRet);
-	//	break;
-	//case RPC_DISTANSE_TO_STRIKE:
-	//	{
-	//		double fDist  = 0.0;
-	//		double dPrice = 0.0;
-	//		EtsReplacePriceStatusEnum enStatus; 
+	}
 
-	//		dPrice = m_pUnd->m_spUndPriceProfile->GetUndPriceMid(m_pUnd->m_pPrice->m_dPriceBid, m_pUnd->m_pPrice->m_dPriceAsk, m_pUnd->m_pPrice->m_dPriceLast, m_dTolerance, m_enPriceRoundingRule, &enStatus, VARIANT_FALSE);
-	//		m_pPos->DistanceToStrike(dPrice, &fDist);
-	//		GetValue( fDist, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	}
-	//	break;
-	}   
+	if (view != NULL && (bool)view->m_spCvRTContext){
+
+		LONG columnID = static_cast<LONG>(enCol);
+		if (columnID >= RPC_COLUMN_COUNT){
+
+			LONG cvID = view->getCvIDbyColumnImpl(CVLEVEL_POS, static_cast<LONG>(enCol));
+
+			if (cvID != 0){
+				_variant_t vtCvValue;
+				view->m_spCvRTContext->raw_GetCVValue(m_pPos->m_nPoolID, cvID, &vtCvValue.GetVARIANT());
+				double dValue = double(vtCvValue);
+
+				GetValue(dValue, bForSorting, bNegativeFormatting, lRound, vtRet);
+			}
+		}
+	}
+
 	return utils::HasValue(vtRet);}
 
-bool CMmRvRowData::GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
+bool CMmRvRowData::GetFutOptionField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
 {
 	vtRet = vtMissing;
 
@@ -993,6 +462,13 @@ bool CMmRvRowData::GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet
 
 			vtRet = (DATE)dtLocalExpiryOV;
 		} break;
+	case RPC_IMPLIED_VOLA:
+		{
+			if ( m_pSynthGreeks )
+				GetValue(BAD_DOUBLE_VALUE, bForSorting, bNegativeFormatting, lRound, vtRet);
+			else
+				GetValue(m_pPos->m_pQuote->m_dImpliedVola * 100., bForSorting, bNegativeFormatting, lRound, vtRet);
+		}break;
 	case RPC_STRIKE:
 		{
 			vtRet = m_pPos->m_dStrike>BAD_DOUBLE_VALUE ?
@@ -1170,45 +646,28 @@ bool CMmRvRowData::GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet
 			else
 				GetValue(m_pPos->m_pQuote->m_dVola*100., bForSorting, bNegativeFormatting, lRound, vtRet);
 		}break;
-	//case RPC_DELTAP:
-	//	GetValue(m_pPos->m_pQuote->m_dDelta, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_GAMMAP:
-	//	GetValue(m_pPos->m_pQuote->m_dGamma, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_VEGAP:
-	//	GetValue(m_pPos->m_pQuote->m_dVega, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_THETAP:
-	//	GetValue(m_pPos->m_pQuote->m_dTheta, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_RHOP:
-	//	GetValue(m_pPos->m_pQuote->m_dRho, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	break;
-	//case RPC_MIV:
-	//	vtRet = bForSorting?_variant_t(0.0):_variant_t(L"Add");
-	//	break;
-	//case RPC_MIV_CALC_DATE:
-	//	vtRet = bForSorting?_variant_t(0.0):_variant_t(L"Add");
-	//	break;
-	//case RPC_EXT_POSITION:
-	//	GetValue(m_pPos->m_lExternalPosition, bForSorting, bNegativeFormatting, vtRet);
-	//	break;
-	//case RPC_DISTANSE_TO_STRIKE:
-	//	{
-	//		double fDist  = 0.0;
-	//		double dPrice = 0.0;
-	//		EtsReplacePriceStatusEnum enStatus; 
+	}
 
-	//		dPrice = m_pUnd->m_spUndPriceProfile->GetUndPriceMid(m_pUnd->m_pPrice->m_dPriceBid, m_pUnd->m_pPrice->m_dPriceAsk, m_pUnd->m_pPrice->m_dPriceLast, m_dTolerance, m_enPriceRoundingRule, &enStatus, VARIANT_FALSE);
-	//		m_pPos->DistanceToStrike(dPrice, &fDist);
-	//		GetValue( fDist, bForSorting, bNegativeFormatting, lRound, vtRet);
-	//	}
-	//	break;
-	}   
+	if (view != NULL && (bool)view->m_spCvRTContext){
+
+		LONG columnID = static_cast<LONG>(enCol);
+		if (columnID >= RPC_COLUMN_COUNT){
+
+			LONG cvID = view->getCvIDbyColumnImpl(CVLEVEL_POS, static_cast<LONG>(enCol));
+
+			if (cvID != 0){
+				_variant_t vtCvValue;
+				view->m_spCvRTContext->raw_GetCVValue(m_pPos->m_nPoolID, cvID, &vtCvValue.GetVARIANT());
+				double dValue = double(vtCvValue);
+
+				GetValue(dValue, bForSorting, bNegativeFormatting, lRound, vtRet);
+			}
+		}
+	}
+
 	return utils::HasValue(vtRet);}
 
-bool CMmRvRowData::GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
+bool CMmRvRowData::GetOptionField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound)
 {
 	vtRet = vtMissing;
 
@@ -1238,6 +697,13 @@ bool CMmRvRowData::GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, b
 
 			vtRet = (DATE)dtLocalExpiryOV;
 		} break;
+	case RPC_IMPLIED_VOLA:
+		{
+			if ( m_pSynthGreeks )
+				GetValue(BAD_DOUBLE_VALUE, bForSorting, bNegativeFormatting, lRound, vtRet);
+			else
+				GetValue(m_pPos->m_pQuote->m_dImpliedVola * 100., bForSorting, bNegativeFormatting, lRound, vtRet);
+		}break;
 	case RPC_STRIKE:
 		{
 			vtRet = m_pPos->m_dStrike>BAD_DOUBLE_VALUE ?
@@ -1576,33 +1042,29 @@ bool CMmRvRowData::GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, b
 			else
 				GetValue(m_pPos->m_pQuote->m_dVola*100., bForSorting, bNegativeFormatting, lRound, vtRet);
 		}break;
-	/*case RPC_MIV:
-		{
-			vtRet = bForSorting?_variant_t(0.0):_variant_t(L"Add");
-		}break;
-	case RPC_MIV_CALC_DATE:
-		{
-			vtRet = bForSorting?_variant_t(0.0):_variant_t(L"Add");
-		}break;
-	case RPC_EXT_POSITION:
-		GetValue(m_pPos->m_lExternalPosition, bForSorting, bNegativeFormatting, vtRet);
-		break;
-	case RPC_DISTANSE_TO_STRIKE:
-		{
-			double fDist  = 0.0;
-			double dPrice = 0.0;
-			EtsReplacePriceStatusEnum enStatus; 
+	}
 
-			dPrice = m_pUnd->m_spUndPriceProfile->GetUndPriceMid(m_pUnd->m_pPrice->m_dPriceBid, m_pUnd->m_pPrice->m_dPriceAsk, m_pUnd->m_pPrice->m_dPriceLast, m_dTolerance, m_enPriceRoundingRule, &enStatus, VARIANT_FALSE);
-			m_pPos->DistanceToStrike(dPrice, &fDist);
-			GetValue( fDist, bForSorting, bNegativeFormatting, lRound, vtRet);
+	if (view != NULL && (bool)view->m_spCvRTContext){
+
+		LONG columnID = static_cast<LONG>(enCol);
+		if (columnID >= RPC_COLUMN_COUNT){
+
+			LONG cvID = view->getCvIDbyColumnImpl(CVLEVEL_POS, static_cast<LONG>(enCol));
+
+			if (cvID != 0){
+				_variant_t vtCvValue;
+				view->m_spCvRTContext->raw_GetCVValue(m_pPos->m_nPoolID, cvID, &vtCvValue.GetVARIANT());
+				double dValue = double(vtCvValue);
+
+				GetValue(dValue, bForSorting, bNegativeFormatting, lRound, vtRet);
+			}
 		}
-		break;*/
-	}   
+	}
+
 	return utils::HasValue(vtRet);
 }
 
-bool CMmRvRowData::GetAggregationField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound){
+bool CMmRvRowData::GetAggregationField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound){
 	vtRet = vtMissing;
 	CMmRvAggData *pAgg = NULL;
 	if ( m_pAgg) 
@@ -1899,6 +1361,25 @@ bool CMmRvRowData::GetAggregationField(RisksPosColumnEnum enCol, _variant_t& vtR
 		default:
 			vtRet = bForSorting ? _variant_t(0.) : STR_NA;
 	}
+
+	if (view != NULL && (bool)view->m_spCvRTContext){
+
+		LONG columnID = static_cast<LONG>(enCol);
+		if (columnID >= RPC_COLUMN_COUNT){
+
+			LONG cvID = view->getCvIDbyColumnImpl(CVLEVEL_POS, static_cast<LONG>(enCol));
+
+			if (cvID != 0){
+				_variant_t vtCvValue;
+				if (pAgg->Type_ == CMmRvAggData::enUndAgg){
+					view->m_spCvRTContext->raw_GetCVValue(pAgg->pUnd_->m_nPoolID, cvID, &vtCvValue.GetVARIANT());
+					double dValue = double(vtCvValue);
+					GetValue(dValue, bForSorting, bNegativeFormatting, lRound, vtRet);
+				}
+			}
+		}
+	}
+
 	return utils::HasValue(vtRet);
 }
 
@@ -1957,61 +1438,6 @@ STDMETHODIMP CMmRvRowData::GetAggregationTradeSymbolID(LONG* pID){
 
 	*pID = 0;
 	return E_FAIL;
-
-	//if (m_Type != RDT_UNDAGG && m_Type != RDT_AGG ){
-	//	*pID = 0;
-	//	return E_FAIL;
-	//} 
-
-	//if( m_Type == RDT_UNDAGG ){
-	//	if ( !m_pUnd ) {
-	//		*pID = 0;
-	//		return E_FAIL;
-	//	}
-
-	//	*pID = m_pUnd->m_nID;
-	//	return S_OK;
-	//}
-
-	//if ( !m_pAggregation) {
-	//	*pID = 0;
-	//	return E_FAIL;
-	//}
-
-	//if ( m_pAggregation->m_pParent ) {
-	//	if(m_pAggregation->m_pParent->m_pFut ){
-	//		*pID = m_pAggregation->m_pParent->m_pFut->m_nID;	// expiry aggregation for future
-	//		return S_OK;
-	//	}
-	//	else{
-	//		if(!m_pAggregation->m_pParent->m_pUnd){
-	//			*pID = 0;
-	//			return E_FAIL;
-	//		}
-	//		else{
-	//			*pID = m_pAggregation->m_pParent->m_pUnd->m_nID;
-	//			return S_OK;
-	//		}
-	//	}
-	//}
-	//else{
-	//	if(m_pAggregation->m_pFut ){
-	//		*pID = m_pAggregation->m_pFut->m_nID;	// expiry aggregation for future
-	//		return S_OK;
-	//	}
-	//	else{
-	//		if(!m_pAggregation->m_pUnd){
-	//			*pID = 0;
-	//			return E_FAIL;
-	//		}
-	//		else{
-	//			*pID = m_pAggregation->m_pUnd->m_nID;
-	//			return S_OK;
-	//		}
-	//	}
-	//}
-
-	//return E_FAIL;
 }
 
 STDMETHODIMP CMmRvRowData::GetAggregationPriceReplaceStatus( EtsReplacePriceStatusEnum *pRetVal){
@@ -2043,34 +1469,5 @@ STDMETHODIMP CMmRvRowData::GetAggregationPriceReplaceStatus( EtsReplacePriceStat
 	*pRetVal = enRpsNone;
 	return S_OK;
 
-	//if( m_Type == RDT_UNDAGG ){
-	//	if ( !m_pUnd ) {
-	//		*pRetVal = enRpsNone;
-	//		return E_FAIL;
-	//	}
-
-	//	*pRetVal = m_pUnd->m_enReplacePriceStatus;
-	//	return S_OK;
-	//}
-
-	//if ( !m_pAggregation) {
-	//	*pRetVal = enRpsNone;
-	//	return /*E_FAIL*/S_OK;
-	//}
-
-
-	//if(m_pAggregation->m_pFut ){
-	//	*pRetVal = m_pAggregation->m_pFut->m_enReplacePriceStatus;
-	//	return S_OK;
-	//}
-	//else{
-	//	if(!m_pAggregation->m_pUnd){
-	//		*pRetVal = enRpsNone;
-	//		return E_FAIL;
-	//	}
-	//	else
-	//		*pRetVal = enRpsNone; //m_pAggregation->m_pUnd->m_enReplacePriceStatus;
-	//}
-	//return S_OK;
 }
 

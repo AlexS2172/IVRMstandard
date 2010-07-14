@@ -5,10 +5,6 @@
 	Name="EtsMmGeneral"
 	ProjectGUID="{E39ACD9D-9D72-4E28-823E-6D64CBFCF3C4}"
 	RootNamespace="EtsMmGeneral"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>
@@ -302,34 +298,6 @@
 				>
 			</File>
 			<File
-				RelativePath="MmTradeByUndColl.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\MmTradeChannel.cpp"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeInfoAtom.cpp"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeInfoColl.cpp"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeMatchAtom.cpp"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeMatchColl.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\MmTradeUpdateColl.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\MmTradeView.cpp"
 				>
 			</File>
@@ -419,34 +387,6 @@
 				>
 			</File>
 			<File
-				RelativePath="MmTradeByUndColl.h"
-				>
-			</File>
-			<File
-				RelativePath=".\MmTradeChannel.h"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeInfoAtom.h"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeInfoColl.h"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeMatchAtom.h"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeMatchColl.h"
-				>
-			</File>
-			<File
-				RelativePath=".\MmTradeUpdateColl.h"
-				>
-			</File>
-			<File
 				RelativePath=".\MmTradeView.h"
 				>
 			</File>
@@ -521,38 +461,6 @@
 			</File>
 			<File
 				RelativePath="MmTntCounterPartyColl.rgs"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeByUndAtom.rgs"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeByUndColl.rgs"
-				>
-			</File>
-			<File
-				RelativePath=".\MmTradeChannel.rgs"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeInfoAtom.rgs"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeInfoColl.rgs"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeMatchAtom.rgs"
-				>
-			</File>
-			<File
-				RelativePath="MmTradeMatchColl.rgs"
-				>
-			</File>
-			<File
-				RelativePath=".\MmTradeUpdateColl.rgs"
 				>
 			</File>
 			<File

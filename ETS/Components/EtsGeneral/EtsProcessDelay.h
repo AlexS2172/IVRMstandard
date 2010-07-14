@@ -11,7 +11,7 @@ _COM_SMARTPTR_TYPEDEF(IEtsProcessDelay, IID_IEtsProcessDelay);
 // CEtsProcessDelay
 
 class ATL_NO_VTABLE CEtsProcessDelay : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsProcessDelay, &CLSID_EtsProcessDelay>,
 	public ISupportErrorInfoImpl<&IID_IEtsProcessDelay>,
 	public IDispatchImpl<IEtsProcessDelay, &IID_IEtsProcessDelay, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>
@@ -21,6 +21,7 @@ public:
 		: m_nFrequency(0L), m_nDuration(0L), m_bIsInterrupted(VARIANT_FALSE),
 		m_hDelayTimer(NULL), m_nDelayStep(0L)
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSPROCESSDELAY)
@@ -30,9 +31,11 @@ BEGIN_COM_MAP(CEtsProcessDelay)
 	COM_INTERFACE_ENTRY(IEtsProcessDelay)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
@@ -46,7 +49,8 @@ END_COM_MAP()
 		{
 			return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsProcessDelay, e.Error());
 		}
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
@@ -56,6 +60,7 @@ END_COM_MAP()
 			::CloseHandle(m_hDelayTimer);
 			m_hDelayTimer = NULL;
 		}
+		m_pUnkMarshaler.Release();
 	}
 
 private:
@@ -65,6 +70,8 @@ private:
 
 	HANDLE			m_hDelayTimer;
 	LONG			m_nDelayStep;
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

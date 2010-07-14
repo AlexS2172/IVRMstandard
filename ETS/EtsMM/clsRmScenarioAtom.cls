@@ -45,6 +45,21 @@ Public Enum RmVolaShiftTypeEnum
     RMVS_WEIGHTED = 1
 End Enum
 
+Public Enum RmVolaSpecificShiftTypeEnum
+    RMVSS_NONE = 0
+    RMVSS_GROUP_SPECIFIC = 1
+End Enum
+
+Public Enum RmSpotShiftTypeEnum
+    RMSS_PARALLEL = 0
+    RMSS_CORRELATED = 1
+End Enum
+
+Public Enum RmSpotSpecificShiftTypeEnum
+    RMSSS_NONE = 0
+    RMSSS_GROUP_SPECIFIC = 1
+End Enum
+
 Public ID As Long
 Public ScenarioName As String
 Public Description As String
@@ -54,10 +69,19 @@ Private m_Axis(RMA_HORZ To RMA_VERT) As RmAxisTypeEnum
 Private m_Points(RMA_HORZ To RMA_VERT) As Long
 Private m_Step(RMA_HORZ To RMA_VERT) As Double
 Private m_Units(RMA_HORZ To RMA_VERT) As RmUnitTypeEnum
+
 Private m_VolaShiftType As RmVolaShiftTypeEnum
+Private m_SpotShiftType As RmSpotShiftTypeEnum
+
+Private m_nCorrIndex As Long
+Private m_enModel As EtsCalcModelTypeEnum
+Private m_VolaSpecShiftType As RmVolaSpecificShiftTypeEnum
+Private m_SpotSpecShiftType As RmSpotSpecificShiftTypeEnum
+Private m_SpecificParams As String
 
 Private m_Hour(RMA_HORZ To RMA_VERT) As Long
 Private m_Minute(RMA_HORZ To RMA_VERT) As Long
+Private m_ShowChange As Boolean
 
 Public Property Get Axis(enType As RmAxisEnum) As RmAxisTypeEnum
     On Error Resume Next
@@ -148,9 +172,85 @@ Public Property Let VolaShiftType(ByVal aValue As RmVolaShiftTypeEnum)
     m_VolaShiftType = aValue
 End Property
 
+Public Property Get SpotShiftType() As RmSpotShiftTypeEnum
+    On Error Resume Next
+    SpotShiftType = m_SpotShiftType
+End Property
+
+Public Property Let SpotShiftType(ByVal aValue As RmSpotShiftTypeEnum)
+    On Error Resume Next
+    Dirty = Dirty Or (m_SpotShiftType <> aValue)
+    m_SpotShiftType = aValue
+End Property
+
+Public Property Get SpotSpecificShiftType() As RmSpotSpecificShiftTypeEnum
+    On Error Resume Next
+    SpotSpecificShiftType = m_SpotSpecShiftType
+End Property
+
+Public Property Let SpotSpecificShiftType(ByVal aValue As RmSpotSpecificShiftTypeEnum)
+    On Error Resume Next
+    Dirty = Dirty Or (m_SpotSpecShiftType <> aValue)
+    m_SpotSpecShiftType = aValue
+End Property
+
+Public Property Get VolaSpecificShiftType() As RmVolaSpecificShiftTypeEnum
+    On Error Resume Next
+    VolaSpecificShiftType = m_VolaSpecShiftType
+End Property
+
+Public Property Let VolaSpecificShiftType(ByVal aValue As RmVolaSpecificShiftTypeEnum)
+    On Error Resume Next
+    Dirty = Dirty Or (m_VolaSpecShiftType <> aValue)
+    m_VolaSpecShiftType = aValue
+End Property
+
+Public Property Get CorrIndex() As Long
+    On Error Resume Next
+    CorrIndex = m_nCorrIndex
+End Property
+
+Public Property Let CorrIndex(ByVal aValue As Long)
+    On Error Resume Next
+    Dirty = Dirty Or (m_nCorrIndex <> aValue)
+    m_nCorrIndex = aValue
+End Property
+
+Public Property Get CalcModel() As EtsCalcModelTypeEnum
+    On Error Resume Next
+    CalcModel = m_enModel
+End Property
+
+Public Property Let CalcModel(ByVal aValue As EtsCalcModelTypeEnum)
+    On Error Resume Next
+    Dirty = Dirty Or (m_enModel <> aValue)
+    m_enModel = aValue
+End Property
+
+Public Property Get SpecificParams() As String
+    On Error Resume Next
+    SpecificParams = m_SpecificParams
+End Property
+
+Public Property Let SpecificParams(ByVal aValue As String)
+    On Error Resume Next
+    Dirty = Dirty Or (m_SpecificParams <> aValue)
+    m_SpecificParams = aValue
+End Property
+
 Private Sub Class_Initialize()
     On Error Resume Next
     Clear
+End Sub
+
+Private Sub Class_Terminate()
+On Error Resume Next
+    Erase m_Axis
+    Erase m_Points
+    Erase m_Step
+    Erase m_Units
+    Erase m_Hour
+    Erase m_Minute
 End Sub
 
 Public Sub FixValues()
@@ -271,8 +371,18 @@ Public Sub CopyTo(aDest As clsRmScenarioAtom)
     aDest.Hour(RMA_VERT) = m_Hour(RMA_VERT)
     aDest.Minute(RMA_VERT) = m_Minute(RMA_VERT)
     aDest.Units(RMA_VERT) = m_Units(RMA_VERT)
+    aDest.ShowChange = m_ShowChange
     
     aDest.VolaShiftType = m_VolaShiftType
+    aDest.SpotShiftType = m_SpotShiftType
+    
+    aDest.CalcModel = m_enModel
+    aDest.CorrIndex = m_nCorrIndex
+    
+    aDest.SpecificParams = m_SpecificParams
+    
+    aDest.SpotSpecificShiftType = m_SpotSpecShiftType
+    aDest.VolaSpecificShiftType = m_VolaSpecShiftType
     
     aDest.Dirty = Dirty
 End Sub
@@ -299,5 +409,25 @@ Public Sub Clear()
     m_Units(RMA_VERT) = RMUT_PERC
     
     m_VolaShiftType = RMVS_COMMON
+    m_SpotShiftType = RMSS_PARALLEL
+    
+    m_enModel = g_Params.CalcModel
+    m_nCorrIndex = 0
+    
+    m_SpotSpecShiftType = RMSSS_NONE
+    m_VolaSpecShiftType = RMVSS_NONE
+    
+    m_ShowChange = False
 End Sub
+
+Public Property Get ShowChange() As Boolean
+    On Error Resume Next
+    ShowChange = m_ShowChange
+End Property
+
+Public Property Let ShowChange(aValue As Boolean)
+    On Error Resume Next
+    Dirty = Dirty Or (m_ShowChange <> aValue)
+    m_ShowChange = aValue
+End Property
 

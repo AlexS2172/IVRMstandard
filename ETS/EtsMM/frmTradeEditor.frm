@@ -1,9 +1,10 @@
 VERSION 5.00
+Object = "{86CF1D34-0C5F-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomct2.ocx"
 Object = "{0D452EE1-E08F-101A-852E-02608C4D0BB4}#2.0#0"; "FM20.DLL"
 Begin VB.Form frmTradeEditor 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Trade Editor"
-   ClientHeight    =   4155
+   ClientHeight    =   5340
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   7200
@@ -11,17 +12,43 @@ Begin VB.Form frmTradeEditor
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   4155
+   ScaleHeight     =   5340
    ScaleWidth      =   7200
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
    Tag             =   "text"
+   Begin VB.ComboBox cmbExerciseStyle 
+      Enabled         =   0   'False
+      Height          =   315
+      Left            =   4440
+      Style           =   2  'Dropdown List
+      TabIndex        =   60
+      Top             =   1080
+      Width           =   1215
+   End
+   Begin VB.ComboBox cmbSettlementType 
+      Enabled         =   0   'False
+      Height          =   315
+      Left            =   5760
+      Style           =   2  'Dropdown List
+      TabIndex        =   59
+      Top             =   1080
+      Width           =   1335
+   End
+   Begin VB.CheckBox chkIsFlex 
+      Caption         =   "Flex"
+      Height          =   255
+      Left            =   120
+      TabIndex        =   58
+      Top             =   1080
+      Width           =   615
+   End
    Begin VB.ComboBox cbxStrategy 
       Height          =   315
       Left            =   2400
       Style           =   2  'Dropdown List
       TabIndex        =   6
-      Top             =   2055
+      Top             =   3255
       Width           =   1935
    End
    Begin VB.CommandButton btnStrategyNew 
@@ -29,7 +56,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   4440
       TabIndex        =   47
-      Top             =   2055
+      Top             =   3255
       Width           =   1095
    End
    Begin VB.CheckBox chkMark 
@@ -37,14 +64,14 @@ Begin VB.Form frmTradeEditor
       Height          =   255
       Left            =   6060
       TabIndex        =   7
-      Top             =   2100
+      Top             =   3300
       Width           =   1035
    End
    Begin EtsMM.ctlEditEx txtQuantity 
       Height          =   315
       Left            =   3480
       TabIndex        =   2
-      Top             =   930
+      Top             =   2130
       Width           =   1215
       _ExtentX        =   2143
       _ExtentY        =   556
@@ -74,7 +101,7 @@ Begin VB.Form frmTradeEditor
       Height          =   255
       Left            =   2940
       TabIndex        =   18
-      Top             =   3750
+      Top             =   4950
       Width           =   1275
    End
    Begin VB.OptionButton optManual 
@@ -91,7 +118,7 @@ Begin VB.Form frmTradeEditor
       Height          =   255
       Left            =   1620
       TabIndex        =   17
-      Top             =   3750
+      Top             =   4950
       Width           =   1275
    End
    Begin VB.OptionButton optSimulated 
@@ -108,7 +135,7 @@ Begin VB.Form frmTradeEditor
       Height          =   255
       Left            =   120
       TabIndex        =   16
-      Top             =   3750
+      Top             =   4950
       Width           =   1395
    End
    Begin VB.Timer tmrTradeDate 
@@ -129,7 +156,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   4320
       TabIndex        =   19
-      Top             =   3720
+      Top             =   4920
       Width           =   1335
    End
    Begin VB.CommandButton btnCancel 
@@ -138,7 +165,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   5760
       TabIndex        =   20
-      Top             =   3720
+      Top             =   4920
       Width           =   1335
    End
    Begin EtsMM.ctlLabelEx lblTotalPrice 
@@ -147,7 +174,7 @@ Begin VB.Form frmTradeEditor
       TabIndex        =   21
       TabStop         =   0   'False
       Tag             =   "info"
-      Top             =   930
+      Top             =   2130
       Width           =   2175
       _ExtentX        =   3836
       _ExtentY        =   556
@@ -175,7 +202,7 @@ Begin VB.Form frmTradeEditor
       TabIndex        =   22
       TabStop         =   0   'False
       Tag             =   "info"
-      Top             =   1485
+      Top             =   2685
       Width           =   1485
       _ExtentX        =   2619
       _ExtentY        =   556
@@ -203,7 +230,7 @@ Begin VB.Form frmTradeEditor
       TabIndex        =   23
       TabStop         =   0   'False
       Tag             =   "info"
-      Top             =   1485
+      Top             =   2685
       Width           =   1485
       _ExtentX        =   2619
       _ExtentY        =   556
@@ -231,7 +258,7 @@ Begin VB.Form frmTradeEditor
       TabIndex        =   24
       TabStop         =   0   'False
       Tag             =   "info"
-      Top             =   2940
+      Top             =   4140
       Width           =   1455
       _ExtentX        =   2566
       _ExtentY        =   556
@@ -259,7 +286,7 @@ Begin VB.Form frmTradeEditor
       TabIndex        =   43
       TabStop         =   0   'False
       Tag             =   "info"
-      Top             =   930
+      Top             =   2130
       Width           =   795
       _ExtentX        =   1402
       _ExtentY        =   556
@@ -285,7 +312,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   1200
       TabIndex        =   1
-      Top             =   930
+      Top             =   2130
       Width           =   1095
       _ExtentX        =   1931
       _ExtentY        =   556
@@ -305,7 +332,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   3480
       TabIndex        =   3
-      Top             =   1485
+      Top             =   2685
       Width           =   1215
       _ExtentX        =   2143
       _ExtentY        =   556
@@ -325,7 +352,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   4440
       TabIndex        =   11
-      Top             =   2640
+      Top             =   3840
       Width           =   1095
       _ExtentX        =   1931
       _ExtentY        =   556
@@ -345,7 +372,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   4920
       TabIndex        =   4
-      Top             =   1485
+      Top             =   2685
       Width           =   2175
       _ExtentX        =   3836
       _ExtentY        =   556
@@ -365,7 +392,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   4440
       TabIndex        =   15
-      Top             =   3240
+      Top             =   4440
       Width           =   1095
       _ExtentX        =   1931
       _ExtentY        =   556
@@ -385,7 +412,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   3600
       TabIndex        =   10
-      Top             =   2640
+      Top             =   3840
       Width           =   735
       _ExtentX        =   1296
       _ExtentY        =   556
@@ -405,7 +432,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   3600
       TabIndex        =   14
-      Top             =   3255
+      Top             =   4455
       Width           =   735
       _ExtentX        =   1296
       _ExtentY        =   556
@@ -421,11 +448,109 @@ Begin VB.Form frmTradeEditor
       EndProperty
       HideSelection   =   -1  'True
    End
+   Begin VB.ComboBox cmbOptionType 
+      Enabled         =   0   'False
+      Height          =   315
+      Left            =   3240
+      Style           =   2  'Dropdown List
+      TabIndex        =   51
+      Top             =   1080
+      Width           =   1095
+   End
+   Begin VB.TextBox txtStrike 
+      BeginProperty DataFormat 
+         Type            =   1
+         Format          =   """$""#,##0.00;(""$""#,##0.00)"
+         HaveTrueFalseNull=   0
+         FirstDayOfWeek  =   0
+         FirstWeekOfYear =   0
+         LCID            =   1033
+         SubFormatType   =   2
+      EndProperty
+      Enabled         =   0   'False
+      Height          =   315
+      Left            =   840
+      TabIndex        =   50
+      Text            =   "0"
+      Top             =   1080
+      Width           =   855
+   End
+   Begin MSComCtl2.DTPicker dtpExpiry 
+      Height          =   315
+      Left            =   1800
+      TabIndex        =   49
+      Top             =   1080
+      Width           =   1335
+      _ExtentX        =   2355
+      _ExtentY        =   556
+      _Version        =   393216
+      Enabled         =   0   'False
+      Format          =   48234497
+      CurrentDate     =   40211
+   End
+   Begin VB.Label lblOptionSymbol 
+      Appearance      =   0  'Flat
+      BackColor       =   &H80000005&
+      BackStyle       =   0  'Transparent
+      BorderStyle     =   1  'Fixed Single
+      Caption         =   "Symbol:"
+      ForeColor       =   &H80000008&
+      Height          =   255
+      Left            =   120
+      TabIndex        =   57
+      Top             =   1440
+      Width           =   6975
+   End
+   Begin VB.Label lblOptionType 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Type"
+      Height          =   255
+      Left            =   3240
+      TabIndex        =   56
+      Top             =   840
+      Width           =   855
+   End
+   Begin VB.Label lblExerciseStyle 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Style"
+      Height          =   255
+      Left            =   4440
+      TabIndex        =   55
+      Top             =   840
+      Width           =   615
+   End
+   Begin VB.Label lblSettlementType 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Settlement"
+      Height          =   255
+      Left            =   5760
+      TabIndex        =   54
+      Top             =   840
+      Width           =   855
+   End
+   Begin VB.Label lblExpiry 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Expiration date"
+      Height          =   255
+      Left            =   1800
+      TabIndex        =   53
+      Top             =   840
+      Width           =   1095
+   End
+   Begin VB.Label lblStrike 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Strike"
+      Height          =   255
+      Left            =   840
+      TabIndex        =   52
+      Top             =   840
+      Width           =   855
+   End
    Begin MSForms.ComboBox cbxBuySell 
       Height          =   315
       Left            =   120
       TabIndex        =   48
-      Top             =   960
+      Top             =   2160
       Width           =   855
       VariousPropertyBits=   547379227
       BackColor       =   16119285
@@ -447,7 +572,7 @@ Begin VB.Form frmTradeEditor
       Index           =   2
       Left            =   1200
       TabIndex        =   46
-      Top             =   705
+      Top             =   1905
       Width           =   735
    End
    Begin VB.Label lblTitle 
@@ -458,7 +583,7 @@ Begin VB.Form frmTradeEditor
       Index           =   21
       Left            =   2400
       TabIndex        =   45
-      Top             =   2415
+      Top             =   3615
       Width           =   1095
    End
    Begin VB.Label lblTitle 
@@ -469,14 +594,14 @@ Begin VB.Form frmTradeEditor
       Index           =   20
       Left            =   2400
       TabIndex        =   44
-      Top             =   3030
+      Top             =   4230
       Width           =   1095
    End
    Begin MSForms.ComboBox cbxCommType 
       Height          =   315
       Left            =   2400
       TabIndex        =   9
-      Top             =   2640
+      Top             =   3840
       Width           =   1095
       VariousPropertyBits=   547379227
       BackColor       =   16119285
@@ -494,7 +619,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   2400
       TabIndex        =   13
-      Top             =   3255
+      Top             =   4455
       Width           =   1095
       VariousPropertyBits=   547379227
       BackColor       =   16119285
@@ -512,7 +637,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   120
       TabIndex        =   12
-      Top             =   3255
+      Top             =   4455
       Width           =   2175
       VariousPropertyBits=   547379227
       BackColor       =   16119285
@@ -530,7 +655,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   120
       TabIndex        =   8
-      Top             =   2640
+      Top             =   3840
       Width           =   2175
       VariousPropertyBits=   547379227
       BackColor       =   16119285
@@ -548,7 +673,7 @@ Begin VB.Form frmTradeEditor
       Height          =   315
       Left            =   120
       TabIndex        =   5
-      Top             =   2055
+      Top             =   3255
       Width           =   2175
       VariousPropertyBits=   547379227
       BackColor       =   16119285
@@ -588,7 +713,7 @@ Begin VB.Form frmTradeEditor
       Index           =   19
       Left            =   5640
       TabIndex        =   42
-      Top             =   2700
+      Top             =   3900
       Width           =   1455
    End
    Begin VB.Label lblTitle 
@@ -599,7 +724,7 @@ Begin VB.Form frmTradeEditor
       Index           =   18
       Left            =   4440
       TabIndex        =   41
-      Top             =   3030
+      Top             =   4230
       Width           =   1095
    End
    Begin VB.Label lblTitle 
@@ -610,7 +735,7 @@ Begin VB.Form frmTradeEditor
       Index           =   17
       Left            =   3600
       TabIndex        =   40
-      Top             =   3030
+      Top             =   4230
       Width           =   735
    End
    Begin VB.Label lblTitle 
@@ -621,7 +746,7 @@ Begin VB.Form frmTradeEditor
       Index           =   16
       Left            =   120
       TabIndex        =   39
-      Top             =   3030
+      Top             =   4230
       Width           =   1215
    End
    Begin VB.Label lblTitle 
@@ -632,7 +757,7 @@ Begin VB.Form frmTradeEditor
       Index           =   15
       Left            =   4440
       TabIndex        =   38
-      Top             =   2415
+      Top             =   3615
       Width           =   1095
    End
    Begin VB.Label lblTitle 
@@ -643,7 +768,7 @@ Begin VB.Form frmTradeEditor
       Index           =   14
       Left            =   3600
       TabIndex        =   37
-      Top             =   2415
+      Top             =   3615
       Width           =   735
    End
    Begin VB.Label lblTitle 
@@ -654,7 +779,7 @@ Begin VB.Form frmTradeEditor
       Index           =   13
       Left            =   120
       TabIndex        =   36
-      Top             =   2415
+      Top             =   3615
       Width           =   855
    End
    Begin VB.Label lblTitle 
@@ -665,7 +790,7 @@ Begin VB.Form frmTradeEditor
       Index           =   12
       Left            =   2400
       TabIndex        =   35
-      Top             =   1830
+      Top             =   3030
       Width           =   855
    End
    Begin VB.Label lblTitle 
@@ -676,7 +801,7 @@ Begin VB.Form frmTradeEditor
       Index           =   10
       Left            =   120
       TabIndex        =   34
-      Top             =   1830
+      Top             =   3030
       Width           =   855
    End
    Begin VB.Label lblTitle 
@@ -687,7 +812,7 @@ Begin VB.Form frmTradeEditor
       Index           =   5
       Left            =   4920
       TabIndex        =   33
-      Top             =   705
+      Top             =   1905
       Width           =   855
    End
    Begin VB.Label lblTitle 
@@ -698,7 +823,7 @@ Begin VB.Form frmTradeEditor
       Index           =   4
       Left            =   3480
       TabIndex        =   32
-      Top             =   705
+      Top             =   1905
       Width           =   735
    End
    Begin VB.Label lblTitle 
@@ -709,7 +834,7 @@ Begin VB.Form frmTradeEditor
       Index           =   3
       Left            =   2520
       TabIndex        =   31
-      Top             =   705
+      Top             =   1905
       Width           =   735
    End
    Begin VB.Label lblTitle 
@@ -720,7 +845,7 @@ Begin VB.Form frmTradeEditor
       Index           =   1
       Left            =   120
       TabIndex        =   30
-      Top             =   705
+      Top             =   1905
       Width           =   735
    End
    Begin VB.Label lblTitle 
@@ -742,7 +867,7 @@ Begin VB.Form frmTradeEditor
       Index           =   6
       Left            =   120
       TabIndex        =   28
-      Top             =   1290
+      Top             =   2490
       Width           =   975
    End
    Begin VB.Label lblTitle 
@@ -753,7 +878,7 @@ Begin VB.Form frmTradeEditor
       Index           =   8
       Left            =   3480
       TabIndex        =   27
-      Top             =   1290
+      Top             =   2490
       Width           =   1335
    End
    Begin VB.Label lblTitle 
@@ -764,7 +889,7 @@ Begin VB.Form frmTradeEditor
       Index           =   9
       Left            =   4920
       TabIndex        =   26
-      Top             =   1290
+      Top             =   2490
       Width           =   1335
    End
    Begin VB.Label lblTitle 
@@ -775,7 +900,7 @@ Begin VB.Form frmTradeEditor
       Index           =   7
       Left            =   1680
       TabIndex        =   25
-      Top             =   1290
+      Top             =   2490
       Width           =   975
    End
 End
@@ -792,9 +917,9 @@ Attribute PriceProvider.VB_VarHelpID = -1
 Private m_bInit As Boolean
 Private m_bCommInit As Boolean
 
-Private m_NewTrd As EtsMmGeneralLib.MmTradeInfoAtom
-Private m_OldTrd As EtsMmGeneralLib.MmTradeInfoAtom
-Private m_TrdSrc As New EtsMmGeneralLib.MmTradeInfoColl
+Private m_NewTrd As EtsGeneralLib.MmTradeInfoAtom
+Private m_OldTrd As EtsGeneralLib.MmTradeInfoAtom
+Private m_TrdSrc As New EtsGeneralLib.MmTradeInfoColl
 Private m_Price As New clsTePriceColl
 Private m_PriceByKey As New clsTePriceColl
 
@@ -811,6 +936,7 @@ Private m_bIsProviderConnected As Boolean
 Private m_bIsOpened As Boolean
 Private m_frmOwner As Form
 Private m_sCaption As String
+Private m_AssetID As Long
 
 Const MONITOR_DEFAULTTOPRIMARY = &H1
 
@@ -909,6 +1035,8 @@ Public Sub NewTrade(ByVal nContractID As Long, ByVal nUndContractID As Long, ByV
     Set m_frmOwner = frmOwner
     If Not m_frmOwner Is Nothing Then m_frmOwner.Enabled = False
     
+    m_AssetID = nUndContractID
+    
     Load Me
     ReadRegEntries
     Set m_NewTrd = Nothing
@@ -951,7 +1079,7 @@ EH:
     Unload Me
 End Sub
 
-Public Sub EditTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, frmOwner As Form)
+Public Sub EditTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom, frmOwner As Form)
     On Error GoTo EH
     If m_bIsOpened Then Exit Sub
     Screen.MousePointer = vbHourglass
@@ -963,8 +1091,8 @@ Public Sub EditTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, frmOwner As Form)
     
     ReadRegEntries
     
-    Set m_NewTrd = New EtsMmGeneralLib.MmTradeInfoAtom
-    Set m_OldTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+    Set m_NewTrd = New EtsGeneralLib.MmTradeInfoAtom
+    Set m_OldTrd = New EtsGeneralLib.MmTradeInfoAtom
     
     aTrd.CopyTo m_OldTrd
     aTrd.CopyTo m_NewTrd
@@ -1067,11 +1195,15 @@ Private Sub cbxStrategy_Click()
     End If
 End Sub
 
+Private Sub chkIsFlex_Click()
+On Error Resume Next
+    ChangeState
+End Sub
+
 Private Sub Form_Load()
     On Error Resume Next
     If gCmn Is Nothing Then Exit Sub
 End Sub
-
 
 Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
@@ -1131,6 +1263,12 @@ Private Sub btnSubmit_Click()
         gCmn.MyMsgBox Me, "Please specify valid trade quantity.", vbCritical
         txtQuantity.SetFocus
         Exit Sub
+    End If
+    
+    If (getIsFlex) Then
+        If (Not HookTradeSubmit) Then
+            Exit Sub
+        End If
     End If
     
     If m_bLastQuoteReqNow Then
@@ -1220,7 +1358,7 @@ End Sub
 
 Private Sub cbxContract_Change()
     On Error Resume Next
-    Dim aTrdSrc As EtsMmGeneralLib.MmTradeInfoAtom, bReloadCommTypes As Boolean
+    Dim aTrdSrc As EtsGeneralLib.MmTradeInfoAtom, bReloadCommTypes As Boolean
     
     If cbxContract.MatchFound Then
         
@@ -1235,6 +1373,7 @@ Private Sub cbxContract_Change()
             Set m_NewTrd.FutRoot = aTrdSrc.FutRoot
             Set m_NewTrd.Fut = aTrdSrc.Fut
             Set m_NewTrd.FutOpt = aTrdSrc.FutOpt
+            Set m_NewTrd.Contract = g_Main.GetContract(m_NewTrd.ContractID)
 
             Set aTrdSrc = Nothing
         End If
@@ -1286,7 +1425,7 @@ End Sub
 Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContractID&) As Boolean
     On Error GoTo EH
     Dim rs As ADODB.Recordset, aUnd As EtsGeneralLib.UndAtom
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, dtSortKey As Date: dtSortKey = 0#
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, dtSortKey As Date: dtSortKey = 0#
     Dim enContractType As EtsGeneralLib.EtsContractTypeEnum, nID&, bValidContract As Boolean
     
     LoadTradeSourcesForNewTrade = False
@@ -1297,12 +1436,12 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
     
     If aUnd.UndType <> enCtFutUnd Then
         ' add underlying trade source
-        Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+        Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
         m_TrdSrc.Add nUndContractID, dtSortKey, aTrd
         Set aTrd.Und = aUnd
         
         If nContractID = nUndContractID Then
-            Set m_NewTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+            Set m_NewTrd = New EtsGeneralLib.MmTradeInfoAtom
             aTrd.CopyTo m_NewTrd
         End If
         Set aTrd = Nothing
@@ -1321,7 +1460,7 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
                 And m_TrdSrc(nID) Is Nothing Then
                 
                 dtSortKey = dtSortKey + 1#
-                Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
                 Set aTrd.Und = aUnd
                 
                 bValidContract = False
@@ -1340,7 +1479,7 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
                             aTrd.Opt.OptType = ReadByte(rs!tiIsCall)
                             aTrd.Opt.Expiry = ReadDate(rs!dtExpiry)
                             aTrd.Opt.ExpiryOV = ReadDate(rs!dtExpiryOV)
-                            aTrd.Opt.TradingClose = TimeSerial(Hour(ReadDate(rs!dtTradingClose)), Minute(ReadDate(rs!dtTradingClose)), 0)
+                            aTrd.Opt.TradingClose = ClipDays(ReadDate(rs!dtTradingClose))
                             aTrd.Opt.Strike = Round(ReadDbl(rs!fStrike), STRIKE_DECIMALS_COUNT)
                             aTrd.Opt.PriceClose = ReadDbl(rs!fPriceClose)
                             aTrd.Opt.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
@@ -1364,7 +1503,7 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
                                     aTrd.FutOpt.OptType = ReadByte(rs!tiIsCall)
                                     aTrd.FutOpt.Expiry = ReadDate(rs!dtExpiry)
                                     aTrd.FutOpt.ExpiryOV = ReadDate(rs!dtExpiryOV)
-                                    aTrd.FutOpt.TradingClose = TimeSerial(Hour(ReadDate(rs!dtTradingClose)), Minute(ReadDate(rs!dtTradingClose)), 0)
+                                    aTrd.FutOpt.TradingClose = ClipDays(ReadDate(rs!dtTradingClose))
                                     aTrd.FutOpt.Strike = Round(ReadDbl(rs!fStrike), STRIKE_DECIMALS_COUNT)
                                     aTrd.FutOpt.PriceClose = ReadDbl(rs!fPriceClose)
                                     aTrd.FutOpt.PriceTheoclose = ReadDbl(rs!fPriceTheoClose)
@@ -1378,7 +1517,7 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
                     m_TrdSrc.Add nID, dtSortKey, aTrd
                     
                     If nContractID = nID Then
-                        Set m_NewTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                        Set m_NewTrd = New EtsGeneralLib.MmTradeInfoAtom
                         aTrd.CopyTo m_NewTrd
                     End If
                 End If
@@ -1394,7 +1533,7 @@ Private Function LoadTradeSourcesForNewTrade(ByVal nContractID&, ByVal nUndContr
     Set aUnd = Nothing
 
     If m_NewTrd Is Nothing Then
-        Set m_NewTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+        Set m_NewTrd = New EtsGeneralLib.MmTradeInfoAtom
         If Not m_TrdSrc(nUndContractID) Is Nothing Then
             m_TrdSrc(nUndContractID).CopyTo m_NewTrd
         Else
@@ -1414,12 +1553,12 @@ EH:
     gCmn.ErrorHandler "Fail to load contracts list."
 End Function
 
-Private Sub LoadTradeSourcesForEditTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub LoadTradeSourcesForEditTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
-    Dim aTrdSrc As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdSrc As EtsGeneralLib.MmTradeInfoAtom
     
     m_TrdSrc.Clear
-    Set aTrdSrc = New EtsMmGeneralLib.MmTradeInfoAtom
+    Set aTrdSrc = New EtsGeneralLib.MmTradeInfoAtom
     aTrd.CopyTo aTrdSrc
     m_TrdSrc.Add aTrd.ContractID, 0, aTrdSrc
     
@@ -1440,7 +1579,6 @@ Private Sub LoadTradeSourcesForEditTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom
     
     Set aTrdSrc = Nothing
 End Sub
-
 
 Private Sub tmrPrice_Timer()
     On Error GoTo EH
@@ -1766,45 +1904,32 @@ Private Sub ApplyPrices()
     End If
 End Sub
 
-Private Function GetRates(UndID As Long, expDate As Date) As Double
-    On Error Resume Next
-    GetRates = 0
-    
-    Dim dtNow As Date
-    dtNow = GetNewYorkTime
-    
-    If UndID = 0 Then Exit Function
-    
-    Dim bUseMidRates As Boolean, cPosThreshold@, dPos#
-    
-    dPos = g_UnderlyingAll(UndID).UndPosForRates
-    
-    If GetIrRuleType = enRateBasedOnPosition Then
-        cPosThreshold = Abs(GetPosThreshold)
-        bUseMidRates = (cPosThreshold = 0 Or cPosThreshold <> 0 And Abs(dPos) <= cPosThreshold)
-    Else
-        bUseMidRates = True
-    End If
-
-     
-    If bUseMidRates Then
-       If Not g_UnderlyingAll(UndID).IsHTB Then
-           GetRates = GetNeutralRate(dtNow, expDate)
-       Else
-           GetRates = GetNeutralHTBRate(dtNow, expDate)
-       End If
-    Else
-       If Not g_UnderlyingAll(UndID).IsHTB Then
-           GetRates = IIf(dPos < 0, GetShortRate(dtNow, expDate), GetLongRate(dtNow, expDate))
-       Else
-           GetRates = IIf(dPos < 0, GetHTBRate(dtNow, expDate), GetLongRate(dtNow, expDate))
-       End If
-    End If
-        
-    
-End Function
-
-
+'Private Function GetRates(UndID As Long, expDate As Date) As Double
+'    On Error Resume Next
+'    GetRates = 0
+'
+'    If UndID = 0 Then Exit Function
+'
+'    Dim dtNow As Date: dtNow = GetNewYorkTime
+'
+'    Dim bUseMidRates As Boolean, cPosThreshold@, dPos#
+'
+'    dPos = g_UnderlyingAll(UndID).UndPosForRates
+'
+'    If GetIrRuleType = enRateBasedOnPosition Then
+'        cPosThreshold = Abs(GetPosThreshold)
+'        bUseMidRates = (cPosThreshold = 0 Or cPosThreshold <> 0 And Abs(dPos) <= cPosThreshold)
+'    Else
+'        bUseMidRates = True
+'    End If
+'
+'    If bUseMidRates Then
+'           GetRates = GetNeutralRate(dtNow, expDate)
+'    Else
+'           GetRates = IIf(dPos < 0, GetShortRate(dtNow, expDate), GetLongRate(dtNow, expDate))
+'    End If
+'
+'End Function
 
 Private Function IsBrokerCommissionShouldBeChanged() As Boolean
     On Error Resume Next
@@ -2260,7 +2385,7 @@ End Sub
 
 Private Sub FillContractsCombo()
     On Error Resume Next
-    Dim i&, nCount&, aTrdSrc As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim i&, nCount&, aTrdSrc As EtsGeneralLib.MmTradeInfoAtom
     
     With cbxContract
         .ColumnCount = 3
@@ -2440,3 +2565,256 @@ Private Sub InitNewTradeTrader()
     End If
 End Sub
 
+'------- flex option stuff-----------------------------'
+Private Sub InitFlexContractControls()
+On Error Resume Next
+    FillSettlementCombo
+    FillStyleCombo
+    FillOptionTypeCombo
+End Sub
+
+Private Sub FillSettlementCombo()
+    On Error GoTo error_handler
+    '--------------------------'
+
+    Dim itemIndex As Long
+    
+    '---- initialize Settlement combo box ----'
+    itemIndex = 0
+    cmbSettlementType.Clear
+    
+    ' add default value'
+    cmbSettlementType.AddItem "<undefined>", itemIndex
+    cmbSettlementType.ItemData(itemIndex) = EtsGeneralLib.enSTUndefined
+    
+    itemIndex = itemIndex + 1
+    cmbSettlementType.AddItem "<AM Settlemnt>", itemIndex
+    cmbSettlementType.ItemData(itemIndex) = EtsGeneralLib.enSTAM
+    
+    itemIndex = itemIndex + 1
+    cmbSettlementType.AddItem "<PM Settlemnt>", itemIndex
+    cmbSettlementType.ItemData(itemIndex) = EtsGeneralLib.enSTPM
+    
+    cmbSettlementType.ListIndex = 0
+Exit Sub
+error_handler:
+    Debug.Assert True
+    Debug.Print "Error on intializing Settlement combo. Error description: " & Err.Description
+End Sub
+
+Private Sub FillStyleCombo()
+    On Error GoTo error_handler
+    '--------------------------'
+
+    Dim itemIndex As Long
+    
+    '---- initialize Settlement combo box ----'
+    itemIndex = 0
+    cmbExerciseStyle.Clear
+    
+    ' add default value'
+    cmbExerciseStyle.AddItem "American", itemIndex
+    cmbExerciseStyle.ItemData(itemIndex) = enEsAmerican
+    
+    itemIndex = itemIndex + 1
+    cmbExerciseStyle.AddItem "European", itemIndex
+    cmbExerciseStyle.ItemData(itemIndex) = enEsEuropean
+        
+    cmbExerciseStyle.ListIndex = 0
+Exit Sub
+error_handler:
+    Debug.Assert True
+    Debug.Print "Error on intializing Style combo. Error description: " & Err.Description
+End Sub
+
+Private Sub FillOptionTypeCombo()
+    On Error GoTo error_handler
+    '--------------------------'
+    
+    Dim itemIndex As Long
+    
+    '---- initialize Settlement combo box ----'
+    itemIndex = 0
+    cmbOptionType.Clear
+    
+    ' add default value'
+    cmbOptionType.AddItem "<Call/Put>", itemIndex
+    cmbOptionType.ItemData(itemIndex) = BAD_LONG_VALUE
+    
+    itemIndex = itemIndex + 1
+    
+    cmbOptionType.AddItem "Call", itemIndex
+    cmbOptionType.ItemData(itemIndex) = enOtCall
+    
+    itemIndex = itemIndex + 1
+    cmbOptionType.AddItem "Put", itemIndex
+    cmbOptionType.ItemData(itemIndex) = enOtPut
+        
+    cmbOptionType.ListIndex = 0
+Exit Sub
+error_handler:
+    Debug.Assert True
+    Debug.Print "Error on intializing OptionType combo. Error description: " & Err.Description
+End Sub
+
+Private Function getExpirationDate() As Date
+        
+    If (dtpExpiry.Value < Date) Then
+        Err.Raise vbObjectError + 1, "Trade Editor", "Incorrect expiration date."
+    End If
+    
+    getExpirationDate = dtpExpiry.Value
+    
+End Function
+
+Private Function getOptionType() As EtsGeneralLib.EtsOptionTypeEnum
+    
+    Dim lListIndex As Long
+    Dim lItemValue As Long
+    
+    lListIndex = cmbOptionType.ListIndex
+    lItemValue = cmbOptionType.ItemData(lListIndex)
+    
+    If (lItemValue = BAD_LONG_VALUE) Then
+        Err.Raise vbObjectError + 2, "Trade Editor", "Option type not defined."
+    End If
+    
+    getOptionType = IIf(lItemValue = CLng(enOtCall), enOtCall, enOtPut)
+    
+End Function
+
+Private Function getExerciseStyle() As EtsGeneralLib.ExerciseStyleEnum
+    
+    Dim lListIndex As Long
+    Dim lItemValue As Long
+    
+    lListIndex = cmbExerciseStyle.ListIndex
+    lItemValue = cmbExerciseStyle.ItemData(lListIndex)
+    
+    getExerciseStyle = IIf(lItemValue = CLng(EtsGeneralLib.enEsAmerican), EtsGeneralLib.enEsAmerican, EtsGeneralLib.enEsEuropean)
+    
+End Function
+
+Private Function getSettlementType() As EtsGeneralLib.SettlementTypeEnum
+    
+    Dim lListIndex As Long
+    Dim lItemValue As Long
+    
+    lListIndex = cmbSettlementType.ListIndex
+    lItemValue = cmbSettlementType.ItemData(lListIndex)
+    
+    If (lItemValue = CLng(EtsGeneralLib.enSTAM)) Then
+        getSettlementType = enSTAM
+    ElseIf (lItemValue = CLng(EtsGeneralLib.enSTPM)) Then
+        getSettlementType = enSTPM
+    ElseIf (lItemValue = CLng(EtsGeneralLib.enSTUndefined)) Then
+        Err.Raise vbObjectError + 3, "Trade Editor", "Settlement type not defined."
+    End If
+    
+End Function
+
+Private Function getStrike() As Double
+On Error GoTo error_handler
+'--------------------------'
+
+    Dim dStrike As Double
+    
+    dStrike = CDbl(txtStrike.Text)
+        
+    getStrike = dStrike
+    
+    Exit Function
+error_handler:
+    If (Err.Number = 13 Or dStrike <= 0#) Then 'check type mismatch
+        Err.Raise vbObjectError + 4, "Trade Editor", "Invalid strike value."
+    End If
+End Function
+
+Private Function getAssetID() As Long
+    If (m_AssetID <= 0) Then
+        Err.Raise vbObjectError + 5, "Trade Editor", "Asset is not initialized."
+    End If
+    getAssetID = m_AssetID
+End Function
+
+Private Function getFlexOptionContract() As IContract
+On Error GoTo error_handler
+'--------------------------'
+    
+    Dim valuationTime As Date
+    Dim settlementType As EtsGeneralLib.SettlementTypeEnum
+    
+    settlementType = getSettlementType
+    
+    If (settlementType = enSTAM) Then
+        valuationTime = CDate("9:30AM")
+    ElseIf (settlementType = enSTPM) Then
+        valuationTime = CDate("4:15PM")
+    ElseIf (settlementType = enSTUndefined) Then
+        valuationTime = CDate("4:00PM")
+    End If
+    
+    Set getFlexOptionContract = g_Main.CreateFlexContract(getAssetID, _
+                                                            getExpirationDate, _
+                                                            getStrike, _
+                                                            getOptionType, _
+                                                            CDate("4:00PM"), _
+                                                            valuationTime, _
+                                                            getExerciseStyle)
+
+    
+    Exit Function
+
+error_handler:
+    If (Err.Number >= vbObjectError + 1 And Err.Number <= vbObjectError + 5) Then
+        MsgBox Err.Description, , "Check flex option params."
+    Else
+        Debug.Print "Error while trying to create FlexContract. Error: " & Err.Description
+    End If
+    
+    Set getFlexOptionContract = Nothing
+    
+End Function
+'--------------------------------------------------------------------------------------'
+Private Function getIsFlex() As Boolean
+On Error Resume Next
+    getIsFlex = CBool(chkIsFlex.Value)
+End Function
+
+Private Sub ChangeState()
+On Error Resume Next
+
+    InitFlexContractControls
+    
+    cbxContract.Enabled = Not getIsFlex()
+        
+    txtStrike.Enabled = getIsFlex
+    dtpExpiry.Enabled = getIsFlex
+    cmbOptionType.Enabled = getIsFlex
+    cmbExerciseStyle.Enabled = getIsFlex
+    cmbSettlementType.Enabled = getIsFlex
+    
+End Sub
+
+Private Function HookTradeSubmit() As Boolean
+    On Error GoTo error_handler
+    '--------------------------'
+        HookTradeSubmit = False
+    
+        If (getIsFlex) Then
+            Dim new_option As IOptionContract
+            Set new_option = getFlexOptionContract
+            
+            If (Not new_option Is Nothing) Then
+                Set m_NewTrd.Opt = new_option
+                Set m_NewTrd.OptRoot = new_option.Root
+                Set m_NewTrd.Contract = new_option
+                
+                HookTradeSubmit = True
+            End If
+        End If
+        
+    Exit Function
+error_handler:
+    Debug.Print "Error while hook flex contract submit. Error: " & Err.Description
+End Function

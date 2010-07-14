@@ -15,7 +15,8 @@ STDMETHODIMP CMmHsUndAtom::ClearValues()
 STDMETHODIMP CMmHsUndAtom::CalcGreeks( LONG nGreekMask, EtsCalcModelTypeEnum enCalcModel, 
 									  VARIANT_BOOL vbVegaWeighted, VARIANT_BOOL bUseTheoVolatility, 
 									  VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket, 
-									  DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule)
+									  DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
+									  ICalculationParametrs* pParams)
 {
 	try
 	{
@@ -67,10 +68,12 @@ STDMETHODIMP CMmHsUndAtom::CalcGreeks( LONG nGreekMask, EtsCalcModelTypeEnum enC
 						aGreeks.nMask = nGreekMask;
 
 						DOUBLE  dOptBid = 0., dOptAsk = 0., dOptLast = 0., dOptPrice = 0.;
+						DATE	dtExpiry = 0.;
 						DOUBLE	dStrike = 0.;
 						DOUBLE	dOptVola = 0.;
 						DOUBLE	dOptBidForIv = 0.;
 
+						__CHECK_HRESULT3(spOptAtom->get_Expiry(&dtExpiry) );
 						__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike) );
 
 						__CHECK_HRESULT3(spOptAtom->get_PriceAsk(&dOptAsk));
@@ -85,13 +88,16 @@ STDMETHODIMP CMmHsUndAtom::CalcGreeks( LONG nGreekMask, EtsCalcModelTypeEnum enC
 						if(aGreeks.nMask != GT_NOTHING)
 						{
 							LONG nDivCount = 0L, nRetCount = 0L;
-							DATE dtTemp = 0., dtExpiryOV = 0., tmCloseTime = 0., dtNow = 0.;
+							DATE dtTemp = 0., dtExpiryOV = 0., tmCloseTime = 0., dtNow = 0., dtExpiryOVOrig = 0.;
 							DOUBLE	dYTE = 0.;
 
 							__CHECK_HRESULT3(spOptAtom->get_ExpiryOV(&dtExpiryOV));
 							__CHECK_HRESULT3(spOptAtom->get_TradingClose(&tmCloseTime));
 							::GetNYDateTimeAsDATE(&dtNow);
 							dYTE = (dtExpiryOV - dtNow) / 365.;
+							dtExpiryOVOrig = dtExpiryOV;
+
+							::GetCalculationParams(dtNow, dtExpiryOV, tmCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtNow, &dtExpiryOV, &tmCloseTime, &dYTE);
 							
 							if (m_spDividend != NULL)
 								nDivCount = 0;
@@ -113,20 +119,26 @@ STDMETHODIMP CMmHsUndAtom::CalcGreeks( LONG nGreekMask, EtsCalcModelTypeEnum enC
 								nDivCount = 0;
 
 							DOUBLE	dRate = 0.;
+							DOUBLE	dHTBRate = BAD_DOUBLE_VALUE;
 							EtsOptionTypeEnum	enOptType;
+							LONG lSurfaceID;
+							LONG lOptionRootID;
 							__CHECK_HRESULT3(spOptAtom->get_Rate(&dRate));
+							__CHECK_HRESULT3(spOptAtom->get_HTBRate(&dHTBRate));
 							__CHECK_HRESULT3(spOptAtom->get_OptType(&enOptType));
+							__CHECK_HRESULT3(spOptAtom->get_OptionRootID(&lOptionRootID));
 
+							lSurfaceID = m_spVolaSrv->GetSurfaceByRoot(lOptionRootID);
 							if (bUseTheoVolatility == VARIANT_TRUE)
 							{
-								dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
+								dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOVOrig, dStrike, lSurfaceID);
 								__CHECK_HRESULT3(spOptAtom->put_Vola(dOptVola) );
 							}
 							else
 							{
 								if (bUseTheoVolaNoBid == VARIANT_TRUE && dOptBidForIv <= 0.)
 								{
-									dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
+									dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOVOrig, dStrike, lSurfaceID);
 									__CHECK_HRESULT3(spOptAtom->put_Vola(dOptVola) );
 								}
 								else
@@ -134,26 +146,26 @@ STDMETHODIMP CMmHsUndAtom::CalcGreeks( LONG nGreekMask, EtsCalcModelTypeEnum enC
 									LONG nFlag = VF_OK;
 									if(dOptPrice > DBL_EPSILON)
 									{
-										dOptVola = ::CalcVolatilityMM3(dRate, m_dYield, BAD_DOUBLE_VALUE, dSpotPrice, dOptPrice, dStrike, 
+										dOptVola = ::CalcVolatilityMM3(dRate, m_dYield, dHTBRate, dSpotPrice, dOptPrice, dStrike, 
 											dYTE, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
 											100L, 0, 0, nModel, &nFlag);
 
 									}
 									else if (bUseTheoVolaBadMarket == VARIANT_TRUE)
 									{
-										dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
+										dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOVOrig, dStrike, lSurfaceID);
 										__CHECK_HRESULT3(spOptAtom->put_Vola(dOptVola) );
 									}
 
 									if (bUseTheoVolaBadMarket == VARIANT_TRUE && nFlag != VF_OK)
 									{
-										dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike);
+										dOptVola = m_spVolaSrv->GetOptionVola(dtExpiryOVOrig, dStrike, lSurfaceID);
 										__CHECK_HRESULT3(spOptAtom->put_Vola(dOptVola) );
 									}
 								}
 							}
 
-							nRetCount = ::CalcGreeksMM2(dRate, m_dYield, BAD_DOUBLE_VALUE, dSpotPrice, dStrike, dOptVola, 
+							nRetCount = ::CalcGreeksMM2(dRate, m_dYield, dHTBRate, dSpotPrice, dStrike, dOptVola, 
 								dYTE, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
 								100L, 0, 0, nModel, &aGreeks);
 

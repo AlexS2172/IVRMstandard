@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "VSFLEX7.OCX"
+Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
 Begin VB.Form frmMatchedTrades 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "ETS Trades Matching"
@@ -117,7 +117,7 @@ Begin VB.Form frmMatchedTrades
       TabBehavior     =   0
       OwnerDraw       =   0
       Editable        =   0
-      ShowComboButton =   -1  'True
+      ShowComboButton =   1
       WordWrap        =   0   'False
       TextStyle       =   0
       TextStyleFixed  =   0
@@ -344,7 +344,7 @@ End Sub
 
 Private Sub UpdateCurrentTradeMatchInfo()
     On Error Resume Next
-    Dim nRow&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, sKey$
+    Dim nRow&, aTrd As EtsGeneralLib.MmTradeInfoAtom, sKey$
     
     With fgTrd
         m_GridLock.LockRedraw
@@ -395,7 +395,7 @@ End Sub
        
 Private Sub ShowCurrentTradeMatchInfo()
     On Error Resume Next
-    Dim nRow&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nCol&
+    Dim nRow&, aTrd As EtsGeneralLib.MmTradeInfoAtom, nCol&
     
     With fgTrd
         m_GridLock.LockRedraw
@@ -435,7 +435,7 @@ Private Sub ShowCurrentTradeMatchInfo()
     End With
 End Sub
 
-Private Sub TradeUpdate(ByVal nRow As Long, aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeUpdate(ByVal nRow As Long, aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     Dim nCol&, sValue$
     
@@ -443,7 +443,7 @@ Private Sub TradeUpdate(ByVal nRow As Long, aTrd As EtsMmGeneralLib.MmTradeInfoA
         m_GridLock.LockRedraw
         
         nCol = .ColIndex(TLC_PRICE)
-        If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.Price
+        If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.price
         
         nCol = .ColIndex(TLC_QTY)
         If nCol >= 0 Then .TextMatrix(nRow, nCol) = aTrd.Quantity

@@ -42,6 +42,7 @@ Public Gamma As Double
 Public Vega As Double
 Public Theta As Double
 Public Rho As Double
+Public RootID As Long
 
 Private Sub Class_Initialize()
     Qty = BAD_LONG_VALUE

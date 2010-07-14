@@ -14,25 +14,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ETSXMLParams", "ETSXMLParams\ETSXMLParams.vcproj", "{56675C68-4493-4C5E-AED4-9510F4AE42C9}"
 EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 4
-		SccProjectName0 = TransportLayer
-		SccLocalPath0 = .
-		SccProvider0 = MSSCCI:ClearCase
-		CanCheckoutShared = false
-		SccProjectUniqueName1 = MMW\\MMW.vcproj
-		SccProjectName1 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MMW\u0022,\u0020PIZCAAAA
-		SccLocalPath1 = MMW
-		CanCheckoutShared = false
-		SccProjectUniqueName2 = MsgStruct\\MsgStruct.vcproj
-		SccProjectName2 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MsgStruct\u0022,\u0020CDZCAAAA
-		SccLocalPath2 = MsgStruct
-		CanCheckoutShared = false
-		SccProjectUniqueName3 = ETSXMLParams\\ETSXMLParams.vcproj
-		SccProjectName3 = SAK
-		SccLocalPath3 = ETSXMLParams
-		CanCheckoutShared = false
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32

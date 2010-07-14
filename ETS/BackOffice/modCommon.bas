@@ -773,6 +773,10 @@ Public Declare Function LoadIcon Lib "user32" Alias "LoadIconA" (ByVal hLib As L
 Public Declare Function LoadString Lib "user32" Alias "LoadStringA" (ByVal hLib As Long, _
         ByVal ResourceID As Long, ByVal lpBuffer As String, ByVal nBufferSize As Long) As Long
 
+Public Function ClipDays(ByVal dtDate As Date) As Date
+    On Error Resume Next
+    ClipDays = TimeSerial(Hour(dtDate), Minute(dtDate), 0)
+End Function
 
 Public Sub LogEvent(ByVal enType As EventTypeEnum, ByVal sMessage As String)
     On Error Resume Next

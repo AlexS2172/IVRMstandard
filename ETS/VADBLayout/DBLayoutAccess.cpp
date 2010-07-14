@@ -529,3 +529,8 @@ STDMETHODIMP CDBLayoutAccess::SaveDualQuadraticProps(BSTR Symbol, long ContractT
 {
 	return E_NOTIMPL;
 }
+
+STDMETHODIMP CDBLayoutAccess::GetVolaSurfaceGroup(BSTR Symbol, _Recordset** ppRecordset)
+{
+	return E_NOTIMPL;
+}

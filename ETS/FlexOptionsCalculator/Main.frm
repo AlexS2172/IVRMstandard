@@ -98,6 +98,7 @@ Attribute MsProvider.VB_VarHelpID = -1
 Private m_hComplete As Long
 Private m_bCorrectClosePrice As Boolean
 Private m_dPriceClose As Double
+Private m_nUndQuotesCount As Long
 
 Private Sub Command1_Click()
     ShutDown True
@@ -150,6 +151,8 @@ Private Function InitGroup(ByVal nGroupID As Long) As Boolean
     
     m_dPriceClose = 0#
     m_bCorrectClosePrice = True
+    
+    
     RequestStock aContract.Symbol, g_Main.Exch(aContract.Und.PrimaryExchangeID).Code
 
     InitGroup = True
@@ -164,7 +167,7 @@ EH:
 End Function
 
 Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
-    On Error Resume Next
+    'On Error Resume Next
     Dim aIdx As EtsGeneralLib.IndexAtom, sKey$
     
     If Grp.ID = 0 Then Exit Sub
@@ -191,22 +194,19 @@ Private Sub InitUnderlying(ByRef aContract As EtsGeneralLib.EtsContractAtom)
         
     Grp.UseCustRates = UseCustRates
     
-    If aContract.Und.UndType = enCtStock Then
+    If (Not aContract.Und.Dividend Is Nothing) Then
         Set Grp.Und.Dividend = aContract.Und.Dividend
-        
         If Grp.Und.Dividend.DivDate = 0 Then Grp.Und.Dividend.DivDate = Date
         If Grp.Und.Dividend.DivDateCust = 0 Then Grp.Und.Dividend.DivDateCust = Date
+    End If
         
-    Else
+    If aContract.Und.UndType = enCtIndex Then
         Grp.Und.Yield = aContract.Und.Yield
         Set Grp.Und.BasketIndex = Nothing
-        Set Grp.Und.Dividend = Nothing
         
         Set aIdx = g_Index(Grp.Und.ID)
         If Not aIdx Is Nothing Then
-            If aIdx.IsBasket Then
-                Set Grp.Und.BasketIndex = aIdx
-            End If
+            Set Grp.Und.BasketIndex = aIdx
             Set aIdx = Nothing
         End If
     End If
@@ -227,7 +227,7 @@ Private Sub InitContracts(ByRef aContract As EtsGeneralLib.EtsContractAtom)
 End Sub
 
 Private Sub InitContractsQuotes(ByRef aContract As EtsGeneralLib.EtsContractAtom)
-    On Error Resume Next
+    'On Error Resume Next
     Dim sKey$, aExch As EtsGeneralLib.ExchAtom
     Dim aReq As clsQvRequestAtom, aQuote As EtsMmQuotesLib.MmQvQuoteAtom
     
@@ -270,6 +270,7 @@ Private Function InitUnderlyingOptions(ByRef aContract As EtsGeneralLib.EtsContr
     Dim aUnd As EtsMmQuotesLib.MmQvUndAtom, aSynthRoot As EtsGeneralLib.SynthRootAtom
     Dim aStrAll As EtsMmQuotesLib.MmQvStrikeAtom, aReq As clsQvRequestAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
     Dim dtExpiryOV As Date, dtTradingClose As Date
+    Dim lSurfaceID As Long
     
     InitUnderlyingOptions = False
     If Grp.ID = 0 Then Exit Function
@@ -375,24 +376,24 @@ Private Function InitUnderlyingOptions(ByRef aContract As EtsGeneralLib.EtsContr
                                 
                                 AddExch aUnd.UndExch, 0, "", "<Primary>"
                                 
-                                Set rsExch = gDBW.usp_MmUnderlyingExchanges_Get(aSyntRootComp.UndID)
-                                Do While Not rsExch.EOF
-                                    nID = ReadLng(rsExch!iExchangeId)
-                                    Set aExch = g_Exch(nID)
-                                    
-                                    If Not aExch Is Nothing Then
-                                        If ReadByte(rsExch!tiIsUnderlying) <> 0 Then
-                                            If Grp.UndExchAll(nID) Is Nothing Then AddExch Grp.UndExchAll, nID, aExch.Code, aExch.Name
-                                            If aUnd.UndExch(nID) Is Nothing Then AddExch aUnd.UndExch, nID, aExch.Code, aExch.Name
-                                        End If
-                                        Set aExch = Nothing
-                                    End If
-                                    
-                                    DoEvents
-                                    If Not m_bDataLoad Then GoTo EX
-                                    rsExch.MoveNext
-                                Loop
-                                Set rsExch = Nothing
+'                                Set rsExch = gDBW.usp_MmUnderlyingExchanges_Get(aSyntRootComp.UndID)
+'                                Do While Not rsExch.EOF
+'                                    nID = ReadLng(rsExch!iExchangeId)
+'                                    Set aExch = g_Exch(nID)
+'
+'                                    If Not aExch Is Nothing Then
+'                                        If ReadByte(rsExch!tiIsUnderlying) <> 0 Then
+'                                            If Grp.UndExchAll(nID) Is Nothing Then AddExch Grp.UndExchAll, nID, aExch.Code, aExch.Name
+'                                            If aUnd.UndExch(nID) Is Nothing Then AddExch aUnd.UndExch, nID, aExch.Code, aExch.Name
+'                                        End If
+'                                        Set aExch = Nothing
+'                                    End If
+'
+'                                    DoEvents
+'                                    If Not m_bDataLoad Then GoTo Ex
+'                                    rsExch.MoveNext
+'                                Loop
+'                                Set rsExch = Nothing
                                 
                                 For Each aExch In aUnd.UndExch
                         
@@ -405,7 +406,7 @@ Private Function InitUnderlyingOptions(ByRef aContract As EtsGeneralLib.EtsContr
                                         sKey = sKey & "." & aExch.Code
                                     End If
                         
-                                    Set aReq = QuoteReqsAll(sKey)
+                                    Set aReq = QuoteReqsAll.Item(sKey)
                                     If aReq Is Nothing Then
                                         Set aReq = QuoteReqsAll.Add(sKey)
                                         Set aReq.Exch = aExch
@@ -493,7 +494,8 @@ Private Function InitUnderlyingOptions(ByRef aContract As EtsGeneralLib.EtsContr
             aOpt.Strike = dStrike
             aOpt.RootID = aPair.RootID
             
-            aOpt.Vola = Grp.Und.VolaSrv.OptionVola(dtExpiryOV, dStrike)
+            lSurfaceID = Grp.Und.VolaSrv.GetSurfaceByRoot(aPair.RootID)
+            aOpt.Vola = Grp.Und.VolaSrv.OptionVola(dtExpiryOV, dStrike, lSurfaceID)
 
             If aOpt.Vola < 0 Then
                 aOpt.Vola = BAD_DOUBLE_VALUE
@@ -515,7 +517,7 @@ Private Function InitUnderlyingOptions(ByRef aContract As EtsGeneralLib.EtsContr
             
             
         Set aOpt.DefQuote = aQuote
-            
+        aQuote.Exch.Visible = True
         aOpt.Quote.Add 0, "", aQuote
         Set aQuote = Nothing
 
@@ -548,12 +550,13 @@ EX:
     Exit Function
 EH:
     'If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load underlying."
+    Debug.Print "Error in InitUnderlyingOptions"
     GoTo EX
 End Function
 
 
 Private Function UnderlyingAdjustRates(ByVal bForceUpdateCustom As Boolean) As Boolean
-    On Error Resume Next
+    'On Error Resume Next
     Dim aExp As EtsMmQuotesLib.MmQvExpAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     Dim bForceRateUpdate As Boolean, aExpColl As EtsMmQuotesLib.MmQvExpColl
     Dim dtNow As Date
@@ -582,56 +585,36 @@ Private Function UnderlyingAdjustRates(ByVal bForceUpdateCustom As Boolean) As B
         Grp.Und.UseMidRates = bUseMidRates
         Grp.Und.UndPosForRates = dPos
         
+        
         If Grp.IsStockOrIndex Then
             Set aExpColl = Grp.Und.Exp
-            For Each aExp In aExpColl
-                If bUseMidRates Then
-                    If Not Grp.Und.IsHTB Then
-                        aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
-                    Else
-                        aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
-                    End If
-                Else
-                    If Not Grp.Und.IsHTB Then
-                        aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                    Else
-                        aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                    End If
-                End If
-                
-                If bForceUpdateCustom Or Not Grp.UseCustRates Then
-                    If CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
-                        aExp.RateCust = aExp.Rate
-                    Else
-                        aExp.RateCust = CustRates(CStr(CLng(aExp.ExpiryMonth))).Data3
-                    End If
-                End If
-            Next
-
         Else
-            For Each aExp In Grp.ExpAll
+            Set aExpColl = Grp.ExpAll
+        End If
+                
+        Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(Grp.Und.ID)
+
+        For Each aExp In aExpColl
                     If bUseMidRates Then
-                        If Not Grp.Und.IsHTB Then
                             aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
                         Else
-                            aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
-                        End If
-                    Else
-                        If Not Grp.Und.IsHTB Then
                             aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                        Else
-                            aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                        End If
                     End If
                     
-                    If bForceUpdateCustom Or Not Grp.UseCustRates Then
-                        If CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
-                            aExp.RateCust = aExp.Rate
-                        Else
-                            aExp.RateCust = CustRates(CStr(CLng(aExp.ExpiryMonth))).Data3
-                        End If
-                    End If
+            If bIsHTBRatesExist Then
+                aExp.HTBRate = GetHTBRate(Grp.Und.ID, dtNow, aExp.ExpiryOV)
+            Else
+                aExp.HTBRate = BAD_DOUBLE_VALUE
+            End If
+            
+'            If bForceUpdateCustom Or Not Grp.UseCustRates Then
+'                If QV.CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
+'                    aExp.RateCust = aExp.Rate
+'                End If
+'            End If
             Next
+        
+        If Grp.IsStockOrIndex = False Then
             For Each aExpAll In Grp.ExpAll
                 For Each aFut In Grp.Und.Fut
                     For Each aExp In aFut.Exp
@@ -644,8 +627,7 @@ Private Function UnderlyingAdjustRates(ByVal bForceUpdateCustom As Boolean) As B
                 Next
             Next
         End If
-        
-        
+                
         UnderlyingAdjustRates = True
     End If
 
@@ -668,6 +650,7 @@ Private Function AddExch(ByRef aExchColl As EtsGeneralLib.ExchColl, ByVal nID As
     aExch.ID = nID
     aExch.Code = sCode
     aExch.Name = sName
+    aExch.Visible = True
     aExchColl.Add aExch.ID, aExch.Code, aExch
     Set AddExch = aExch
 EX:
@@ -762,6 +745,9 @@ Private Sub Form_Load()
     
     m_hComplete = CreateEvent(ByVal 0&, 1, 0, ByVal 0&)
     If m_hComplete <> 0 Then ResetEvent m_hComplete
+    Dim dtCalcDate As Date
+    dtCalcDate = GetNewYorkTime
+    
     
     uc = 0
     For Each u In Und
@@ -794,13 +780,14 @@ Private Sub Form_Load()
             Set aQuote.Exch = aExch
             
             Grp.Und.Quote.Add 0, "", aQuote
+            Grp.Und.SetDirty
             
             Grp.Und.CalcAllOptions GM_THEOPRICE, GM_THEOPRICE, _
                                     enMmQvCalcIvNone, enMmQvCalcIvNone, _
                                     enCmBinomial, _
                                     True, False, False, _
                                     True, Nothing, 0.05, 0, _
-                                    False, 0, 0, GetNewYorkTime
+                                    False, 0, 0, dtCalcDate, False, True, g_Main.CalculationParametrs
             
             'save theo price as close price
             o = 0
@@ -814,7 +801,7 @@ Private Sub Form_Load()
             tbLog.Text = tbLog.Text + vbNewLine
             
         ElseIf (m_bCorrectClosePrice = False) Then
-            tbLog.TabIndex = tbLog.Text + "Wrong close price for: " + Grp.Und.Symbol + vbNewLine
+            tbLog.Text = tbLog.Text + "Wrong close price for: " + Grp.Und.Symbol + vbNewLine
         End If
         
         Grp.Und.Opt.Clear
@@ -843,6 +830,7 @@ On Error GoTo ErrHandler
     sParams.Exchange = StockExchange
                 
     MsProvider.RequestStock sParams
+    
     
     DoEvents
     
@@ -901,7 +889,8 @@ ErrHandler:
 End Sub
 
 Private Sub MsProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNumberEnum, ByVal Description As String, ByVal ReqType As PRICEPROVIDERSLib.RequestsTypeEnum, ByVal Request As Variant)
-    tbLog.TabIndex = tbLog.Text + "Unable to request symbol: " + Description + vbNewLine
+On Error Resume Next
+    tbLog.Text = tbLog.Text + "Unable to request symbol: " + Description + vbNewLine
     m_bCorrectClosePrice = False
     SetEvent m_hComplete
 End Sub

@@ -14,7 +14,11 @@
 
 #include "_IMmRiskViewEvents_CP.h"
 
+#include "../cv/cvCV.h"
+
 _COM_SMARTPTR_TYPEDEF(IMmRiskView, __uuidof(IMmRiskView));
+
+class CMmRiskView;
 
 struct null_deleter
 {
@@ -23,109 +27,22 @@ struct null_deleter
 	}
 };
 
-//class CRiskViewSort
-//{
-//public:
-//	CRiskViewSort( EtsSortingEnum enSortType, const std::vector<RisksPosColumnEnum>& vecSortFields) :
-//		 m_enSortType(enSortType)
-//	{
-//		m_vecSortFields = vecSortFields;
-//	}
-//
-//
-//private:
-//	EtsSortingEnum							m_enSortType;
-//	std::vector<RisksPosColumnEnum>	m_vecSortFields;		// aggregation fields
-//
-//public:
-//
-//	// return -1 when field sPtr1 less    than field in sPtr2
-//	// return  0 when field sPtr1 equal   than field in sPtr2
-//	// return  1 when field sPtr1 greater than field in sPtr2
-//	long CompareFields( const IMmRvRowDataPtr& sPtr1,  const IMmRvRowDataPtr& sPtr2)
-//	{
-//		CMmRvRowData* pPtr1 = static_cast<CMmRvRowData*>(sPtr1.GetInterfacePtr());
-//		CMmRvRowData* pPtr2 = static_cast<CMmRvRowData*>(sPtr2.GetInterfacePtr());
-//
-//		if(pPtr1 && pPtr2 ){
-//			// Underlying aggregation row ALWAYS > Aggregation row > Position row
-//			if ( pPtr1->m_Type > pPtr2->m_Type) 
-//				return enSortDescending ? -1 : 1;
-//			if ( pPtr1->m_Type < pPtr2->m_Type) 
-//				return enSortDescending ? 1 : -1;
-//		}
-//		_variant_t vt1;
-//		_variant_t vt2;
-//		if(pPtr1 && pPtr2 && !m_vecSortFields.empty() )	{
-//			for (size_t i = 0; i < m_vecSortFields.size(); i++) {
-//				bool bvt1 = pPtr1->GetField(m_vecSortFields[i], vt1, true);
-//				bool bvt2 = pPtr2->GetField(m_vecSortFields[i], vt2, true);
-//				if(bvt1 && bvt2 && vt1 != vt2)	{
-//					switch(vt1.vt)	{
-//					case VT_I2:
-//						return (V_I2(&vt1) < V_I2(&vt2)) ? -1 :
-//							((V_I2(&vt1) > V_I2(&vt2)) ?  1 : 0);
-//						break;
-//					case VT_I4:
-//						return (V_I4(&vt1) < V_I4(&vt2)) ? -1 :
-//							((V_I4(&vt1) > V_I4(&vt2)) ?  1 : 0);
-//						break;
-//					case VT_R4:
-//						return (V_R4(&vt1) < V_R4(&vt2)) ? -1 :
-//							((V_R4(&vt1) > V_R4(&vt2)) ?  1 : 0);
-//						break;
-//					case VT_R8:
-//						return (V_R8(&vt1) < V_R8(&vt2)) ? -1 :
-//							((V_R8(&vt1) > V_R8(&vt2)) ?  1 : 0);
-//						break;
-//					case VT_DATE:
-//						return (V_DATE(&vt1) < V_DATE(&vt2)) ? -1 :
-//							((V_DATE(&vt1) > V_DATE(&vt2)) ?  1 : 0);
-//						break;
-//					case VT_BSTR:
-//						return wcscmp(V_BSTR(&vt1) , V_BSTR(&vt2));
-//					default:
-//						{
-//							_bstr_t bsT1(vt1);
-//							_bstr_t bsT2(vt2);
-//							return bsT1 < bsT2? -1:(bsT1 > bsT2? 1:0);
-//						}
-//					}
-//				}
-//			}
-//		}
-//
-//		return false;
-//	}
-//
-//	//void	SetSortColumn(RisksPosColumnEnum Column) { m_enSortField = Column;}
-//	bool operator()(const IMmRvRowDataPtr& sPtr1,  const IMmRvRowDataPtr& sPtr2)
-//	{
-//		long lUnd = CompareFields(sPtr1, sPtr2);
-//		if( lUnd == -1 )
-//			return m_enSortType==enSortDescending?true:false;
-//		if( lUnd == 1  )
-//			return m_enSortType==enSortDescending?false:true;
-//
-//		return false;
-//	}
-//};
-
 class CRiskViewFieldSort
 {
 public:
-	CRiskViewFieldSort(RisksPosColumnEnum enColumn, EtsSortingEnum enSortType)
+	CRiskViewFieldSort(RisksPosColumnEnum enColumn, EtsSortingEnum enSortType, CMmRiskView* view)
 		: m_enSortField(enColumn)
 		, m_enSortType(enSortType)
+		, m_view(view)
 	{
 
 	}
 
 
 private:
-	RisksPosColumnEnum     m_enSortField;
-	EtsSortingEnum		   m_enSortType;
-
+	RisksPosColumnEnum		m_enSortField;
+	EtsSortingEnum			m_enSortType;
+	CMmRiskView*			m_view;
 public:
 
 	// return -1 when field sPtr1 less    than field in sPtr2
@@ -140,8 +57,8 @@ public:
 
 		if(pPtr1 && pPtr2)
 		{
-			_variant_t vt1;  bvt1 = pPtr1->GetField(enField, vt1, true);
-			_variant_t vt2;  bvt2 = pPtr2->GetField(enField, vt2, true);
+			_variant_t vt1;  bvt1 = pPtr1->GetField(m_view, enField, vt1, true);
+			_variant_t vt2;  bvt2 = pPtr2->GetField(m_view, enField, vt2, true);
 
 			if(bvt1 && bvt2)
 			{
@@ -189,21 +106,12 @@ public:
 public:
 	bool operator()(const IMmRvRowDataPtr& sPtr1,  const IMmRvRowDataPtr& sPtr2)
 	{
-	/*	long lUnd = CompareFields(RPC_UND, sPtr1, sPtr2);
-		if( lUnd == -1 )
+		
+		long lCompare = CompareFields(m_enSortField, sPtr1, sPtr2);
+		if( lCompare == -1 )
 			return m_enSortType==enSortDescending?true:false;
-		if( lUnd == 1  )
+		if( lCompare == 1  )
 			return m_enSortType==enSortDescending?false:true;
-
-		if(RPC_UND != m_enSortField)*/
-		{
-			long lCompare = CompareFields(m_enSortField, sPtr1, sPtr2);
-			if( lCompare == -1 )
-				return m_enSortType==enSortDescending?true:false;
-			if( lCompare == 1  )
-				return m_enSortType==enSortDescending?false:true;
-			return false;
-		}
 		return false;
 	}
 };
@@ -238,9 +146,7 @@ public:
 		:m_pIdx(NULL)
 		,m_pGrp(NULL)
 		,m_pUnd(NULL)
-		//,m_pStrategy(NULL)
 		,m_pQuoteReqsAll(NULL)
-		//,m_pGroups(NULL)
 		,m_pExpTotal(NULL)
 		,m_lUndCount(0L)
 		,m_lOptCount(0L)
@@ -279,6 +185,10 @@ END_CONNECTION_POINT_MAP()
 	{
 		try
 		{
+			__Realtime = __RealtimeCalculateCv = false;
+
+			m_spCvRTContext = NULL;
+
 			_CHK(CComObject<CMmRvUndAtom>::CreateInstance(&m_pIdx), _T("Fail to create Index"));
 			m_spIdx.Attach(m_pIdx, TRUE);
 
@@ -291,19 +201,12 @@ END_CONNECTION_POINT_MAP()
 			_CHK(CComObject<CMmRvReqColl>::CreateInstance(&m_pQuoteReqsAll), _T("Fail to create Quotes reqest Collection"));
 			m_spQuoteReqsAll.Attach(m_pQuoteReqsAll, TRUE);
 
-			/*_CHK(CComObject<CMmRvStrategyColl>::CreateInstance(&m_pStrategy), _T("Fail to create Strategy Collection"));
-			m_spStrategy.Attach(m_pStrategy, TRUE);*/
-
-
-			/*_CHK(CComObject<CMmRvGroupColl>::CreateInstance(&m_pGroups), _T("Fail to create Groups Collection"));
-			m_spGroups.Attach(m_pGroups, TRUE);*/
-
 			_CHK(CComObject<CMmRvExpTotalColl>::CreateInstance(&m_pExpTotal), _T("Fail to create Expirations Totals"));
 			m_spExpTotal.Attach(m_pExpTotal, TRUE);
 
 			_CHK(m_spExp.CreateInstance(__uuidof(EtsMmEntityAtomColl)), _T("Fail to create Expirations Collection"));
 
-			_CHK(CoCreateFreeThreadedMarshaler(GetControllingUnknown(), &m_pUnkMarshaler.p));
+			return CoCreateFreeThreadedMarshaler(GetControllingUnknown(), &m_pUnkMarshaler.p);
 		}
 		catch (_com_error& e)
 		{
@@ -314,17 +217,27 @@ END_CONNECTION_POINT_MAP()
 	
 	void FinalRelease() 
 	{
+
+		__Realtime = __RealtimeCalculateCv = false;
+
 		m_spIdx= NULL ;
 		m_spGrp= NULL ;
 		m_spUnd= NULL ;
-		//m_spStrategy= NULL ;
 		m_spQuoteReqsAll= NULL ;
 		m_spVolatilitySource= NULL ;
 		m_spExp= NULL ;
-		//m_spGroups= NULL ;
 		m_spExpTotal= NULL ;
 
+		m_Rows.clear();
+
+		if (m_spCvRTContext)
+			m_spCvRTContext->Clear();
+
+		m_spCvRTContext = NULL;
+
 		m_pUnkMarshaler.Release();
+
+		__SimulationScenario = NULL;
 	}
 
 private:
@@ -339,37 +252,8 @@ private:
 	HRESULT InitPositionSynthetics(CMmRvUndAtom* pUndAtom, CMmRvPosAtom *pPosAtom, IMmRvReqColl* pNewReqsAll = NULL);
 	void InitVola(CMmRvUndAtom* pUnd);
 	void AppendTradeToPosition(IMmRvPosAtomPtr& spPosAtom,const IMmTradeInfoAtomPtr& spTradeAtom);
-	//HRESULT _AddPositionToStrategy(CMmRvUndAtom* pUndAtom, CMmRvStrategyColl* pStrategy, long lStrategyId, _bstr_t bsStrategyName, IMmTradeInfoAtomPtr spTradeAtom, CMmRvPosAtom* pPosAtom);
 	HRESULT _RemoveOldTradeFromPosition(CMmRvUndAtom* pUnd, /*CMmRvStrategyAtom*,*/ IMmRvPosAtom* pPosAtom, IMmTradeInfoAtom* pTrd);
 
-	//IMmRvPosAtomPtr  _AddNewSynthPosition(CMmRvStrategyAtom* pStrategy, CMmRvUndAtom* pUndAtom);
-	/*void	AggregateRows	(
-									IMmRvRowDataPtr& spAggRow, 
-									CRowsData::reverse_iterator& itrFirst, 
-									CRowsData::reverse_iterator& itrLast,
-									RisksPosColumnEnum aggClmn,
-									unsigned outlineLevel,
-									DOUBLE dUndPriceToleranceValue = 0., 
-									EtsPriceRoundingRuleEnum enPriceRoundingRule = enPrrRoundNone
-								);
-	void	AggregateByDate	(
-										shared_ptr<__MmRvAggregationData>& spAgg,
-										CRowsData::reverse_iterator& itrFirst,
-										CRowsData::reverse_iterator& itrLast,
-										RisksPosColumnEnum aggClmn,
-										unsigned outlineLevel,
-										DOUBLE dUndPriceToleranceValue = 0., 
-										EtsPriceRoundingRuleEnum enPriceRoundingRule = enPrrRoundNone 
-									);
-	void	Aggregate	(
-								shared_ptr<__MmRvAggregationData>& spAgg,
-								CRowsData::reverse_iterator& itrFirst,
-								CRowsData::reverse_iterator& itrLast,
-								RisksPosColumnEnum aggClmn ,
-								unsigned outlineLevel,
-								DOUBLE dUndPriceToleranceValue = 0., 
-								EtsPriceRoundingRuleEnum enPriceRoundingRule = enPrrRoundNone
-							);*/
 private:
 	CRowsData    m_Rows;
 
@@ -378,23 +262,20 @@ private:
 	IMmRvUndAtomPtr			m_spIdx;
 	IMmRvGrpAtomPtr			m_spGrp;
 	IMmRvUndCollPtr			m_spUnd;
-	//IMmRvStrategyCollPtr	m_spStrategy;
 	IMmRvReqCollPtr			m_spQuoteReqsAll;
 	IVolatilitySourcePtr	m_spVolatilitySource; 
 	IEtsMmEntityAtomCollPtr m_spExp;
-	//IMmRvGroupCollPtr       m_spGroups;
 	IMmRvExpTotalCollPtr    m_spExpTotal;
 
 	CComPtr<IUnknown>		m_pUnkMarshaler;
 
-	IEtsMainPtr				  m_spEtsMain;
+	IEtsMainPtr				m_spEtsMain;
+	IMmTradeChannelPtr		m_spTradesCache;
 
 	CComObject<CMmRvUndAtom>*		m_pIdx;
 	CComObject<CMmRvGrpAtom>*		m_pGrp;
 	CComObject<CMmRvUndColl>*		m_pUnd;
-	//CComObject<CMmRvStrategyColl>*  m_pStrategy;
 	CComObject<CMmRvReqColl>*		m_pQuoteReqsAll;
-	//CComObject<CMmRvGroupColl>*		m_pGroups;
 	CComObject<CMmRvExpTotalColl>*	m_pExpTotal;
 
 	long m_lUndCount;
@@ -406,7 +287,7 @@ private:
 	RiskViewModeEnum m_enViewMode;
 
 	long					m_lVisibleColumns;
-	long					m_ColumnsEncoding[RPC_COLUMN_COUNT];
+	long					m_ColumnsEncoding[512/*RPC_COLUMN_COUNT*/];
 
 	_bstr_t                   m_bsConnectionString;
 	EgLib::CDBConnection	  m_Connection;
@@ -417,10 +298,9 @@ public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvGrpAtom*,			Grp,			m_spGrp)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvUndColl*,			Und,			m_spUnd)
 	IMPLEMENT_OBJECT_PROPERTY(		  IEtsMain*,				EtsMain,		m_spEtsMain)
+	IMPLEMENT_OBJECT_PROPERTY(		  IMmTradeChannel*,			TradesCache,	m_spTradesCache)
 	IMPLEMENT_OBJECT_PROPERTY(IVolatilitySource*,				VolaSource,		m_spVolatilitySource)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IEtsMmEntityAtomColl*,	Exp,			m_spExp)
-	//IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvStrategyColl*,		Strategy,		m_spStrategy)
-	//IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvGroupColl*,			PositionsGroup, m_spGroups)		
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvExpTotalColl*,		ExpTotal,		m_spExpTotal)		
 
 	IMPLEMENT_SIMPLEREADONLY_PROPERTY(LONG,	OptionPositions, m_nOptPositions)
@@ -463,6 +343,9 @@ public:
 	STDMETHOD(PositionsLoad)(IN IMmTradeInfoColl* pTradesColl);
 	IMPLEMENT_BSTRT_PROPERTY(ConnectionString, m_bsConnectionString);
 	STDMETHOD (SaveTheoPricesAsClose)(IN IMmTradeInfoColl* pTradesColl = NULL);
+
+	STDMETHOD(FitToMarketVolatility)();
+
 	STDMETHOD(AddOpositSymbol)( LONG ContractID , LONG ContractOfOposit );
 	STDMETHOD(AddNewPosition)(IN IMmTradeInfoAtom* pTradeAtom, IN IMmRvUndAtom* pUndAtom, IN IMmRvReqColl* pRequestColl, LONG lOptionOposit, VARIANT_BOOL bUpdateVola, OUT IMmRvPosAtom** ppPosition)
 	{
@@ -530,16 +413,8 @@ public:
 					LONG* pnOptUpdated,
 					LONG* pnUndUpdated,
 					LONG* pnFutUpdated,
-					DATE dtCalcDate);
-
-	/*STDMETHOD(CalcStrategies)(	IN VARIANT_BOOL bIsPnlLTD,
-								IN VARIANT_BOOL bUseTheoVolatility,
-								IN VARIANT_BOOL bUseTheoVolaNoBid,
-								IN VARIANT_BOOL bUseTheoVolaBadMarket,
-								IN DOUBLE dUndPriceTolerance,
-								IN enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
-								IN DATE dtCalcDate);*/
-
+					DATE dtCalcDate,
+					ICalculationParametrs* pParams);
 
 public:
 	STDMETHOD(AddNewActiveFutures)(IMmRvUndAtom* spUndAtom, IMmRvReqColl* pRequests);
@@ -595,16 +470,6 @@ public:
 					CMmRvAggData::IsAggregationRowVisible(pRowData->m_pAgg.get()) 
 					)
 				{
-					/*_bstr_t Key	=	pRowData->m_pUnd->m_bstrSymbol +
-										( 
-											pRowData->m_pAggregation ?
-											(
-												pRowData->m_pAggregation->m_pParent ?
-												( pRowData->m_pAggregation->m_pParent->m_bstrSymbol + pRowData->m_pAggregation->m_bstrSymbol ):
-												pRowData->m_pAggregation->m_bstrSymbol
-											) :
-											_bstr_t(L" " )
-										);*/
 					m_mapExpandedRows[pRowData->m_pAgg->internalName_] = 1;
 				}
 			}
@@ -636,6 +501,302 @@ public:
 			m_pUnd->SetDirty();
 		return S_OK;
 	}
+
+	STDMETHOD(LoadPositions)(IN IEtsFilterData* spFilter);
+
+	//-------------------------------------------------------//
+	IcvRTContextPtr			m_spCvRTContext;
+	LONG					m_lContextID;
+
+	LONG					*m_lCvLevels;
+
+	//LONG					m_nGrpLevelID; //= 1
+	//LONG					m_nUndLevelID; //= 2
+	//LONG					m_nOptLevelID; //= 3
+
+	LONG					**m_lcvLevelIDs; //1 = optIDs, 2 = grpIDs
+	
+	//LONG					m_cvOptIDs As Collection
+	//LONG					m_cvGrpIDs As Collection
+	
+	LONG&	getCvLevelIdImpl(CvLevelEnum enLevel){
+		try{
+			return m_lCvLevels[static_cast<LONG>(enLevel)];
+		}
+		catch (...){
+			throw;			
+		}
+	};
+	
+	typedef std::map<LONG/*columnID*/, LONG/*cvID*/> column2cv;
+	typedef column2cv::iterator column2cv_iterator;
+	typedef std::map<LONG/*CvLevelEnum*/, column2cv> view_levels;
+	typedef view_levels::iterator view_level_iterator;
+	view_levels viewLevels;
+
+	void
+	getConnectionString(BSTR& ConnectionString){
+		try {
+			_CHK(m_spEtsMain->get_DatabaseString(&ConnectionString), 
+				_T("Fail to get Connection String."));
+		}
+		catch(...){
+			throw;
+		}
+	};
+
+	LONG
+	getContextID(std::string ContextName){
+
+		try{
+
+			BSTR bsDBConnectionString = NULL;
+			getConnectionString(bsDBConnectionString);		
+
+			CDBConnection	m_DbConnection;
+			if(!m_DbConnection.IsOpened())
+				m_DbConnection.Open(_bstr_t(bsDBConnectionString), 10, 120, 300, 300);
+
+			/*init request*/
+			CStoredProc<> sp(m_DbConnection, L"usp_cvContextID_Get");
+
+			/*Set procedure params*/
+			sp << _bstr_t(ContextName.c_str());
+
+			/*execute query*/
+			sp.Execute();
+			
+			return static_cast<LONG>(sp.GetResult());
+		}
+		catch (...){
+			throw;
+		}
+		return 0L;
+	};
+
+	LONG
+	InitializeCvContextImpl(std::string ContextName){
+		try{
+
+			_CHK(m_spCvRTContext.CreateInstance(__uuidof(cvRTContext)),
+				_T("Fail to create cvRTConext."));
+
+			long levels_count = (m_enViewMode == RV_GREEKS) ? CVLEVEL_COUNT : CVLEVEL_COUNT - 2;
+
+			m_lCvLevels = new LONG [levels_count];
+
+			LONG m_lContextID = getContextID ( ContextName );
+			if (m_lContextID == 0L){
+				return 0L;
+			}
+			else{		
+				BSTR bsDBConnectionString = NULL;
+				getConnectionString (bsDBConnectionString);
+
+				_CHK(m_spCvRTContext->put_ConnectionString(bsDBConnectionString), 
+					_T("Fail to set ConnectionString to cvRTContext."));
+
+				_CHK(m_spCvRTContext->raw_InitContext(m_lContextID),
+					_T("InitContext failure."));
+
+				std::string levelName = "Totals";
+				_CHK(m_spCvRTContext->raw_GetLevelIDByName((BSTR)_bstr_t(levelName.c_str()), 
+															&m_lCvLevels[CVLEVEL_GRP]),
+					_T("Fail to get level ID for TOTATLS."));
+
+				levelName = "Underlyings";
+				_CHK(m_spCvRTContext->raw_GetLevelIDByName((BSTR)_bstr_t(levelName.c_str()), 
+															&m_lCvLevels[CVLEVEL_UND]),
+					_T("Fail to get level ID for UNDERLYINGS."));
+
+				levelName = "Positions";
+				_CHK(m_spCvRTContext->raw_GetLevelIDByName((BSTR)_bstr_t(levelName.c_str()), 
+															&m_lCvLevels[CVLEVEL_POS]),
+					_T("Fail to get level ID for POSITIONS."));
+				
+				if (m_enViewMode == RV_GREEKS){
+
+					levelName = "GroupingTotals";
+					_CHK(m_spCvRTContext->raw_GetLevelIDByName((BSTR)_bstr_t(levelName.c_str()), 
+																&m_lCvLevels[CVLEVEL_EXPIRY_TOTAL]),
+						_T("Fail to get level ID for ASSET EXPIRY."));
+
+					levelName = "Grouping";
+					_CHK(m_spCvRTContext->raw_GetLevelIDByName((BSTR)_bstr_t(levelName.c_str()), 
+																&m_lCvLevels[CVLEVEL_EXPIRY_ASSET]),
+						_T("Fail to get level ID for EXPIRY TOTAL."));
+				};
+
+				for (long i = 0; i < levels_count; i++){
+					if (m_lCvLevels[i] == 0){
+						_CHK(m_spCvRTContext->raw_Halt(), 
+							_T("Fail to Halt cvRTContext."));
+
+						return 0L;
+					}
+				}
+
+				return 1L;
+			};
+		}
+		catch (...){
+			throw;
+		}
+
+		return 0L;
+	};
+
+	LONG
+	setCvID2ColumnImpl(CvLevelEnum enCvLevel, LONG cvID, LONG columnID){
+		(viewLevels[static_cast<LONG>(enCvLevel)])[columnID] = cvID;
+		return 1L;
+	};
+
+	LONG
+	getCvIDbyColumnImpl(CvLevelEnum enCvLevel, LONG columnID){
+		return (viewLevels[static_cast<LONG>(enCvLevel)])[columnID];
+	};
+
+	LONG
+	getIsCvInitializedImpl(CvLevelEnum cvLevel, LONG cvID){
+		
+		view_level_iterator it = viewLevels.begin();
+		view_level_iterator itEnd = viewLevels.end();
+		
+		it = viewLevels.find(cvLevel);
+		if (it != itEnd){
+			column2cv& columns = it->second;
+
+			column2cv_iterator itC = columns.begin();
+			column2cv_iterator itCEnd = columns.end();
+
+			for (;itC != itCEnd; itC++){
+				if (itC->second == cvID)
+					return 1L;
+			}
+		}
+		return 0L;
+	};
+
+	STDMETHOD(InitializeCvContext)(BSTR ContextName){
+		HRESULT hrStatus = S_OK;
+		try{
+
+			char* contextNamePtr = _com_util::ConvertBSTRToString(ContextName);	
+			std::string contextName(contextNamePtr);
+			delete [] contextNamePtr;
+
+			hrStatus = InitializeCvContextImpl(contextName) != 1L ? E_FAIL : S_OK;
+		}
+		catch(...){
+			throw;
+		};
+		return hrStatus;
+	};
+
+	
+	STDMETHOD(setCvID2Column)(	CvLevelEnum cvLevel,
+								LONG columnID,
+								LONG cvID)
+	{
+		HRESULT hrStatus = S_OK;
+		try{
+			hrStatus = setCvID2ColumnImpl(cvLevel, cvID, columnID) != 1 ? E_FAIL : S_OK;
+		}
+		catch(...){
+			throw;
+		};
+		return hrStatus;
+	};
+
+	STDMETHOD(getCvIDbyColumn)(	CvLevelEnum cvLevel,
+								LONG columnID,
+								LONG* cvID)
+	{
+		HRESULT hrStatus = S_OK;
+		try{
+			if (cvID == NULL)
+				return E_POINTER;
+
+			*cvID = getCvIDbyColumnImpl(cvLevel, columnID);
+		}
+		catch(...){
+			throw;
+		};
+		return hrStatus;
+	};
+
+	STDMETHOD(getCvLevelID) (	CvLevelEnum cvLevel,
+								LONG* levelID)
+	{
+		HRESULT hrStatus = S_OK;
+		
+		try {
+			if (levelID == NULL)
+				return E_POINTER;
+
+			*levelID = getCvLevelIdImpl(cvLevel);
+		}
+		catch (...) {
+			throw;
+		}
+		return hrStatus;
+	};
+
+	STDMETHOD(getIsCvInitialized) (	CvLevelEnum cvLevel,
+									LONG cvID,
+									LONG* isInit)
+	{
+		HRESULT hrStatus = S_OK;
+
+		try {
+			if (isInit == NULL)
+				return E_POINTER;
+
+			*isInit = getIsCvInitializedImpl(cvLevel, cvID);
+		}
+		catch (...){
+			throw;
+		}
+		return hrStatus;
+	};
+
+	IMPLEMENT_OBJECTREADONLY_PROPERTY(IcvRTContext*, cvRTContext, m_spCvRTContext)
+	
+
+	STDMETHOD(setRealtime)(VARIANT_BOOL Flag)
+	{
+		HRESULT hrStatus = S_OK;
+
+		try {
+			__Realtime = (Flag == VARIANT_TRUE ? true : false); 
+		}
+		catch (...){
+			throw;
+		}
+		return hrStatus;
+	};
+
+	STDMETHOD(setRealtimeCalculateCv)(VARIANT_BOOL Flag)
+	{
+		HRESULT hrStatus = S_OK;
+
+		try {
+			__RealtimeCalculateCv = (Flag == VARIANT_TRUE ? true : false); 
+		}
+		catch (...){
+			throw;
+		}
+		return hrStatus;
+	};
+
+	IMPLEMENT_OBJECT_PROPERTY(IMarketSimulationScenario*, SimulationScenario, __SimulationScenario)
+
+private:
+	bool	__Realtime;
+	bool	__RealtimeCalculateCv;
+	IMarketSimulationScenarioPtr	__SimulationScenario;
+	//-------------------------------------------------------//
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmRiskView), CMmRiskView)

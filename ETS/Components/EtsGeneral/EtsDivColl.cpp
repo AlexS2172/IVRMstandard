@@ -332,7 +332,7 @@ STDMETHODIMP CEtsDivColl::GetDividendCount2(DATE dtNow, DATE dtExpiryOV, DATE dt
 				m_spHolidays->GetPreviousWorkingDate(dtDate, &dtPWDate);
 
 			dtPWDate += dtCloseTime;
-			if ( dtPWDate >= dtNow && dtPWDate < dtExpiryOV )
+			if ( dtPWDate > dtNow && dtPWDate < dtExpiryOV )
 				++lCount;
 		}
 
@@ -382,7 +382,7 @@ STDMETHODIMP CEtsDivColl::GetDividends2(DATE dtNow, DATE dtExpiryOV, DATE dtClos
 
 			dtPWDate += dtCloseTime;
 
-			if (dtPWDate >= dtNow && dtPWDate < dtExpiryOV){
+			if (dtPWDate > dtNow && dtPWDate < dtExpiryOV){
 
 				dDivDate = (dtPWDate - dtNow) / OPM::cdDaysPerYear365;
 				spDates[lCurDiv]	= dDivDate;
@@ -435,7 +435,7 @@ STDMETHODIMP CEtsDivColl::GetNearest2( DATE dtNow, DATE dtExpiryOV, DATE dtClose
 
 			dtPWDate += dtCloseTime;
 
-			if (dtPWDate >= dtNow && dtPWDate < dtExpiryOV)
+			if (dtPWDate > dtNow && dtPWDate < dtExpiryOV)
 			{
 				*pdDivAmount = dCurAmount;	
 				*pdDivDate = dtPWDate;
@@ -454,3 +454,47 @@ STDMETHODIMP CEtsDivColl::GetNearest2( DATE dtNow, DATE dtExpiryOV, DATE dtClose
 	}
 	return hr;
 }
+//------------------------------------------------------------------------------------------------------
+STDMETHODIMP CEtsDivColl::Reload(void)
+{
+	try
+	{
+		CDBConnection	dbConnection;
+
+		if(!dbConnection.IsOpened())
+			dbConnection.Open(CGenegalSettings::GetDBConnectionString(), 10, 120, 300, 300);
+
+		if (dbConnection.IsOpened())
+		{
+			Clear();
+			CStoredProc<> db(dbConnection, L"usp_Dividends_Get");
+			
+			//push parameters
+			db << m_nAssetID;
+
+			CClientRecordset rs;
+			rs.Open(db);
+
+			DATE dtDividendDate;
+			DOUBLE dDividendAmmount;
+			for(rs.MoveFirst(); !rs.IsEOF(); ++rs) 
+			{
+				dtDividendDate = (vt_date)rs[L"DivYtes"];
+				dDividendAmmount = rs[L"DivAmnt"];
+				_CHK(AddNonUnique(dtDividendDate, dDividendAmmount), _T("Fail to Add Dividend payment date."));
+			};
+
+			dbConnection.Close();
+		};
+	}
+	catch (_com_error& err)
+	{
+		TRACE_COM_ERROR(err);
+	}
+	catch (...)
+	{
+		TRACE_UNKNOWN_ERROR();
+	}
+	return S_OK;
+}
+//------------------------------------------------------------------------------------------------------

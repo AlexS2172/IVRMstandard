@@ -389,3 +389,21 @@ IEtsDivCollPtr CEtsIndexDivColl::GetCachedDividends2(DATE dtNow, DATE dtExpiryOV
 	}
 	return m_spCustomDivsCache;
 }
+//------------------------------------------------------------------------------------------------------
+STDMETHODIMP CEtsIndexDivColl::Reload(void)
+{
+	IEtsIndexDivAtomPtr spDivAtom = NULL;
+	EnumIterType iter = m_coll.begin();
+	EnumIterType iterEnd = m_coll.end();
+
+	for (; iter != iterEnd; ++iter)
+	{
+		spDivAtom = iter->second;
+		if (static_cast<bool>(spDivAtom))
+		{
+			spDivAtom->Reload();
+		}
+	}
+	return S_OK;
+}
+//------------------------------------------------------------------------------------------------------

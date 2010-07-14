@@ -48,7 +48,8 @@ Public Sub Init(ByVal aCaption As String, _
                 ByVal aVisible As Boolean, _
                 ByVal aCanChangeVisible As Boolean, _
                 Optional ByVal aDescriptionAlt1 As String = "", _
-                Optional ByVal aDescriptionAlt2 As String = "")
+                Optional ByVal aDescriptionAlt2 As String = "", _
+                Optional ByVal aSupportSimulation As Boolean = False)
 
     Caption = aCaption
     Description = aDescription

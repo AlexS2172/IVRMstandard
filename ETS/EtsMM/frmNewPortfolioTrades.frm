@@ -237,9 +237,9 @@ Private m_nStrategyID As Long
 Private m_nBrokerID As Long
 Private m_nClearingBrokerID As Long
 Private m_bInitNow As Boolean
-Private m_Trades As EtsMmGeneralLib.MmTradeInfoColl
+Private m_Trades As EtsGeneralLib.MmTradeInfoColl
 
-Public Function Execute(ByRef collTrades As EtsMmGeneralLib.MmTradeInfoColl, _
+Public Function Execute(ByRef collTrades As EtsGeneralLib.MmTradeInfoColl, _
                         ByRef frmOwner As Form) As VbMsgBoxResult
     On Error GoTo EH
     Dim bRestoreEnabled As Boolean
@@ -380,7 +380,7 @@ End Sub
 
 Private Sub fgTrd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     On Error Resume Next
-    Dim nIdx&, sValue$, nValue&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nCol&
+    Dim nIdx&, sValue$, nValue&, aTrd As EtsGeneralLib.MmTradeInfoAtom, nCol&
     
     With fgTrd
         nIdx = .ColKey(Col)
@@ -502,7 +502,7 @@ End Sub
 
 Private Sub ShowTrades()
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nRow&, i&
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, nRow&, i&
     Dim aTrader As EtsGeneralLib.EtsTraderAtom
     Dim aStrategy As EtsGeneralLib.EtsStrategyAtom
     Dim aBroker As EtsGeneralLib.EtsBrokerAtom
@@ -564,14 +564,14 @@ End Sub
 
 Private Sub TradesUpdateTrader()
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     
     For Each aTrd In m_Trades
         Set aTrd.Trader = g_Trader(m_nTraderID)
     Next
 End Sub
 
-Private Sub TradeCalcCommission(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeCalcCommission(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     Dim dRate#, dClearingRate#, nCommType&
     
@@ -618,7 +618,7 @@ End Sub
 
 Private Sub TradesUpdateCommissions()
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aBroker As EtsGeneralLib.EtsBrokerAtom
     Dim aClearingBroker As EtsGeneralLib.EtsBrokerAtom
     Dim nCol&, nRow&
@@ -655,7 +655,7 @@ End Sub
 
 Private Sub TradesUpdateStrategy()
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aStrategy As EtsGeneralLib.EtsStrategyAtom
     
     Set aStrategy = g_Strategy(m_nStrategyID)
@@ -667,7 +667,7 @@ End Sub
 
 Private Sub TradeUpdate(ByVal nRow As Long)
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nCol&
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, nCol&
     Dim dtDte As Date
     
     With fgTrd
@@ -742,7 +742,7 @@ Private Sub InitCombos()
     FillBrokerCombo cbxClearingBroker, g_ClearingBroker, m_nClearingBrokerID
 End Sub
 
-Private Sub FillBrokerCombo(ByRef aCbx As VB.ComboBox, ByRef aBrokerColl As EtsGeneralLib.EtsBrokerColl, ByRef nValue As Long)
+Private Sub FillBrokerCombo(ByRef aCbx As vB.ComboBox, ByRef aBrokerColl As EtsGeneralLib.EtsBrokerColl, ByRef nValue As Long)
     On Error Resume Next
     Dim aBroker As EtsGeneralLib.EtsBrokerAtom
     

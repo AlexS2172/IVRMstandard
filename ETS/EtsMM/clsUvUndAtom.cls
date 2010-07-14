@@ -34,6 +34,7 @@ Public HavePos As Boolean
 Public IsActive As Boolean
 Public IsHTB As Boolean
 Public SOQ As Double
+Public IsAllowLending As Boolean
 Public IsHedgeSymbol As Boolean
 
 Public InAsset  As Boolean
@@ -104,6 +105,7 @@ Public Function Init(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolea
         IsHTB = m_Und.IsHTB
         HaveFutures = m_Und.HaveFutures
         IsHedgeSymbol = m_Und.IsHedgeSymbol
+        IsAllowLending = m_Und.IsAllowLending
         
         Init = True
         
@@ -333,6 +335,8 @@ Public Sub AdjustDirty()
         If IsHedgeSymbol <> m_Und.IsHedgeSymbol Then Exit Sub
         
         If IsHTB <> m_Und.IsHTB Then Exit Sub
+        If IsAllowLending <> m_Und.IsAllowLending Then Exit Sub
+        If IsHedgeSymbol <> m_Und.IsHedgeSymbol Then Exit Sub
         If IsActive <> m_Und.IsActive Then Exit Sub
         If SOQ <> m_Und.SOQ Then Exit Sub
         
@@ -375,6 +379,7 @@ Public Sub SaveChanges()
     
         m_Und.IsActive = IsActive
         m_Und.IsHTB = IsHTB
+        m_Und.IsAllowLending = IsAllowLending
         m_Und.SOQ = SOQ
         
         Dim aData As MSGSTRUCTLib.UnderlyingUpdate

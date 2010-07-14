@@ -73,6 +73,34 @@ bool OPTIONCALC_API GetNYDateTimeAsDATE(double *pdtDate)
 	}
 	return false;
 }
+
+#define ONE_DAY_IN_YEAR 0.002739726027397260273972602739726 // 1/365.0
+bool OPTIONCALC_API GetCalculationParams(double dtNow, double dtExpiryOV, double dtCloseTime, bool bUseTime, double* dtDateCalc, double* dtExpiryCalc, double* dtCloseTimeCalc, double* dtYte)
+{
+	if (dtDateCalc && dtYte && dtCloseTimeCalc && dtExpiryCalc)
+	{
+		if (bUseTime) 
+		{
+			 *dtYte			= (dtExpiryOV - dtNow) * ONE_DAY_IN_YEAR;
+			 *dtDateCalc	= dtNow;
+			 *dtExpiryCalc	= dtExpiryOV;
+			 *dtCloseTimeCalc = dtCloseTime;
+		}
+		else
+		{
+			*dtExpiryCalc		= floor(dtExpiryOV);
+
+			if (dtExpiryOV - *dtExpiryCalc > 0.5)
+				*dtExpiryCalc = *dtExpiryCalc + 1;
+			
+			*dtCloseTimeCalc	= dtCloseTime;
+			*dtDateCalc			= dtNow;
+			*dtYte				= (*dtExpiryCalc - floor(dtNow)) * ONE_DAY_IN_YEAR;
+		}
+		return true;
+	}
+	return false;
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////
 static double InterpolateRatesOld( long nCount, const RATE *pRates, long nDTE )
 {

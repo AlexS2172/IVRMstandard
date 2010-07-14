@@ -151,7 +151,8 @@ public:
 	STDMETHOD(CalcGreeks)( LONG nGreekMask, EtsCalcModelTypeEnum enCalcModel, 
 						VARIANT_BOOL vbVegaWeighted, VARIANT_BOOL bUseTheoVolatility, 
 						VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
-						DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule );
+						DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
+						ICalculationParametrs* pParams);
 	
 	private:
 

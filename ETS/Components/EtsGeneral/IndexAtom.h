@@ -11,7 +11,7 @@
 #include "EtsIndexDivAtom.h"
 #include "EtsIndexDivColl.h"
 
-_COM_SMARTPTR_TYPEDEF(IIndexAtom, IID_IIndexAtom);
+//_COM_SMARTPTR_TYPEDEF(IIndexAtom, IID_IIndexAtom);
 
 struct __IndexAtom
 {
@@ -35,7 +35,7 @@ struct __IndexAtom
 // CIndexAtom
 
 class ATL_NO_VTABLE CIndexAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CIndexAtom, &CLSID_IndexAtom>,
 	public ISupportErrorInfoImpl<&IID_IIndexAtom>,
 	public IDispatchImpl<IIndexAtom, &IID_IIndexAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -44,6 +44,7 @@ class ATL_NO_VTABLE CIndexAtom :
 public:
 	CIndexAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_INDEXATOM)
@@ -53,9 +54,11 @@ BEGIN_COM_MAP(CIndexAtom)
 	COM_INTERFACE_ENTRY(IIndexAtom)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
@@ -76,15 +79,17 @@ END_COM_MAP()
 		{
 			return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IIndexAtom, e.Error());
 		}
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		m_spComponents = NULL;
 		m_Divs.clear();
-		//m_spSyntheticRootBetas = NULL;
+		m_pUnkMarshaler.Release();
 	}
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

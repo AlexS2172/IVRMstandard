@@ -17,7 +17,6 @@ import "ocidl.idl";
 	version(1.0),
 	helpstring("EtsMmQuotes 1.0 Type Library")
 ]
-
 library EtsMmQuotesLib
 {
 	importlib("stdole32.tlb");
@@ -85,21 +84,25 @@ library EtsMmQuotesLib
 	typedef enum MmQvDivColumnEnum
 	{
 		[helpstring("QDC_TRADES")]			QDC_TRADES			= 0,
-		[helpstring("QDC_OPTIONS")]			QDC_OPTIONS			= 1,
-		[helpstring("QDC_MODEL")]			QDC_MODEL			= 2,
-		[helpstring("QDC_STYLE")]			QDC_STYLE			= 3,
-		//[helpstring("QDC_CALENDAR")]		QDC_CALENDAR		= 4,
-		[helpstring("QDC_UNDPROFILE")]		QDC_UNDPROFILE		= 4,
-		[helpstring("QDC_OPTPROFILE")]		QDC_OPTPROFILE		= 5,
-		[helpstring("QDC_DIV")]				QDC_DIV				= 6,
-		[helpstring("QDC_FREQ")]			QDC_FREQ			= 7,
-		[helpstring("QDC_DATE")]			QDC_DATE			= 8,
-		[helpstring("QDC_AMT")]				QDC_AMT				= 9,
-		[helpstring("QDC_RATE")]			QDC_RATE			= 10,
-		[helpstring("QDC_RATE_VAL")]		QDC_RATE_VAL		= 11,
+		[helpstring("QDC_FLT_TRADER")]		QDC_FLT_TRADER		= 1,
+		[helpstring("QDC_FLT_STRATEGY")]	QDC_FLT_STRATEGY	= 2,
+		[helpstring("QDC_OPTIONS")]			QDC_OPTIONS			= 3,
+		[helpstring("QDC_MODEL")]			QDC_MODEL			= 4,
+		[helpstring("QDC_STYLE")]			QDC_STYLE			= 5,
+		//[helpstring("QDC_CALENDAR")]		QDC_CALENDAR		= 6,
+		[helpstring("QDC_UNDPROFILE")]		QDC_UNDPROFILE		= 6,
+		[helpstring("QDC_OPTPROFILE")]		QDC_OPTPROFILE		= 7,
+		[helpstring("QDC_DIV")]				QDC_DIV				= 8,
+		[helpstring("QDC_FREQ")]			QDC_FREQ			= 9,
+		[helpstring("QDC_DATE")]			QDC_DATE			= 10,
+		[helpstring("QDC_AMT")]				QDC_AMT				= 11,
 		[helpstring("QDC_DATECALC")]		QDC_DATECALC		= 12,
 		[helpstring("QDC_VOLA_IS_MANUAL")]	QDC_VOLA_IS_MANUAL	= 13,
-		[helpstring("QDC_COLUMN_COUNT")]	QDC_COLUMN_COUNT	= 14,
+		[helpstring("QDC_VOLA_SIM")]		QDC_VOLA_SIM		= 14,
+		[helpstring("QDC_VOLA_FLAT")]		QDC_VOLA_FLAT		= 15,
+		[helpstring("QDC_RATE")]			QDC_RATE			= 16,
+		[helpstring("QDC_RATE_VAL")]		QDC_RATE_VAL		= 17,
+		[helpstring("QDC_COLUMN_COUNT")]	QDC_COLUMN_COUNT	= 18,
 		[helpstring("QDC_LAST_COLUMN")]		QDC_LAST_COLUMN		= QDC_COLUMN_COUNT - 1,
 	}MmQvDivColumnEnum;
 //-----------------------------------------------------------------------------------
@@ -516,11 +519,6 @@ library EtsMmQuotesLib
 		[id(12), helpstring("CalcMarketDepth")]
 		HRESULT CalcMarketDepth([in, out] SAFEARRAY(struct MmQvMarketDepthAtom)* BidMarketDepth,
 								[in, out] SAFEARRAY(struct MmQvMarketDepthAtom)* AskMarketDepth
-								/*
-								,
-																[out] LONG *BidCount,
-																[out] LONG *AskCount,
-																[out, retval] LONG *DiffPrcCount*/
 								);
 
 	};
@@ -604,6 +602,8 @@ library EtsMmQuotesLib
 		ETSGENERAL_COMMON_COLLECTION_DEF(DOUBLE, IMmQvStrikeAtom*)
 	};
 
+	interface IMmQvOptRootColl;
+	interface IMmQvFutRootCollection;
 	/////////////////////////////////////////////////////////////////////////////
 	//
 	[
@@ -625,14 +625,18 @@ library EtsMmQuotesLib
 		ETSGENERAL_PROPPUTREF_DEF(7,	IMmQvStrikeAtom*,	NearAtmStrike)
 		ETSGENERAL_PROPREADONLY_DEF(8,	DOUBLE,				NearAtmVola)
 		ETSGENERAL_PROP_DEF(9,			BSTR,				RootNames)
+		ETSGENERAL_PROP_DEF(10,			DOUBLE,				HTBRate)
 
 		ETSGENERAL_PROP_DEF(11,			DATE,				ExpiryOV)
 		ETSGENERAL_PROP_DEF(12,			DATE,				TradingClose)
 
-		[id(10), helpstring("method FindAtmStrike")]
+		[id(31), helpstring("method FindAtmStrike")]
 		HRESULT FindAtmStrike([in] DOUBLE UnderlyingSpot);
 
 		[propget, id(16), helpstring("property Vola")]   HRESULT Vola([in] DOUBLE Strike, [in] DOUBLE SpotPrice, [out, retval] DOUBLE* pVola);
+
+		ETSGENERAL_PROPREADONLY_DEF(18,	IMmQvOptRootColl*,	Roots)
+		ETSGENERAL_PROPREADONLY_DEF(19,	IMmQvFutRootCollection*,	FutureRoots)
 	};
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -767,7 +771,8 @@ library EtsMmQuotesLib
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
 								[in] DOUBLE dtCalcDate,
-								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
+								[in/*, defaultvalue(0)*/] VARIANT_BOOL ManualEdit,
+								[in/*, defaultvalue(0)*/] ICalculationParametrs* pParams);
 
 		[id(62), helpstring("method CalcFutureOptionGreeks")]
 		HRESULT CalcFutureOptionGreeks(
@@ -784,7 +789,8 @@ library EtsMmQuotesLib
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
 								[in] DOUBLE dtCalcDate,
-								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
+								[in/*, defaultvalue(0)*/] VARIANT_BOOL ManualEdit,
+								[in/*, defaultvalue(0)*/] ICalculationParametrs* pParams);
 
 		[id(63), helpstring("method CalcAllOptions")]
 		HRESULT CalcAllOptions([in] LONG nCallGreekMask,
@@ -800,11 +806,12 @@ library EtsMmQuotesLib
 								[in] DOUBLE dUndPriceTolerance,
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
-								[in, defaultvalue(0)] LONG nCalcSleepFreq,
-								[in, defaultvalue(0)] LONG nCalcSleepAmt,
-								[in, defaultvalue(0)] DOUBLE dtCalcDate,
-								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit,
-								[in, defaultvalue(0)] VARIANT_BOOL bForceRecalc);
+								[in/*, defaultvalue(0)*/] LONG nCalcSleepFreq,
+								[in/*, defaultvalue(0)*/] LONG nCalcSleepAmt,
+								[in/*, defaultvalue(0)*/] DOUBLE dtCalcDate,
+								[in/*, defaultvalue(0)*/] VARIANT_BOOL ManualEdit,
+								[in/*, defaultvalue(0)*/] VARIANT_BOOL bForceRecalc,
+								[in/*, defaultvalue(0)*/] ICalculationParametrs* pParams);
 
 		[id(64), helpstring("method IsValidDivs")]
 		HRESULT IsValidDivs([in] VARIANT_BOOL CheckCustom, [out, retval] VARIANT_BOOL* pVal);
@@ -813,7 +820,7 @@ library EtsMmQuotesLib
 
 		[id(66), helpstring("method CleanUp")] HRESULT CleanUp();
 
-		[propget, id(67), helpstring("property AtmVola")]   HRESULT AtmVola([in] IMmQvExpAtom* pExp, [in]DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule, [in, defaultvalue(0)] VARIANT_BOOL ManualEdit, [out, retval] DOUBLE* pVola);
+		[propget, id(67), helpstring("property AtmVola")]   HRESULT AtmVola([in] IMmQvExpAtom* pExp, [in]DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule, [in] VARIANT_BOOL ManualEdit, [in] LONG SurfaceID, [out, retval] DOUBLE* pVola);
 		[propget, id(68), helpstring("property AtmStrike")] HRESULT AtmStrike([in]DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule, [in, defaultvalue(0)] VARIANT_BOOL ManualEdit, [out, retval] DOUBLE* dStrike);
 
 		ETSGENERAL_PROP_DEF(70,			DOUBLE,							FuturePrice)
@@ -928,7 +935,8 @@ library EtsMmQuotesLib
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
 								[in] DOUBLE dtCalcDate,
-								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
+								[in/*, defaultvalue(0)*/] VARIANT_BOOL ManualEdit,
+								[in/*, defaultvalue(0)*/] ICalculationParametrs* pParams);
 
 		[id(62), helpstring("method CalcAllOptions")]
 		HRESULT CalcAllOptions([in] IMmQvUndAtom* aUnd,
@@ -944,17 +952,18 @@ library EtsMmQuotesLib
 								[in] DOUBLE dUndPriceTolerance,
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 								[in] VARIANT_BOOL bUseCustomRates,
-								[in, defaultvalue(0)] LONG nCalcSleepFreq,
-								[in, defaultvalue(0)] LONG nCalcSleepAmt,
-								[in, defaultvalue(0)] DOUBLE dtCalcDate,
-								[in, defaultvalue(0)] VARIANT_BOOL ManualEdit);
+								[in/*, defaultvalue(0)*/] LONG nCalcSleepFreq,
+								[in/*, defaultvalue(0)*/] LONG nCalcSleepAmt,
+								[in/*, defaultvalue(0)*/] DOUBLE dtCalcDate,
+								[in/*, defaultvalue(0)*/] VARIANT_BOOL ManualEdit,
+								[in/*, defaultvalue(0)*/] ICalculationParametrs* pParams);
 
 
 		[id(64), helpstring("method StopCalc")] HRESULT StopCalc();
 
 		[id(65), helpstring("method CleanUp")] HRESULT CleanUp();
 
-		[propget, id(66), helpstring("property AtmVola")]   HRESULT AtmVola([in] IMmQvExpAtom* pExp, [in]DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,[out, retval] DOUBLE* pVola);
+		[propget, id(66), helpstring("property AtmVola")]   HRESULT AtmVola([in] IMmQvExpAtom* pExp, [in]DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule, [in] LONG SurfaceID, [out, retval] DOUBLE* pVola);
 		[propget, id(67), helpstring("property AtmStrike")] HRESULT AtmStrike([in]DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,[out, retval] DOUBLE* dStrike);
 
 		[id(100), helpstring("method GetFuturePrice")]
@@ -1181,6 +1190,8 @@ library EtsMmQuotesLib
 		[id(41), helpstring("CleanUp")]		   	HRESULT CleanUp(VARIANT_BOOL vbAll);
 		[id(42), helpstring("DefaultOptionsSort")]	HRESULT DefaultOptionsSort();
 		[id(43), helpstring("ResetInitFlags")]		HRESULT ResetInitFlags();
+
+		ETSGENERAL_PROPREADONLY_DEF(44,	IEtsFilterData*,			TradeFilter)
 	};
 
 	[

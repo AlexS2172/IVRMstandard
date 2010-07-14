@@ -113,7 +113,7 @@ STDMETHODIMP CVolatilitySource::get_SymbolVolatility(BSTR Symbol, SYMBOL_TYPE Sy
 
 		CSymbolsMap::iterator it = m_surfaces.find( bsSymbol );
 		IVSSymbolVolatilityPtr spSymbolVolatility;
-		
+
 		// If not found - create new
 		if( it == m_surfaces.end() )
 		{
@@ -124,12 +124,6 @@ STDMETHODIMP CVolatilitySource::get_SymbolVolatility(BSTR Symbol, SYMBOL_TYPE Sy
 			
 			__CHECK_HRESULT( pObject->Init( this, bsSymbol, SymbolType ), _T("Error setting volatility surface data source.") );
 			__CHECK_HRESULT( pObject->LoadData(), _T("Error loading volatility surface data.") );
-
-			//pObject->SetPubManager(m_spPubManager);
-			//pObject->SetSubManager(m_spSubManager);
-
-			//if( FAILED( pObject->RegisterPublisher() ) )
-			//	ATLTRACE( _T("Error registering volatility surface object as publisher.\n") );
 
 			it = m_surfaces.insert( CSymbolsMap::value_type( bsSymbol, pObject ) ).first;
 			it->second->AddRef();
@@ -151,7 +145,13 @@ STDMETHODIMP CVolatilitySource::get_SymbolVolatility(BSTR Symbol, SYMBOL_TYPE Sy
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		return CComErrorWrapper::SetError(e, L"VolatilitySource", L"", __FILE__,__FUNCDNAME__,__LINE__);
+	}
+	catch(...)
+	{
+		REPORT_UNHANDLED_EXCEPTION
+		return E_FAIL;
 	}
 	return S_OK;
 }
@@ -290,6 +290,7 @@ STDMETHODIMP CVolatilitySource::RegisterPublisher()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVSSymbolVolatility, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolaControl", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -317,6 +318,7 @@ STDMETHODIMP CVolatilitySource::UnregisterPublisher()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVSSymbolVolatility, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolaControl", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -338,6 +340,75 @@ STDMETHODIMP CVolatilitySource::OnVMESurfaceSource(/*[in]*/IDispatch* Symbol, /*
 	}
 	return S_OK;
 }
+
+void CVolatilitySource::OnSimulatedSave(const _bstr_t& Symbol)
+{
+	ObjectLock lock(this);
+
+	CSymbolsMap::iterator it = m_surfaces.find( Symbol );
+
+	if( it != m_surfaces.end() )
+		it->second->LoadData();
+
+	return;
+}
+
+STDMETHODIMP CVolatilitySource::get_SimulatedSymbolVol(BSTR Symbol, SYMBOL_TYPE SymbolType, IVSSymbolVolatility **pVal)
+{
+	__CHECK_POINTER( pVal );
+
+	IVSSymbolVolatilityPtr spSymbolVolatility;
+	CComObject<CSymbolVolatility> *pObject = NULL;
+
+	try
+	{
+		ObjectLock lock(this);
+
+		__CHECK_HRESULT( CComObject<CSymbolVolatility>::CreateInstance( &pObject ), _T("Error creating symbol volatility object instance.") );
+		spSymbolVolatility.Attach(pObject, TRUE);
+
+		pObject->DefaultVola( m_dDefaultVola );
+
+		__CHECK_HRESULT( pObject->Init( this, Symbol, SymbolType ), _T("Error setting volatility surface data source.") );
+
+		CSymbolsMap::iterator it = m_surfaces.find( Symbol );
+		if( it != m_surfaces.end() )
+		{
+			CSurfaceGroup* pData = NULL;
+			__CHECK_HRESULT( it->second->GetInternalBuffer(&pData), _T("Error loading volatility surface data.") );
+			__CHECK_HRESULT( pObject->SetInternalBuffer(pData), _T("Error saving volatility surface data.") );
+		}
+		else
+		{
+			__CHECK_HRESULT( pObject->LoadData(), _T("Error loading volatility surface data.") );
+		}
+
+		//if( FAILED( pObject->RegisterPublisher() ) )
+		//	ATLTRACE( _T("Error registering volatility surface object as publisher.\n") );
+
+		pObject->EnableCache  ( m_bEnableCache   );
+		pObject->EnableEditing( m_bEnableEditing );
+		pObject->EnableEvents ( m_bEnableEvents  );
+		pObject->DefaultVola  ( m_dDefaultVola   );
+		pObject->put_SimulatedVol(VARIANT_TRUE);
+
+		// Return surface pointer
+		*pVal = spSymbolVolatility.Detach();
+	}
+	catch( const _com_error& e )
+	{
+		REPORT_ERR_TO_MAIL(e)
+		return CComErrorWrapper::SetError(e, L"VolatilitySource", L"", __FILE__,__FUNCDNAME__,__LINE__);
+	}
+	catch(...)
+	{
+                REPORT_UNHANDLED_EXCEPTION
+		return E_FAIL;
+	}
+
+	return S_OK;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Helpers
 /////////////////////////////////////////////////////////////////////////////

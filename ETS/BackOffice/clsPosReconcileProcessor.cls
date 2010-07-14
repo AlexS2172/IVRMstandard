@@ -471,7 +471,7 @@ Private Sub LoadTrades(Optional ByVal bSupportStrategy As Boolean = True)
             aTrade.UnderlyingID = gCmn.ReadLng(rs!lUnderlyingID)
             aTrade.IsPos = gCmn.ReadByte(rs!bIsPosition)
             
-            aTrade.Strike = gCmn.ReadDbl(rs!dStrike)
+            aTrade.strike = gCmn.ReadDbl(rs!dStrike)
             aTrade.IsCall = gCmn.ReadByte(rs!bIsCall)
             aTrade.Expiry = gCmn.ReadDate(rs!dtExpiry)
             aTrade.RootName = gCmn.ReadStr(rs!vcRootSymbol)
@@ -795,9 +795,24 @@ Private Sub LoadPositions(ByVal bSetNewStrategyToOld As Boolean)
                 
                 If Not aPos.Und Is Nothing Then
                     If gCmn.ReadLng(rs!iContractTypeID) = 3 Then
-                        Set aPos.Opt = aPos.Und.FindOption(gCmn.ReadStr(rs!vcOptionRootSymbol), gCmn.ReadByte(rs!tiIsCall), gCmn.ReadDbl(rs!fStrike), gCmn.ReadDate(rs!dtExpiryDate), gCmn.ReadLng(rs!iContractID))
+                        Dim contract_id As Long
+                        Dim root_symbol As String
+                        Dim expiration_date As Date
+                        Dim strike As Double
+                        
+                        contract_id = gCmn.ReadLng(rs!iContractID)
+                        root_symbol = gCmn.ReadStr(rs!vcOptionRootSymbol)
+                        expiration_date = gCmn.ReadDate(rs!dtExpiryDate)
+                        strike = gCmn.ReadDbl(rs!fStrike)
+                        
+                        Set aPos.Opt = aPos.Und.FindOption(root_symbol, gCmn.ReadByte(rs!tiIsCall), strike, expiration_date, contract_id)
                         
                         If aPos.Opt Is Nothing Then
+                            MsgBox "ID: " & CStr(contract_id) & _
+                                    " Root: " & root_symbol & _
+                                    " Expiry: " & CStr(expiration_date) & _
+                                    " Strike: " & CStr(strike)
+                                    
                             Err.Raise vbObjectError, AppTitle(), "Unexpected error was occured during reading positions from DB. Invalid options data."
                         End If
                     End If
@@ -3144,6 +3159,7 @@ Private Function ParseLineOfVolatilityFile(ByVal nLineNumber As Long, ByRef sLin
     Dim sUnderlyingSymbol$, sKey$, sCol$, sValue$
     Dim Items$()
     Dim dtExpirationDate As Date, dStrike#, dVola#
+    Dim sRootSymbol As String
     
     ParseLineOfVolatilityFile = False
     If Len(sLine) = 0 Then
@@ -3158,12 +3174,15 @@ Private Function ParseLineOfVolatilityFile(ByVal nLineNumber As Long, ByRef sLin
     
     On Error GoTo ParseError
     sUnderlyingSymbol = ""
-    dStrike = 0#: dtExpirationDate = 0#: dVola = 0#
+    dStrike = 0#: dtExpirationDate = 0#: dVola = 0#: sRootSymbol = ""
     
     sCol = "Underlying Symbol":    sValue = Items(0):  If Len(sValue) > 0 Then sUnderlyingSymbol = sValue
     sCol = "Expiration Date":      sValue = Items(1):  If Len(sValue) > 4 Then dtExpirationDate = CDate(sValue)
     sCol = "Strike":               sValue = Items(2):  If Len(sValue) > 0 Then dStrike = gCmn.ReadDbl(sValue)
     sCol = "Volatility":           sValue = Items(3):  If Len(sValue) > 0 Then dVola = gCmn.ReadDbl(sValue)
+    If (UBound(Items) = 4) Then
+        sCol = "Root": sValue = Items(4): If Len(sValue) > 0 Then sRootSymbol = sValue
+    End If
     
     sCol = ""
     sValue = ""
@@ -3191,7 +3210,7 @@ Private Function ParseLineOfVolatilityFile(ByVal nLineNumber As Long, ByRef sLin
         Exit Function
     End If
     
-    AddVolatilityFromText aUnd, dtExpirationDate, dStrike, dVola
+    AddVolatilityFromText aUnd, dtExpirationDate, dStrike, dVola, sRootSymbol
     
     Erase Items
     ParseLineOfVolatilityFile = True
@@ -3204,7 +3223,8 @@ End Function
 Private Sub AddVolatilityFromText(ByRef aUnd As clsRecPosUndAtom, _
                                 ByVal dtExpirationDate As Date, _
                                 ByVal dStrike As Double, _
-                                ByVal dVola As Double)
+                                ByVal dVola As Double, _
+                                ByVal sRootSymbol As String)
     Dim aPos As clsRecPosAtom, sKey$
     
     sKey = CStr(m_collPos.Count)
@@ -3224,6 +3244,7 @@ Private Sub AddVolatilityFromText(ByRef aUnd As clsRecPosUndAtom, _
     aPos.QtyNew = CLng(dtExpirationDate)
     aPos.PriceOld = dStrike
     aPos.PriceNew = dVola
+    aPos.RootSymbol = sRootSymbol
     
     aPos.bFix = True
 End Sub
@@ -3288,7 +3309,7 @@ Public Function SaveVolatilityToDatabase&()
             On Error GoTo Failed
             Set aPos = m_collPos(i)
                         
-            gDBW.usp_BoCustomStrikeSkewPoint_Default_Save aPos.Und.ID, aPos.PriceOld, aPos.QtyNew, aPos.PriceNew
+            gDBW.usp_BoCustomStrikeSkewPoint_Default_Save aPos.Und.ID, aPos.PriceOld, aPos.QtyNew, aPos.PriceNew, aPos.RootSymbol
             
             
             nNewCount = nNewCount + 1

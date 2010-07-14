@@ -5,9 +5,6 @@
 	Name="ETSXMLParams"
 	ProjectGUID="{56675C68-4493-4C5E-AED4-9510F4AE42C9}"
 	RootNamespace="ETSXMLParams"
-	SccProjectName="SAK"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="AtlProj"
 	>
 	<Platforms>

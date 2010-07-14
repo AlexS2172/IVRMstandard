@@ -19,7 +19,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsIndexDivCollDispImpl, IEtsIn
 const double OneMinute = 1./(24.*59.);
 
 class ATL_NO_VTABLE CEtsIndexDivColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsIndexDivColl, &CLSID_EtsIndexDivColl>,
 	public ISupportErrorInfoImpl<&CLSID_EtsIndexDivColl>,
 	public IEtsIndexDivCollImpl
@@ -30,6 +30,7 @@ public:
 		:m_nTodayCache(0L)
 		,m_nExpiryCache(0L)
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 	BEGIN_PROP_MAP(CEtsIndexDivColl)
@@ -44,20 +45,26 @@ BEGIN_COM_MAP(CEtsIndexDivColl)
 	COM_INTERFACE_ENTRY(IEtsIndexDivColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsIndexDivCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 private:
 	IEtsDivCollPtr m_spCustomDivsCache;
@@ -81,6 +88,7 @@ public:
 	STDMETHOD(GetDividends2)(DATE dtNow,  DATE dtExpiryOV, DATE tmCloseTime, LONG nCount, SAFEARRAY ** psaDivAmounts, SAFEARRAY ** psaDivDates,  LONG* pnCount);
 	STDMETHOD(GetNearest2)(DATE dtNow,  DATE dtExpiryOV, DATE tmCloseTime,  DOUBLE* pdDivAmount,  DOUBLE* pdDivDate);
 	STDMETHOD(GetDividendCount2)(DATE dtNow, DATE dtExpiryOV, DATE tmCloseTime,  LONG* pnCount);
+	STDMETHOD(Reload)(void);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(EtsIndexDivColl), CEtsIndexDivColl)

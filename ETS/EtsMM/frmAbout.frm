@@ -63,7 +63,7 @@ Begin VB.Form frmAbout
    End
    Begin VB.Label lblCopyright 
       BackStyle       =   0  'Transparent
-      Caption         =   "Copyright © 2001-2006, EGAR Technology Inc."
+      Caption         =   "Copyright © 2001-2009, EGAR Technology Inc."
       BeginProperty Font 
          Name            =   "Tahoma"
          Size            =   8.25

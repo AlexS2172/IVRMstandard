@@ -51,6 +51,9 @@ struct __MmRvSynthGreeksAtom
 
 	DOUBLE						m_dSuPrice;
 
+	DOUBLE						m_dThetaInShares;
+	VARIANT_BOOL				m_bBadThetaInShares;
+
 	__MmRvSynthGreeksAtom() :
 	m_pSuPrice(NULL),
 		m_nContractID(0L),
@@ -82,7 +85,9 @@ struct __MmRvSynthGreeksAtom
 		m_dNetDelta(BAD_DOUBLE_VALUE),
 		m_bBadNetDelta(VARIANT_FALSE),
 		m_bBadRhoInShares(VARIANT_FALSE),
-		m_bBadNetExposure(VARIANT_FALSE)
+		m_bBadNetExposure(VARIANT_FALSE),
+		m_bBadThetaInShares(VARIANT_FALSE),
+		m_dThetaInShares(BAD_DOUBLE_VALUE)
 	{
 	}
 
@@ -97,6 +102,7 @@ struct __MmRvSynthGreeksAtom
 		m_dNetDelta = BAD_DOUBLE_VALUE;
 		m_dRhoInShares = BAD_DOUBLE_VALUE;
 		m_dNetExposure = BAD_DOUBLE_VALUE;
+		m_dThetaInShares = BAD_DOUBLE_VALUE;
 
 		m_bBadDelta					= VARIANT_FALSE;
 		m_bBadGamma					= VARIANT_FALSE;
@@ -107,6 +113,7 @@ struct __MmRvSynthGreeksAtom
 		m_bBadNetDelta				= VARIANT_FALSE;
 		m_bBadRhoInShares			= VARIANT_FALSE;
 		m_bBadNetExposure			= VARIANT_FALSE;
+		m_bBadThetaInShares			= VARIANT_FALSE;
 	}
 };
 
@@ -182,6 +189,7 @@ public:
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, NetDelta, m_dNetDelta)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, RhoInShares, m_dRhoInShares)
 		IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, NetExposure, m_dNetExposure)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ThetaInShares, m_dThetaInShares)
 
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadDelta, m_bBadDelta)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadGamma, m_bBadGamma)
@@ -192,8 +200,7 @@ public:
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadNetDelta, m_bBadNetDelta)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadRhoInShares, m_bBadRhoInShares)
 		IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadNetExposure, m_bBadNetExposure)
-
-
+	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, BadThetaInShares, m_bBadThetaInShares)
 
 		IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvPrice*,	SuPrice, m_spSuPrice);
 

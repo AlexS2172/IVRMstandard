@@ -7,17 +7,17 @@
 
 #include "XMLParamsHelper.h"
 
-void LoadAspSettings()
-{
-	g_bstrSubjectPrefix = _bstr_t(L"");
-
-	CXMLParamsHelper XMLParams;
-	XMLParams.LoadXMLParams();
-
-	BSTR bsSubectPrefix;
-	XMLParams.GetUserGroup(&bsSubectPrefix);
-	g_bstrSubjectPrefix.Attach(bsSubectPrefix);
-}
+//void LoadAspSettings()
+//{
+//	g_bstrSubjectPrefix = _bstr_t(L"");
+//
+//	CXMLParamsHelper XMLParams;
+//	XMLParams.LoadXMLParams();
+//
+//	BSTR bsSubectPrefix;
+//	XMLParams.GetUserGroup(&bsSubectPrefix);
+//	g_bstrSubjectPrefix.Attach(bsSubectPrefix);
+//}
 
 
 // ---------------------------------------------------------------------
@@ -98,7 +98,18 @@ STDMETHODIMP CMsgManager::InterfaceSupportsErrorInfo(REFIID riid)
 
 HRESULT CMsgManager::FinalConstruct()
 {
-	LoadAspSettings();
+	//LoadAspSettings();
+
+	g_bstrSubjectPrefix = _bstr_t(L"");
+	{
+		CXMLParamsHelper XMLParams;
+		XMLParams.LoadXMLParams();
+
+		BSTR bsSubectPrefix;
+		XMLParams.GetUserGroup(&bsSubectPrefix);
+		g_bstrSubjectPrefix.Attach(bsSubectPrefix);
+	}
+
 	if(g_bstrSubjectPrefix.length() == 0)
 		return Error(L"Can't get user group from xml settings", IID_ISubManager, E_INVALIDARG);
 
@@ -163,6 +174,7 @@ const wstring CMsgManager::m_subjMtDynamicMessage(L"DYNMSG");
 const wstring CMsgManager::m_subjMtActiveFuturesChange(L"AFTCHG");
 const wstring CMsgManager::m_subjMtFlexOption(L"NFORTD");
 const wstring CMsgManager::m_subjMtManualPriceUpdate(L"MPUPDATE");
+const wstring CMsgManager::m_subjMtSettingsUpdate(L"SETTINGSUPDATE");
 /**********************************************************************************************/
 
 _bstr_t CMsgManager::GenerateSubject(MESSAGE_TYPE Type, ISymbolObject* pSymbolObject)
@@ -196,6 +208,10 @@ _bstr_t CMsgManager::GenerateSubject(MESSAGE_TYPE Type, ISymbolObject* pSymbolOb
 
 		case enMtManualPriceUpdate:
 			RetVal += m_subjMtManualPriceUpdate.c_str();
+			return RetVal;
+
+		case enMtSettingsUpdate:
+			RetVal += m_subjMtSettingsUpdate.c_str();
 			return RetVal;
 
 		case enMtBroadcastMessage:
@@ -308,6 +324,11 @@ bool CMsgManager::DecodeSubject(BSTR Subject, MESSAGE_TYPE& Type, ISymbolObject*
 	else if (sSubject == m_subjMtManualPriceUpdate)		
 	{
 		Type = enMtManualPriceUpdate;
+		return true;
+	}
+	else if (sSubject == m_subjMtSettingsUpdate)		
+	{
+		Type = enMtSettingsUpdate;
 		return true;
 	}
 	else if (sSubject == m_subjMtRequestNewOrder)		
@@ -424,6 +445,7 @@ HRESULT	CMsgManager::SendMessageToTransport(BSTR Subject, MESSAGE_TYPE enType, I
 		case enMtPriceUpdate:
 		case enMtUnderlyingUpdate:
 		case enMtManualPriceUpdate:
+		case enMtSettingsUpdate:
 			{
 				enMsgProp = enMpGuarantee;
 			}
@@ -590,6 +612,25 @@ HRESULT __stdcall CMsgManager::OnMessage(BSTR Subject, BSTR Message)
 					return S_OK;
 
 				Fire_OnManualPriceUpdate(spManualPriceUpdateMessage);
+
+				return S_OK;
+			}
+
+		case enMtSettingsUpdate:
+			{
+				ISettingsUpdatePtr		spSettingsUpdateMessage;
+				if (FAILED(spSettingsUpdateMessage.CreateInstance(__uuidof(SettingsUpdate))))
+					return S_OK;
+
+				spUnPacker = spSettingsUpdateMessage;
+
+				if (spUnPacker == NULL)
+					return S_OK;
+
+				if (FAILED(spUnPacker->Unpack(Message)))
+					return S_OK;
+
+				Fire_OnSettingsUpdate(spSettingsUpdateMessage);
 
 				return S_OK;
 			}
@@ -884,6 +925,30 @@ STDMETHODIMP CMsgManager::UnsubManualPriceUpdate()
 	return Unsubscribe(enMtManualPriceUpdate, NULL);
 }
 
+STDMETHODIMP CMsgManager::PubSettingsUpdate(ISettingsUpdate* Data, long* Result)
+{
+	if (Data == NULL)
+		return E_INVALIDARG;
+
+	_bstr_t bstrSubject = GenerateSubject(enMtSettingsUpdate, NULL);
+
+	if (!bstrSubject.length())
+		return Error(ERR_INVALID_SUBJECT, IID_ISubManager, E_FAIL);
+
+	INetPackingPtr Packer = Data;
+
+	return SendMessageToTransport(bstrSubject, enMtSettingsUpdate, Packer, *Result);
+}
+
+STDMETHODIMP CMsgManager::SubSettingsUpdate()
+{
+	return Subscribe(enMtSettingsUpdate, NULL);
+}
+
+STDMETHODIMP CMsgManager::UnsubSettingsUpdate()
+{
+	return Unsubscribe(enMtSettingsUpdate, NULL);
+}
 
 REQUEST_METHODS_IMPL_EX(DynamicMessage)
 REQUEST_METHODS_IMPL(BroadcastMessage)
@@ -939,6 +1004,15 @@ STDMETHODIMP CMsgManager::get_IsLogoned(VARIANT_BOOL *pVal)
     Unlock();
 
     return hr;
+}
+
+STDMETHODIMP CMsgManager::put_UserGroup(BSTR bsVal)
+{
+	Lock();
+	g_bstrSubjectPrefix = _bstr_t(bsVal);
+	Unlock();
+
+	return S_OK;
 }
 
 STDMETHODIMP CMsgManager::SubOrderMessages()

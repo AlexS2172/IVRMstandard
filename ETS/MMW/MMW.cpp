@@ -13,7 +13,7 @@
 #include "MMW_i.c"
 #include "MsgManager.h"
 
-_bstr_t g_bstrSubjectPrefix;
+//_bstr_t g_bstrSubjectPrefix;
 
 CComModule _Module;
 

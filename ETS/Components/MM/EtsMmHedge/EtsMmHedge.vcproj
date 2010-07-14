@@ -4,10 +4,6 @@
 	Version="8.00"
 	Name="EtsMmHedge"
 	ProjectGUID="{32C53014-33C0-4158-8380-079E30CD2D95}"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>

@@ -354,7 +354,7 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividendCount2(DATE dtNow, DATE dtExpiryOV, DA
 				dtCurWorkDate += tmCloseTime;
 
 				if (dtCurWorkDate >= dtExpiryOV) break;
-				if (dtCurWorkDate >= dtNow)	nCount++;
+				if (dtCurWorkDate > dtNow)	nCount++;
 
 				ptDivDate = ptDivDate + real_month_adder.get_offset(ptDivDate.date());
 			}
@@ -425,7 +425,7 @@ STDMETHODIMP CEtsIndexDivAtom::GetDividends2(DATE dtNow, DATE dtExpiryOV, DATE t
 				dtCurWorkDate += tmCloseTime;
 
 				if (dtCurWorkDate >= dtExpiryOV) break;
-				if (dtCurWorkDate >= dtNow)	{
+				if (dtCurWorkDate > dtNow)	{
 					dDivDate = (dtCurWorkDate - dtNow) / OPM::cdDaysPerYear365;
 					spDates[lCurDiv]	= dDivDate;
 					spAmount[lCurDiv]	= dAmount;
@@ -474,3 +474,55 @@ STDMETHODIMP CEtsIndexDivAtom::GetNearest2(DATE dtNow, DATE dtExpiryOV, DATE dtC
 	}
 	return hr;
 }
+
+//------------------------------------------------------------------------------------------------------
+STDMETHODIMP CEtsIndexDivAtom::Reload(void)
+{
+	try
+	{
+		CDBConnection	dbConnection;
+
+		if(!dbConnection.IsOpened())
+			dbConnection.Open(CGenegalSettings::GetDBConnectionString(), 10, 120, 300, 300);
+
+		if (dbConnection.IsOpened())
+		{
+			CStoredProc<> db(dbConnection, L"usp_Dividends_Get");
+			
+			//push parameters
+			db << m_nAssetID;
+
+			CClientRecordset rs;
+			rs.Open(db);
+
+			rs.NextRecordset(); //skip streaming dividends
+
+			for(rs.MoveFirst(); !rs.IsEOF(); ++rs) 
+			{
+				m_enDivType		= static_cast<EtsDivTypeEnum>((long)rs[L"tiIsDivCustom"]);
+				m_nDivFreq		= rs[L"iDivFreq"];
+				m_dtDivDate		= (vt_date) rs[L"dtDivDate"];
+				m_dDivAmt		= rs[L"fDivAmt"];
+				m_nDivFreqCust	= rs[L"iDivFreqCustom"];
+				m_dtDivDateCust = (vt_date) rs[L"dtDivDateCustom"];
+				m_dDivAmtCust   = rs[L"fDivAmtCustom"];
+				break;
+			};
+
+			dbConnection.Close();
+
+			if (m_spCustomDivs != NULL)
+				m_spCustomDivs->Reload();
+		};
+	}
+	catch (_com_error& err)
+	{
+		TRACE_COM_ERROR(err);
+	}
+	catch (...)
+	{
+		TRACE_UNKNOWN_ERROR();
+	}
+	return S_OK;
+}
+//------------------------------------------------------------------------------------------------------

@@ -53,9 +53,10 @@ HRESULT CSymbolVolatilitySurface::FinalConstruct()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
-}
+	}
 
 	return S_OK;
 }
@@ -187,6 +188,7 @@ STDMETHODIMP CSymbolVolatilitySurface::LoadData( long SurfaceID, EOptType OptTyp
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -234,6 +236,7 @@ STDMETHODIMP CSymbolVolatilitySurface::SetSurfaceData( _RecordsetPtr& spData )
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -302,6 +305,7 @@ STDMETHODIMP CSymbolVolatilitySurface::SetSurfaceProps( _RecordsetPtr& spProps )
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -383,6 +387,7 @@ STDMETHODIMP CSymbolVolatilitySurface::GetSurfaceData( _RecordsetPtr& spData, bo
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -424,6 +429,7 @@ STDMETHODIMP CSymbolVolatilitySurface::GetSurfaceProps( _RecordsetPtr& spProps )
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -459,7 +465,7 @@ STDMETHODIMP CSymbolVolatilitySurface::PublishChanges( _RecordsetPtr& spRS )
 	{
 		_bstr_t message(L"Error calling publishing manager. ");
 		message += CComErrorWrapper::ErrorDescription( e );
-
+		REPORT_ERR_TO_MAIL(e)
 //		return Error( (PTCHAR)message, IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", message, __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -590,7 +596,7 @@ STDMETHODIMP CSymbolVolatilitySurface::get_TimeSkew(IVMTimeSkewVolatilities **pV
 	{
 		if( pObject )
 			pObject->Release();
-
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -641,7 +647,7 @@ STDMETHODIMP CSymbolVolatilitySurface::get_StrikeSkew(DATE ExpDate, IVMStrikeSke
 	{
 		if( pObject )
 			pObject->Release();
-
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -724,6 +730,7 @@ STDMETHODIMP CSymbolVolatilitySurface::Save()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -760,6 +767,7 @@ STDMETHODIMP CSymbolVolatilitySurface::SaveAs(long SurfaceID, VARIANT_BOOL NewDe
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -778,6 +786,7 @@ STDMETHODIMP CSymbolVolatilitySurface::Reload()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMSymbolVolatilitySurface, e.Error() );
 		return CComErrorWrapper::SetError(e, L"SymbolVolatilitySurface", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -835,6 +844,7 @@ STDMETHODIMP CSymbolVolatilitySurface::OnVMESurface(/*[in]*/IDispatch* Symbol, /
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		ATLTRACE( (PTCHAR)CComErrorWrapper::ErrorDescription( e ) );
 	}
 

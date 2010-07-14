@@ -5,10 +5,6 @@
 	Name="EtsMmRisks"
 	ProjectGUID="{47CEB93C-5E69-44B4-8EDC-09DDABD05CDB}"
 	RootNamespace="EtsMmRisks"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>
@@ -160,6 +156,8 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="2"
+				EnableFiberSafeOptimizations="false"
+				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="../include;../../../tlb,../../include,..\..\..\..\EgarCommonLibrary\Include,..\..\..\..\MarketDataAdapters\tlb"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"

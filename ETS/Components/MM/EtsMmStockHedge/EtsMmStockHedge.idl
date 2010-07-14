@@ -124,6 +124,7 @@ library EtsMmStockHedgeLib
 		ETSGENERAL_PROP_DEF(6,			DOUBLE,					Vola)
 		ETSGENERAL_PROP_DEF(7,			DOUBLE,					Rate)
 		ETSGENERAL_PROPPUTREF_DEF(8,	IMmShOptRootAtom*,		OptRoot)
+		ETSGENERAL_PROP_DEF(9,			DOUBLE,					HTBRate)
 
 		ETSGENERAL_PROP_DEF(21,			DOUBLE,					PriceBid)
 		ETSGENERAL_PROP_DEF(22,			DOUBLE,					PriceAsk)
@@ -195,8 +196,9 @@ library EtsMmStockHedgeLib
 								[in] VARIANT_BOOL bUseTheoVolaBadMarket,
 								[in] DOUBLE dUndPriceTolerance,
 								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
-								[in, defaultvalue(0)] LONG nCalcSleepFreq,
-								[in, defaultvalue(0)] LONG nCalcSleepAmt);
+								[in] LONG nCalcSleepFreq,
+								[in] LONG nCalcSleepAmt,
+								[in] ICalculationParametrs* Params);
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

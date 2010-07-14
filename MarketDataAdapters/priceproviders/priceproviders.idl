@@ -148,7 +148,8 @@ library PRICEPROVIDERSLib
 		enRequestOptions		= 4,
 		enRequestFuture			= 5,
 		enRequestFutures		= 6,
-		enRequestFuturesOptions	= 7
+		enRequestFuturesOptions	= 7,
+		enSubscribeRisks		= 8
 	} RequestsTypeEnum;
 	//-----------------------------------------------------------------------------//
 	typedef
@@ -289,6 +290,136 @@ library PRICEPROVIDERSLib
 		[helpstring("Instrument type")]		InstrumentTypeEnum	Type;
 		[helpstring("Exchange code")]		BSTR				Exchange;
 	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(12240E6F-5117-44b8-A74B-6292FBB2AC8D)
+	]
+	struct  IRisks
+	{
+		//contract analitics
+		[helpstring("TheoPrice")]		DOUBLE	TheoPrice;	
+		[helpstring("TheoPriceBid")]	DOUBLE	TheoPriceBid;
+		[helpstring("TheoPriceAsk")]	DOUBLE	TheoPriceAsk;
+
+		[helpstring("Alpha")]		DOUBLE	Alpha;
+		[helpstring("Delta")]		DOUBLE	Delta;
+		[helpstring("Gamma")]		DOUBLE	Gamma;
+		[helpstring("Vega")]		DOUBLE	Vega;
+		[helpstring("Theta")]		DOUBLE	Theta;
+		[helpstring("Rho")]			DOUBLE	Rho;
+		[helpstring("Volga")]		DOUBLE	Volga;
+
+		[helpstring("DeltaVega")]	DOUBLE	DeltaVega;
+		[helpstring("DeltaTheta")]	DOUBLE	DeltaTheta;
+		[helpstring("GammaVega")]	DOUBLE	GammaVega;
+		[helpstring("GammaTheta")]	DOUBLE	GammaTheta;
+
+		[helpstring("IVola")]		DOUBLE	IVola;
+		[helpstring("IVolaBid")]	DOUBLE	IVolaBid;
+		[helpstring("IVolaAsk")]	DOUBLE	IVolaAsk;
+		[helpstring("TheoVola")]	DOUBLE	TheoVola;
+		
+		//prices adjusted by price profile
+		[helpstring("BaseContractPrice")]		DOUBLE BaseContractPrice;
+		[helpstring("BaseContractPriceBid")]	DOUBLE BaseContractPriceBid;
+		[helpstring("BaseContractPriceAsk")]	DOUBLE BaseContractPriceAsk;
+
+		[helpstring("ContractPrice")]			DOUBLE ContractPrice;
+		[helpstring("ContractPriceBid")]		DOUBLE ContractPriceBid;
+		[helpstring("ContractPriceAsk")]		DOUBLE ContractPriceAsk;
+
+		[helpstring("IntrinsicValue")]			DOUBLE IntrinsicValue;
+		
+		//market data from quote feeder
+		[helpstring("Bid Price")]	DOUBLE	BidPrice;
+		[helpstring("Bid Date")]	DATE	BidDate;
+		[helpstring("Bid Size")]	LONG	BidSize;
+		[helpstring("Ask Price")]	DOUBLE	AskPrice;
+		[helpstring("Ask Date")]	DATE	AskDate;
+		[helpstring("Ask Size")]	LONG	AskSize;
+		[helpstring("Last Price")]	DOUBLE	LastPrice;
+		[helpstring("Last Date")]	DATE	LastDate;
+		[helpstring("Volume")]		LONG	Volume;
+		[helpstring("Updated Date")]DATE	UpdateDate;
+	};
+	
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(2BE7BA12-B198-41ad-BCA9-AA4116C93827)
+	]
+	struct ITicker
+	{
+		[helpstring("Symbol")]				BSTR				Symbol;
+		[helpstring("Instrument type")]		InstrumentTypeEnum	Type;
+		[helpstring("Exchange code")]		BSTR				Exchange;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(B31250F9-CDEE-43b7-9F09-B73A02A2431F)
+	]
+	struct	IRate
+	{
+		[helpstring("Period")]			long	Period;
+		[helpstring("Long Rate")]		double	LongRate;
+		[helpstring("Short Rate")]		double	ShortRate;
+		[helpstring("Neutral Rate")]	double	NeutralRate;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(129CE5D7-2ED1-46f8-A88E-0635A55EA1BC)
+	]
+	struct	IContractData
+	{
+		[helpstring("Symbol")]				BSTR Symbol;
+		[helpstring("Symbol Type")]			InstrumentTypeEnum SymbolType;
+		[helpstring("Base Symbol")]			BSTR BaseSymbol;
+		[helpstring("Base Symbol Type")]	InstrumentTypeEnum BaseSymbolType;
+		[helpstring("Company Name")]		BSTR CompanyName;
+		[helpstring("Stock ID")]			long StockID;
+		[helpstring("Stock Type")]			int StockType;
+		[helpstring("Option ID")]			long OptionID;
+		[helpstring("Option Type")]			int OptionType;
+		[helpstring("Option Style")]		int OptionStyle;
+		[helpstring("Currency")]			BSTR Currency;
+		[helpstring("Expiration")]			double Expiration;
+		[helpstring("Strike")]				double Strike;
+		[helpstring("Open Interest")]		double OpenInterest;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(1B0C9F0D-823A-40f2-8442-76651E20464B)
+	]
+	struct	IContractsFullInfo
+	{
+		[helpstring("Ticker")]				struct ITicker			Ticker;
+		[helpstring("Contract Data")]		struct IContractData	Data;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(E21E2F2E-8A00-4dc2-A637-E38156CE9C00)
+	]
+	struct	IRatesFullInfo
+	{
+		[helpstring("Ticker")]		struct ITicker				Ticker;
+		[helpstring("Curve")]		SAFEARRAY(struct IRate)		Curve;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(3FBDD2EF-1A41-4d71-B776-968565025028)
+	]
+	struct  IRisksFullInfo
+	{
+		struct ITicker					Ticker;
+		struct ITicker					BaseTicker;
+		struct IRisks					Risks;
+	};
+
 	//-----------------------------------------------------------------------------//
 	[
 		uuid(7F841DD2-C284-4a52-9048-8D8DD0EF5A0A)
@@ -347,6 +478,48 @@ library PRICEPROVIDERSLib
 		[helpstring("Description")]				BSTR				Description;
 		[helpstring("Lot size")]				long				LotSize;
 		[helpstring("Exchange")]				BSTR				Exchange;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(B083A691-2BCF-4b2c-9630-E38897B41B4C)
+	]
+	struct Periodical
+	{
+		[helpstring("Date")]		double		Date;
+		[helpstring("Frequency")]	short		Freq;
+		[helpstring("Amount")]		double		Amount;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(054152B2-B024-4487-96A5-79F8DA2E2009)
+	]
+	struct Payment
+	{
+		[helpstring("Date")]		double		Date;
+		[helpstring("Amount")]		double		Amount;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(84D091A8-DF1E-408e-BC8A-058FE42D77A7)
+	]
+	struct DividendsResults
+	{
+		[helpstring("Market")]		struct Periodical			Market;
+		[helpstring("Custom")]		struct Periodical			Custom;
+		[helpstring("Payment")]		SAFEARRAY(struct Payment)	payment;
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(395B0839-3B6E-43eb-B406-0701C54AECA0)
+	]
+	struct DividendsFullInfo
+	{
+		[helpstring("Ticker")]			struct ITicker		Ticker;
+		[helpstring("Dividends info")]	struct DividendsResults	DividendsInfo;
 	};
 
 	//-----------------------------------------------------------------------------//
@@ -575,6 +748,9 @@ library PRICEPROVIDERSLib
 		[helpstring("SeqNum")]				long				SeqNum;
 		[helpstring("BidPrice")]			double				BidPrice;
 		[helpstring("AskPrice")]			double				AskPrice;
+		[helpstring("BidDateTime")]			DATE				BidDateTime;
+		[helpstring("AskDateTime")]			DATE				AskDateTime;
+		[helpstring("LastDateTime")]		DATE				LastDateTime;
 		[helpstring("BidSize")]				long				BidSize;
 		[helpstring("AskSize")]				long				AskSize;
 		[helpstring("Currency")]			BSTR				Currency;
@@ -823,6 +999,61 @@ library PRICEPROVIDERSLib
 		[id(10), helpstring("method SubscribeMultipleQuotes")]			HRESULT SubscribeMultipleQuotes([in] SAFEARRAY(struct QuoteUpdateParams) *Params);
 		[id(11), helpstring("method UnNotifiedSubscribtionQuantity")]	HRESULT UnNotifiedSubscribtionQuantity([in] VARIANT_BOOL bSkipNotification, [out, retval] LONG* pVal);
 		[id(12), helpstring("methid SetRegionRate")]					HRESULT SetRegionRate([in] BSTR Region, [in] DOUBLE Rate);
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		object,
+		uuid(CEF4F601-3E79-427d-B0B2-D15E7EEE4A22),
+		dual,
+		helpstring("IRisksProvider Interface"),
+		pointer_default(unique)
+	]
+	interface IRisksProvider : IDispatch
+	{
+		[id(13), helpstring("method GetRisksUpdates")]					HRESULT GetRisksUpdates		([out, retval] SAFEARRAY(struct IRisksFullInfo)* pRetVal);
+		[id(14), helpstring("method SubscribeRisks")]					HRESULT SubscribeRisks		([in] struct ITicker *Params);
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		object,
+		uuid(3E8534A5-E154-4935-A28D-F5E1BD32718F),
+		dual,
+		helpstring("IDataProvider Interface"),
+		pointer_default(unique)
+	]
+	interface IDataProvider : IDispatch
+	{
+		[id(15), helpstring("method RequestDividends")]					HRESULT RequestDividends	([in] struct ITicker *Params, [out, retval] struct DividendsFullInfo* dividends);
+		[id(16), helpstring("method RequestRates")]						HRESULT RequestRates		([in] struct ITicker *Params, [out, retval] struct IRatesFullInfo* Rates);
+		[id(17), helpstring("method RequestContracts")]					HRESULT RequestContracts	([in] struct ITicker *Params, [out, retval] struct IContractsFullInfo* Contracts);
+		[id(18), helpstring("method GetContractsUpdate")]				HRESULT GetContractsUpdate	([out, retval] SAFEARRAY(struct IContractsFullInfo)* Contracts);
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(EF71AEBE-C124-42df-82C2-3AF2517C0DFA),
+		helpstring("_IDataProviderInfoEvents Interface")
+	]
+	dispinterface _IDataProviderInfoEvents
+	{
+		properties:
+		methods:
+		[id(8), helpstring("method OnContractsUpdate")] HRESULT OnContractsUpdate();
+	};
+
+	//-----------------------------------------------------------------------------//
+	[
+		uuid(E4BE0007-7A8B-43af-B85E-8D99255D1794),
+		helpstring("_IRisksInfoEvents Interface")
+	]
+	dispinterface _IRisksInfoEvents
+	{
+		properties:
+		methods:
+		[id(6), helpstring("method OnRisksUpdate")] HRESULT OnRisksUpdate();
+		[id(7), helpstring("method OnRisksSubscribed")] HRESULT OnRisksSubscribed([in] struct ITicker *Params);
 	};
 
 	//-----------------------------------------------------------------------------//

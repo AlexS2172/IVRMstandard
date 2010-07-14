@@ -6,6 +6,43 @@
 
 // CMmRvFutAtom
 
+//----------------------------------------------------------------------------------------------//
+STDMETHODIMP CMmRvFutAtom::UpdateQuotes()
+{
+	try
+	{
+		if (m_spContract != NULL)
+		{
+			QuoteUpdateInfo retQuotes;
+			_CHK(m_spContract->raw_GetQuotes(&retQuotes), _T("Fail to get contract quotes."));
+
+			if (retQuotes.BidPrice > BAD_DOUBLE_VALUE)
+				m_pPrice->put_Bid(retQuotes.BidPrice);
+
+			if (retQuotes.AskPrice > BAD_DOUBLE_VALUE)
+				m_pPrice->put_Ask(retQuotes.AskPrice);
+
+			if (retQuotes.LastPrice > BAD_DOUBLE_VALUE)
+				m_pPrice->put_Last(retQuotes.LastPrice);
+
+			if (retQuotes.NetChange > BAD_DOUBLE_VALUE)
+				m_pPrice->put_NetChange(retQuotes.NetChange);
+
+			SysFreeString(retQuotes.BidExchange);
+			SysFreeString(retQuotes.AskExchange);
+			SysFreeString(retQuotes.Currency);
+			SysFreeString(retQuotes.Exchange);
+		}
+	}
+	catch(_com_error& e)
+	{
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvPosAtom, e.Error());
+	}
+
+	return S_OK;
+};
+//----------------------------------------------------------------------------------------------//
+
 STDMETHODIMP CMmRvFutAtom::get_Underlying(IMmRvUndAtom **pVal)
 {
 	if(!pVal)	return E_POINTER;	

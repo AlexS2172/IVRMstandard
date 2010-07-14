@@ -21,6 +21,7 @@ public:
 	enum { IDD = IDD_CONNECTIONS_SETTINGS };
 	CString	m_DBConnectionString;
 	CString m_ConfigurationFile;
+	_bstr_t m_FixConfigName;
 	//}}AFX_DATA
 
 

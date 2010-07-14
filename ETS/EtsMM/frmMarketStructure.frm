@@ -312,52 +312,53 @@ Private Sub MsProvider_OnOption(Params As PRICEPROVIDERSLib.OptionParams, Result
     If Params.UnderlyingSymbol <> m_Und.Symbol Then Exit Sub
     Dim aOpt As clsMsOptAtom
     
-    If Not IsLastOption Then
-        Set aOpt = m_Opt(Results.Series)
-        If aOpt Is Nothing Then
-            Set aOpt = m_Opt.Add(Results.Series)
-            aOpt.ID = 0
-            aOpt.Symbol = Results.Series
-            aOpt.Expiry = Results.ExpirationDate
-            aOpt.OptType = IIf(Results.OptionType = enCall, enOtCall, enOtPut)
-            aOpt.Strike = Round(Results.StrikePrice, STRIKE_DECIMALS_COUNT)
-            aOpt.PriceAsk = Results.Ask
-            aOpt.PriceBid = Results.Bid
-            aOpt.Volume = Results.Volume
-            aOpt.OpenInterest = Results.OpenInterest
-            aOpt.LotSize = IIf(Results.LotSize > 0, Results.LotSize, 100)
 
-            aOpt.TradingClose = DateSerial(1900, 1, 1)
-            If m_Und.UndType = enCtIndex Then
-                    aOpt.TradingClose = aOpt.TradingClose + "16:15:00"
-            Else:   aOpt.TradingClose = aOpt.TradingClose + "16:00:00" 'GINT_STOCKS enCtStock
-            End If
+    Set aOpt = m_Opt(Results.Series)
+    If aOpt Is Nothing Then
+        Set aOpt = m_Opt.Add(Results.Series)
+        aOpt.ID = 0
+        aOpt.Symbol = Results.Series
+        aOpt.Expiry = Results.ExpirationDate
+        aOpt.OptType = IIf(Results.OptionType = enCall, enOtCall, enOtPut)
+        aOpt.Strike = Round(Results.StrikePrice, STRIKE_DECIMALS_COUNT)
+        aOpt.PriceAsk = Results.Ask
+        aOpt.PriceBid = Results.Bid
+        aOpt.Volume = Results.Volume
+        aOpt.OpenInterest = Results.OpenInterest
+        aOpt.LotSize = IIf(Results.LotSize > 0, Results.LotSize, 100)
 
-            Select Case Results.ExpirationType
-            Case 0 ' Standard expiry on 3-rd Saturday
-                Select Case Results.SettlementType
-                    Case enSTAM
-                        aOpt.ExpiryOV = aOpt.Expiry - 1 + "09:30:00"
-                    Case enSTPM
-                        aOpt.ExpiryOV = aOpt.Expiry - 1 + "16:15:00"
-                    Case enSTUndefined
-                        aOpt.ExpiryOV = aOpt.Expiry - 1 + "16:00:00"
-                End Select
-            Case 1, 2, 4, 5, 6 ' Weekly options below on corresponding week and 6 - Vola index option
-                If Results.SettlementType = enSTAM Then
-                        aOpt.ExpiryOV = aOpt.Expiry + "09:30:00"
-                Else:   aOpt.ExpiryOV = aOpt.Expiry + "16:15:00"
-                End If
-            Case 7 ' Quarterly option
-                aOpt.ExpiryOV = aOpt.Expiry + "16:00:00"
-            Case Else
-                AddLogMsg "Wrong ExpirationType: '" & CStr(Results.ExpirationType) & "'."
-            End Select
-
-            If pbProgress.Value < pbProgress.Max Then IncProgress pbProgress
+        aOpt.TradingClose = DateSerial(1900, 1, 1)
+        If m_Und.UndType = enCtIndex Then
+                aOpt.TradingClose = aOpt.TradingClose + "16:15:00"
+        Else:   aOpt.TradingClose = aOpt.TradingClose + "16:00:00" 'GINT_STOCKS enCtStock
         End If
-        Set aOpt = Nothing
-    Else
+
+        Select Case Results.ExpirationType
+        Case 0 ' Standard expiry on 3-rd Saturday
+            Select Case Results.SettlementType
+                Case enSTAM
+                    aOpt.ExpiryOV = aOpt.Expiry - 1 + "09:30:00"
+                Case enSTPM
+                    aOpt.ExpiryOV = aOpt.Expiry - 1 + "16:15:00"
+                Case enSTUndefined
+                    aOpt.ExpiryOV = aOpt.Expiry - 1 + "16:00:00"
+            End Select
+        Case 1, 2, 4, 5, 6 ' Weekly options below on corresponding week and 6 - Vola index option
+            If Results.SettlementType = enSTAM Then
+                    aOpt.ExpiryOV = aOpt.Expiry + "09:30:00"
+            Else:   aOpt.ExpiryOV = aOpt.Expiry + "16:15:00"
+            End If
+        Case 7 ' Quarterly option
+            aOpt.ExpiryOV = aOpt.Expiry + "16:00:00"
+        Case Else
+            AddLogMsg "Wrong ExpirationType: '" & CStr(Results.ExpirationType) & "'."
+        End Select
+
+        If pbProgress.Value < pbProgress.Max Then IncProgress pbProgress
+    End If
+    Set aOpt = Nothing
+    
+    If (IsLastOption) Then
         pbProgress.Value = pbProgress.Max
         AddLogMsg "Options info request succeeded. " & m_Opt.Count & " options was received."
         tmrControl.Enabled = True
@@ -378,7 +379,7 @@ Private Sub MsProvider_OnStock(Params As PRICEPROVIDERSLib.StockParams, Results 
         m_Und.IsAmerican = (Results.StockType = enStock)
         m_Und.IsHTB = False
         m_Und.ExpCalendarID = 1
-        m_Und.IsTraderContract = (g_CurTraderID = 0)
+        m_Und.IsTraderContract = True
         
         If m_Und.UndType = enCtStock Then
             Set m_Und.UndPriceProfile = g_Main.DefStkPriceProfile
@@ -838,14 +839,14 @@ Private Sub SaveUnderlyingData()
                                     m_Und.Description, IIf(m_Und.ID = 0, 0, Null), Null, Null, Null, _
                                     IIf(m_Und.ID = 0, 0, Null), Null, Null, Null, IIf(m_Und.ID = 0, IIf(m_Und.IsAmerican, 1, 0), Null), Null, m_Und.ExpCalendarID, Null, _
                                     IIf(m_bWithIvData, m_Und.Skew, Null), IIf(m_bWithIvData, m_Und.Kurt, Null), Null, _
-                                    1, m_Und.UndPriceProfile.ID, m_Und.OptPriceProfile.ID)
+                                    1, m_Und.UndPriceProfile.ID, m_Und.OptPriceProfile.ID, Null)
                                     
     Else
         m_Und.ID = gDBW.usp_Index_Save(IIf(m_Und.ID = 0, Null, m_Und.ID), m_Und.Symbol, _
                                     m_Und.Description, Null, IIf(m_Und.ID = 0, 0, Null), _
                                     IIf(m_Und.ID = 0, IIf(m_Und.IsAmerican, 1, 0), Null), Null, m_Und.ExpCalendarID, Null, Null, _
                                     IIf(m_bWithIvData, m_Und.Skew, Null), IIf(m_bWithIvData, m_Und.Kurt, Null), Null, _
-                                    1, 0, m_Und.UndPriceProfile.ID, m_Und.OptPriceProfile.ID, enDivIndexYield)
+                                    1, 0, m_Und.UndPriceProfile.ID, m_Und.OptPriceProfile.ID, enDivIndexYield, Null)
     End If
     
     gDBW.usp_Stock_Import m_Und.ID, IIf(m_Und.UndType = enCtStock, 1, 0), m_Und.Description, aDiv.DivFreq, aDiv.DivAmt, _

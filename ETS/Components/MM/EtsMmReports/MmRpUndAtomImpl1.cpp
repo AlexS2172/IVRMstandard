@@ -17,15 +17,18 @@
 STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpGreeksSummaryColl** pRetVal)
 {
-	if(!pUndColl)
+	if(!pUndColl || pParams == NULL)
 		return E_INVALIDARG;
 
 	__CHECK_POINTER(pRetVal);
@@ -167,7 +170,8 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 			__CHECK_HRESULT3(spOptAtom->get_RootID(&nOptRootID));
 			__CHECK_HRESULT3(spOptAtom->get_Strike(&dStrike));
 
-			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.;
+
+			::GetCalculationParams(dtNow, dtExpiryOV, tmCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtNow, &dtExpiryOV, &tmCloseTime, &dYTE);
 
 			IMMRpPricePtr spPrice ;
 			spOptAtom->get_Price( &spPrice ) ;
@@ -265,12 +269,27 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 					if (bIsRootSynthetic)
 					{
 						dYield = spSynthRootAtom->Yield;						
-						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
+						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom,
+															dPrice, 
+															dtExpiryOV, 
+															tmCloseTime, 
+															dtNow, 
+															dYield, 
+															*psaRates, 
+															*psaYTEs,
+															ICalculationParametrsPtr(pParams));
 					}
 					else
 					{
 						dYield = m_dYield;
-						dPrice = _CalcRegularForwardPrice(dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
+						dPrice = _CalcRegularForwardPrice(	dPrice, 
+															dtExpiryOV, 
+															tmCloseTime, 
+															dtNow, 
+															dYield, 
+															*psaRates, 
+															*psaYTEs,
+															ICalculationParametrsPtr(pParams));
 					}
 				}
 
@@ -304,14 +323,16 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs, ICalculationParametrsPtr(pParams)), 
+												_InterpolateRate(dYTE, *psaHTBRates, *psaHTBYTEs, ICalculationParametrsPtr(pParams)),
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
 												pUndColl, 
 												dUndPriceTolerance,
 												enPriceRoundingRule, 
-												aGreeks);
+												aGreeks,
+												ICalculationParametrsPtr(pParams));
 
 				__CHECK_HRESULT3(spOptAtom->get_VegaWeight(&dVegaWeight));
 
@@ -588,18 +609,23 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksSummary(EtsCalcModelTypeEnum enCalcModel,
 STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonth(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpGreeksByMonthColl** pRetVal)
 {
 	HRESULT hr;
 	hr = CalcGreeksByMonthExt(	enCalcModel,
 								psaRates,
 								psaYTEs,
+                                                                psaHTBRates,
+                                                                psaHTBYTEs,
 								bUseTheoVolatility,
 								bUseTheoVolaNoBid,
 								bUseTheoVolaBadMarket,
@@ -607,6 +633,7 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonth(EtsCalcModelTypeEnum enCalcModel,
 								dUndPriceTolerance,
 								enPriceRoundingRule,
 								1.0,
+								pParams,
 								pRetVal);
 
 	return hr;
@@ -615,6 +642,8 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonth(EtsCalcModelTypeEnum enCalcModel,
 STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -622,9 +651,10 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
 					DOUBLE dUndPriceMultiplier,
+					ICalculationParametrs* pParams,
 					IMmRpGreeksByMonthColl** pRetVal)
 {
-	if(!pUndColl)
+	if(!pUndColl || pParams == NULL)
 		return E_INVALIDARG;
 
 	__CHECK_POINTER(pRetVal);
@@ -828,8 +858,8 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 			}
 
 			LONG	nRetCount = 0L;
-
-			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.;
+			
+			::GetCalculationParams(dtNow, dtExpiryOV, tmCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtNow, &dtExpiryOV, &tmCloseTime, &dYTE);
 
 			if (dtNow <= dtExpiryOV)
 			{
@@ -855,12 +885,27 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 					if (bIsRootSynthetic)
 					{
 						dYield = spSynthRootAtom->Yield;						
-						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
+						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, 
+															dPrice, 
+															dtExpiryOV, 
+															tmCloseTime, 
+															dtNow, 
+															dYield, 
+															*psaRates, 
+															*psaYTEs,
+															ICalculationParametrsPtr(pParams));
 					}
 					else
 					{
 						dYield = m_dYield;
-						dPrice = _CalcRegularForwardPrice(dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
+						dPrice = _CalcRegularForwardPrice(	dPrice,
+															dtExpiryOV,
+															tmCloseTime, 
+															dtNow, 
+															dYield, 
+															*psaRates, 
+															*psaYTEs,
+															ICalculationParametrsPtr(pParams));
 					}
 				}
 
@@ -899,7 +944,8 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs, ICalculationParametrsPtr(pParams)), 
+												_InterpolateRate(dYTE, *psaHTBRates, *psaHTBYTEs, ICalculationParametrsPtr(pParams)),
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
@@ -907,7 +953,8 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 												dUndPriceTolerance,
 												enPriceRoundingRule, 
 												aGreeks,
-												dSpotPrice);
+												ICalculationParametrsPtr(pParams),
+												dPrice);
 
 				__CHECK_HRESULT3(spOptAtom->get_VegaWeight(&dVegaWeight));
 				//if(DoubleEQZero(dOptPriceMid) && DoubleEQZero(dOptPrice))
@@ -1183,15 +1230,18 @@ STDMETHODIMP CMmRpUndAtom::CalcGreeksByMonthExt(EtsCalcModelTypeEnum enCalcModel
 STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance, 
 					EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpPnLColl** pRetVal)
 {
-	if(!pUndColl)
+	if(!pUndColl || pParams == NULL)
 		return E_INVALIDARG;
 
 	__CHECK_POINTER(pRetVal);
@@ -1616,7 +1666,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 					bIsRootSynthetic = true;
 			}
 			
-			dYTE = static_cast<DOUBLE>(dtExpiryOV - dtNow) / 365.0;
+			::GetCalculationParams(dtNow, dtExpiryOV, tmCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtNow, &dtExpiryOV, &tmCloseTime, &dYTE);
 
 			LONG nRetCount = 0L;			
 			if (dYTE <= dtExpiryOV)
@@ -1626,14 +1676,16 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 
 				nRetCount = _CalcOptionGreeks(	enCalcModel, 
 												spOptAtom, 
-												_InterpolateRate(dYTE, *psaRates, *psaYTEs), 
+												_InterpolateRate(dYTE, *psaRates, *psaYTEs, ICalculationParametrsPtr(pParams)), 
+												_InterpolateRate(dYTE, *psaHTBRates, *psaHTBYTEs, ICalculationParametrsPtr(pParams)),
 												bUseTheoVolatility, 
 												bUseTheoVolaNoBid, 
 												bUseTheoVolaBadMarket, 
 												pUndColl, 
 												dUndPriceTolerance,
 												enPriceRoundingRule, 
-												aGreeks);
+												aGreeks,
+												ICalculationParametrsPtr(pParams));
 			}
             
 			DOUBLE dOptPriceMid = m_spOptPriceProfile->GetOptPriceMid(dPriceBid, dPriceAsk, dPriceLast, enPriceRoundingRule, bUseTheoVolatility, aGreeks.dTheoPrice, NULL);
@@ -1694,12 +1746,27 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 					if (bIsRootSynthetic)
 					{
 						dYield = spSynthRootAtom->Yield;
-						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom, dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
+						dPrice = _CalcSyntheticForwardPrice(spSynthRootAtom,
+															dPrice, 
+															dtExpiryOV, 
+															tmCloseTime, 
+															dtNow, 
+															dYield, 
+															*psaRates, 
+															*psaYTEs,
+															ICalculationParametrsPtr(pParams));
 					}
 					else
 					{
 						dYield = m_dYield;
-						dPrice = _CalcRegularForwardPrice(dPrice, dtExpiryOV, tmCloseTime, dtNow, dYield, *psaRates, *psaYTEs);
+						dPrice = _CalcRegularForwardPrice(	dPrice,
+															dtExpiryOV,
+															tmCloseTime, 
+															dtNow, 
+															dYield, 
+															*psaRates, 
+															*psaYTEs,
+															ICalculationParametrsPtr(pParams));
 					}
 				}
 
@@ -1883,6 +1950,7 @@ STDMETHODIMP CMmRpUndAtom::CalcPnLs(EtsCalcModelTypeEnum enCalcModel,
 
 STDMETHODIMP CMmRpUndAtom::CalcExercisedStocks(IMmRpUndColl* pUndColl, 
 					DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpExercisedStockColl** pRetVal)
 {
  	if(!pUndColl)
@@ -2135,4 +2203,5 @@ STDMETHODIMP CMmRpUndAtom::CalcExercisedStocks(IMmRpUndColl* pUndColl,
 
 	return S_OK;
 }
+
 

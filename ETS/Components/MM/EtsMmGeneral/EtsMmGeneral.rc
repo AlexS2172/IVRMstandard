@@ -91,8 +91,8 @@ END
 //
 
 IDR_ETSMMGENERAL        REGISTRY                "EtsMmGeneral.rgs"
-IDR_MMTRADEINFOATOM     REGISTRY                "MmTradeInfoAtom.rgs"
-IDR_MMTRADEINFOCOLL     REGISTRY                "MmTradeInfoColl.rgs"
+//IDR_MMTRADEINFOATOM     REGISTRY                "MmTradeInfoAtom.rgs"
+//IDR_MMTRADEINFOCOLL     REGISTRY                "MmTradeInfoColl.rgs"
 IDR_MMORDERATOM         REGISTRY                "MmOrderAtom.rgs"
 IDR_MMORDERCOLL         REGISTRY                "MmOrderColl.rgs"
 IDR_MMORDEREXECATOM     REGISTRY                "MmOrderExecAtom.rgs"
@@ -106,13 +106,13 @@ IDR_MMTNTCARDATOM       REGISTRY                "MmTntCardAtom.rgs"
 IDR_MMTNTCARDCOLL       REGISTRY                "MmTntCardColl.rgs"
 IDR_MMTNTCARDBYSEQCOLL  REGISTRY                "MmTntCardBySeqColl.rgs"
 IDR_MMTNTCOUNTERPARTYBYNAMECOLL REGISTRY                "MmTntCounterPartyByNameColl.rgs"
-IDR_MMTRADEBYUNDATOM    REGISTRY                "MmTradeByUndAtom.rgs"
-IDR_MMTRADEBYUNDCOLL    REGISTRY                "MmTradeByUndColl.rgs"
-IDR_MMTRADEMATCHATOM    REGISTRY                "MmTradeMatchAtom.rgs"
-IDR_MMTRADEMATCHCOLL    REGISTRY                "MmTradeMatchColl.rgs"
-IDR_MMTRADECHANNEL      REGISTRY                "MmTradeChannel.rgs"
+//IDR_MMTRADEBYUNDATOM    REGISTRY                "MmTradeByUndAtom.rgs"
+//IDR_MMTRADEBYUNDCOLL    REGISTRY                "MmTradeByUndColl.rgs"
+//IDR_MMTRADEMATCHATOM    REGISTRY                "MmTradeMatchAtom.rgs"
+//IDR_MMTRADEMATCHCOLL    REGISTRY                "MmTradeMatchColl.rgs"
+//IDR_MMTRADECHANNEL      REGISTRY                "MmTradeChannel.rgs"
 IDR_MMTRADEVIEW         REGISTRY                "MmTradeView.rgs"
-IDR_MMTRADEUPDATECOLL   REGISTRY                "MmTradeUpdateColl.rgs"
+//IDR_MMTRADEUPDATECOLL   REGISTRY                "MmTradeUpdateColl.rgs"
 
 /////////////////////////////////////////////////////////////////////////////
 //

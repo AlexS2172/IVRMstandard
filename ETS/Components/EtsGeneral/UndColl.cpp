@@ -40,8 +40,8 @@ IUndAtomPtr CUndColl::AddNew(long lID, _bstr_t bsSymbol, CComObject<CUndAtom>** 
 	_CHK(CComObject<CUndAtom>::CreateInstance(&pNewVal), _T("Fail to create Underlying."));
 	spRet.Attach(pNewVal, TRUE);
 
-	pNewVal->m_nID			= lID;
-	pNewVal->m_bstrSymbol	= bsSymbol;
+	pNewVal->put_ID(lID);
+	pNewVal->put_Symbol(bsSymbol);
 
 	if(FAILED(IUndCollImpl::Add(lID, bsSymbol, pNewVal)))
 		EgLib::CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Fail to add Underlying."));

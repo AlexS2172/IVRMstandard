@@ -318,11 +318,11 @@ Private WithEvents frmLayout As frmGridLayout
 Attribute frmLayout.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Private m_bInProc As Boolean
 Private m_bDataLoad As Boolean
@@ -1998,19 +1998,17 @@ Private Function UnderlyingAdd(ByVal nUndID As Long) As EtsMmVolaAnalysisLib.MmV
                 aUnd.Skew = aGUnd.Skew
                 aUnd.Kurt = aGUnd.Kurt
         
-                If aUnd.UndType = enCtStock Then
+                aUnd.Yield = aGUnd.Yield
+                If (Not aGUnd.Dividend Is Nothing) Then
                     Set aUnd.Dividend = aGUnd.Dividend
-                Else
-                    aUnd.Yield = aGUnd.Yield
-                    Set aUnd.Dividend = aGUnd.Dividend
+                End If
+                If (Not g_Index(aUnd.ID) Is Nothing) Then
                     Set aUnd.BasketIndex = g_Index(aUnd.ID)
                 End If
-        
+                    
                 aUnd.QtyInShares = BAD_LONG_VALUE
                 aUnd.Pos = BAD_DOUBLE_VALUE
-        
-'                InitVola aUnd
-        
+              
                 sKey = CStr(aUnd.UndType) & "_" & aUnd.Symbol
                 If m_UndRequests(sKey) Is Nothing Then
                     m_UndRequests.Add aUnd, , , sKey
@@ -2482,7 +2480,7 @@ Private Function UnderlyingsLoad() As Boolean
                         Set aExp = New EtsMmVolaAnalysisLib.MmVaExpAtom
                         aExp.Expiry = dtExpiry
                         aExp.ExpiryOV = ReadDate(rsExp!dtExpiryOV)
-                        aExp.TradingClose = ReadDate(rsExp!dtTradingClose)
+                        aExp.TradingClose = ClipDays(ReadDate(rsExp!dtTradingClose))
                         aUnd.Expiry.Add dtExpiry, aExp
 
                         Set aEnt = m_Exp(CStr(CLng(dtExpiry)))
@@ -2595,7 +2593,7 @@ Private Function ExpiryOptionsLoad() As Boolean
     Dim aPair As EtsMmVolaAnalysisLib.MmVaOptPairAtom, dStrike#, aStr As EtsMmVolaAnalysisLib.MmVaStrikeAtom
     Dim aExp As EtsMmVolaAnalysisLib.MmVaExpAtom, enOptType As EtsGeneralLib.EtsOptionTypeEnum, bLoad As Boolean
     Dim aOpt As EtsMmVolaAnalysisLib.MmVaOptAtom, aRoot As EtsMmVolaAnalysisLib.MmVaOptRootAtom, nOptRootID&
-
+    Dim lSurfaceID As Long
 
     lblStatus.Visible = False
     imgStop.Visible = True
@@ -2679,8 +2677,10 @@ Private Function ExpiryOptionsLoad() As Boolean
                                 aOpt.Strike = dStrike
                                 aOpt.PriceClose = ReadDbl(rsOpt!fPriceClose)
                                 aOpt.PriceTheoclose = ReadDbl(rsOpt!fPriceTheoClose)
+                                aOpt.OptionRootID = nOptRootID
 
-                                'aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.Expiry, dStrike)
+                                'lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(nOptRootID)
+                                'aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.Expiry, dStrike, lSurfaceID)
 
                                 If aOpt.Vola < 0 Then
                                     aOpt.Vola = BAD_DOUBLE_VALUE
@@ -2943,10 +2943,8 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                 End If
             End If
 
-            'aUnd.VolaSrv.UnderlyingPrice = PriceMidEx(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast)
-
             RemoveCurOptRequests aUnd
-            aUnd.CurExpiry.FindAtmStrike aUnd.PriceLast ' PriceMidEx(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, g_Params.UseLastPriceForCalcs)
+            aUnd.CurExpiry.FindAtmStrike aUnd.PriceLast
 
             Set aStr = aUnd.CurExpiry.AtmStrike
             If Not aStr Is Nothing Then
@@ -3321,7 +3319,7 @@ End Sub
 
 Private Sub UnderlyingCalc(ByRef aUnd As EtsMmVolaAnalysisLib.MmVaUndAtom)
     On Error Resume Next
-    aUnd.CalcCurrentValues m_dVgaAmt, g_Params.CalcModel, g_Params.UseTheoVolatility
+    aUnd.CalcCurrentValues m_dVgaAmt, g_Params.CalcModel, g_Params.UseTheoVolatility, g_Main.CalculationParametrs
     Debug.Assert Err.Number = 0
     UnderlyingCalcCustomValues aUnd
 End Sub
@@ -3369,19 +3367,19 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmVolaAnalysisLib.MmVaUndAtom
     If bForceUpdateCustom Or aUnd.UseMidRates <> bUseMidRates Or Not bUseMidRates Then
         aUnd.UseMidRates = bUseMidRates
         
+        Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
+        
         For Each aExp In aUnd.Expiry
             If bUseMidRates Then
-                If Not aUnd.IsHTB Then
-                    aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
-                Else
-                    aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
-                End If
+                aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
             Else
-                If Not aUnd.IsHTB Then
-                    aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                Else
-                    aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                End If
+                aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+            End If
+            
+            If bIsHTBRatesExist Then
+                aExp.HTBRate = GetHTBRate(aUnd.ID, dtNow, aExp.ExpiryOV)
+            Else
+                aExp.HTBRate = BAD_DOUBLE_VALUE
             End If
 
             Set aExp = Nothing
@@ -4071,7 +4069,7 @@ End Sub
 Public Sub PortfolioCreate()
     On Error Resume Next
     Dim aUnd As EtsMmVolaAnalysisLib.MmVaUndAtom, aPair As EtsMmVolaAnalysisLib.MmVaOptPairAtom, aOpt As EtsMmVolaAnalysisLib.MmVaOptAtom
-    Dim collTrades As New EtsMmGeneralLib.MmTradeInfoColl, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, enOptType As EtsOptionTypeEnum
+    Dim collTrades As New EtsGeneralLib.MmTradeInfoColl, aTrd As EtsGeneralLib.MmTradeInfoAtom, enOptType As EtsOptionTypeEnum
     Dim bAllNotChecked As Boolean, frmNewPortfolio As frmNewPortfolioTrades, nTradeID&
     
     If m_Grp.ID = 0 Or m_bInProc Or m_bLastQuoteReqNow Or m_Und.Count <= 0 Then Exit Sub
@@ -4110,7 +4108,7 @@ Public Sub PortfolioCreate()
                         Set aOpt = aPair.Opt(enOptType)
                         nTradeID = nTradeID + 1
                         
-                        Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                        Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
                         aTrd.TradeID = nTradeID
                         
                         Set aTrd.Und = g_UnderlyingAll(aUnd.ID)
@@ -4159,7 +4157,7 @@ Public Sub PortfolioCreate()
                                 
                         nTradeID = nTradeID + 1
                         
-                        Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                        Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
                         aTrd.TradeID = nTradeID
                         
                         Set aTrd.Und = g_UnderlyingAll(aUnd.ID)

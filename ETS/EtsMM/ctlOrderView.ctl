@@ -445,8 +445,8 @@ Private WithEvents frmLayout As frmGridLayout
 Attribute frmLayout.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
 
 Private m_gdFlt As New clsGridDef
 Private m_gdOrd As New clsGridDef
@@ -727,7 +727,7 @@ Private Sub OrdersShow(ByVal bReload As Boolean)
     On Error Resume Next
     Dim i&, nCount&, aOrd As EtsMmGeneralLib.MmOrderAtom, nRow&, nOldRow&, nOldCol&, nOrdRow&
     Dim aRowData As clsOvRowData, bHide As Boolean, aExec As EtsMmGeneralLib.MmOrderExecAtom
-    Dim bCollapse As Boolean, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim bCollapse As Boolean, aTrd As EtsGeneralLib.MmTradeInfoAtom
 
     m_bInProc = True
     AdjustState
@@ -933,7 +933,7 @@ End Sub
 
 Private Sub OrdersUpdateTradeColors()
     On Error Resume Next
-    Dim nCol&, nRow&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim nCol&, nRow&, aTrd As EtsGeneralLib.MmTradeInfoAtom
 
     With fgOrd
         m_GridLock(GT_ORDERS_LIST).LockRedraw
@@ -970,10 +970,10 @@ Private Sub OrdersUpdateTradeColors()
     Set aTrd = Nothing
 End Sub
 
-Private Sub OrderTradeUpdate(ByVal nRow As Long, ByRef aRowTrd As EtsMmGeneralLib.MmTradeInfoAtom, _
+Private Sub OrderTradeUpdate(ByVal nRow As Long, ByRef aRowTrd As EtsGeneralLib.MmTradeInfoAtom, _
                                 Optional ByVal bUpdateColors As Boolean = False)
     On Error Resume Next
-    Dim nCol&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim nCol&, aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim bColorAlreadyUpdated As Boolean
 
     With fgOrd
@@ -2395,7 +2395,7 @@ End Sub
 Private Sub OrdersUpdate(ByVal bSymbol As Boolean)
     On Error Resume Next
     Dim i&, aRowData As clsOvRowData
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aOrd As EtsMmGeneralLib.MmOrderAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, aOrd As EtsMmGeneralLib.MmOrderAtom
 
     With fgOrd
         m_GridLock(GT_ORDERS_LIST).LockRedraw
@@ -2546,10 +2546,10 @@ Private Sub mnuCtxPrint_Click()
 '    Screen.MousePointer = vbDefault
 End Sub
 
-Private Sub OrdersProcessor_OnNewTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub OrdersProcessor_OnNewTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     Dim nRow&, nOrdRow&, aRowData As clsOvRowData, bHide As Boolean
-    Dim aOrd As EtsMmGeneralLib.MmOrderAtom, aTrdEx As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aOrd As EtsMmGeneralLib.MmOrderAtom, aTrdEx As EtsGeneralLib.MmTradeInfoAtom
 
     m_bInProc = True
 
@@ -2640,7 +2640,7 @@ End Sub
 Private Sub OrdersProcessor_OnNewOrder(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom)
     On Error Resume Next
     If m_bInProc Then Exit Sub
-    Dim nRow&, nOrdRow&, aRowData As clsOvRowData, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bHide As Boolean
+    Dim nRow&, nOrdRow&, aRowData As clsOvRowData, aTrd As EtsGeneralLib.MmTradeInfoAtom, bHide As Boolean
 
     With fgOrd
         m_GridLock(GT_ORDERS_LIST).LockRedraw
@@ -2818,7 +2818,7 @@ End Sub
 '    End With
 'End Sub
 
-Private Sub OrdersProcessor_OnUpdateOrderExec(aOrd As EtsMmGeneralLib.MmOrderAtom, aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub OrdersProcessor_OnUpdateOrderExec(aOrd As EtsMmGeneralLib.MmOrderAtom, aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error GoTo EH
     Dim nRow&, nOrdRow&, aRowData As clsOvRowData, bHide As Boolean
     
@@ -2854,7 +2854,7 @@ Private Sub OrdersProcessor_OnNewEvent(aEvent As EtsGeneralLib.EtsEventAtom)
     OrdersLogAddEvent aEvent, True
 End Sub
 
-'Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+'Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
 '    On Error Resume Next
 '    If m_bInProc Then Exit Sub
 '
@@ -3318,10 +3318,10 @@ Private Sub SortOrdNodes(ByVal nCol As Long, ByVal bAsc As Boolean)
     End With
 End Sub
 
-Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     Dim nRow&, nOrdRow&, aRowData As clsOvRowData, bHide As Boolean
-    Dim aOrd As EtsMmGeneralLib.MmOrderAtom, aTrdEx As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aOrd As EtsMmGeneralLib.MmOrderAtom, aTrdEx As EtsGeneralLib.MmTradeInfoAtom
 
     m_bInProc = True
 
@@ -3419,7 +3419,7 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     m_bInProc = False
 End Sub
 
-Private Sub DeleteTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub DeleteTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error GoTo EH
     Dim nRow&, nOrdRow&, aRowData As clsOvRowData, bHide As Boolean
     Dim aOrd As EtsMmGeneralLib.MmOrderAtom

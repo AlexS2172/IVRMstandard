@@ -25,9 +25,10 @@ HRESULT CMmQvFutAtom::rawCalcOptionGreeks(
 							EtsPriceRoundingRuleEnum enPriceRoundingRule,
 							double  dRate, 
 							DATE  dtCalcDate, 
-							VARIANT_BOOL ManualEdit)
+							VARIANT_BOOL ManualEdit,
+							ICalculationParametrs* pParams)
 {
-	if(!pUnd || !pOpt || !pQuote || !pExp || spDividend==NULL)
+	if(!pUnd || !pOpt || !pQuote || !pExp || spDividend==NULL || pParams == NULL)
 		return Error(L"Invalid objects passed.", IID_IMmQvFutAtom, E_INVALIDARG);
 
 	try
@@ -85,8 +86,11 @@ HRESULT CMmQvFutAtom::rawCalcOptionGreeks(
 					dSkew		= pUnd->m_dSkew;
 					dKurt		= pUnd->m_dKurt;
 
-					DATE dtExpiryOV = pOpt->m_dtExpiryOV;		
+					DATE dtExpiryOV = pOpt->m_dtExpiryOV;
+					DATE dtCloseTime = pOpt->m_dtTradingClose;	
 					DOUBLE dYTE = (dtExpiryOV - dtCalcDate) / 365.;
+					
+					::GetCalculationParams(dtCalcDate, dtExpiryOV, dtCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtCalcDate, &dtExpiryOV, &dtCloseTime, &dYTE);
 
 
 					DOUBLE dIVBid = 0., dIVAsk = 0.;
@@ -395,7 +399,8 @@ STDMETHODIMP CMmQvFutAtom::CalcOptionGreeks(IMmQvUndAtom* aUnd, IMmQvOptAtom* aO
 											EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility,
 											VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
 											DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
-											VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit)
+											VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
+											ICalculationParametrs* pParams)
 {
 	if(aUnd == NULL || aOpt == NULL || aQuote == NULL || aExp == NULL)
 		return Error(L"Invalid objects passed.", IID_IMmQvFutAtom, E_INVALIDARG);
@@ -412,11 +417,10 @@ STDMETHODIMP CMmQvFutAtom::CalcOptionGreeks(IMmQvUndAtom* aUnd, IMmQvOptAtom* aO
 	double				dRate = 0.0;
 	bool                bDirty = false;
 
-	//DOUBLE	dtNYDT;
-	//::GetNYDateTimeAsDATE(&dtNYDT);
-	//DOUBLE dtCalcDate	= dtNYDT + dDayShift;
 	DOUBLE dtExpiryOV	= pOpt->m_dtExpiryOV;
 	DOUBLE dtCloseTime	= pOpt->m_dtTradingClose;
+	DOUBLE dYTE			= 0.;
+	::GetCalculationParams(dtCalcDate, dtExpiryOV, dtCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtCalcDate, &dtExpiryOV, &dtCloseTime, &dYTE);
 
 	if (pUnd)
 	{
@@ -526,34 +530,6 @@ STDMETHODIMP CMmQvFutAtom::CalcOptionGreeks(IMmQvUndAtom* aUnd, IMmQvOptAtom* aO
 			}
 			break;	
 		}
-
-		/*if(spBasketIndex != NULL)
-		{
-			IEtsIndexDivCollPtr spDivColl;
-
-			spBasketIndex->get_BasketDivs(&spDivColl);
-			_CHK(spBasketIndex->get_IsBasket(&bIsBasket));
-
-			if ( bIsBasket!=VARIANT_FALSE && spDivColl != NULL)
-			{
-				long nToday  = static_cast<long>(vt_date::GetCurrentDate(true))+lDayShift;
-				long nExpiry = static_cast<long>(pOpt->m_dtExpiry);
-
-				spDivColl->GetDividendCount(nToday, nExpiry, &spDividend->m_nDivCount);
-				if(spDividend->m_nDivCount > 0L)
-				{
-					LPSAFEARRAY psaAmounts = NULL;
-					LPSAFEARRAY psaDates   = NULL;
-
-					spDivColl->GetDividends(nToday, nExpiry,  spDividend->m_nDivCount, &psaAmounts, &psaDates, &spDividend->m_nDivCount);
-					spDividend->m_saAmounts.Attach(psaAmounts);
-					spDividend->m_saDates.Attach(psaDates);
-				}
-			}
-		}
-		else
-			if(bIsBasket==VARIANT_FALSE)
-				spDividend->m_dYield = pUnd->m_dYield;*/
 	}
 
 	if(bUseCustomRates)
@@ -579,7 +555,8 @@ STDMETHODIMP CMmQvFutAtom::CalcOptionGreeks(IMmQvUndAtom* aUnd, IMmQvOptAtom* aO
 		enPriceRoundingRule, 
 		dRate, 
 		dtCalcDate, 
-		ManualEdit);
+		ManualEdit,
+		pParams);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -590,9 +567,10 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 											VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
 											VARIANT_BOOL bRecalcGreeks, DOUBLE dUndPriceTolerance,
 											EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-											LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit)
+											LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
+											ICalculationParametrs* pParams)
 {
-	if(aUnd == NULL)
+	if(aUnd == NULL || pParams == NULL)
 		return Error(L"Invalid objects passed.", IID_IMmQvFutAtom, E_INVALIDARG);
 
 	try
@@ -600,6 +578,7 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 		m_bStopCalc = FALSE;
 
 		m_dNetDelta = BAD_DOUBLE_VALUE;
+		m_dNetDeltaEq = BAD_DOUBLE_VALUE;
 		m_dTotalDelta = BAD_DOUBLE_VALUE;
 		m_dTotalGamma = BAD_DOUBLE_VALUE;
 		m_dTotalTheta = BAD_DOUBLE_VALUE;
@@ -611,15 +590,10 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 		ULONG nFetched = 0L;
 		CMmQvUndAtom* pUnd = dynamic_cast<CMmQvUndAtom*>(aUnd);
 
-
-		//DOUBLE dtNYDT;
-		//::GetNYDateTimeAsDATE(&dtNYDT);
-		//DOUBLE dtCalcDate	= dtNYDT + dDayShift;
-
-		m_spVolaSrv = pUnd->m_spVolaSrv;
+	
+	        m_spVolaSrv = pUnd->m_spVolaSrv;
 
 		DOUBLE dFutPriceBid = 0., dFutPriceAsk = 0., dFutPriceLast = 0., dFutPriceMid = 0., dUndPriceMid = 0.;
-		//IMmQvQuoteAtomPtr spFutQuote;
 		SQuoteData futQuote;
 
 		if (pUnd)
@@ -660,23 +634,6 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 						_CHK(spFutQuote->put_ReplacePriceStatus((EtsReplacePriceStatusEnum)(enMidPriceStatus | enBidPriceStatus | enAskPriceStatus)));
 				}
 			}
-
-/*			if (enCtFutUnd == pUnd->m_enUndType) 
-			{
-				//_CHK(m_spQuote->get_Item(0L, &spFutQuote));
-				//_CHK(spFutQuote->get_PriceBid(&dFutPriceBid));
-				//_CHK(spFutQuote->get_PriceAsk(&dFutPriceAsk));
-				//_CHK(spFutQuote->get_PriceLast(&dFutPriceLast));
-				EtsReplacePriceStatusEnum enMidPriceStatus = enRpsNone;
-				dFutPriceMid = m_spUndPriceProfile->GetUndPriceMid(	dFutPriceBid,
-																	dFutPriceAsk, 
-																	dFutPriceLast, 
-																	dUndPriceTolerance, 
-																	enPriceRoundingRule, 
-																	&enMidPriceStatus, 
-																	ManualEdit);		
-				_CHK(spFutQuote->put_ReplacePriceStatus(enMidPriceStatus));
-			}*/
 			_CHK(pUnd->GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enMidPriceStatus, &futureUsed, &dUndPriceMid));
 		}
 
@@ -749,6 +706,17 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 												{
 													DATE   dtExpiryOV  = pOpt->m_dtExpiryOV;
 													DOUBLE dtCloseTime = pOpt->m_dtTradingClose;
+													DOUBLE dtYTE	   = 0.;
+
+													::GetCalculationParams(	dtCalcDate, 
+																			dtExpiryOV, 
+																			dtCloseTime, 
+																			pParams->UseTimePrecision != VARIANT_FALSE, 
+																			&dtCalcDate, 
+																			&dtExpiryOV, 
+																			&dtCloseTime, 
+																			&dtYTE);
+
 													double dStrike     = pOpt->m_dStrike;
 													if(lExpDateSave!=static_cast<long>(dtExpiryOV))
 													{
@@ -826,40 +794,19 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 															}
 															break;	
 														}
-
-														/*if(spBasketIndex != NULL)
-														{
-															IEtsIndexDivCollPtr spDivColl;
-
-															spBasketIndex->get_BasketDivs(&spDivColl);
-															_CHK(spBasketIndex->get_IsBasket(&bIsBasket));
-
-															if ( bIsBasket!=VARIANT_FALSE && spDivColl != NULL)
-															{
-																long nToday  = static_cast<long>(vt_date::GetCurrentDate(true))+lDayShift;
-																long nExpiry = static_cast<long>(pOpt->m_dtExpiry);
-
-																spDivColl->GetDividendCount(nToday, nExpiry, &spDividend->m_nDivCount);
-																if(spDividend->m_nDivCount > 0L)
-																{
-																	LPSAFEARRAY psaAmounts = NULL;
-																	LPSAFEARRAY psaDates   = NULL;
-
-																	spDivColl->GetDividends(nToday, nExpiry,  spDividend->m_nDivCount, &psaAmounts, &psaDates, &spDividend->m_nDivCount);
-																	spDividend->m_saAmounts.Attach(psaAmounts);
-																	spDividend->m_saDates.Attach(psaDates);
-																}
-															}
-														}
-														else
-															if(bIsBasket==VARIANT_FALSE)
-																spDividend->m_dYield = pUnd->m_dYield;*/
 													}
 
 													if(!bVolaInitialized)
 													{
-														_CHK(m_spVolaSrv->get_OptionVola(dtExpiryOV, dStrike, &dVola));
+														IMmQvOptRootAtomPtr spOptRoot = pUnd->GetOptRoot()->GetItem(pOpt->m_nRootID);
+														if (spOptRoot)
+														{
+															LONG lRootID, lSurfaceID;
+															_CHK(spOptRoot->get_ID(&lRootID));
+															lSurfaceID = m_spVolaSrv->GetSurfaceByRoot(lRootID);
+															_CHK(m_spVolaSrv->get_OptionVola(dtExpiryOV, dStrike, lSurfaceID, &dVola));
 														bVolaInitialized = true;
+													}
 													}
 													pOpt->m_dVola = dVola;
 												}
@@ -891,7 +838,8 @@ STDMETHODIMP CMmQvFutAtom::CalcAllOptions(IMmQvUndAtom* aUnd, LONG nCallGreekMas
 																					enPriceRoundingRule,
 																					dRate, 
 																					dtCalcDate, 
-																					ManualEdit), _T("Fail to calculate option greeks."));
+																					ManualEdit,
+																					pParams), _T("Fail to calculate option greeks."));
 
 														}
 
@@ -1239,7 +1187,7 @@ STDMETHODIMP CMmQvFutAtom::get_AtmStrike(DOUBLE dUndPriceTolerance, enum EtsPric
 	return hr;
 }
 
-STDMETHODIMP CMmQvFutAtom::get_AtmVola(IMmQvExpAtom* pExp, DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule, DOUBLE* pVola)
+STDMETHODIMP CMmQvFutAtom::get_AtmVola(IMmQvExpAtom* pExp, DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule, LONG SurfaceID, DOUBLE* pVola)
 {
 	__CHECK_POINTER(pVola);
 	HRESULT hr = S_OK;
@@ -1252,7 +1200,7 @@ STDMETHODIMP CMmQvFutAtom::get_AtmVola(IMmQvExpAtom* pExp, DOUBLE dUndPriceToler
 		{
 			DATE dtExpiryOV;
 			_CHK(pExp->get_ExpiryOV(&dtExpiryOV));
-			*pVola =m_spVolaSrv->GetOptionVola(dtExpiryOV, dSpotPrice);
+			*pVola =m_spVolaSrv->GetOptionVola(dtExpiryOV, dSpotPrice, SurfaceID);
 		}
 	}
 	catch (_com_error& e) 

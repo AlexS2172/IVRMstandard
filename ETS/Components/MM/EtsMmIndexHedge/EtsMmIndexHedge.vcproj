@@ -5,10 +5,6 @@
 	Name="EtsMmIndexHedge"
 	ProjectGUID="{5EB391D2-89DB-44E9-80D5-1166AE329013}"
 	RootNamespace="EtsMmIndexHedge"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>

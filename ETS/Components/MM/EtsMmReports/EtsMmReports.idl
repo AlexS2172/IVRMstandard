@@ -18,9 +18,11 @@ library EtsMmReportsLib
 {
 	importlib("stdole32.tlb");
 	importlib("stdole2.tlb");
-	importlib("EtsGeneral.tlb");
-	importlib("EtsMmGeneral.tlb");
-
+	
+	importlib("..\..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb");
+	importlib("..\..\..\tlb\VolatilitySources.tlb");
+	importlib("..\..\tlb\EtsGeneral.tlb");
+	importlib("..\..\tlb\EtsMmGeneral.tlb");
 	
 	interface IMmRpPosAtom;
 	/////////////////////////////////////////////////////////////////////////////
@@ -419,7 +421,7 @@ library EtsMmReportsLib
 		ETSGENERAL_PROP_DEF(12,		LONG,						LotSize)
 		ETSGENERAL_PROP_DEF(13,		DOUBLE,						VegaWeight)
 		ETSGENERAL_PROPREADONLY_DEF(14,		IMmRpPosAtom*,		Pos)
-		//ETSGENERAL_PROP_DEF(15,		BSTR,						Account)
+		ETSGENERAL_PROP_DEF(15,		BSTR,						Account)
 		ETSGENERAL_PROP_DEF(16,		BSTR,						Group)
 		ETSGENERAL_PROP_DEF(17,		BSTR,						UnderlyingName)
 		ETSGENERAL_PROP_DEF(18,		enum EtsContractTypeEnum,	ContractType)
@@ -772,30 +774,38 @@ library EtsMmReportsLib
 		HRESULT CalcGreeksSummary([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
 					[in] IMmRpUndColl* pUndColl,
 					[in] DOUBLE dUndPriceTolerance,
 			        [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpGreeksSummaryColl** pRetVal);
 
 		[id(41), helpstring("method CalcGreeksByMonth")] 
 		HRESULT CalcGreeksByMonth([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
 					[in] IMmRpUndColl* pUndColl,
 					[in] DOUBLE dUndPriceTolerance,
 			        [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpGreeksByMonthColl** pRetVal);
 
 		[id(62), helpstring("method CalcGreeksByMonthExt")] 
 		HRESULT CalcGreeksByMonthExt([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -803,36 +813,45 @@ library EtsMmReportsLib
 					[in] DOUBLE dUndPriceTolerance,
 			        [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 					[in] DOUBLE dUndPriceMultiplier,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpGreeksByMonthColl** pRetVal);
 
 		[id(42), helpstring("method CalcPnLs")] 
 		HRESULT CalcPnLs([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
 					[in] IMmRpUndColl* pUndColl,
 					[in] DOUBLE dUndPriceTolerance, 
 					[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpPnLColl** pRetVal);
 
 		[id(43), helpstring("method CalcRiskMatrix")] 
 		HRESULT CalcRiskMatrix([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket, 
 					[in] IMmRpUndColl* pUndColl,
 					[in] DOUBLE dUndPriceTolerance,
 			        [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpRiskMatrixColl** pRetVal);
 
 		[id(44), helpstring("method CalcPosWithEarlyExercise")] 
 		HRESULT CalcPosWithEarlyExercise([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -844,18 +863,22 @@ library EtsMmReportsLib
 					[in] VARIANT_BOOL EAUpComDivs,
 					[in] LONG EADaysToDiv,
 					//[in, defaultvalue(0)] IMmRpPosWithEarlyExerciseAtom* pPosWithEarlyExerciseAtom,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpPosWithEarlyExerciseAtom** ppRetVal);
 
 		[id(45), helpstring("method CalcMatrixByStock")] 
 		HRESULT CalcMatrixByStock([in] DOUBLE dUndPriceTolerance, 
 					[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule, 
 					[in] IMmRpMatrixByStockAtom* pMatrixByStockAtom,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpMatrixByStockAtom** pRetVal);
 
 		[id(46), helpstring("method CalcSynthetics")] 
 		HRESULT CalcSynthetics([in] enum EtsCalcModelTypeEnum enCalcModel, 
 					[in] SAFEARRAY(DOUBLE) * psaRates, 
 					[in] SAFEARRAY(DOUBLE) * psaYTEs, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBRates, 
+					[in] SAFEARRAY(DOUBLE) * psaHTBYTEs, 
 					[in] VARIANT_BOOL bUseTheoVolatility, 
 					[in] VARIANT_BOOL bUseTheoVolaNoBid, 
 					[in] VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -863,12 +886,14 @@ library EtsMmReportsLib
 					[in] DOUBLE dUndPriceTolerance, 
 					[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
 					[in] IMmRpSyntheticColl* pSyntheticColl,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpSyntheticColl** ppRetVal);
 
 		[id(47), helpstring("method CalcExercisedStocks")] 
 		HRESULT CalcExercisedStocks([in] IMmRpUndColl* pUndColl, 
 					[in] DOUBLE dUndPriceTolerance,
 			        [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					[in] ICalculationParametrs* pParams,
 					[out, retval] IMmRpExercisedStockColl** pRetVal);
 
 		[id(48), helpstring("method CalcRiskMatrixTotals")] 

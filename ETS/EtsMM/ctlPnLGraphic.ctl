@@ -685,12 +685,30 @@ Begin VB.UserControl ctlPnLGraphic
                AccessibleDescription=   ""
                AccessibleValue =   ""
                AccessibleRole  =   9
+               Begin VB.ComboBox cmbStrategy 
+                  Height          =   315
+                  Left            =   1920
+                  Style           =   2  'Dropdown List
+                  TabIndex        =   28
+                  Top             =   960
+                  Width           =   1545
+               End
+               Begin VB.ComboBox cmbTrader 
+                  Height          =   315
+                  ItemData        =   "ctlPnLGraphic.ctx":0599
+                  Left            =   1920
+                  List            =   "ctlPnLGraphic.ctx":059B
+                  Style           =   2  'Dropdown List
+                  TabIndex        =   27
+                  Top             =   600
+                  Width           =   1545
+               End
                Begin VB.ComboBox cmbVolatility 
                   Height          =   315
                   Left            =   1920
                   Style           =   2  'Dropdown List
                   TabIndex        =   18
-                  Top             =   720
+                  Top             =   1560
                   Width           =   1545
                End
                Begin VB.TextBox txtPointsCount 
@@ -699,7 +717,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Left            =   1920
                   TabIndex        =   17
                   Text            =   "11"
-                  Top             =   1680
+                  Top             =   2520
                   Width           =   1545
                End
                Begin VB.TextBox txtChartWidth 
@@ -708,7 +726,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Left            =   1920
                   TabIndex        =   16
                   Text            =   "20"
-                  Top             =   1200
+                  Top             =   2040
                   Width           =   1545
                End
                Begin VB.ComboBox cmbTradeUnd 
@@ -716,7 +734,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   315
                   Left            =   1920
                   TabIndex        =   15
-                  Text            =   "<Select>"
+                  Text            =   "<select>"
                   Top             =   240
                   Width           =   1545
                End
@@ -724,7 +742,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   960
                   Left            =   330
                   TabIndex        =   11
-                  Top             =   3615
+                  Top             =   3960
                   Width           =   3075
                   _cx             =   5424
                   _cy             =   1693
@@ -821,7 +839,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   495
                   Left            =   330
                   TabIndex        =   12
-                  Top             =   2550
+                  Top             =   3120
                   Width           =   3075
                   _cx             =   5424
                   _cy             =   873
@@ -929,7 +947,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   315
                   Left            =   330
                   TabIndex        =   22
-                  Top             =   720
+                  Top             =   1560
                   Width           =   1245
                End
                Begin VB.Label lblPointsCount 
@@ -947,7 +965,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   315
                   Left            =   330
                   TabIndex        =   21
-                  Top             =   1680
+                  Top             =   2520
                   Width           =   1485
                End
                Begin VB.Label lblChartWidth 
@@ -965,7 +983,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   420
                   Left            =   330
                   TabIndex        =   20
-                  Top             =   1200
+                  Top             =   2040
                   Width           =   1365
                End
                Begin VB.Label lblTradeUnd 
@@ -986,6 +1004,42 @@ Begin VB.UserControl ctlPnLGraphic
                   Top             =   240
                   Width           =   1245
                End
+               Begin VB.Label lblTrader 
+                  Caption         =   "Trader"
+                  BeginProperty Font 
+                     Name            =   "Tahoma"
+                     Size            =   8.25
+                     Charset         =   204
+                     Weight          =   700
+                     Underline       =   0   'False
+                     Italic          =   0   'False
+                     Strikethrough   =   0   'False
+                  EndProperty
+                  ForeColor       =   &H00404040&
+                  Height          =   315
+                  Left            =   330
+                  TabIndex        =   29
+                  Top             =   600
+                  Width           =   885
+               End
+               Begin VB.Label lblStrategy 
+                  Caption         =   "Strategy"
+                  BeginProperty Font 
+                     Name            =   "Tahoma"
+                     Size            =   8.25
+                     Charset         =   204
+                     Weight          =   700
+                     Underline       =   0   'False
+                     Italic          =   0   'False
+                     Strikethrough   =   0   'False
+                  EndProperty
+                  ForeColor       =   &H00404040&
+                  Height          =   435
+                  Left            =   330
+                  TabIndex        =   30
+                  Top             =   960
+                  Width           =   1005
+               End
                Begin VB.Label txtExpInputs 
                   Caption         =   "Graph Expiration Inputs"
                   BeginProperty Font 
@@ -1001,7 +1055,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   240
                   Left            =   330
                   TabIndex        =   14
-                  Top             =   3315
+                  Top             =   3720
                   Width           =   2145
                End
                Begin VB.Label lblStockInputs 
@@ -1019,7 +1073,7 @@ Begin VB.UserControl ctlPnLGraphic
                   Height          =   195
                   Left            =   330
                   TabIndex        =   13
-                  Top             =   2295
+                  Top             =   2880
                   Width           =   945
                End
             End
@@ -1254,12 +1308,12 @@ Private VolaSource As VolatilitySourcesLib.VolatilitySource
 Private TradeChannel As clsTradeChannel
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public lblValue As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public lblValue As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Private m_QuoteRequests As New EtsMmRisksLib.MmRvReqColl
 Private m_Idx As New EtsMmRisksLib.MmRvUndAtom
@@ -1333,6 +1387,9 @@ Private m_bShutDown As Boolean
 Private WithEvents aParams As clsParams
 Attribute aParams.VB_VarHelpID = -1
 
+Private m_Filter As EtsFilterData
+
+
 Public Function Init() As Boolean
     On Error GoTo EH
     
@@ -1345,6 +1402,8 @@ Public Function Init() As Boolean
     InitGrids
     InitPrinter
     InitButtons
+    
+    InitializeFilter
     'cmbTradeUnd.SetFocus
     
     Set VolaSource = g_VolaSource
@@ -1576,6 +1635,7 @@ Public Sub Term()
     'Set frmWtdVega = Nothing
     Set TradeChannel = Nothing
     Set VolaSource = Nothing
+    Set m_Filter = Nothing
     
     If Not PriceProvider Is Nothing Then
         PriceProvider.CancelLastQuote
@@ -1597,6 +1657,100 @@ Public Sub Term()
     Erase m_Res
 End Sub
 
+
+Public Sub OnFilterChanged()
+On Error GoTo error_handler
+'--------------------------'
+    Dim lValue As Long
+    Dim lListIndex As Long
+    Dim lItemValue As Long
+    Dim bFilterModified As Boolean
+    
+    bFilterModified = False
+    '--- get trader filter ---'
+    lValue = m_Filter.Data(enFtTrader)
+    lListIndex = cmbTrader.ListIndex
+    lItemValue = cmbTrader.ItemData(lListIndex)
+    
+    If (lValue <> lItemValue) Then
+        m_Filter.Data(enFtTrader) = lItemValue
+        bFilterModified = True
+    End If
+    
+    '--- get strategy filter ---'
+    lValue = m_Filter.Data(enFtStrategy)
+    lListIndex = cmbStrategy.ListIndex
+    lItemValue = cmbStrategy.ItemData(lListIndex)
+    
+    If (lValue <> lItemValue) Then
+        m_Filter.Data(enFtStrategy) = lItemValue
+        bFilterModified = True
+    End If
+    
+    '--- update view ---
+    If (bFilterModified And Not m_bInProc) Then
+        tmrShow.Enabled = True
+    End If
+    
+Exit Sub
+error_handler:
+    Debug.Print True
+End Sub
+
+Public Sub InitializeFilter()
+On Error GoTo error_handler
+'--------------------------'
+    Dim itemIndex As Long
+    
+    'create filter atom'
+    Set m_Filter = Nothing
+    Set m_Filter = New EtsFilterData
+    
+    m_Filter.Initialize enFtSymbol, enFtCountTypes
+    
+    '---- initialize traders combo box ----'
+    Dim aTrader As EtsGeneralLib.EtsTraderAtom
+    
+    itemIndex = 0
+    cmbTrader.Clear
+    
+    ' add default value'
+    cmbTrader.AddItem "<all>", itemIndex
+    cmbTrader.ItemData(itemIndex) = BAD_LONG_VALUE
+    itemIndex = itemIndex + 1
+    
+    For Each aTrader In g_Trader
+        cmbTrader.AddItem aTrader.Name, itemIndex
+        cmbTrader.ItemData(itemIndex) = aTrader.ID
+        itemIndex = itemIndex + 1
+    Next
+    
+    cmbTrader.ListIndex = 0
+    
+    '---- initialize strategy combo box ----'
+    Dim aStrategy As EtsStrategyAtom
+    
+    itemIndex = 0
+    cmbStrategy.Clear
+    
+    ' add default value '
+    cmbStrategy.AddItem "<all>", itemIndex
+    cmbStrategy.ItemData(itemIndex) = BAD_LONG_VALUE
+    itemIndex = itemIndex + 1
+    
+    For Each aStrategy In g_Strategy
+        cmbStrategy.AddItem aStrategy.Name, itemIndex
+        cmbStrategy.ItemData(itemIndex) = aStrategy.ID
+        itemIndex = itemIndex + 1
+    Next
+    
+    cmbStrategy.ListIndex = 0
+    
+Exit Sub
+error_handler:
+    Debug.Assert False
+    Debug.Print Err.Description
+End Sub
 
 Public Sub InitUndList()
     Dim aUnd As EtsGeneralLib.UndAtom
@@ -1624,7 +1778,7 @@ Private Sub ClearViewAndData()
     
     fgExp.Cell(flexcpText, 1, PEC_SHIFT, 3, PEC_SHIFT) = "" ' Should Create a sub for exp grid init
     fgUnd.Clear flexClearScrollable
-    fgOpt.Rows = 1
+    fgOpt.rows = 1
     lblValue.Caption = ""
 
     m_Grp.Clear
@@ -1642,7 +1796,7 @@ End Sub
 
 Public Sub InitGrids()
     With fgUnd
-        .Rows = 2
+        .rows = 2
         .Cols = PUC_COLUMN_COUNT
         .ColWidthMin = CInt(fgUnd.Width / PUC_COLUMN_COUNT)
         
@@ -1678,7 +1832,7 @@ Public Sub InitGrids()
     End With
     
     With fgExp
-        .Rows = 4
+        .rows = 4
         .Cols = PEC_COLUMN_COUNT
         
         .TextMatrix(0, PEC_ID) = "Line"
@@ -1726,7 +1880,7 @@ Public Sub InitGrids()
     End With
     
     With fgOpt
-        .Rows = 1
+        .rows = 1
         .Cols = POC_COLUMN_COUNT
         .ColWidthMin = 600
         
@@ -1795,7 +1949,7 @@ Public Sub InitGrids()
     End With
     
     With fgVal
-        .Rows = 1
+        .rows = 1
         .Cols = 1
         
         .RowHeightMin = 280
@@ -1820,7 +1974,7 @@ End Sub
 
 Private Sub InitValGrids()
     fgVal.Cols = 1
-    fgVal.Rows = 0
+    fgVal.rows = 0
 End Sub
 
 Private Sub InitVols()
@@ -1836,6 +1990,13 @@ Private Sub InitButtons()
     cmdPrint.Enabled = False
 End Sub
 
+Private Sub cmbStrategy_Click()
+    OnFilterChanged
+End Sub
+
+Private Sub cmbTrader_Click()
+    OnFilterChanged
+End Sub
 
 Private Sub cmbTradeUnd_LostFocus()
     If (cmbTradeUnd.ListCount <> 0) Then
@@ -2185,7 +2346,7 @@ End Function
 Private Sub tmrShow_Timer()
     On Error Resume Next
     tmrShow.Enabled = False
-
+        
     If m_bInProc Or m_bDataLoad Then Exit Sub
     
     'Screen.MousePointer = vbArrow
@@ -2262,7 +2423,7 @@ Private Sub tmrShow_Timer()
     Screen.MousePointer = vbDefault
 End Sub
 
-Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Private Function CheckTradeFilter(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error Resume Next
     Dim bMatched As Boolean
     
@@ -2279,6 +2440,8 @@ Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
         
         If aTrd.UndID = m_nCurUndID Then _
             bMatched = True
+            
+        bMatched = aTrd.CheckByFilter(m_Filter)
     End If
 
     CheckTradeFilter = bMatched
@@ -2325,7 +2488,7 @@ Private Function PositionsLoad() As Boolean
     PositionsLoad = False
     If m_bInProc Then Exit Function
     
-    Dim i&, nCount&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, sExpiryKey$
+    Dim i&, nCount&, aTrd As EtsGeneralLib.MmTradeInfoAtom, sExpiryKey$
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom, aExp As EtsGeneralLib.EtsMmEntityAtom, aReq As EtsMmRisksLib.MmRvReqAtom
     Dim collExp As EtsGeneralLib.EtsMmEntityAtomColl, arrExp() As Long, sKey$, aEnt As EtsGeneralLib.EtsMmEntityAtom, nQty&, nQtyInShares&
     Dim aGUnd As EtsGeneralLib.UndAtom, aSynthRoot As EtsGeneralLib.SynthRootAtom, aSynthRootComp As EtsGeneralLib.SynthRootCompAtom
@@ -2738,6 +2901,7 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
                 lblProcess.Visible = False
                 imgStop.Visible = False
                 imgStopDis.Visible = False
+                
             End If
         Else
             Debug.Assert False
@@ -2856,6 +3020,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         lblProcess.Visible = False
         imgStop.Visible = False
         imgStopDis.Visible = False
+        
     End If
 End Sub
 
@@ -3005,6 +3170,7 @@ Private Sub CalcMatrix()
     nUndCount = m_Und.Count
     If m_bInProc Or m_bRecalc Then Exit Sub
     
+    
     ClearValGrid False
     SetRefreshHint False
     
@@ -3122,7 +3288,7 @@ ExitFor:
         For i = 0 To 2
             If UBound(m_Res, 2) >= i Then
                 With fgVal
-                    .Rows = .Rows + 3
+                    .rows = .rows + 3
                     nDeltaRow = 3 * i + 1
                     nGammaRow = 3 * i + 2
                     nVegaRow = 3 * i + 3
@@ -3147,7 +3313,7 @@ ExitFor:
             End If
         Next i
         
-        .Cell(flexcpBackColor, 0, m_nLabelCount \ 2 + 1, .Rows - 1) = &HEEEEEE
+        .Cell(flexcpBackColor, 0, m_nLabelCount \ 2 + 1, .rows - 1) = &HEEEEEE
         .AutoSize 1, .Cols - 1
     End With
     
@@ -3163,6 +3329,7 @@ ExitFor:
     m_bRecalc = False
   
     AdjustState
+    
 End Sub
 
 Private Sub ClearValGrid(ByVal bAutosize As Boolean)
@@ -3560,9 +3727,16 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Dim bIsBasket As Boolean
     Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
     Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
-    Dim dYTE As Double
+    Dim lSurfaceID As Long
+
+    Dim dYte As Double
+    Dim dtExpiryOV As Date
+    Dim dtTradingClose As Date
+    Dim dtNow As Date
         
-   
+    dtNow = dtToday
+    GetCalcParams dtNow, aPos.ExpiryOV, aPos.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
+    
     nDivCount = 0
     ReDim dDivDte(0 To 0)
     ReDim dDivAmts(0 To 0)
@@ -3581,9 +3755,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Select Case enDivType
         Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
             If Not aDiv Is Nothing Then
-                aDiv.GetDividendCount2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount
+                aDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                 If nDivCount > 0 Then
-                    aDiv.GetDividends2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                    aDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                 End If
                 Set aDiv = Nothing
             End If
@@ -3591,9 +3765,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
             If Not aUnd.BasketIndex Is Nothing Then
                 Set aBasketDivs = aUnd.BasketIndex.BasketDivs
                     If Not aBasketDivs Is Nothing Then
-                        aBasketDivs.GetDividendCount2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount
+                        aBasketDivs.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                         If nDivCount > 0 Then
-                            aBasketDivs.GetDividends2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                            aBasketDivs.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                         End If
                     End If
                     Set aBasketDivs = Nothing
@@ -3605,37 +3779,37 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
    
     Dim nRow&
     dVola = 0#
-    
-    dYTE = (aPos.ExpiryOV - dtToday) / 365#
+
+    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(aPos.OptionRootID)
     
     If m_bDataEditedByUser Then
         dVola = aPos.Quote.Vola
     Else
     Select Case m_enUsedVolaType
         Case PVT_THEO:
-            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
             aPos.Quote.Vola = dVola
         Case PVT_BIDIMPLD:
             If (aPos.Quote.price.Bid <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Bid, aPos.Strike, dYTE, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Bid, aPos.Strike, dYte, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
                 End If
             ElseIf (aPos.Quote.price.Ask <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Ask / 2, aPos.Strike, dYTE, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Ask / 2, aPos.Strike, dYte, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
             End If
             aPos.Quote.Vola = dVola
         Case PVT_HIST:
@@ -3651,15 +3825,15 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpotBase, dOptSpot, aPos.Strike, dYTE, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpotBase, dOptSpot, aPos.Strike, dYte, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
             End If
             
             aPos.Quote.Vola = dVola
@@ -3670,7 +3844,7 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
         ShiftVola aRes, aPos.VegaWeight, dVola
         
         Dim RetCount
-        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, aPos.Strike, dVola, dYTE, _
+        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, aPos.Strike, dVola, dYte, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
             
         If RetCount <> 0 Then
@@ -3896,13 +4070,19 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     On Error Resume Next
     Dim nDivCount&, RetCount&, nBaskDivCount&, dYield#, dVola#, dOptSpot#, nIsAmerican&
     Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
-    Dim nFlag&, dYTE As Double
-    
+    Dim nFlag&, dYte As Double
+    Dim lSurfaceID As Long
+
     nDivCount = 0
     ReDim dDivDte(0 To 0)
     ReDim dDivAmts(0 To 0)
     
-    dYTE = (aPos.ExpiryOV - dtToday) / 365#
+    Dim dtNow As Date
+    Dim dtExpiryOV As Date
+    Dim dtTradingClose As Date
+    
+    dtNow = dtToday
+    GetCalcParams dtNow, aPos.ExpiryOV, aPos.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
     
     nIsAmerican = IIf(aUnd.IsAmerican, 1, 0)
     CalcGreeksSynth = False
@@ -3911,9 +4091,9 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
             Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
             Set aBasketDiv = aSynthRoot.BasketDivs
             If Not aBasketDiv Is Nothing Then
-                aBasketDiv.GetDividendCount2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount
+                aBasketDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nBaskDivCount
                 If nBaskDivCount > 0 Then _
-                        aBasketDiv.GetDividends2 dtToday, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+                        aBasketDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
             End If
             Set aBasketDiv = Nothing
         Erase aBaskDivs
@@ -3923,6 +4103,8 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
         nDivCount = 0
     End If
     
+    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(aPos.OptionRootID)
+    
     Dim nRow&
     dVola = 0#
     If m_bDataEditedByUser Then
@@ -3930,29 +4112,29 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     Else
     Select Case m_enUsedVolaType
         Case PVT_THEO:
-            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
             aPos.Quote.Vola = dVola
         Case PVT_BIDIMPLD:
             If (aPos.Quote.price.Bid <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Bid, aPos.Strike, dYTE, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Bid, aPos.Strike, dYte, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
                 End If
             ElseIf (aPos.Quote.price.Ask <> BAD_DOUBLE_VALUE) Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Ask / 2, aPos.Strike, dYTE, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, aUnd.price.Last, aPos.Quote.price.Ask / 2, aPos.Strike, dYte, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
             End If
             aPos.Quote.Vola = dVola
         Case PVT_HIST:
@@ -3968,15 +4150,15 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
             
             If dOptSpot > 0# Then
                 nFlag = VF_OK
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpotBase, dOptSpot, aPos.Strike, dYTE, _
+                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpotBase, dOptSpot, aPos.Strike, dYte, _
                                     aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
                                     100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
                 
                 If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
                 End If
             Else
-                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
+                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
             End If
             
             aPos.Quote.Vola = dVola
@@ -3986,7 +4168,7 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     If dVola > 0# Then
         ShiftVola aRes, aPos.VegaWeight, dVola
         
-        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpot, aPos.Strike, dVola, dYTE, _
+        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpot, aPos.Strike, dVola, dYte, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, aGreeks)
         
         If RetCount <> 0 Then
@@ -4190,13 +4372,52 @@ Private Sub UnderlyingsAdjustRates()
     Next
 End Sub
 
+'Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
+'    On Error Resume Next
+'    Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
+'    If aUnd Is Nothing Then Exit Sub
+'
+'    Dim dtNow As Date
+'    dtNow = GetNewYorkTime
+'
+'    dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
+'
+'    If GetIrRuleType = enRateBasedOnPosition Then
+'        cPosThreshold = Abs(GetPosThreshold)
+'        bUseMidRates = (cPosThreshold = 0 Or cPosThreshold <> 0 And Abs(dPos) <= cPosThreshold)
+'    Else
+'        bUseMidRates = True
+'    End If
+'
+'    aUnd.UseMidRates = bUseMidRates
+'    Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
+'
+'    For Each aPos In aUnd.Pos
+'        If aPos.ContractType = enCtOption Then
+'            If bUseMidRates Then
+'                If Not aUnd.IsHTB Then
+'                    aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
+'                Else
+'                    aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
+'                End If
+'            Else
+'                If Not aUnd.IsHTB Then
+'                    aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
+'                Else
+'                    aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
+'                End If
+'            End If
+'
+'        End If
+'    Next
+'End Sub
+
 Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     On Error Resume Next
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     If aUnd Is Nothing Then Exit Sub
-    
-    Dim dtNow As Date
-    dtNow = GetNewYorkTime
+
+    Dim dtToday As Date: dtToday = GetNewYorkTime
     
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
     
@@ -4208,23 +4429,21 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     End If
 
     aUnd.UseMidRates = bUseMidRates
+    Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
     
     For Each aPos In aUnd.Pos
-        If aPos.ContractType = enCtOption Then
+        If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
             If bUseMidRates Then
-                If Not aUnd.IsHTB Then
-                    aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
-                Else
-                    aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
-                End If
+                aPos.Rate = GetNeutralRate(dtToday, aPos.ExpiryOV)
             Else
-                If Not aUnd.IsHTB Then
-                    aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
-                Else
-                    aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
-                End If
+                aPos.Rate = IIf(dPos < 0, GetShortRate(dtToday, aPos.ExpiryOV), GetLongRate(dtToday, aPos.ExpiryOV))
             End If
-
+            
+            If bIsHTBRatesExist Then
+                aPos.HTBRate = GetHTBRate(aUnd.ID, dtToday, aPos.ExpiryOV)
+            Else
+                aPos.HTBRate = BAD_DOUBLE_VALUE
+            End If
         End If
     Next
 End Sub
@@ -4284,7 +4503,7 @@ Private Sub FillUndPosGrid(UndID As Long)
     nCurRow = 0
     
     With fgOpt
-        .Rows = 1
+        .rows = 1
         
         Set aUnd = m_Und(UndID)
         If aUnd Is Nothing Then Exit Sub
@@ -4292,7 +4511,7 @@ Private Sub FillUndPosGrid(UndID As Long)
         For Each aPos In aUnd.Pos
             If aPos.ContractType = enCtOption Then
                 .AddItem ""
-                nCurRow = .Rows - 1
+                nCurRow = .rows - 1
                 .TextMatrix(nCurRow, POC_SYMBOL) = aPos.Symbol
                 .TextMatrix(nCurRow, POC_EXPDATE) = aPos.Expiry
                 .TextMatrix(nCurRow, POC_STRIKE) = aPos.Strike
@@ -4577,4 +4796,5 @@ Private Sub CalcTheoPnLCommonExerc(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, _
 '    End If
     
 End Sub
+
 

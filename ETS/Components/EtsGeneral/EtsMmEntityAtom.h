@@ -44,7 +44,7 @@ public:
 };
 
 class ATL_NO_VTABLE CEtsMmEntityAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsMmEntityAtom, &CLSID_EtsMmEntityAtom>,
 	public ISupportErrorInfoImpl<&IID_IEtsMmEntityAtom>,
 	public IDispatchImpl<IEtsMmEntityAtom, &IID_IEtsMmEntityAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -53,6 +53,7 @@ class ATL_NO_VTABLE CEtsMmEntityAtom :
 public:
 	CEtsMmEntityAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSMMENTITYATOM)
@@ -62,20 +63,25 @@ BEGIN_COM_MAP(CEtsMmEntityAtom)
 	COM_INTERFACE_ENTRY(IEtsMmEntityAtom)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
+		m_pUnkMarshaler.Release();
 	}
 
+	CComPtr<IUnknown> m_pUnkMarshaler;
 public:
 
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, ID, m_lID);

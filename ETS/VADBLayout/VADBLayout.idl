@@ -88,6 +88,8 @@ library VADBLAYOUTLib
 
 		[id(8), helpstring("GetDualQuadraticProps")] HRESULT GetDualQuadraticProps([in]BSTR Symbol, [in]long ContractType, [in] DATE ExpDate, [out,retval] _Recordset** ppRS);
 		[id(9), helpstring("SaveDualQuadraticProps")] HRESULT SaveDualQuadraticProps([in]BSTR Symbol, [in]long ContractType, [in] DATE ExpDate, [in] _Recordset* pRS);
+
+		[id(10), helpstring("GetVolaSurfaceGroup")] HRESULT GetVolaSurfaceGroup([in]BSTR Symbol, [out, retval]_Recordset **ppRecordset);
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

@@ -5,9 +5,6 @@
 	Name="IVRmRes"
 	ProjectGUID="{51AE6E19-DE4D-4FE6-93FC-D4A087521D2E}"
 	RootNamespace="IVRmRes"
-	SccProjectName="SAK"
-	SccLocalPath="..\.."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="Win32Proj"
 	>
 	<Platforms>

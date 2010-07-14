@@ -18,9 +18,9 @@ Public Event OnNewOrderExec(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom, ByRef aOr
 Public Event OnNewEvent(ByRef aEvent As EtsGeneralLib.EtsEventAtom)
 Public Event OnUpdateOrder(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom)
 'Public Event OnUpdateOrderExec(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom, ByRef aOrdExec As EtsMmGeneralLib.MmOrderExecAtom)
-Public Event OnUpdateOrderExec(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom, ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Public Event OnUpdateOrderExec(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom, ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
 Public Event OnClearEvents()
-Public Event OnNewTrade(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Public Event OnNewTrade(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
 
 Private WithEvents MmwMsgManager As MMWLib.MsgManager
 Attribute MmwMsgManager.VB_VarHelpID = -1
@@ -80,7 +80,7 @@ Public Sub LoadOrders(Optional ByRef lblProgress As frmSplash = Nothing)
     Dim rsOrd As ADODB.Recordset, rsExec As ADODB.Recordset, bShowProgress As Boolean, nTotal&, nDone&
     Dim aOrd As EtsMmGeneralLib.MmOrderAtom, enContractType As EtsGeneralLib.EtsContractTypeEnum
     Dim aExec As EtsMmGeneralLib.MmOrderExecAtom, aUnd As EtsGeneralLib.UndAtom, aRoot As EtsGeneralLib.EtsOptRootAtom
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim rsCxlExec As ADODB.Recordset
 
     bShowProgress = Not lblProgress Is Nothing
@@ -177,11 +177,11 @@ Public Sub LoadOrders(Optional ByRef lblProgress As frmSplash = Nothing)
 '            Set aUnd = g_Underlying(ReadLng(rsCxlExec!iUnderlyingContractID))
 '            Set aTrader = g_Trader(ReadLng(rsCxlExec!iTraderID))
 '            If Not aUnd Is Nothing And Not aTrader Is Nothing Then
-                Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
 '                Set aTrd.Und = aUnd
 
                 aTrd.TradeID = ReadLng(rsCxlExec!iTradeID)
-                aTrd.Price = ReadDbl(rsCxlExec!fPrice)
+                aTrd.price = ReadDbl(rsCxlExec!fPrice)
                 aTrd.Quantity = ReadLng(rsCxlExec!iQuantity)
                 aTrd.IsBuy = (ReadByte(rsCxlExec!tiIsBuy) <> 0)
                 aTrd.TradeDate = GmtToLocal(ReadDate(rsCxlExec!dtTradeDate))
@@ -551,7 +551,7 @@ Private Sub CopyOrderForPub(ByRef aOrd As EtsMmGeneralLib.MmOrderAtom, ByRef aRe
     aReq.OrderType = aOrd.OrderType
     aReq.IsBuy = IIf(aOrd.IsBuy, 1, 0)
     aReq.Qty = aOrd.OrderQty
-    aReq.Price = IIf(aOrd.OrderType = enOrtLimit, aOrd.OrderPrice, 0#)
+    aReq.price = IIf(aOrd.OrderType = enOrtLimit, aOrd.OrderPrice, 0#)
     aReq.SendingTime = aOrd.OrderDate
     aReq.AvgPrice = aOrd.AvgPrice
     aReq.CumQty = aOrd.CumQty
@@ -799,7 +799,7 @@ Private Function CopyFullOrderFromSub(ByRef aSrc As MSGSTRUCTLib.IOrder, ByRef a
     aDst.OrderType = aSrc.OrderType
     aDst.IsBuy = (aSrc.IsBuy <> 0)
     aDst.OrderQty = aSrc.Qty
-    aDst.OrderPrice = aSrc.Price
+    aDst.OrderPrice = aSrc.price
     aDst.OrderDate = GmtToLocal(aSrc.SendingTime)
     aDst.AvgPrice = aSrc.AvgPrice
     aDst.CumQty = aSrc.CumQty
@@ -850,7 +850,7 @@ Private Sub CopyOrderUpdatesFromSub(ByRef aSrc As MSGSTRUCTLib.IOrder, ByRef aDs
     aDst.UpdateDate = aSrc.TransactTime
     aDst.Status = aSrc.OrdStatus
     aDst.OrderQty = aSrc.Qty
-    aDst.OrderPrice = aSrc.Price
+    aDst.OrderPrice = aSrc.price
     aDst.OrderDate = GmtToLocal(aSrc.SendingTime)
     aDst.AvgPrice = aSrc.AvgPrice
     aDst.CumQty = aSrc.CumQty
@@ -1018,9 +1018,9 @@ EH:
     Set rsExec = Nothing
 End Sub
 
-Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
-    Dim aOrd As EtsMmGeneralLib.MmOrderAtom, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aOrd As EtsMmGeneralLib.MmOrderAtom, aTrd As EtsGeneralLib.MmTradeInfoAtom
     
     If Not aOldTrdInfo Is Nothing Then _
         If aOldTrdInfo.OrderID = 0 Then Exit Sub
@@ -1075,8 +1075,8 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
     End Select
 End Sub
 
-Private Sub UpdateOrderExec(ByRef aSrc As EtsMmGeneralLib.MmTradeInfoAtom, ByRef aDst As MSGSTRUCTLib.TradeUpdate)
-    aDst.Price = aSrc.Price
+Private Sub UpdateOrderExec(ByRef aSrc As EtsGeneralLib.MmTradeInfoAtom, ByRef aDst As MSGSTRUCTLib.TradeUpdate)
+    aDst.price = aSrc.price
     aDst.Quantity = aSrc.Quantity
     aDst.TradeDate = aSrc.TradeDate
     aDst.OrderID = aSrc.OrderID

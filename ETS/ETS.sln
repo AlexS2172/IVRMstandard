@@ -33,47 +33,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgFormat", "IvRmDataLoader\
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 10
-		SccProjectName0 = SAK
-		SccLocalPath0 = .
-		SccProvider0 = MSSCCI:ClearCase
-		CanCheckoutShared = false
-		SccProjectUniqueName1 = ETSManager\\ETSManager.vcproj
-		SccLocalPath1 = ETSManager
-		CanCheckoutShared = false
-		SccProjectUniqueName2 = VADBLayout\\VADBLayout.vcproj
-		SccLocalPath2 = VADBLayout
-		CanCheckoutShared = false
-		SccProjectUniqueName3 = Vme\\VME.vcproj
-		SccLocalPath3 = VME
-		CanCheckoutShared = false
-		SccProjectUniqueName4 = ETSLogsManager\\ETSLogsManager.vcproj
-		SccProjectName4 = ETS
-		SccLocalPath4 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection4 = ETSLogsManager\\
-		SccProjectUniqueName5 = VolatilitySources\\VolatilitySources.vcproj
-		SccProjectName5 = \u0022$/ETS/Work\u0022,\u0020CAAAAAAA
-		SccLocalPath5 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection5 = VolatilitySources\\
-		SccProjectUniqueName6 = ETSXMLParams\\ETSXMLParams.vcproj
-		SccLocalPath6 = ETSXMLParams
-		CanCheckoutShared = false
-		SccProjectUniqueName7 = Skins\\IVRmRes\\IVRmRes.vcproj
-		SccLocalPath7 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection7 = Skins\\IVRmRes\\
-		SccProjectUniqueName8 = Skins\\Angora\\AngoraRes\\AngoraRes.vcproj
-		SccLocalPath8 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection8 = Skins\\Angora\\AngoraRes\\
-		SccProjectUniqueName9 = IvRmDataLoader\\EgFormat\\EgFormat\\EgFormat.vcproj
-		SccLocalPath9 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection9 = IvRmDataLoader\\EgFormat\\EgFormat\\
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32

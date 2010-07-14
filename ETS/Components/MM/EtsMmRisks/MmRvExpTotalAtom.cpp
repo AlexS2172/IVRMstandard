@@ -86,6 +86,16 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 				if(VARIANT_FALSE == m_bBadVegaInShares)
 					m_bBadVegaInShares = pExp->m_bBadVegaInShares;
 
+				// ThetaInShares total
+				if(pExp->m_dThetaInShares > BAD_DOUBLE_VALUE)
+				{
+					if(m_dThetaInShares <= BAD_DOUBLE_VALUE) m_dThetaInShares = 0.;
+					m_dThetaInShares += pExp->m_dThetaInShares;
+				}
+
+				if(VARIANT_FALSE == m_bBadThetaInShares)
+					m_bBadThetaInShares = pExp->m_bBadThetaInShares;
+
 				// TimeValueInShares total
 				if(pExp->m_dTimeValueInShares > BAD_DOUBLE_VALUE)
 				{
@@ -95,6 +105,9 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 
 				if(VARIANT_FALSE == m_bBadTimeValueInShares)
 					m_bBadTimeValueInShares = pExp->m_bBadTimeValueInShares;
+
+
+				pExp->CalcCV();
 
 				if(pExp->m_pPos && !pExp->m_pPos->m_coll.empty())
 				{
@@ -155,6 +168,16 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 										if(VARIANT_FALSE == m_bBadGammaInShares)
 											m_bBadGammaInShares = pSynthAtom->m_bBadGamma;
 
+										// ThetaInShares total
+										if(pSynthAtom->m_dThetaInShares > BAD_DOUBLE_VALUE)
+										{
+											if(m_dThetaInShares <= BAD_DOUBLE_VALUE) m_dThetaInShares = 0.;
+											m_dThetaInShares += pSynthAtom->m_dThetaInShares * dCoeff * dCoeff;
+										}
+
+										if(VARIANT_FALSE == m_bBadGammaInShares)
+											m_bBadGammaInShares = pSynthAtom->m_bBadGamma;
+
 										// GammaEq total
 										if(pSynthAtom->m_dNetGamma > BAD_DOUBLE_VALUE)
 										{
@@ -179,6 +202,8 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 			}
 		}
 		__CHECK_HRESULT(hr, _T("Fail to get next expiry."));
+
+
 	}
 	catch(const _com_error& e)
 	{
@@ -186,4 +211,36 @@ STDMETHODIMP CMmRvExpTotalAtom::CalcTotals()
 	}
 
 	return S_OK;
+};
+
+//------------------------------------------------------------------------------//
+STDMETHODIMP 
+CMmRvExpTotalAtom::CalcCV(void){
+	try{
+
+		if ( m_spRTContext != NULL && m_nPoolID != BAD_LONG_VALUE ) 
+			_CHK(m_spRTContext->Recalculate(m_nPoolID));
+	}
+	catch(const _com_error& e){
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e),
+					 IID_IMmRvExpTotalAtom, e.Error());
+	}
+	return S_OK;
 }
+//------------------------------------------------------------------------------//
+// IcvDataProvider
+STDMETHODIMP 
+CMmRvExpTotalAtom::raw_GetData(LONG lDataID, VARIANT* Value){
+	return E_NOTIMPL;
+};
+//------------------------------------------------------------------------------//
+STDMETHODIMP 
+CMmRvExpTotalAtom::raw_CallFunction(LONG lFunctionID, SAFEARRAY** arrParameters, VARIANT* Value){
+	return E_NOTIMPL;
+};
+//------------------------------------------------------------------------------//
+STDMETHODIMP 
+CMmRvExpTotalAtom::raw_Check(SAFEARRAY **arrSysVars, SAFEARRAY **arrSysFuncs, LONG* pRetVal){
+	return E_NOTIMPL;
+};
+//------------------------------------------------------------------------------//

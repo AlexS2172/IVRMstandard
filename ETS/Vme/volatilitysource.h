@@ -60,7 +60,7 @@ END_SINK_MAP()
 // Notification entries
 private:
 	void OnSurfaceChanged( const _bstr_t& SymbolName );
-
+	void OnSimulatedSave(const _bstr_t& Symbol);
 // IVolatilitySource
 public:
 	STDMETHOD(get_DefaultVolatility)(/*[out, retval]*/ double *pVal);
@@ -78,6 +78,8 @@ public:
 	STDMETHOD(putref_DataSource)(/*[in]*/IVAManagement *newVal);
 	STDMETHOD(RegisterPublisher)();
 	STDMETHOD(UnregisterPublisher)();
+
+	STDMETHOD(get_SimulatedSymbolVol)(BSTR Symbol, SYMBOL_TYPE SymbolType, IVSSymbolVolatility **pVal);
 
 	static _ATL_FUNC_INFO m_OnVMESurfaceInfo;
 	STDMETHOD (OnVMESurfaceSource)(/*[in]*/IDispatch* Symbol, /*[in]*/IDispatch* Data);

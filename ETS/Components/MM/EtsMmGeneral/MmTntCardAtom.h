@@ -55,7 +55,7 @@ struct __MmTntCardAtom
 /////////////////////////////////////////////////////////////////////////////
 //
 class ATL_NO_VTABLE CMmTntCardAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmTntCardAtom, &CLSID_MmTntCardAtom>,
 	public ISupportErrorInfoImpl<&IID_IMmTntCardAtom>,
 	public IDispatchImpl<IMmTntCardAtom, &IID_IMmTntCardAtom, &LIBID_EtsMmGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,

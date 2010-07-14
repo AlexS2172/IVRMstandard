@@ -15,6 +15,7 @@
 #include "StdAfx.h"
 #include "Win32Error.h"
 #include "Tracer.h"
+#include "OConst.h"
 
 //**************************************************************************************************************//
 // Static data members init
@@ -184,12 +185,29 @@ DWORD CTracer::WriteMessageToFile(LPTSTR pszMessage)
 {
 	
 	TCHAR pLogFile[0x100] = {0};
-	TCHAR logDate[0x100] = {0};		
+	TCHAR logDate[0x100] = {0};	
+
+	_bstr_t sbsUserGroup;
+	_bstr_t sbsKey = SETTINGS_XML_KEY;
+	_bstr_t sbsVal;
 
 	SYSTEMTIME st;
 	::GetLocalTime(&st);
 
-    _stprintf_s(logDate, sizeof(logDate), _T("_%2.2i_%2.2i_%4.4i"), st.wDay, st.wMonth, st.wYear);
+	CXMLParamsHelper XMLParams;
+	XMLParams.LoadXMLParams();
+	XMLParams.GetUserGroup(sbsUserGroup.GetAddress());
+
+	sbsKey += "\\";
+	sbsKey += sbsUserGroup;
+
+	XMLParams.GetMainXMLString(sbsKey, "LogNameID", &sbsVal);
+
+	CString strSubjectPrefix = (LPTSTR)sbsUserGroup;
+	if (sbsVal.length() > 0)
+		strSubjectPrefix = (LPTSTR)sbsVal;
+
+    _stprintf_s(logDate, sizeof(logDate), _T("_%s_%2.2i_%2.2i_%4.4i"), strSubjectPrefix.GetString(), st.wDay, st.wMonth, st.wYear);
 				
 	_tcscpy_s(pLogFile, sizeof(pLogFile), LOG_FILE_BEGIN);
 	_tcscat_s(pLogFile, sizeof(pLogFile), logDate);
@@ -201,4 +219,5 @@ DWORD CTracer::WriteMessageToFile(LPTSTR pszMessage)
 
 	return ERROR_SUCCESS;
 }
+
 

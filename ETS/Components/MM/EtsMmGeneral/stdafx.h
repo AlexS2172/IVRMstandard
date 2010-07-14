@@ -41,8 +41,6 @@
 
 using namespace ATL;
 
-#import "..\..\tlb\EtsGeneral.tlb"	no_namespace named_guids
-#import "../../../tlb/MsgStruct.tlb" no_namespace named_guids
 #import "vsflex8.ocx"  named_guids rename_namespace("VSFLEX") exclude("IVSFlexGrid")
 
 // Please add "EgCommon\include" path to "Tools->Options->VC++ Directories->Include Files" section
@@ -59,3 +57,14 @@ using namespace EgLib;
 #include <vcue\collections.h>
 #include <ComponentsCommon.h>
 #include <EtsDate.h>
+
+#import "../../../tlb/MsgStruct.tlb" no_namespace named_guids
+#import "../../../tlb/VADBLayout.tlb"		no_namespace named_guids
+#import "../../../tlb/VolatilitySources.tlb"	no_namespace named_guids
+
+#import "..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb" rename("SettlementTypeEnum", "PpSettlementTypeEnum") no_namespace named_guids
+#import "..\..\tlb\EtsGeneral.tlb"	no_namespace named_guids
+
+typedef  std::vector<IMmTradeInfoAtomPtr> CTradeInfoViewData;
+
+

@@ -315,11 +315,11 @@ Private WithEvents frmVola As frmVolaShift
 Attribute frmVola.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Private m_bInProc As Boolean
 Private m_bDataLoad As Boolean
@@ -407,7 +407,7 @@ Public Function Init() As Boolean
     
     PriceProvider.Connect
     
-    m_bGroupRequest = False ' g_Params.PriceProviderIsGroupRequestSupported
+    m_bGroupRequest = False
     If m_bGroupRequest Then
         Set m_GroupPriceProvider = PriceProvider
         If m_GroupPriceProvider Is Nothing Then m_bGroupRequest = False
@@ -435,7 +435,6 @@ Public Sub ShowDataByFilter(ByRef aFilters As EtsGeneralLib.EtsFilterData)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     m_nFilter(VFC_GROUP) = TYPE_UNDERLYING
-    'm_nFilter(VFC_VALUE) = aFilters.Data(MFC_SYMBOL)
     FilterUpdateAll
     tmrShow.Enabled = True
 End Sub
@@ -1229,6 +1228,7 @@ End Sub
 Private Sub ShiftVola(ByRef aUnd As clsVmUndAtom, ByVal bShiftAllExpiries As Boolean, ByVal dShiftValue As Double)
     On Error Resume Next
     Dim e&, nExpCount&, bAlreadyShifted As Boolean
+    Dim lSurfaceID As Long
     
     If aUnd Is Nothing Then Exit Sub
     
@@ -1236,13 +1236,15 @@ Private Sub ShiftVola(ByRef aUnd As clsVmUndAtom, ByVal bShiftAllExpiries As Boo
         nExpCount = aUnd.Expiry.Count
         For e = 1 To nExpCount
             Err.Clear
-            aUnd.VolaSrv.ShiftExpiryVola aUnd.Expiry(e).ExpiryOV, dShiftValue
+            lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(0)
+            aUnd.VolaSrv.ShiftExpiryVola aUnd.Expiry(e).ExpiryOV, dShiftValue, lSurfaceID
             If Err.Number <> 0 Then LogEvent EVENT_ERROR, aUnd.Symbol & ": " & Err.Description
         Next
     Else
         If Not aUnd.CurExpiry1 Is Nothing Then
             Err.Clear
-            aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry1.ExpiryOV, dShiftValue
+            lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(0)
+            aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry1.ExpiryOV, dShiftValue, lSurfaceID
             If Err.Number <> 0 Then LogEvent EVENT_ERROR, aUnd.Symbol & ": " & Err.Description
         End If
     
@@ -1255,7 +1257,8 @@ Private Sub ShiftVola(ByRef aUnd As clsVmUndAtom, ByVal bShiftAllExpiries As Boo
             
             If Not bAlreadyShifted Then
                 Err.Clear
-                aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry2.ExpiryOV, dShiftValue
+                lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(0)
+                aUnd.VolaSrv.ShiftExpiryVola aUnd.CurExpiry2.ExpiryOV, dShiftValue, lSurfaceID
                 If Err.Number <> 0 Then LogEvent EVENT_ERROR, aUnd.Symbol & ": " & Err.Description
             End If
         End If
@@ -1947,6 +1950,8 @@ Private Function UnderlyingsLoad() As Boolean
     Dim dDate As Date
     Dim dAmount As Double
     Dim rsCust As ADODB.Recordset
+    Dim lOptionRootID As Long
+    Dim lSurfaceID As Long
 
 
     Dim aExpiry As clsVmExpiryAtom, aStrike As clsVmStrikeAtom, aOpt As clsVmOptAtom, aUnd As clsVmUndAtom
@@ -2020,50 +2025,49 @@ Private Function UnderlyingsLoad() As Boolean
             aUnd.Skew = ReadDbl(rsUnd!fSkew)
             aUnd.Kurt = ReadDbl(rsUnd!fKurt)
             
-            If aUnd.UndType = enCtStock Then
-                Set aDiv = New EtsGeneralLib.EtsIndexDivAtom
+            ' --------------------------------------------------------------------
+            '   Try to get dividend for underlying
+            Set aDiv = New EtsGeneralLib.EtsIndexDivAtom
                 
-                aDiv.DivType = (ReadLng(rsUnd!tiIsDivCustom))
-                aDiv.DivFreq = ReadLng(rsUnd!iDivFreq)
-                aDiv.DivDate = ReadDate(rsUnd!dtDivDate)
-                aDiv.DivAmt = ReadDbl(rsUnd!fDivAmt)
-                aDiv.DivFreqCust = ReadLng(rsUnd!iDivFreqCustom)
-                aDiv.DivDateCust = ReadDate(rsUnd!dtDivDateCustom)
-                aDiv.DivAmtCust = ReadDbl(rsUnd!fDivAmtCustom)
+            aDiv.DivType = (ReadLng(rsUnd!tiIsDivCustom))
+            aDiv.DivFreq = ReadLng(rsUnd!iDivFreq)
+            aDiv.DivDate = ReadDate(rsUnd!dtDivDate)
+            aDiv.DivAmt = ReadDbl(rsUnd!fDivAmt)
+            aDiv.DivFreqCust = ReadLng(rsUnd!iDivFreqCustom)
+            aDiv.DivDateCust = ReadDate(rsUnd!dtDivDateCustom)
+            aDiv.DivAmtCust = ReadDbl(rsUnd!fDivAmtCustom)
                 
-                ' --------------------------------------------------------------------
-                '   Try to get custom dividend for underlying
-                   Set rsCust = gDBW.usp_MmCustomDividend_Get(aUnd.ID)
-                   If Not rsCust.EOF Then
-                    
-                    
-                    Set aCustDivColl = New EtsGeneralLib.EtsDivColl
-                    
-                   
-                    While Not rsCust.EOF
-                        dDate = ReadDate(rsCust!DivYtes)
-                        dAmount = ReadDbl(rsCust!DivAmnt)
-                        aCustDivColl.AddNonUnique dDate, dAmount
-                        rsCust.MoveNext
-                    Wend
-                    rsCust.Close
-                    Set aDiv.CustomDivs = aCustDivColl
-                    
-                   End If
-                   Set rsCust = Nothing
-                   Set aCustDivColl = Nothing
-                '   Try to get custom dividend for underlying
-                ' --------------------------------------------------------------------
-                Set aUnd.Dividend = aDiv
-            Else
-                aUnd.Yield = ReadDbl(rsUnd!fYield)
+            Set rsCust = gDBW.usp_MmCustomDividend_Get(aUnd.ID)
+            If Not rsCust.EOF Then
+                Set aCustDivColl = New EtsGeneralLib.EtsDivColl
+                While Not rsCust.EOF
+                    dDate = ReadDate(rsCust!DivYtes)
+                    dAmount = ReadDbl(rsCust!DivAmnt)
+                    aCustDivColl.AddNonUnique dDate, dAmount
+                    rsCust.MoveNext
+                Wend
+                rsCust.Close
+                
+                Set aDiv.CustomDivs = aCustDivColl
+                        
+            End If
             
-                If ReadByte(rsUnd!tiIsBasket) <> 0 Then
-                    Set aUnd.BasketIndex = g_Index(aUnd.ID)
-                Else
-                    Set aUnd.BasketIndex = Nothing
+            If (Not g_Main.Holidays Is Nothing) Then
+                Set aDiv.Holidays = g_Main.Holidays
+                If (Not aDiv.CustomDivs Is Nothing) Then
+                    Set aDiv.CustomDivs.Holidays = g_Main.Holidays
                 End If
             End If
+            
+            Set rsCust = Nothing
+            Set aCustDivColl = Nothing
+                        
+            Set aUnd.Dividend = aDiv
+            aUnd.Yield = ReadDbl(rsUnd!fYield)
+            Set aUnd.BasketIndex = g_Index(aUnd.ID)
+            
+            '   Try to get dividend for underlying
+            ' --------------------------------------------------------------------
         
             vPos = rsUnd!iQty
             aUnd.QtyInShares = IIf(IsNull(vPos), BAD_LONG_VALUE, ReadLng(vPos))
@@ -2120,12 +2124,13 @@ Private Function UnderlyingsLoad() As Boolean
             If Not aUnd Is Nothing Then
                 dtExpiry = ReadDate(rsOpt!dtExpiry)
                 dtExpiryOV = ReadDate(rsOpt!dtExpiryOV)
-                dtTradingClose = ReadDate(rsOpt!dtTradingClose)
+                dtTradingClose = ClipDays(ReadDate(rsOpt!dtTradingClose))
                 nExpiryMonth = DateSerial(Year(dtExpiry), Month(dtExpiry), Day(dtExpiry))
                 sExpiryKey = CStr(CLng(nExpiryMonth))
                 dStrike = Round(ReadDbl(rsOpt!fStrike), STRIKE_DECIMALS_COUNT)
                 sStrikeKey = CStr(dStrike)
                 nOptType = ReadLng(rsOpt!tiIsCall)
+                lOptionRootID = ReadLng(rsOpt!iOptionRootID)
     
                 Set aExpiry = aUnd.Expiry(sExpiryKey)
                 If aExpiry Is Nothing Then
@@ -2152,10 +2157,11 @@ Private Function UnderlyingsLoad() As Boolean
                     aOpt.TradingClose = dtTradingClose
                     aOpt.Strike = dStrike
                     aOpt.LotSize = ReadLng(rsOpt!iLotSize)
-    
+                    aOpt.RootID = nRootID
                     Set aOpt.Exp = aExpiry
     
-                    aOpt.Vola = aUnd.VolaSrv.OptionVola(dtExpiryOV, dStrike)
+                    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(lOptionRootID)
+                    aOpt.Vola = aUnd.VolaSrv.OptionVola(dtExpiryOV, dStrike, lSurfaceID)
                     If aOpt.Vola < 0 Then
                         aOpt.Vola = BAD_DOUBLE_VALUE
                     End If
@@ -2190,19 +2196,6 @@ NEXT_OPTION:
             rsOpt.MoveNext
         Wend
         
-'        nExpCount = 0
-'        For i = 1 To nUndCount
-'            nCount = m_Und(i).Expiry.Count
-'            If nExpCount < nCount Then nExpCount = nCount
-'        Next
-'
-'        For i = 1 To nExpCount
-'            Set aEnt = m_Exp.Add(CStr(i))
-'            aEnt.ID = i
-'            aEnt.Name = GetOrderStr(i) & " Mth"
-'            Set aEnt = Nothing
-'        Next
-
         nExpCount = 0
         For i = 1 To nUndCount
             For j = 1 To m_Und(i).Expiry.Count
@@ -2440,7 +2433,6 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
                     End If
                 End If
                 
-'                aReq.Und.VolaSrv.UnderlyingPrice = PriceMidEx(aReq.Und.PriceBid, aReq.Und.PriceAsk, aReq.Und.PriceLast)
                 Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
                 aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReq.Und.PriceBid, aReq.Und.PriceAsk, _
                     aReq.Und.PriceLast, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
@@ -2618,7 +2610,6 @@ Private Sub UnderlyingsUpdateCurExp()
         Set aUnd.CurExpiry1 = Nothing
         Set aUnd.CurExpiry2 = Nothing
         
-'        dSpot = PriceMidEx(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, g_Params.UseLastPriceForCalcs)
         Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
         dSpot = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, dToleranceValue, enRoundingRule)
         nExpCount = aUnd.Expiry.Count
@@ -2675,7 +2666,6 @@ Private Sub UnderlyingCalcTotals(aUnd As clsVmUndAtom)
     
     If aUnd Is Nothing Then Exit Sub
     
-'    dSpotPrice = PriceMidEx(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, g_Params.UseLastPriceForCalcs)
     Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
     dSpotPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, _
         g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
@@ -2747,7 +2737,6 @@ Private Sub UnderlyingCalc(aUnd As clsVmUndAtom, ByVal bRecalc As Boolean)
         
         If bRecalc Then
             aUnd.ClearTheos
-'            dSpotPrice = PriceMidEx(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, g_Params.UseLastPriceForCalcs)
             Debug.Assert (Not aUnd.UndPriceProfile Is Nothing)
             
             enPriceStatusMid = enRpsNone
@@ -2926,19 +2915,19 @@ Private Function UnderlyingAdjustRates(ByRef aUnd As clsVmUndAtom, ByVal bForceR
         aUnd.UseMidRates = bUseMidRates
         aUnd.UndPosForRates = dPos
         
+        Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
+        
         For Each aExp In aUnd.Expiry
             If bUseMidRates Then
-                If Not aUnd.IsHTB Then
-                    aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
-                Else
-                    aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
-                End If
+                aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
             Else
-                If Not aUnd.IsHTB Then
-                    aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                Else
-                    aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                End If
+                aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+            End If
+            
+            If bIsHTBRatesExist Then
+                aExp.HTBRate = GetHTBRate(aUnd.ID, dtNow, aExp.ExpiryOV)
+            Else
+                aExp.HTBRate = BAD_DOUBLE_VALUE
             End If
         Next
         UnderlyingAdjustRates = True
@@ -2950,18 +2939,23 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
     Dim nDivCount&, RetCount&
     Dim dDivDte() As Double
     Dim dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS, nBaskDivCount&
-    Dim dRate#, dSpotPrice#, dOptPrice#, div#, dYield#
+    Dim dRate#, dHTBRate#, dSpotPrice#, dOptPrice#, div#, dYield#
     Dim aGreeks As GreeksData, nModel As EtsGeneralLib.EtsCalcModelTypeEnum
     Dim dtDivDate As Date, nDivFreq&, dDivAmt#, dVola#, nIsAmerican&
     Dim nFlag&
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
     Dim aBasketDivs As EtsGeneralLib.EtsIndexDivColl
-    Dim dtNow As Date, dYTE As Double
+    Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
+    Dim lSurfaceID As Long
     
+    
+    Dim dtNow As Date, dYte As Double
+    Dim dtExpiryOV As Date
+    Dim dtTradingClose As Date
     
     dtNow = GetNewYorkTime
-    dYTE = (aOpt.ExpiryOV - dtNow) / 365#
+    GetCalcParams dtNow, aOpt.ExpiryOV, aOpt.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
     
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
@@ -2975,7 +2969,8 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
     dSpotPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUnd.PriceBid, aUnd.PriceAsk, aUnd.PriceLast, dToleranceValue, enRoundingRule)
     aOpt.ClearValues
     
-    aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.ExpiryOV, aOpt.Strike)
+    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(aOpt.RootID)
+    aOpt.Vola = aUnd.VolaSrv.OptionVola(aOpt.ExpiryOV, aOpt.Strike, lSurfaceID)
     aOpt.TargVola = aUnd.VolaSrv.OptionTargetVola(aOpt.ExpiryOV, aOpt.Strike)
         
     If dSpotPrice >= 0 Then
@@ -2984,37 +2979,43 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
         Debug.Assert (Not aUnd.OptPriceProfile Is Nothing)
         dOptPrice = aUnd.OptPriceProfile.GetOptPriceMid(aOpt.PriceBid, aOpt.PriceAsk, aOpt.PriceLast, enRoundingRule, g_Params.UseTheoVolatility, 0)
         
-        If True Then 'g_Params.UseTheoVolatility And dOptPrice >= 0# Or Not g_Params.UseTheoVolatility And dOptPrice > 0# Then
+        If True Then
             nDivCount = 0
             ReDim dDivDte(0 To 0)
             ReDim dDivAmts(0 To 0)
             
-            If aUnd.UndType = enCtStock Then
-                Set aDiv = aUnd.Dividend
-                If Not aDiv Is Nothing Then
-                    aDiv.GetDividendCount2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount
+            Set aDiv = aUnd.Dividend
+    
+            enDivType = enDivCustomStream
+            If (Not aDiv Is Nothing) Then enDivType = aDiv.DivType
+    
+            Select Case enDivType
+                Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
+                    If Not aDiv Is Nothing Then
+                        aDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                         If nDivCount > 0 Then
-                            aDiv.GetDividends2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount, dDivAmts, dDivDte, RetCount
+                            aDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                         End If
-                End If
-            Else
-                If Not aUnd.BasketIndex Is Nothing Then
-                    Set aBasketDivs = aUnd.BasketIndex.BasketDivs
-                    If Not aBasketDivs Is Nothing Then
-                        aBasketDivs.GetDividendCount2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount
-                        If nDivCount > 0 Then
-                            aBasketDivs.GetDividends2 dtNow, aOpt.ExpiryOV, aOpt.TradingClose, nDivCount, dDivAmts, dDivDte, RetCount
-                        End If
+                        Set aDiv = Nothing
                     End If
-                    Erase aBaskDivs
-                End If
-                
-                If nDivCount <= 0 Then
+                Case enDivStockBasket
+                    If Not aUnd.BasketIndex Is Nothing Then
+                        Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
+                        Set aBasketDiv = aUnd.BasketIndex.BasketDivs
+                        If Not aBasketDiv Is Nothing Then
+                            aBasketDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
+                            If nDivCount > 0 Then
+                                aBasketDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                            End If
+                        End If
+                        Set aBasketDiv = Nothing
+                    End If
+                Case enDivIndexYield
                     dYield = aUnd.Yield
-                End If
-            End If
+            End Select
             
             dRate = aOpt.Exp.Rate
+            dHTBRate = aOpt.Exp.HTBRate
             
             If nDivCount < 0 Then nDivCount = 0
 
@@ -3022,7 +3023,7 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
             If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aOpt.PriceBid > 0# Then
                 If dOptPrice > 0# Then
                     nFlag = VF_OK
-                    div = CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPrice, dOptPrice, aOpt.Strike, dYTE, _
+                    div = CalcVolatilityMM3(dRate, dYield, dHTBRate, dSpotPrice, dOptPrice, aOpt.Strike, dYte, _
                                         aOpt.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                                         
                     If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
@@ -3051,7 +3052,7 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
             RetCount = 0&
             
             If aGreeks.nMask <> GM_NONE Then
-                RetCount = CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPrice, aOpt.Strike, dVola, dYTE, _
+                RetCount = CalcGreeksMM2(dRate, dYield, dHTBRate, dSpotPrice, aOpt.Strike, dVola, dYte, _
                                     aOpt.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
                 If g_Params.UseTheoVolatility And (dOptPrice <= 0# Or aOpt.PriceAsk <= 0# Or aOpt.PriceBid <= 0# Or aOpt.PriceLast <= 0#) Then
                     dOptPrice = aUnd.OptPriceProfile.GetOptPriceMid(aOpt.PriceBid, aOpt.PriceAsk, aOpt.PriceLast, enRoundingRule, g_Params.UseTheoVolatility, aGreeks.dTheoPrice)
@@ -3059,7 +3060,7 @@ Private Sub CalcOptionGreeks(aUnd As clsVmUndAtom, aOpt As clsVmOptAtom)
               If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aOpt.PriceBid > 0# Then
                 If dOptPrice > 0# Then
                     nFlag = VF_OK
-                    div = CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSpotPrice, dOptPrice, aOpt.Strike, dYTE, _
+                    div = CalcVolatilityMM3(dRate, dYield, dHTBRate, dSpotPrice, dOptPrice, aOpt.Strike, dYte, _
                                         aOpt.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
                                         
                         If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
@@ -3467,7 +3468,7 @@ Public Sub SetGridLayout(ByVal enGridType As GridTypeEnum, gdGrid As clsGridDef)
     UserControl_Resize
 End Sub
 
-'Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub AddTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim aOpt As clsVmOptAtom, nRow&, nBS&, bUpdate As Boolean, aUnd As clsVmUndAtom, sExpiryKey$
 '    Dim bRatesUpdated As Boolean
@@ -3523,7 +3524,7 @@ End Sub
 '    Set aUnd = Nothing
 'End Sub
 '
-'Private Sub UpdateTrade(aNewTrd As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub UpdateTrade(aNewTrd As EtsGeneralLib.MmTradeInfoAtom, aOldTrd As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim aOpt As clsVmOptAtom, nRow&, nNewBS&, nOldBS&, bUpdate As Boolean
 '    Dim aUnd As clsVmUndAtom, sExpiryKey$, bRatesUpdated As Boolean
@@ -3603,7 +3604,7 @@ End Sub
 '    Set aOpt = Nothing
 'End Sub
 '
-'Private Sub DeleteTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub DeleteTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim aOpt As clsVmOptAtom, nRow&, nBS&, bUpdate As Boolean
 '    Dim aUnd As clsVmUndAtom, sExpiryKey$, bRatesUpdated As Boolean
@@ -3664,7 +3665,7 @@ End Sub
 '    Set aOpt = Nothing
 'End Sub
 
-Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
     If m_bDataLoad Then Exit Sub
     If m_Grp.Data <> 0 And m_Grp.ID <> 0 Then SetRefreshHint True
@@ -3691,7 +3692,7 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
 '    End Select
 End Sub
 
-Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, aTrdTo As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If m_bDataLoad Then Exit Sub
     If m_Grp.Data <> 0 And m_Grp.ID <> 0 Then SetRefreshHint True
@@ -3928,6 +3929,7 @@ Private Sub HandleGridDblClick(ByVal bTradeNewAvailable As Boolean)
         End If
     End If
 End Sub
+
 
 
 

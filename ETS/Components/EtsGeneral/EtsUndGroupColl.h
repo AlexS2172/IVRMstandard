@@ -14,7 +14,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsUndGroupCollDispImpl, IEtsUn
 
 // CEtsUndGroupColl
 class ATL_NO_VTABLE CEtsUndGroupColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsUndGroupColl, &CLSID_EtsUndGroupColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsUndGroupColl>,
 	public IEtsUndGroupCollImpl
@@ -22,6 +22,7 @@ class ATL_NO_VTABLE CEtsUndGroupColl :
 public:
 	CEtsUndGroupColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSUNDGROUPCOLL)
@@ -31,19 +32,27 @@ BEGIN_COM_MAP(CEtsUndGroupColl)
 	COM_INTERFACE_ENTRY(IEtsUndGroupColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsUndGroupCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
+
+	STDMETHOD(LoadProperty)(BSTR FileName);
 
 public:
 

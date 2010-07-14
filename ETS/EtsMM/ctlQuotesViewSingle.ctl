@@ -20,7 +20,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   20578305
+      Format          =   48496641
       CurrentDate     =   39547
    End
    Begin VB.Timer tmrPriceProviderIdle 
@@ -423,7 +423,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   51249155
+      Format          =   48431107
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
@@ -817,6 +817,9 @@ Begin VB.UserControl ctlQuotesViewSingle
             Caption         =   "All Expiries"
          End
       End
+      Begin VB.Menu mnuCtxSaveSimulatedVola 
+         Caption         =   "Save Simulated Vola"
+      End
       Begin VB.Menu mnuCtxSeparator61 
          Caption         =   "-"
       End
@@ -931,6 +934,7 @@ Private WithEvents QV As EtsMmQuotesLib.EtsMmQuotesView
 Attribute QV.VB_VarHelpID = -1
 
 Private m_nNewGrpID&
+Private m_nOldGrpID&
 Private m_bForseRecalc As Boolean
 Private WithEvents PriceProvider As PRICEPROVIDERSLib.BatchPriceInfo
 Attribute PriceProvider.VB_VarHelpID = -1
@@ -948,12 +952,12 @@ Private WithEvents m_aSpreadData As MmQvSpreadColl
 Attribute m_aSpreadData.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
 
-Public WithEvents imgStop As VB.Image
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Public MarketDepthVisible As Boolean
 Public MarketDepthOptColl As EtsMmQuotesLib.MmQvOptColl
@@ -980,13 +984,11 @@ Private m_bInitializing As Boolean
 Private m_nQuoteReqDone As Long
 Private m_nQuoteGroupReqCount As Long
 Private m_nQuoteGroupReqDone As Long
-Private m_DecExpectations As Long
 Private m_nVisibleRequestDone As Long
 Private m_nFinSubStep As Long
 
 Private m_nLastRecalcCycle As Long
 Private m_nLastOutCycle As Long
-Private m_nLastDataSize As Long
 
 Private m_bVolaChangedNow As Boolean
 Private m_bVolaChangedExt As Boolean
@@ -1020,15 +1022,13 @@ Private m_nOperation As Long
 Private m_Aux As New clsAuxQuotesView
 Private m_AuxOut As New clsAuxQuotesViewOut
 
-'Private m_bCalculationDateChanged As Boolean
 Private m_bDateChanged As Boolean
 Private m_frmCustDivs As frmCustomDivs
 Private m_bInRefreshMode As Boolean
 Private m_bFiersTealtimeCalculation As Boolean
 Private m_bDivDateChanged As Boolean
-
-
 Private m_bIsDblClick As Boolean
+
 Private Function SavePriceClose(ByVal ContractType As Long, ByVal ContractID As Long, ByVal ClosePrice As Double) As Boolean
     On Error GoTo EH
     
@@ -1060,7 +1060,7 @@ EH:
     gCmn.ErrorHandler "Error save close prices for '" & CStr(ContractID) & "': "
 End Function
 Private Sub InitView()
-    On Error GoTo EH
+On Error GoTo EH
     
     Set QV = Nothing
     Set m_Aux.QV = Nothing
@@ -1081,6 +1081,19 @@ EH:
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to init quotes view."
 
 End Sub
+
+Private Sub LoadParams()
+    On Error Resume Next
+    
+    m_Aux.IsVolaSimulated = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "SimulatedVola", 0) <> 0)
+End Sub
+
+Private Sub SaveParams()
+    On Error Resume Next
+    
+    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "SimulatedVola", IIf(m_Aux.IsVolaSimulated, 1, 0)
+End Sub
+
 Private Function GetQuotationNameByID(ByVal ID As Long) As String
     Dim Name As String
     Select Case ID
@@ -1171,16 +1184,18 @@ Private Function GetQuotationNameByID(ByVal ID As Long) As String
     End Select
     GetQuotationNameByID = Name
 End Function
+
 Public Function Init() As Boolean
     On Error GoTo EH
     
     If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "InitCtlQuotesView - Enter", m_frmOwner.GetCaption
     
+    LoadParams
+    
     m_bShutDown = False
     m_bVolaChangedNow = False
     m_bVolaChangedExt = False
-    m_Aux.TradesFilter = 0&
     m_bInRefreshMode = False
     m_bFiersTealtimeCalculation = False
     m_bIsDblClick = False
@@ -1189,12 +1204,8 @@ Public Function Init() As Boolean
     MarketDepthVisible = False
     Set MarketDepthOptColl = New EtsMmQuotesLib.MmQvOptColl
     
-
-
-'    m_bCalculationDateChanged = False
     m_bDateChanged = False
 
-    m_DecExpectations = 0
     dtCalculationDate.Value = Date
     mnuCtxTradeNew.Caption = "New Trade..." & vbTab & "Ins"
     mnuCtxAutosizeCol.Caption = "Autosize Column" & vbTab & "Ctrl+A"
@@ -1287,12 +1298,12 @@ Public Function Init() As Boolean
     m_bFireEvent = False
     
     m_Aux.CalcModelVisible = True
-    'm_Aux.ExpCalendarVisible = True
     m_Aux.DividendsVisible = True
     m_Aux.VolaVisible = True
     m_Aux.RatesVisible = True
     m_Aux.FuturesVisible = True
     m_Aux.IndexOptionsComboVisible = False
+    m_Aux.bFlatVolaToATM = False
         
     Dim aPT As PRICEPROVIDERSLib.IProvider
     Set PriceProvider = New PRICEPROVIDERSLib.BatchPriceInfo
@@ -1413,8 +1424,6 @@ Public Sub ShowData(Optional ByVal nType As Long = TYPE_UNDERLYING, Optional ByV
     End If
 End Sub
 
-
-
 Private Sub InitUndList()
     On Error Resume Next
     Dim sValue$, nValue&, nCol&
@@ -1438,7 +1447,7 @@ Private Sub InitUndList()
             Set aContract = g_ContractAll(m_Aux.Grp.ID)
             If Not aContract Is Nothing Then
                 nValue = aContract.ID
-                sValue = aContract.Symbol 'Trim$(Str$(aUnd.ID))
+                sValue = aContract.Symbol
                 Set aContract = Nothing
             End If
         
@@ -1506,7 +1515,6 @@ Private Function InitGroupExchanges() As Boolean
                           Set aUndExchAtom = AddExch(m_Aux.Grp.UndExchAll, nID, aExch.Code, aExch.Name)
                           m_Aux.Grp.Und.UndExch.Add aUndExchAtom.ID, aUndExchAtom.Code, aUndExchAtom
                         End If
-'                        If m_Aux.Grp.Und.UndExch(nID) Is Nothing Then AddExch m_Aux.Grp.Und.UndExch, nID, aExch.Code, aExch.Name
                     End If
         
                     If ReadByte(rsExch!tiIsOption) <> 0 Then
@@ -1514,7 +1522,6 @@ Private Function InitGroupExchanges() As Boolean
                           Set aOptExchAtom = AddExch(m_Aux.Grp.OptExchAll, nID, aExch.Code, aExch.Name)
                           m_Aux.Grp.Und.OptExch.Add aOptExchAtom.ID, aOptExchAtom.Code, aOptExchAtom
                         End If
-'                        If m_Aux.Grp.Und.OptExch(nID) Is Nothing Then AddExch m_Aux.Grp.Und.OptExch, nID, aExch.Code, aExch.Name
                     End If
         
                     Set aExch = Nothing
@@ -1758,830 +1765,8 @@ Private Sub InitContractsQuotes(ByRef aContract As EtsGeneralLib.EtsContractAtom
     Next
     
     QV.UndQuotesCount = m_Aux.Grp.Und.UndExch.Count
-
-    If aContract.ContractType = enCtFuture Then
-'        For Each aExch In m_Aux.Grp.Fut.FutExch
-'
-'            Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'            Set aQuote.Exch = aExch
-'            aQuote.LotSize = aContract.FutRoot.FutLotSize
-'
-'            sKey = m_Aux.Grp.Fut.Symbol
-'            If aExch.ID <> 0 Then
-'                sKey = sKey & "." & aExch.Code
-'            End If
-'
-'            Set aReq = m_Aux.QuoteReqsAll(sKey)
-'            If aReq Is Nothing Then
-'                Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-'                Set aReq.Exch = aExch
-'                Set aReq.Und = m_Aux.Grp.Und
-'                Set aReq.Fut = m_Aux.Grp.Fut
-'                Set aReq.FutRoot = m_Aux.Grp.FutRoot
-'            End If
-'            Set aReq = Nothing
-'
-'            m_Aux.Grp.Fut.Quote.Add aExch.ID, aExch.Code, aQuote
-'            Set aQuote = Nothing
-'        Next
-'
-'        QV.FutQuotesCount = m_Aux.Grp.Fut.FutExch.Count
-    End If
-    
-    If aContract.ContractType = enCtFutUnd Then 'fokiny
-'        Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'
-'            aQuote.LotSize = aContract.FutRoot.FutLotSize
-'
-'            Set aReq = m_Aux.QuoteReqsAll(sKey)
-'            If aReq Is Nothing Then
-'                Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-'                Set aReq.Und = m_Aux.Grp.Und
-'                Set aReq.FutRoot = m_Aux.Grp.FutRoot
-'            End If
-'            Set aReq = Nothing
-'
-'            m_Aux.Grp.Und.Quote.Add 0, "<Primary>", aQuote
-'            Set aQuote = Nothing
-    End If
     
 End Sub
-
-'Private Function InitUnderlyingOptions(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolean
-'    On Error GoTo EH
-'
-'    QV.ConnectionString = g_Params.DbConnection
-'    Set QV.EtsMain = g_Main
-'
-'    QV.Load m_Aux.Grp.ID, enCtStock
-'    Dim rsOpt As ADODB.Recordset, aExch As EtsGeneralLib.ExchAtom, rsExch As ADODB.Recordset
-'    Dim dtExpiry As Date, dStrike#, dtExpiryMonth As Date, sRoot$, aRoot As EtsMmQuotesLib.MmQvOptRootAtom, aPair As EtsMmQuotesLib.MmQvOptPairAtom
-'    Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom, enOptType As EtsGeneralLib.EtsOptionTypeEnum, sKey$, aEnt As EtsGeneralLib.EtsMmEntityAtom
-'    Dim aExp As EtsMmQuotesLib.MmQvExpAtom, aStr As EtsMmQuotesLib.MmQvStrikeAtom, aOpt As EtsMmQuotesLib.MmQvOptAtom
-'    Dim nID&, nOptRootID&, aGUnd As EtsGeneralLib.UndAtom, aSyntRootComp As EtsGeneralLib.SynthRootCompAtom
-'    Dim aUnd As EtsMmQuotesLib.MmQvUndAtom, aSynthRoot As EtsGeneralLib.SynthRootAtom
-'    Dim aStrAll As EtsMmQuotesLib.MmQvStrikeAtom, aReq As MmQvRequestAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
-'
-'    InitUnderlyingOptions = False
-'    If m_Aux.Grp.ID = 0 Then Exit Function
-'
-'    Set rsOpt = gDBW.usp_MmOptionByUnderlying_Get(m_Aux.Grp.ID, Date)
-'    If rsOpt.RecordCount > 0 Then pbProgress.Max = rsOpt.RecordCount
-'
-'    DoEvents
-'    If Not m_bDataLoad Then GoTo EX
-'
-'    Do While Not rsOpt.EOF
-'        dtExpiry = ReadDate(rsOpt!dtExpiry)
-'        dtExpiryMonth = DateSerial(Year(dtExpiry), Month(dtExpiry), 1)
-'
-'        Set aExp = m_Aux.Grp.Und.Exp(dtExpiryMonth)
-'        If aExp Is Nothing Then
-'            Set aExp = m_Aux.Grp.Und.Exp.Add(dtExpiryMonth)
-'            aExp.Expiry = dtExpiry
-'            aExp.ExpiryMonth = dtExpiryMonth
-'            aExp.Visible = True
-'
-'            Set aEnt = qv.CustRates(CStr(CLng(aExp.ExpiryMonth)))
-'            If Not aEnt Is Nothing Then
-'                aExp.RateCust = aEnt.Data3
-'                Set aEnt = Nothing
-'            End If
-'        End If
-'
-'        nOptRootID = ReadLng(rsOpt!iOptionRootID)
-'
-'        Set aRoot = m_Aux.Grp.Und.OptRoot(nOptRootID)
-'        If aRoot Is Nothing Then
-'            Set aRoot = New EtsMmQuotesLib.MmQvOptRootAtom
-'            aRoot.ID = nOptRootID
-'
-'            aRoot.Name = ReadStr(rsOpt!vcOptionRootSymbol)
-'            aRoot.LotSize = ReadLng(rsOpt!iLotSize)
-'            aRoot.IsFit = IIf(ReadLng(rsOpt!tiIsFitEnabled) <> 0, True, False)
-'            ' Sharky: unnecessary code. just for ensure not zero lot
-'            If aRoot.LotSize <= 0 Then aRoot.LotSize = 100
-'
-'            If aContract.Und.HaveSyntheticRoots Then
-'                Set aSynthRoot = aContract.Und.SyntheticRoots(nOptRootID)
-'            End If
-'
-'            aRoot.Synthetic = Not aSynthRoot Is Nothing
-'
-'            If aRoot.Synthetic Then
-'                Set aRoot.SynthOptRoot = aSynthRoot
-'                Dim dDPC As Double
-'                dDPC = aRoot.LotSize * aSynthRoot.CashValue
-'                If dDPC <> 0# Then _
-'                    aRoot.DPC = Trim$(Str$(aRoot.LotSize * aSynthRoot.CashValue)) & " USD"
-'
-'                If aSynthRoot.CashValue > 0# Then
-'                    If m_Aux.Grp.Und.SynthUnd Is Nothing Then Set m_Aux.Grp.Und.SynthUnd = New EtsMmQuotesLib.MmQvUndColl
-'
-'                    If m_Aux.Grp.Und.SynthUnd(USD_ID) Is Nothing Then
-'                        Set aUnd = New EtsMmQuotesLib.MmQvUndAtom
-'                        aUnd.ID = USD_ID
-'                        aUnd.Symbol = USD_SYMBOL
-'                        aUnd.SymbolName = USD_SYMBOL
-'                        aUnd.UndType = enCtStock
-'
-'                        aUnd.OptRoot.Add aRoot.ID, aRoot.Name, aRoot
-'
-'                        Set aExch = AddExch(aUnd.UndExch, 0, "", "<Primary>")
-'
-'                        Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'                        Set aQuote.Exch = aExch
-'                        aQuote.LotSize = aRoot.LotSize
-'                        aQuote.PriceAsk = 1#
-'                        aQuote.PriceBid = 1#
-'                        aQuote.PriceLast = 1#
-'
-'                        aUnd.Quote.Add aExch.ID, aExch.Code, aQuote
-'                        Set aQuote = Nothing
-'                        Set aExch = Nothing
-'
-'                        m_Aux.Grp.Und.SynthUnd.Add USD_ID, USD_SYMBOL, aUnd
-'                        Set aUnd = Nothing
-'                    End If
-'                End If
-'
-'                For Each aSyntRootComp In aSynthRoot.SynthRootComponents
-'                    Set aGUnd = g_UnderlyingAll(aSyntRootComp.UndID)
-'
-'                    If Not aGUnd Is Nothing Then
-'                        aRoot.DPC = aRoot.DPC & IIf(Len(aRoot.DPC) > 0, " + ", "") & Trim$(Str$(aRoot.LotSize * aSyntRootComp.Weight)) & " " & aGUnd.Symbol
-'
-'                        If aSyntRootComp.UndID <> m_Aux.Grp.Und.ID Then
-'
-'                            If m_Aux.Grp.Und.SynthUnd Is Nothing Then Set m_Aux.Grp.Und.SynthUnd = New EtsMmQuotesLib.MmQvUndColl
-'
-'                            If m_Aux.Grp.Und.SynthUnd(aSyntRootComp.UndID) Is Nothing Then
-'                                Set aUnd = New EtsMmQuotesLib.MmQvUndAtom
-'                                aUnd.ID = aSyntRootComp.UndID
-'                                aUnd.Symbol = aGUnd.Symbol
-'                                aUnd.SymbolName = aGUnd.ContractName
-'                                aUnd.UndType = aGUnd.UndType
-'
-'                                aUnd.OptRoot.Add aRoot.ID, aRoot.Name, aRoot
-'
-'                                AddExch aUnd.UndExch, 0, "", "<Primary>"
-'
-'                                Set rsExch = gDBW.usp_MmUnderlyingExchanges_Get(aSyntRootComp.UndID)
-'                                Do While Not rsExch.EOF
-'                                    nID = ReadLng(rsExch!iExchangeID)
-'                                    Set aExch = g_Exch(nID)
-'
-'                                    If Not aExch Is Nothing Then
-'                                        If ReadByte(rsExch!tiIsUnderlying) <> 0 Then
-'                                            If m_Aux.Grp.UndExchAll(nID) Is Nothing Then AddExch m_Aux.Grp.UndExchAll, nID, aExch.Code, aExch.Name
-'                                            If aUnd.UndExch(nID) Is Nothing Then AddExch aUnd.UndExch, nID, aExch.Code, aExch.Name
-'                                        End If
-'                                        Set aExch = Nothing
-'                                    End If
-'
-'                                    DoEvents
-'                                    If Not m_bDataLoad Then GoTo EX
-'                                    rsExch.MoveNext
-'                                Loop
-'                                Set rsExch = Nothing
-'
-'                                For Each aExch In aUnd.UndExch
-'
-'                                    Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'                                    Set aQuote.Exch = aExch
-'                                    aQuote.LotSize = aRoot.LotSize
-'
-'                                    sKey = aGUnd.Symbol
-'                                    If aExch.ID <> 0 Then
-'                                        sKey = sKey & "." & aExch.Code
-'                                    End If
-'
-'                                    Set aReq = m_Aux.QuoteReqsAll(sKey)
-'                                    If aReq Is Nothing Then
-'                                        Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-'                                        Set aReq.Exch = aExch
-'                                        Set aReq.Und = aUnd
-'                                    End If
-'                                    Set aReq = Nothing
-'
-'                                    aUnd.Quote.Add aExch.ID, aExch.Code, aQuote
-'                                    Set aQuote = Nothing
-'                                Next
-'
-'                                QV.UndQuotesCount = QV.UndQuotesCount + aUnd.UndExch.Count
-'
-'                                m_Aux.Grp.Und.SynthUnd.Add aSyntRootComp.UndID, aGUnd.Symbol, aUnd
-'                                Set aUnd = Nothing
-'                            End If
-'                        End If
-'                        Set aGUnd = Nothing
-'                    End If
-'                Next
-'            Else
-'                aRoot.DPC = Trim$(Str$(aRoot.LotSize)) + " " + m_Aux.Grp.Und.Symbol
-'            End If
-'
-'            aRoot.Visible = True
-'            m_Aux.Grp.Und.OptRoot.Add aRoot.ID, aRoot.Name, aRoot
-'        End If
-'        Set aSynthRoot = Nothing
-'
-'        Set aExpAll = m_Aux.Grp.ExpAll(dtExpiryMonth)
-'        If aExpAll Is Nothing Then
-'            Set aExpAll = m_Aux.Grp.ExpAll.Add(dtExpiryMonth)
-'            aExpAll.Expiry = dtExpiry
-'            aExpAll.ExpiryMonth = dtExpiryMonth
-'            aExpAll.Visible = True
-'        End If
-'
-'        If InStr(aExpAll.RootNames, aRoot.Name) = 0 Then
-'            If Len(aExpAll.RootNames) > 0 Then
-'                aExpAll.RootNames = aExpAll.RootNames & "," & aRoot.Name
-'            Else
-'                aExpAll.RootNames = aRoot.Name
-'            End If
-'        End If
-'
-'        Set aExpAll = Nothing
-'
-'        dStrike = Round(ReadDbl(rsOpt!fStrike), STRIKE_DECIMALS_COUNT)
-'
-'        Set aStr = aExp.Strike(dStrike)
-'        If aStr Is Nothing Then
-'            Set aStr = aExp.Strike.Add(dStrike)
-'            aStr.Strike = dStrike
-'            aStr.Visible = True
-'        End If
-'
-'        Set aStrAll = m_Aux.Grp.StrikeAll(dStrike)
-'        If aStrAll Is Nothing Then
-'            Set aStrAll = m_Aux.Grp.StrikeAll.Add(dStrike)
-'            aStrAll.Strike = dStrike
-'            aStrAll.Visible = True
-'        End If
-'        Set aStrAll = Nothing
-'
-'        Set aPair = aStr.OptPair(aRoot.ID)
-'        If aPair Is Nothing Then
-'            Set aPair = New EtsMmQuotesLib.MmQvOptPairAtom
-'            aPair.RootID = aRoot.ID
-'
-'            aStr.OptPair.Add aRoot.ID, aRoot.Name, aPair
-'        End If
-'
-'        enOptType = IIf(ReadLng(rsOpt!tiIsCall) <> 0, enOtCall, enOtPut)
-'
-'        Set aOpt = aPair.Opt(enOptType)
-'        If aOpt.ID = 0 Then
-'            aOpt.ID = ReadLng(rsOpt!iContractID)
-'            aOpt.Symbol = ReadStr(rsOpt!vcSymbol)
-'            aOpt.OptType = enOptType
-'            aOpt.Expiry = dtExpiry
-'            aOpt.Strike = dStrike
-'            aOpt.RootID = aPair.RootID
-'
-'            aOpt.Vola = m_Aux.Grp.Und.VolaSrv.OptionVola(dtExpiry, dStrike)
-'
-'            If aOpt.Vola < 0 Then
-'                aOpt.Vola = BAD_DOUBLE_VALUE
-'            End If
-'
-'            m_Aux.Grp.Und.Opt.Add aOpt.ID, aOpt
-'        End If
-'
-'        For Each aExch In m_Aux.Grp.Und.OptExch
-'            Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'            Set aQuote.Exch = aExch
-'            aQuote.LotSize = aRoot.LotSize
-'
-'            If Int(aOpt.Strike) = aOpt.Strike Then
-'                aQuote.Series = UCase$(Format$(aOpt.Expiry, "YYMMM")) & Trim$(Str$(Int(aOpt.Strike)))
-'            Else
-'                aQuote.Series = UCase$(Format$(aOpt.Expiry, "YYMMM")) & Trim$(Format$(aOpt.Strike, "##,##.#0"))
-'            End If
-'
-'            sKey = aOpt.Symbol
-'
-'            If aExch.ID = 0 Then
-'                Set aOpt.DefQuote = aQuote
-'            Else
-'                aQuote.Series = aQuote.Series & " " & aExch.Code
-'                sKey = sKey & "." & aExch.Code
-'            End If
-'
-'            Set aReq = m_Aux.QuoteReqsAll(sKey)
-'            If aReq Is Nothing Then
-'                Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-'                Set aReq.Exch = aExch
-'                Set aReq.Opt = aOpt
-'                Set aReq.Exp = aExp
-'            End If
-'            Set aReq = Nothing
-'
-'            aOpt.Quote.Add aExch.ID, aExch.Code, aQuote
-'            Set aQuote = Nothing
-'        Next
-'
-'        DoEvents
-'        If Not m_bDataLoad Then GoTo EX
-'        IncProgress pbProgress
-'
-'        Set aOpt = Nothing
-'        Set aPair = Nothing
-'        Set aRoot = Nothing
-'        Set aUnd = Nothing
-'        Set aSyntRootComp = Nothing
-'
-'        rsOpt.MoveNext
-'    Loop
-'
-'    QV.OptQuotesCount = m_Aux.Grp.Und.Opt.Count * m_Aux.Grp.Und.OptExch.Count
-'
-'
-'    InitUnderlyingOptions = True
-'EX:
-'    Set aGUnd = Nothing
-'    Set aPair = Nothing
-'    Set aRoot = Nothing
-'    Set aExp = Nothing
-'    Set aQuote = Nothing
-'    Set rsOpt = Nothing
-'    Set rsExch = Nothing
-'    Set aExch = Nothing
-'    Set aSynthRoot = Nothing
-'    Set aSyntRootComp = Nothing
-'    Exit Function
-'EH:
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load underlying."
-'    GoTo EX
-'End Function
-
-'Private Function InitFutures(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolean
-'
-'    On Error GoTo EH
-'
-'    QV.ConnectionString = g_Params.DbConnection
-'    Set QV.EtsMain = g_Main
-'
-'    QV.Load m_Aux.Grp.ID, enCtFutUnd
-'
-''
-''    Dim rsFut As ADODB.Recordset, aExch As EtsGeneralLib.ExchAtom, nID&
-''    Dim rsExch As ADODB.Recordset
-''    Dim dtMaturity As Date, dtMaturityMonth As Date
-''    Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom, sKey$
-''    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
-''    Dim aReq As MmQvRequestAtom
-''    Dim nLotSize&, sQuotationUnit$
-''
-''    InitFutures = False
-''    If m_Aux.Grp.ID = 0 Then Exit Function
-''
-''    m_Aux.Grp.ExpAll.Clear
-''    Set rsFut = gDBW.usp_MmFutureByUnderlying_Get(m_Aux.Grp.ID, Date) 'Grp.ID ?
-''    If rsFut.RecordCount > 0 Then pbProgress.Max = rsFut.RecordCount
-''
-''    DoEvents
-''    If Not m_bDataLoad Then GoTo EX
-''    Dim aFRoot As EtsFutRootAtom
-''
-''    Do While Not rsFut.EOF
-''
-''        '------------------------------------------------------------------------------
-''        dtMaturity = ReadDate(rsFut!dtMaturity)
-''        dtMaturityMonth = DateSerial(Year(dtMaturity), Month(dtMaturity), 1)
-''        nLotSize = aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID)).FutLotSize
-''
-''        Set aFRoot = aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID))
-''        If (aFRoot.QuotationUnitID) = 40 Then
-''            sQuotationUnit = aFRoot.QuotationUnitName
-''        Else
-''            sQuotationUnit = GetQuotationNameByID(aFRoot.QuotationUnitID)
-''        End If
-''
-''        Set aFut = m_Aux.Grp.Und.Fut(ReadLng(rsFut!iContractID))
-''        If aFut Is Nothing Then
-''            Set aFut = m_Aux.Grp.Und.Fut.Add(ReadLng(rsFut!iContractID))
-''            aFut.ID = ReadLng(rsFut!iContractID)
-''            aFut.Symbol = ReadStr(rsFut!vcSymbol)
-''            aFut.MaturityDate = dtMaturity
-''            aFut.MaturityMonth = dtMaturityMonth
-''            aFut.LotSize = nLotSize
-''            aFut.QuotationUnit = sQuotationUnit
-''            'next two lines - need to move to InitContracts
-''            Set aContract.Und.UndPriceProfile = aFRoot.Futures(aFut.ID).UndPriceProfile
-''            Set aContract.Und.OptPriceProfile = aFRoot.Futures(aFut.ID).OptPriceProfile
-''            Set m_Aux.Grp.Und.UndPriceProfile = aContract.Und.UndPriceProfile
-''            Set m_Aux.Grp.Und.OptPriceProfile = aContract.Und.OptPriceProfile
-''            Set aFut.UndPriceProfile = aContract.Und.UndPriceProfile
-''            Set aFut.OptPriceProfile = aContract.Und.OptPriceProfile
-''            aContract.Und.IsAmerican = aFRoot.Futures(aFut.ID).IsAmerican
-''            m_Aux.Grp.Und.IsAmerican = aContract.Und.IsAmerican
-''            aFut.IsAmerican = aContract.Und.IsAmerican
-''            'aFut.UndPriceProfile.AlwaysUseLast = False
-''            aFut.FutRootID = ReadLng(rsFut!iFutureRootID)
-''
-''            If m_Aux.Grp.FutRootColl(aFut.FutRootID) Is Nothing Then
-''                Dim aFutRoot As EtsMmQuotesLib.MmQvFutRootAtom
-''                Set aFutRoot = m_Aux.Grp.FutRootColl.Add(aFut.FutRootID)
-''
-''                aFutRoot.ID = aFRoot.ID
-''                aFutRoot.Symbol = aFRoot.Symbol
-''                aFutRoot.Name = aFRoot.Name
-''                aFutRoot.MatCalendarID = aFRoot.MatCalendarID
-''                aFutRoot.FutLotSize = aFRoot.FutLotSize
-''                aFutRoot.OptLotSize = aFRoot.OptLotSize
-''
-''                If (aFRoot.QuotationUnitID) = 40 Then
-''                    aFutRoot.QuotationUnitName = aFRoot.QuotationUnitName
-''                    aFutRoot.QuotationUnitID = aFRoot.QuotationUnitID
-''                Else
-''                    aFutRoot.QuotationUnitName = GetQuotationNameByID(aFRoot.QuotationUnitID)
-''                    aFutRoot.QuotationUnitID = aFRoot.QuotationUnitID
-''                End If
-''
-''            End If
-''        End If
-''
-''        '-------------------------------------------------------------------------------
-''            Set rsExch = gDBW.usp_MmFutureExchanges_Get(aFut.ID)
-''            AddExch aFut.FutExch, 0, "", "<Primary>"
-''            AddExch aFut.OptExch, 0, "", "<Primary>"
-''
-''            Do While Not rsExch.EOF
-''                nID = ReadLng(rsExch!iExchangeID)
-''                Set aExch = g_Exch(nID)
-''                If Not aExch Is Nothing Then
-''
-''                    If ReadByte(rsExch!tiIsUnderlying) <> 0 Then
-''                        If m_Aux.Grp.UndExchAll(nID) Is Nothing Then AddExch m_Aux.Grp.UndExchAll, nID, aExch.Code, aExch.Name
-''                        If aFut.FutExch(nID) Is Nothing Then AddExch aFut.FutExch, nID, aExch.Code, aExch.Name
-''                    End If
-''
-''                    If ReadByte(rsExch!tiIsOption) <> 0 Then
-''                        If m_Aux.Grp.OptExchAll(nID) Is Nothing Then AddExch m_Aux.Grp.OptExchAll, nID, aExch.Code, aExch.Name
-''                        If aFut.OptExch(nID) Is Nothing Then AddExch aFut.OptExch, nID, aExch.Code, aExch.Name
-''                    End If
-''
-''                    Set aExch = Nothing
-''                End If
-''
-''                rsExch.MoveNext
-''            Loop
-''        '------------------------------------------------------------------------------
-''            Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-''            'Set aQuote.Exch = aExch
-''            'aQuote.LotSize = m_Aux.Grp.FutRoot.OptLotSize * m_Aux.Grp.FutRoot.FutLotSize
-''
-''            aQuote.Series = UCase$(Format$(dtMaturity, "MMM YY"))
-''            sKey = aFut.Symbol
-''
-''            aQuote.Series = aQuote.Series '& " " & aExch.Code
-''            sKey = sKey '& "." & aExch.Code
-''
-''            Set aReq = m_Aux.QuoteReqsAll(sKey)
-''            If aReq Is Nothing Then
-''                Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-''                Set aReq.Exch = aFut.FutExch(0)
-''                Set aReq.Fut = aFut
-''                'Set aReq.FutRoot = m_Aux.Grp.FutRoot
-''            End If
-''            Set aReq = Nothing
-''
-''            aFut.Quote.Add 0, "<Primary>", aQuote
-''            Set aQuote = Nothing
-''
-''        InitFuturesOptions aContract, aFut, ReadLng(rsFut!iContractID)
-''
-''        DoEvents
-''        If Not m_bDataLoad Then GoTo EX
-''
-''        IncProgress pbProgress
-''        Set aFut = Nothing
-''        rsFut.MoveNext
-''    Loop
-''
-'    InitFutures = True
-'EX:
-''    Set aFut = Nothing
-''    Set rsFut = Nothing
-''    Set rsExch = Nothing
-''    Set aQuote = Nothing
-''    Set aExch = Nothing
-'    Exit Function
-'EH:
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load futures."
-'    GoTo EX
-'End Function
-
-'Private Function InitFuturesOptions(ByRef aContract As EtsGeneralLib.EtsContractAtom, aFut As EtsMmQuotesLib.MmQvFutAtom, iFutureID As Long) As Boolean
-'    On Error GoTo EH
-'    Dim rsOpt As ADODB.Recordset, aExch As EtsGeneralLib.ExchAtom
-'    Dim dtExpiry As Date, dStrike#, dtExpiryMonth As Date, aPair As EtsMmQuotesLib.MmQvOptPairAtom
-'    Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom, enOptType As EtsGeneralLib.EtsOptionTypeEnum, sKey$, aEnt As EtsGeneralLib.EtsMmEntityAtom
-'    Dim aExp As EtsMmQuotesLib.MmQvExpAtom, aStr As EtsMmQuotesLib.MmQvStrikeAtom, aOpt As EtsMmQuotesLib.MmQvOptAtom
-'    Dim aStrAll As EtsMmQuotesLib.MmQvStrikeAtom, aReq As MmQvRequestAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
-'    Dim sMonth$
-'
-'    InitFuturesOptions = False
-'    If m_Aux.Grp.ID = 0 Then Exit Function
-'
-'    Set rsOpt = gDBW.usp_MmOptionByFuture_Get(iFutureID, Date)
-'
-'    DoEvents
-'    If Not m_bDataLoad Then GoTo EX
-'
-'    Do While Not rsOpt.EOF
-'            dtExpiry = ReadDate(rsOpt!dtExpiry)
-'            dtExpiryMonth = DateSerial(Year(dtExpiry), Month(dtExpiry), 1)
-'
-'            Set aExp = aFut.Exp(dtExpiryMonth)
-'            If aExp Is Nothing Then
-'                Set aExp = aFut.Exp.Add(dtExpiryMonth)
-'                aExp.Expiry = dtExpiry
-'                aExp.ExpiryMonth = dtExpiryMonth
-'                aExp.Visible = True
-'
-'                Set aEnt = QV.CustRates(CStr(CLng(aExp.ExpiryMonth)))
-'                If Not aEnt Is Nothing Then
-'                    aExp.RateCust = aEnt.Data3
-'                    Set aEnt = Nothing
-'                End If
-'            End If
-'
-'            Set aExpAll = m_Aux.Grp.ExpAll(dtExpiryMonth)
-'            If aExpAll Is Nothing Then
-'                Set aExpAll = m_Aux.Grp.ExpAll.Add(dtExpiryMonth)
-'                aExpAll.Expiry = dtExpiry
-'                aExpAll.ExpiryMonth = dtExpiryMonth
-'                aExpAll.Visible = True
-'
-'                'aExpAll.RateCust = aExp.RateCust 'fokiny
-'            End If
-'
-'            If InStr(aExpAll.RootNames, aFut.Symbol) = 0 Then
-'                If Len(aExpAll.RootNames) > 0 Then
-'                    aExpAll.RootNames = aExpAll.RootNames & "," & aFut.Symbol
-'                Else
-'                    aExpAll.RootNames = aFut.Symbol
-'                End If
-'            End If
-'
-'            Set aExpAll = Nothing
-'
-'            dStrike = Round(ReadDbl(rsOpt!fStrike), STRIKE_DECIMALS_COUNT)
-'
-'            Set aStr = aExp.Strike(dStrike)
-'            If aStr Is Nothing Then
-'                Set aStr = aExp.Strike.Add(dStrike)
-'                aStr.Strike = dStrike
-'                aStr.Visible = True
-'            End If
-'
-'            Set aStrAll = m_Aux.Grp.StrikeAll(dStrike)
-'            If aStrAll Is Nothing Then
-'                Set aStrAll = m_Aux.Grp.StrikeAll.Add(dStrike)
-'                aStrAll.Strike = dStrike
-'                aStrAll.Visible = True
-'            End If
-'            Set aStrAll = Nothing
-'
-'            Set aPair = aStr.OptPair(aFut.ID)
-'            If aPair Is Nothing Then
-'                Set aPair = New EtsMmQuotesLib.MmQvOptPairAtom
-'                aPair.RootID = aFut.ID
-'
-'                aStr.OptPair.Add aFut.ID, aFut.Symbol, aPair
-'            End If
-'
-'            enOptType = IIf(ReadLng(rsOpt!tiIsCall) <> 0, enOtCall, enOtPut)
-'
-'            Set aOpt = aPair.Opt(enOptType)
-'            If aOpt.ID = 0 Then
-'                aOpt.ID = ReadLng(rsOpt!iContractID)
-'                aOpt.Symbol = ReadStr(rsOpt!vcSymbol)
-'                aOpt.OptType = enOptType
-'                aOpt.Expiry = dtExpiry
-'                aOpt.Strike = dStrike
-'                aOpt.RootID = aFut.ID
-'
-'                aOpt.Vola = m_Aux.Grp.Und.VolaSrv.OptionVola(dtExpiry, dStrike)
-'
-'                If aOpt.Vola < 0 Then
-'                    aOpt.Vola = BAD_DOUBLE_VALUE
-'                End If
-'
-'                aFut.Opt.Add aOpt.ID, aOpt
-'            End If
-'
-'            For Each aExch In aFut.OptExch
-'                Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'                Set aQuote.Exch = aExch
-'                aQuote.LotSize = m_Aux.Grp.FutRootColl(aFut.FutRootID).OptLotSize * m_Aux.Grp.FutRootColl(aFut.FutRootID).FutLotSize
-'
-'                sMonth = GetMonth(Mid(aOpt.Symbol, InStr(1, aOpt.Symbol, "/", vbTextCompare) + 2, 1))
-'                aQuote.Series = UCase$(Format$(aOpt.Expiry, "YY")) & sMonth & Mid(aOpt.Symbol, InStr(6, aOpt.Symbol, "/", vbTextCompare) + 1, Len(aOpt.Symbol) - InStr(6, aOpt.Symbol, "/", vbTextCompare) - 1)
-'                'aQuote.Series = UCase$(Format$(aOpt.Expiry, "YYMMM")) & Trim$(Str$(Int(aOpt.Strike)))
-'                sKey = aOpt.Symbol
-'
-'                If aExch.ID = 0 Then
-'                    Set aOpt.DefQuote = aQuote
-'                Else
-'                    aQuote.Series = aQuote.Series & " " & aExch.Code
-'                    sKey = sKey & "." & aExch.Code
-'                End If
-'
-'                Set aReq = m_Aux.QuoteReqsAll(sKey)
-'                If aReq Is Nothing Then
-'                    Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-'                    Set aReq.Exch = aExch
-'                    Set aReq.Opt = aOpt
-'                    Set aReq.Exp = aExp
-'                    Set aReq.Fut = aFut
-'                    Set aReq.FutRoot = m_Aux.Grp.FutRootColl(aFut.FutRootID)
-'                End If
-'                Set aReq = Nothing
-'
-'                aOpt.Quote.Add aExch.ID, aExch.Code, aQuote
-'                Set aQuote = Nothing
-'            Next
-'        DoEvents
-'        If Not m_bDataLoad Then GoTo EX
-'
-'        Set aOpt = Nothing
-'        Set aPair = Nothing
-'        Set aStr = Nothing
-'        Set aExp = Nothing
-'        Set aExpAll = Nothing
-'
-'        rsOpt.MoveNext
-'    Loop
-'
-'    QV.OptQuotesCount = aFut.Opt.Count * aFut.OptExch.Count
-'
-'    InitFuturesOptions = True
-'EX:
-'    Set rsOpt = Nothing
-'    Set aPair = Nothing
-'    Set aExp = Nothing
-'    Set aQuote = Nothing
-'    Set aExch = Nothing
-'    Set aExpAll = Nothing
-'    Set aStrAll = Nothing
-'    Exit Function
-'EH:
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load future options."
-'    GoTo EX
-'End Function
-'
-'Private Function InitIndexFutures(ByRef aContract As EtsGeneralLib.EtsContractAtom) As Boolean
-'
-'    On Error GoTo EH
-'    Dim rsFut As ADODB.Recordset, aExch As EtsGeneralLib.ExchAtom, nID&
-'    Dim rsExch As ADODB.Recordset
-'    Dim dtMaturity As Date, dtMaturityMonth As Date
-'    Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom, sKey$
-'    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
-'    Dim aReq As MmQvRequestAtom
-'    Dim nLotSize&, sQuotationUnit$
-'    Dim aFRoot As EtsFutRootAtom
-'
-'    InitIndexFutures = False
-'    If m_Aux.Grp.ID = 0 Then Exit Function
-'
-'    m_Aux.Grp.ExpAll.Clear
-'    Set rsFut = gDBW.usp_MmFutureByIndex_Get(m_Aux.Grp.ID, Date) 'Grp.ID ?
-'    If rsFut.RecordCount > 0 Then pbProgress.Max = rsFut.RecordCount
-'
-'    DoEvents
-'    If Not m_bDataLoad Then GoTo EX
-'
-'    Do While Not rsFut.EOF
-'
-'        '------------------------------------------------------------------------------
-'        dtMaturity = ReadDate(rsFut!dtMaturity)
-'        dtMaturityMonth = DateSerial(Year(dtMaturity), Month(dtMaturity), 1)
-'        nLotSize = aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID)).FutLotSize
-'        If (aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID)).QuotationUnitID) = 40 Then
-'            sQuotationUnit = aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID)).QuotationUnitName
-'        Else
-'            sQuotationUnit = GetQuotationNameByID(aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID)).QuotationUnitID)
-'        End If
-'
-'        Set aFut = m_Aux.Grp.Und.Fut(ReadLng(rsFut!iContractID))
-'        If aFut Is Nothing Then
-'            Set aFut = m_Aux.Grp.Und.Fut.Add(ReadLng(rsFut!iContractID))
-'            aFut.ID = ReadLng(rsFut!iContractID)
-'            aFut.Symbol = ReadStr(rsFut!vcSymbol)
-'            aFut.MaturityDate = dtMaturity
-'            aFut.MaturityMonth = dtMaturityMonth
-'            aFut.LotSize = nLotSize
-'            aFut.QuotationUnit = sQuotationUnit
-'            'next two lines - need to move to InitContracts
-'            Set aFRoot = aContract.Und.FutRoots(ReadLng(rsFut!iFutureRootID))
-'            Set aContract.Und.UndPriceProfile = aFRoot.Futures(aFut.ID).UndPriceProfile
-'            Set aContract.Und.OptPriceProfile = aFRoot.Futures(aFut.ID).OptPriceProfile
-'
-'            Set m_Aux.Grp.Und.UndPriceProfile = aContract.Und.UndPriceProfile
-'            Set m_Aux.Grp.Und.OptPriceProfile = aContract.Und.OptPriceProfile
-'            Set aFut.UndPriceProfile = aContract.Und.UndPriceProfile
-'            Set aFut.OptPriceProfile = aContract.Und.OptPriceProfile
-'            aContract.Und.IsAmerican = aFRoot.Futures(aFut.ID).IsAmerican
-'            m_Aux.Grp.Und.IsAmerican = aContract.Und.IsAmerican
-'            aFut.IsAmerican = aContract.Und.IsAmerican
-'            aFut.FutRootID = ReadLng(rsFut!iFutureRootID)
-'
-'            If m_Aux.Grp.FutRootColl(aFRoot.ID) Is Nothing Then
-'               Dim aFutRoot As EtsMmQuotesLib.MmQvFutRootAtom
-'               Set aFutRoot = m_Aux.Grp.FutRootColl.Add(aFRoot.ID)
-'
-'               aFutRoot.ID = aFRoot.ID
-'               aFutRoot.Symbol = aFRoot.Symbol
-'               aFutRoot.Name = aFRoot.Name
-'               aFutRoot.MatCalendarID = aFRoot.MatCalendarID
-'               aFutRoot.FutLotSize = aFRoot.FutLotSize
-'               aFutRoot.OptLotSize = aFRoot.OptLotSize
-'
-'                If (aFRoot.QuotationUnitID) = 40 Then
-'                    aFutRoot.QuotationUnitName = aFRoot.QuotationUnitName
-'                    aFutRoot.QuotationUnitID = aFRoot.QuotationUnitID
-'                Else
-'                    aFutRoot.QuotationUnitName = GetQuotationNameByID(aFRoot.QuotationUnitID)
-'                    aFutRoot.QuotationUnitID = aFRoot.QuotationUnitID
-'                End If
-'            End If
-'
-'        End If
-'
-'
-'        '-------------------------------------------------------------------------------
-'            Set rsExch = gDBW.usp_MmFutureExchanges_Get(aFut.ID)
-'            AddExch aFut.FutExch, 0, "", "<Primary>"
-'            AddExch aFut.OptExch, 0, "", "<Primary>"
-'
-'            Do While Not rsExch.EOF
-'                nID = ReadLng(rsExch!iExchangeID)
-'                Set aExch = g_Exch(nID)
-'                If Not aExch Is Nothing Then
-'
-'                    If ReadByte(rsExch!tiIsUnderlying) <> 0 Then
-'                        If m_Aux.Grp.UndExchAll(nID) Is Nothing Then AddExch m_Aux.Grp.UndExchAll, nID, aExch.Code, aExch.Name
-'                        If aFut.FutExch(nID) Is Nothing Then AddExch aFut.FutExch, nID, aExch.Code, aExch.Name
-'                    End If
-'
-'                    If ReadByte(rsExch!tiIsOption) <> 0 Then
-'                        If m_Aux.Grp.OptExchAll(nID) Is Nothing Then AddExch m_Aux.Grp.OptExchAll, nID, aExch.Code, aExch.Name
-'                        If aFut.OptExch(nID) Is Nothing Then AddExch aFut.OptExch, nID, aExch.Code, aExch.Name
-'                    End If
-'
-'                    Set aExch = Nothing
-'                End If
-'
-'                rsExch.MoveNext
-'            Loop
-'        '------------------------------------------------------------------------------
-'            Set aQuote = New EtsMmQuotesLib.MmQvQuoteAtom
-'
-'            aQuote.Series = UCase$(Format$(dtMaturity, "MMM YY"))
-'            sKey = aFut.Symbol
-'
-'            aQuote.Series = aQuote.Series '& " " & aExch.Code
-'            sKey = sKey '& "." & aExch.Code
-'
-'            Set aReq = m_Aux.QuoteReqsAll(sKey)
-'            If aReq Is Nothing Then
-'                Set aReq = m_Aux.QuoteReqsAll.Add(sKey)
-'                Set aReq.Exch = aFut.FutExch(0)
-'                Set aReq.Fut = aFut
-'                'Set aReq.FutRoot = m_Aux.Grp.FutRoot
-'            End If
-'            Set aReq = Nothing
-'
-'            aFut.Quote.Add 0, "<Primary>", aQuote
-'            Set aQuote = Nothing
-'
-'        InitFuturesOptions aContract, aFut, ReadLng(rsFut!iContractID) 'fokiny
-'
-'        DoEvents
-'        If Not m_bDataLoad Then GoTo EX
-'
-'        IncProgress pbProgress
-'        Set aFut = Nothing
-'        rsFut.MoveNext
-'    Loop
-'
-'    InitIndexFutures = True
-'EX:
-'    Set aFut = Nothing
-'    Set rsFut = Nothing
-'    Set rsExch = Nothing
-'    Set aQuote = Nothing
-'    Set aExch = Nothing
-'    Exit Function
-'EH:
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to load futures."
-'    GoTo EX
-'End Function
 
 Private Function InitGroup(ByVal nGroupID As Long) As Boolean
     On Error GoTo EH
@@ -2589,7 +1774,6 @@ Private Function InitGroup(ByVal nGroupID As Long) As Boolean
     
     Dim nStart&
     nStart = GetTickCount
-    'InitView
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Data loading Enter.", m_frmOwner.GetCaption
@@ -2599,7 +1783,6 @@ Private Function InitGroup(ByVal nGroupID As Long) As Boolean
     If m_bInProc Then Exit Function
     
     Set aContract = g_ContractAll(nGroupID)
-       
     If aContract Is Nothing Then Exit Function
     
     m_bDataLoad = True
@@ -2696,7 +1879,7 @@ Private Sub ShowGroup()
     
     With fgUnd
         
-        .Rows = 1
+        .rows = 1
         On Error GoTo Er
         bAllExchVisible = True
         If QV.VisibleUndExch.Count > 0 Then
@@ -2726,7 +1909,7 @@ Private Sub ShowGroup()
                 
                 If Not aQuote Is Nothing Then
                     .AddItem ""
-                    nRow = .Rows - 1
+                    nRow = .rows - 1
                 
                     Set aRowData = New MmQvRowData
                     Set aRowData.Und = m_Aux.Grp.Und
@@ -2755,7 +1938,7 @@ Private Sub ShowGroup()
                         Set aQuote = aUnd.Quote(aExch.ID)
                         If Not aQuote Is Nothing Then
                             .AddItem ""
-                            nRow = .Rows - 1
+                            nRow = .rows - 1
                                                     
                             Set aRowData = New MmQvRowData
                             Set aRowData.Und = aUnd
@@ -2785,7 +1968,7 @@ Private Sub ShowGroup()
                 
                 If Not aQuote Is Nothing Then
                     .AddItem ""
-                    nRow = .Rows - 1
+                    nRow = .rows - 1
                 
                     Set aRowData = New MmQvRowData
                     Set aRowData.Und = m_Aux.Grp.Und
@@ -2825,7 +2008,7 @@ Private Sub ShowGroup()
     m_AuxOut.VolaUpdate
     
     With fgOpt
-        .Rows = 1
+        .rows = 1
 
         QV.OptsRefresh True
         
@@ -2841,7 +2024,6 @@ Private Sub ShowGroup()
         QV.VisibleRoot.Clear
         QV.VisibleStr.Clear
 
-        
         m_Aux.FormatOptColumns
         m_AuxOut.OptionsUpdateColors
    
@@ -2886,7 +2068,7 @@ Private Sub UnderlyingUpdatePositions()
     On Error Resume Next
     Dim aOpt As EtsMmQuotesLib.MmQvOptAtom
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
-    Dim i&, nCount&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, nBS&
+    Dim i&, nCount&, aTrd As EtsGeneralLib.MmTradeInfoAtom, aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, nBS&
     
         m_Aux.Grp.Und.Qty = BAD_LONG_VALUE
         m_Aux.Grp.Und.QtyInShares = BAD_LONG_VALUE
@@ -2896,15 +2078,14 @@ Private Sub UnderlyingUpdatePositions()
             aOpt.QtyInShares = BAD_LONG_VALUE
         Next
         
-        'Set aTrdByUnd = TradeChannel.Trades.FilterTrades(m_Aux.Grp.Und.ID, TYPE_UNDERLYING, m_Aux.TradesFilter, g_UnderlyingGroup, True)
+        QV.TradeFilter.Data(enFtSymbol) = m_Aux.Grp.Und.ID
         Set aTrdByUnd = TradeChannel.TradesByUnd(CStr(m_Aux.Grp.Und.ID))
         If Not aTrdByUnd Is Nothing Then
             nCount = aTrdByUnd.Count
     
             For Each aTrd In aTrdByUnd
-                'If m_Aux.CheckTradeFilter(aTrd) Then
-                    nBS = IIf(aTrd.IsBuy, 1, -1)
-    
+                nBS = IIf(aTrd.IsBuy, 1, -1)
+                If aTrd.CheckByFilter(QV.TradeFilter) Then
                     If aTrd.ContractType = enCtOption Then
                         Set aOpt = m_Aux.Grp.Und.Opt(aTrd.ContractID)
                         If Not aOpt Is Nothing Then
@@ -2916,7 +2097,6 @@ Private Sub UnderlyingUpdatePositions()
     
                             Set aOpt = Nothing
                         End If
-                        
                     ElseIf aTrd.ContractType = enCtIndex Or aTrd.ContractType = enCtStock Then
                         If m_Aux.Grp.Und.Qty <= BAD_LONG_VALUE Then m_Aux.Grp.Und.Qty = 0&
                         m_Aux.Grp.Und.Qty = m_Aux.Grp.Und.Qty + aTrd.Quantity * nBS
@@ -2924,7 +2104,7 @@ Private Sub UnderlyingUpdatePositions()
                         If m_Aux.Grp.Und.QtyInShares <= BAD_LONG_VALUE Then m_Aux.Grp.Und.QtyInShares = 0&
                         m_Aux.Grp.Und.QtyInShares = m_Aux.Grp.Und.QtyInShares + aTrd.Quantity * aTrd.LotSize * nBS
                     End If
-                'End If
+                End If
                 Set aTrd = Nothing
             Next
             Set aTrdByUnd = Nothing
@@ -2943,7 +2123,7 @@ Private Sub UnderlyingUpdatePositions()
                 nCount = aTrdByUnd.Count
         
                 For Each aTrd In aTrdByUnd
-                    If m_Aux.CheckTradeFilter(aTrd) Then
+                    If aTrd.CheckByFilter(QV.TradeFilter) Then
                         nBS = IIf(aTrd.IsBuy, 1, -1)
         
                         If aTrd.ContractType = enCtFutOption Then
@@ -3119,7 +2299,7 @@ End Sub
 Private Sub dtCalculationDate_Change()
 On Error Resume Next
     m_bDateChanged = True
-    fgDiv.TextMatrix(1, fgDiv.Cols - 2) = dtCalculationDate.Value
+    fgDiv.TextMatrix(1, QDC_DATECALC) = dtCalculationDate.Value
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Vola Filter changed date. New date: " & dtCalculationDate.Value, m_frmOwner.GetCaption
 End Sub
@@ -3142,7 +2322,7 @@ Private Sub dtCalculationDate_LostFocus()
     If (m_bShutDown) Then Exit Sub
     If m_bDateChanged And Not dtCalculationDate.Visible And Not m_Aux.RealTime And m_Aux.Grp.ID <> 0 Then
         
-        fgDiv.TextMatrix(1, fgDiv.Cols - 2) = dtCalculationDate.Value
+        fgDiv.TextMatrix(1, QDC_DATECALC) = dtCalculationDate.Value
         CalculateUnderlyingOptions True, , , True
         
         nUnds = m_AuxOut.UnderlyingUpdate(False, True)
@@ -3197,7 +2377,7 @@ Private Sub fgDiv_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick False
     End With
@@ -3226,7 +2406,7 @@ Private Sub fgDiv_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -3260,7 +2440,7 @@ Private Sub fgFut_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     Dim aRowData As MmQvRowData, aOpt As EtsMmQuotesLib.MmQvOptAtom, nOptType&
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     Dim aTradeColl As MmTradeInfoColl
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     
     Dim aContract As EtsGeneralLib.EtsContractAtom
     Set aContract = g_ContractAll(m_Aux.Grp.Und.ID)
@@ -3458,7 +2638,7 @@ On Error Resume Next
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick True
     End With
@@ -3473,7 +2653,7 @@ On Error Resume Next
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             
             If m_nMenuGridRow > 0 And m_nMenuGridRow < m_nMenuGridRows And m_nMenuGridCol > 1 And m_nMenuGridCol < m_nMenuGridCols Then
                 .Row = m_nMenuGridRow
@@ -3578,7 +2758,7 @@ Private Sub fgVol_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick False
     End With
@@ -3607,7 +2787,7 @@ Private Sub fgVol_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         
@@ -3672,7 +2852,7 @@ Private Sub fgVol_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             
             ShowPopup
         End With
@@ -3685,11 +2865,16 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
         g_PerformanceLog.LogMmInfo enLogUserAction, "Vola Filter AfterEdit Enter", m_frmOwner.GetCaption
     
     If m_bShutDown Then Exit Sub
+
     Dim sValue$, dValue#, aQuote As EtsMmQuotesLib.MmQvQuoteAtom, sKey$, nRow&, nOptType&, aPair As EtsMmQuotesLib.MmQvOptPairAtom
     Dim aOpt As EtsMmQuotesLib.MmQvOptAtom, aExp As EtsMmQuotesLib.MmQvExpAtom, dAtmVola#
     Dim aStr As EtsMmQuotesLib.MmQvStrikeAtom, aExpColl As EtsMmQuotesLib.MmQvExpColl
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     Dim nCallMask&, nPutMask&
+    Dim lRootID As Long, aOptRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    Dim lSurfaceID As Long
+    Dim SurfaceColl As Collection
+    Set SurfaceColl = New Collection
     
     nCallMask = GetGreeksMask(enOtCall)
     nPutMask = GetGreeksMask(enOtPut)
@@ -3704,7 +2889,8 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     If True Then
                         dValue = Abs(ReadDbl(sValue))
                         dValue = dValue / 100#
-                        dAtmVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                        lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(0)
+                        dAtmVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, False, lSurfaceID)
                         
                         If dAtmVola <> dValue Then
                             If Not g_PerformanceLog Is Nothing Then _
@@ -3715,18 +2901,29 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                                                                 
                             Screen.MousePointer = vbHourglass
                             
-                            m_Aux.Grp.Und.VolaSrv.ShiftExpiryVola aExp.ExpiryOV, 100# * (dValue - dAtmVola)
+                            For Each aOptRoot In aExp.Roots
+                                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aOptRoot.ID)
+                                On Error Resume Next
+                                If (SurfaceColl(CStr(lSurfaceID)) = 0) Then
+                                    On Error GoTo Err
+                                    m_Aux.Grp.Und.VolaSrv.ShiftExpiryVola aExp.ExpiryOV, 100# * (dValue - dAtmVola), lSurfaceID
+                                    SurfaceColl.Add 1, CStr(lSurfaceID)
+                                End If
+                            Next
+                            
+                            Set SurfaceColl = Nothing
                             
                             m_bVolaChangedNow = True
                             g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                             m_bVolaChangedNow = False
                             
                             For Each aStr In aExp.Strike
-                                dValue = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
                                 For Each aPair In aStr.OptPair
                                     For nOptType = enOtPut To enOtCall
                                         Set aOpt = aPair.Opt(nOptType)
                                         If aOpt.ID <> 0 Then
+                                            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aPair.RootID)
+                                            dValue = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike, lSurfaceID)
                                             aOpt.Vola = dValue
                                         
                                             For Each aQuote In aOpt.Quote
@@ -3765,7 +2962,8 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         If True Then
                             dValue = Abs(ReadDbl(sValue))
                             dValue = dValue / 100#
-                            dAtmVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFut.FutRootID)
+                            dAtmVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, lSurfaceID)
                             
                             If dAtmVola <> dValue Then
                                 If Not g_PerformanceLog Is Nothing Then _
@@ -3776,14 +2974,15 @@ Private Sub fgVol_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                                                                     
                                 Screen.MousePointer = vbHourglass
                                 
-                                m_Aux.Grp.Und.VolaSrv.ShiftExpiryVola aExp.ExpiryOV, 100# * (dValue - dAtmVola)
+                                
+                                m_Aux.Grp.Und.VolaSrv.ShiftExpiryVola aExp.ExpiryOV, 100# * (dValue - dAtmVola), lSurfaceID
                                 
                                 m_bVolaChangedNow = True
                                 g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                                 m_bVolaChangedNow = False
                                 
                                 For Each aStr In aExp.Strike
-                                    dValue = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
+                                    dValue = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike, lSurfaceID)
                                     For Each aPair In aStr.OptPair
                                         For nOptType = enOtPut To enOtCall
                                             Set aOpt = aPair.Opt(nOptType)
@@ -3838,6 +3037,12 @@ Private Sub fgVol_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Vola Filter StartEdit Enter", m_frmOwner.GetCaption
+    
+    Dim nColData As Long: nColData = fgVol.ColData(Col)
+    If nColData = QDC_VOLA_SIM Or nColData = QDC_VOLA_FLAT Then
+        Cancel = False
+        Exit Sub
+    End If
     
     Cancel = True
     If m_bShutDown Then Exit Sub
@@ -4085,14 +3290,14 @@ Private Sub SaveProfilesInfo()
         If m_Aux.Grp.ContractType = enCtStock Then
             gDBW.usp_Stock_Save m_Aux.Grp.Und.ID, Null, Null, Null, Null, Null, Null, Null, _
                                 Null, Null, Null, Null, Null, Null, Null, Null, Null, Null, Null, 0, _
-                                m_Aux.Grp.Und.UndPriceProfile.ID, m_Aux.Grp.Und.OptPriceProfile.ID
+                                m_Aux.Grp.Und.UndPriceProfile.ID, m_Aux.Grp.Und.OptPriceProfile.ID, Null
                             
             Set aContract.Und.UndPriceProfile = m_Aux.Grp.Und.UndPriceProfile
             Set aContract.Und.OptPriceProfile = m_Aux.Grp.Und.OptPriceProfile
             
         ElseIf m_Aux.Grp.ContractType = enCtIndex Then
             gDBW.usp_Index_Save m_Aux.Grp.Und.ID, Null, Null, Null, Null, Null, Null, Null, Null, Null, Null, Null, Null, 0, 0, _
-                                m_Aux.Grp.Und.UndPriceProfile.ID, m_Aux.Grp.Und.OptPriceProfile.ID
+                                m_Aux.Grp.Und.UndPriceProfile.ID, m_Aux.Grp.Und.OptPriceProfile.ID, Null
                                 
             Set aContract.Und.UndPriceProfile = m_Aux.Grp.Und.UndPriceProfile
             Set aContract.Und.OptPriceProfile = m_Aux.Grp.Und.OptPriceProfile
@@ -4114,6 +3319,17 @@ Private Sub SaveProfilesInfo()
                 Set aContract.Und.OptPriceProfile = aFut.OptPriceProfile
             Next
         End If
+        
+        
+        Dim aData As MSGSTRUCTLib.UnderlyingUpdate
+        Set aData = New MSGSTRUCTLib.UnderlyingUpdate
+
+        aData.UpdStatus = enUndSettingsUpdate
+        aData.UndID = aContract.ID
+        aData.OptProfile = aContract.Und.OptPriceProfile.ID
+        aData.StkProfile = aContract.Und.UndPriceProfile.ID
+        
+        g_TradeChannel.PubUnderlyingUpdate aData
         
         Set aContract = Nothing
     End If
@@ -4205,28 +3421,51 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     Dim nOldValue As Long
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom, aExpAll As EtsMmQuotesLib.MmQvExpAtom
         
+    If HandleSimulatedVolatility(Row, Col) Then
+        Exit Sub
+    End If
     
     With fgDiv
         bNeedRecalc = False
         bForceRecalc = False
         sValue = Trim$(.TextMatrix(Row, Col))
         
-        If m_sCurrentOriginalText <> sValue And Col = QDC_RATE + m_Aux.Grp.Und.Exp.Count + 2 Then
+        If m_sCurrentOriginalText <> sValue And Col = QDC_VOLA_IS_MANUAL Then
             dValue = ReadLng(sValue)
             gDBW.usp_IsManualVol_Save m_Aux.Grp.Und.ID, IIf(dValue = 0, 0, 1)
             m_Aux.Grp.Und.IsManualVol = IIf(dValue = 0, False, True)
             g_Main.Contract(m_Aux.Grp.Und.ID).Und.IsManualVol = m_Aux.Grp.Und.IsManualVol
         End If
+        
         If m_sCurrentOriginalText <> sValue Then
             Select Case Col
+            
                 Case QDC_TRADES ' trades filter
                     nValue = 0
                     nValue = CLng(sValue)
-                    If m_Aux.TradesFilter <> nValue Then
-                        m_Aux.TradesFilter = nValue
-                        
+                    If QV.TradeFilter.Data(enFtTrades) <> nValue Then
+                        QV.TradeFilter.Data(enFtTrades) = nValue
                         UnderlyingUpdatePositions
+                        bNeedRecalc = True
+                    End If
+                    m_AuxOut.TradesFilterUpdate
                         
+                Case QDC_FLT_TRADER
+                    nValue = 0
+                    nValue = CLng(sValue)
+                    If QV.TradeFilter.Data(enFtTrader) <> nValue Then
+                        QV.TradeFilter.Data(enFtTrader) = nValue
+                        UnderlyingUpdatePositions
+                        bNeedRecalc = True
+                    End If
+                    m_AuxOut.TradesFilterUpdate
+                        
+                Case QDC_FLT_STRATEGY
+                    nValue = 0
+                    nValue = CLng(sValue)
+                    If QV.TradeFilter.Data(enFtStrategy) <> nValue Then
+                        QV.TradeFilter.Data(enFtStrategy) = nValue
+                        UnderlyingUpdatePositions
                         bNeedRecalc = True
                     End If
                     m_AuxOut.TradesFilterUpdate
@@ -4270,18 +3509,10 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case QDC_UNDPROFILE
                     nValue = -1
                     nValue = CLng(sValue)
-                    If m_Aux.Grp.Und.UndPriceProfile <> nValue Then
-                        If m_Aux.Grp.IsStockOrIndex Then
-                            Set m_Aux.Grp.Und.UndPriceProfile = Nothing
-                            Set m_Aux.Grp.Und.UndPriceProfile = g_PriceProfile(nValue)
-                        Else
-                            For Each aFut In m_Aux.Grp.Und.Fut
-                                Set aFut.UndPriceProfile = Nothing
-                                Set aFut.UndPriceProfile = g_PriceProfile(nValue)
-                            Next
-                            Set m_Aux.Grp.Und.UndPriceProfile = Nothing
-                            Set m_Aux.Grp.Und.UndPriceProfile = g_PriceProfile(nValue)
-                        End If
+                    If m_Aux.Grp.Und.UndPriceProfile.ID <> nValue Then
+
+                        Set m_Aux.Grp.Und.UndPriceProfile = Nothing
+                        Set m_Aux.Grp.Und.UndPriceProfile = g_PriceProfile(nValue)
                         
                         SaveProfilesInfo
                         
@@ -4297,18 +3528,10 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 Case QDC_OPTPROFILE
                     nValue = -1
                     nValue = CLng(sValue)
-                    If m_Aux.Grp.Und.UndPriceProfile <> nValue Then
-                        If m_Aux.Grp.IsStockOrIndex Then
-                            Set m_Aux.Grp.Und.OptPriceProfile = Nothing
-                            Set m_Aux.Grp.Und.OptPriceProfile = g_PriceProfile(nValue)
-                        Else
-                            For Each aFut In m_Aux.Grp.Und.Fut
-                                Set aFut.OptPriceProfile = Nothing
-                                Set aFut.OptPriceProfile = g_PriceProfile(nValue)
-                            Next
-                            Set m_Aux.Grp.Und.OptPriceProfile = Nothing
-                            Set m_Aux.Grp.Und.OptPriceProfile = g_PriceProfile(nValue)
-                        End If
+                    If m_Aux.Grp.Und.UndPriceProfile.ID <> nValue Then
+                        
+                        Set m_Aux.Grp.Und.OptPriceProfile = Nothing
+                        Set m_Aux.Grp.Und.OptPriceProfile = g_PriceProfile(nValue)
                         
                         SaveProfilesInfo
                         
@@ -4390,7 +3613,6 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     If (m_Aux.Grp.ContractType = enCtStock Or m_Aux.Grp.ContractType = enCtIndex) And m_bDivDateChanged Then
                         dtValue = 0#
                         dtValue = ReadDate(sValue)
-                        Debug.Print "Edit DivDate: " & Format(dtValue)
                         If dtValue > 0# Then
                             Set aDiv = m_Aux.Grp.Und.Dividend
                             enDivType = m_Aux.Grp.Und.Dividend.DivType
@@ -4487,37 +3709,12 @@ Private Sub fgDiv_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     Dim strTmp1 As String
                                     Dim aExpGlobal As EtsMmQuotesLib.MmQvExpAtom
                                     
-    '                                If m_Aux.Grp.IsStockOrIndex Then
                                         Set aExpColl = m_Aux.Grp.Und.Exp
-    '                                   m_Aux.Grp.ExpAll.Clear
                                         For Each aExpLoop In aExpColl
                                              Set aExpGlobal = m_Aux.Grp.ExpAll(aExpLoop.ExpiryMonth)
                                              If Not aExpGlobal Is Nothing Then aExpGlobal.RateCust = aExpLoop.RateCust
-    '                                        strTmp1 = Format$(aExpLoop.ExpiryMonth, "MMM YY")
-    '                                        If strTmp1 = strSerach Then
-    '                                            aExpLoop.RateCust = dValue
-    '                                        End If
-    '                                        aExpLoop.Rate = aExpLoop.RateCust
-    '                                        m_Aux.Grp.ExpAll.Add aExpLoop.ExpiryMonth, aExpLoop
                                         Next
-'                                    Else
-'                                        For Each aFut In m_Aux.Grp.Und.Fut
-'        '                                   m_Aux.Grp.ExpAll.Clear
-'                                            For Each aExpLoop In m_Aux.Grp.ExpAll
-'                                                 Set aExpGlobal = m_Aux.Grp.ExpAll(aExpLoop.ExpiryMonth)
-'                                                 If Not aExpGlobal Is Nothing Then aExpGlobal.RateCust = aExpLoop.RateCust
-'        '                                        strTmp1 = Format$(aExpLoop.ExpiryMonth, "MMM YY")
-'        '                                        If strTmp1 = strSerach Then
-'        '                                            aExpLoop.RateCust = dValue
-'        '                                        End If
-'        '                                        aExpLoop.Rate = aExpLoop.RateCust
-'        '                                        m_Aux.Grp.ExpAll.Add aExpLoop.ExpiryMonth, aExpLoop
-'                                            Next
-'                                        Next
-'                                    End If
-                                    
 
-                                    
                                     bNeedRecalc = True
                                     bForceRecalc = True
                                 End If
@@ -4555,7 +3752,7 @@ Private Sub fgDiv_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             
             ShowPopup
         End With
@@ -4567,6 +3764,11 @@ Private Sub fgDiv_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Dividend Filter StartEdit Enter", m_frmOwner.GetCaption
     
+   
+    If (Col = QDC_VOLA_SIM Or Col = QDC_VOLA_FLAT) And m_Aux.Grp.ID <> 0 Then
+        Cancel = False
+        Exit Sub
+    End If
    
     Dim nKey&
     Cancel = True
@@ -4589,7 +3791,7 @@ Private Sub fgDiv_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
         
     End If
     
-    If fgDiv.ColDataType(Col) = flexDTDate And Col <> QDC_DATE And m_Aux.Grp.ID <> 0 And Not m_Aux.RealTime Then
+    If fgDiv.ColDataType(Col) = flexDTDate And Col = QDC_DATECALC And m_Aux.Grp.ID <> 0 And Not m_Aux.RealTime Then
     
         Cancel = True
         dtCalculationDate.Move fgDiv.CellLeft, fgDiv.CellTop + fgDiv.Top, fgDiv.CellWidth, fgDiv.CellHeight
@@ -4616,7 +3818,7 @@ Private Sub fgDiv_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
         
     End If
     
-    If fgDiv.ColDataType(Col) = flexDTBoolean Then
+    If fgDiv.ColDataType(Col) = flexDTBoolean And m_Aux.Grp.ID <> 0 Then
         Cancel = False
         m_sCurrentOriginalText = Trim$(fgDiv.TextMatrix(Row, Col))
     End If
@@ -4633,6 +3835,7 @@ Private Sub fgOpt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     Dim aRowData As MmQvRowData, aOpt As EtsMmQuotesLib.MmQvOptAtom, nOptType&
     Dim aExp As EtsMmQuotesLib.MmQvExpAtom, aStr As EtsMmQuotesLib.MmQvStrikeAtom
     Dim enCalcIV As EtsMmQuotesLib.MmQvIvCalcEnum, nMask&, aPair As EtsMmQuotesLib.MmQvOptPairAtom
+    Dim lSurfaceID As Long
     
     With fgOpt
         sValue = Trim$(.TextMatrix(Row, Col))
@@ -4721,7 +3924,10 @@ Private Sub fgOpt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                                 & "OldValue=""" & aOpt.Vola * 100 & """ " _
                                                                                 & "NewValue=""" & dValue * 100 & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             
-                                m_Aux.Grp.Und.VolaSrv.OptionVola(aOpt.ExpiryOV, aOpt.Strike) = dValue
+                                m_Aux.IsSimulatedFlat = False
+                                
+                                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aOpt.RootID)
+                                m_Aux.Grp.Und.VolaSrv.OptionVola(aOpt.ExpiryOV, aOpt.Strike, lSurfaceID) = dValue
                                 
                                 m_bVolaChangedNow = True
                                 g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
@@ -4729,34 +3935,23 @@ Private Sub fgOpt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 
                                 If g_Params.UseTheoVolatility Then nMask = GetGreeksMask(nOptType)
                             
-                                dValue = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
+                                'dValue = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
                                 For Each aPair In aStr.OptPair
                                     For nOptType = enOtPut To enOtCall
-                                        
                                         Set aOpt = aPair.Opt(nOptType)
+                                        If (Not aOpt Is Nothing) Then
                                         If aOpt.ID <> 0 Then
-                                            aOpt.Vola = dValue
-                                            
+                                                If (lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aPair.RootID)) Then
+                                                    aOpt.Vola = m_Aux.Grp.Und.VolaSrv.OptionVola(aOpt.ExpiryOV, aStr.Strike, lSurfaceID)
                                             For Each aQuote In aOpt.Quote
-                                                
                                                 If nMask <> GM_NONE Or aQuote.CalcGreeksIVType = enMmQvCalcGreeksIVTheo Then
                                                     CalcOptionGreeks aOpt, aQuote, aExp, nMask, GetIvMask(nOptType), , False
                                                 End If
-                                                
-                                                sKey = aOpt.Symbol
-                                                If aQuote.Exch.ID > 0 Then sKey = sKey & "." & aQuote.Exch.Code
-                                                
-'                                                nRow = .FindRow(sKey, , IIf(nOptType = enOtCall, QOC_C_KEY, QOC_P_KEY))
-'                                                If nRow > 0 Then
-'                                                    If Not .RowHidden(nRow) Then m_AuxOut.OptionUpdateQuote nRow, nOptType, False, True, True
-'                                                Else
-'                                                    Debug.Assert False
-'                                                End If
-                                                
                                             Next
                                         End If
+                                            End If
                                         Set aOpt = Nothing
-                                        
+                                        End If
                                     Next
                                 Next
                                 
@@ -4838,7 +4033,7 @@ Private Sub fgOpt_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick True
     End With
@@ -4871,7 +4066,7 @@ Private Sub fgOpt_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -4964,7 +4159,7 @@ Private Sub fgOpt_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             .Row = .MouseRow
             .Col = .MouseCol
             
@@ -4993,12 +4188,6 @@ Private Sub UpdateMenu()
 '                                                    " DtaLoad: " & Str(m_bDataLoad) & _
 '                                                    " Init: " & Str(m_bInitializing), m_frmOwner.GetCaption
     
-    Debug.Print "ID " & Str(m_Aux.Grp.ID) & _
-                " InProc: " & Str(m_bInProc) & _
-                " LastQuote: " & Str(m_bLastQuoteReqNow) & _
-                " Subs: " & Str(m_bSubscribingNow) & _
-                " DtaLoad: " & Str(m_bDataLoad) & _
-                " Init: " & Str(m_bInitializing)
                         
     mnuCtxRealTime.Checked = m_Aux.RealTime
     mnuCtxRefresh.Enabled = mnuCtxRealTime.Enabled And Not m_Aux.RealTime
@@ -5079,6 +4268,7 @@ Private Sub ShowPopup()
     mnuCtxVolaFitToImp.Enabled = False
     mnuCtxVolaFitToImpCur.Enabled = False
     mnuCtxVolaFitToImpAll.Enabled = False
+    mnuCtxSaveSimulatedVola.Enabled = False
 
     If m_Aux.Grp.IsStockOrIndex Then
         nExpCount = m_Aux.Grp.Und.Exp.Count
@@ -5129,6 +4319,8 @@ Private Sub ShowPopup()
             
             mnuCtxVolaFitToImpAll.Enabled = mnuCtxVolaFlatAll.Enabled
             mnuCtxVolaFitToImp.Enabled = mnuCtxVolaFitToImpAll.Enabled
+
+            mnuCtxSaveSimulatedVola.Enabled = mnuCtxVolaFlatAll.Enabled And m_Aux.IsVolaSimulated
             
             mnuCtxClearSpread.Enabled = (m_Aux.Grp.Spread.Count > 0)
             mnuCtxViewSpread.Enabled = mnuCtxClearSpread.Enabled
@@ -5221,6 +4413,8 @@ Private Sub ShowPopup()
                         mnuCtxVolaFitToImpCur.Enabled = True
                         mnuCtxVolaFitToImpAll.Enabled = True
                         
+                        mnuCtxSaveSimulatedVola.Enabled = m_Aux.IsVolaSimulated
+                        
                         If nColIdx >= QOC_C_SYMBOL And nColIdx <= QOC_C_UPDATE_TIME _
                             Or nColIdx >= QOC_P_SYMBOL And nColIdx <= QOC_P_UPDATE_TIME Then
                             
@@ -5279,6 +4473,8 @@ Private Sub ShowPopup()
                 mnuCtxVolaFitToImp.Enabled = True
                 mnuCtxVolaFitToImpCur.Enabled = True
                 mnuCtxVolaFitToImpAll.Enabled = True
+                
+                mnuCtxSaveSimulatedVola.Enabled = m_Aux.IsVolaSimulated
             End If
             
             PopupMenu mnuCtx
@@ -5354,8 +4550,6 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
     Dim aRowData As MmQvRowData, bManualEdit As Boolean
     Dim UnderlyingPriceHelp As Double
     Dim enPriceStatusMid As EtsGeneralLib.EtsReplacePriceStatusEnum
-    Dim m_nOldGrpID As Long
-    
     
     With fgUnd
         nKey = .ColKey(Col)
@@ -5399,33 +4593,7 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         End If
                         m_nNewGrpID = g_Contract.BySortKey(sValue).Und.ID
                     End If
-                    If m_nNewGrpID = 0 Then
-                        If gCmn.MyMsgBox(m_frmOwner, "There is no market structure for symbol '" & sValue & "'." & vbCrLf & _
-                                            "Update market structure for this symbol?", vbQuestion Or vbYesNo) = vbYes Then
-
-                            Dim frmMS As New frmMarketStructure
-                            
-                            m_nNewGrpID = frmMS.Execute(sValue, m_frmOwner)
-                            If m_nNewGrpID <> 0 Then
-                                DoEvents
-                                
-                                Screen.MousePointer = vbHourglass
-                                m_bUndListReloadNow = True
-                                
-                                g_Params.MakeUnderlingComboLists
-                                InitUndList
-                                g_Params.FireNewUnderlyingAdded m_nNewGrpID
-                                
-                                m_bUndListReloadNow = False
-                                Screen.MousePointer = vbDefault
-                            Else
-                                m_nNewGrpID = m_nOldGrpID
-                            End If
-                        Else
-                            m_nNewGrpID = m_nOldGrpID
-                        End If
-                    End If
-                    
+                                        
                     If m_nNewGrpID <> 0 Then
                         .TextMatrix(Row, Col) = sValue
                         
@@ -5439,6 +4607,10 @@ Private Sub fgUnd_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                             QV.VisibleOptExch.Add(Trim$(Str$(g_Params.QuoteDefOptExchID))).ID = g_Params.QuoteDefOptExchID
                         End If
                         
+                        If m_Aux.IsVolaSimulated And m_Aux.IsSimulatedFlat Then
+                            m_Aux.bFlatVolaToATM = True
+                        End If
+
                         QV.ResetInitFlags
                         tmrShow.Enabled = True
                     Else
@@ -5693,7 +4865,7 @@ Private Sub fgUnd_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick (m_nMenuGridRow <> 1 Or m_nMenuGridRow = 1 And QUC_SYMBOL <> fgUnd.ColKey(m_nMenuGridCol))
     End With
@@ -5720,7 +4892,7 @@ Private Sub fgUnd_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -5782,7 +4954,7 @@ Private Sub fgUnd_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             
             If m_nMenuGridRow > 0 And m_nMenuGridRow < m_nMenuGridRows And m_nMenuGridCol > 0 And m_nMenuGridCol < m_nMenuGridCols Then
                 .Row = m_nMenuGridRow
@@ -5805,6 +4977,7 @@ Private Sub fgUnd_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     Dim nKey&
     Cancel = True
     
+    If Not SaveSimulatedVolatility() Then Exit Sub
     If m_bInProc Or m_bDataLoad Or m_bLastQuoteReqNow Or m_bSubscribingNow Then Exit Sub
     If IsDblClickHandled Then Exit Sub
     
@@ -6269,6 +5442,13 @@ Private Sub mnuCtxOtcOptionCalc_Click()
     OTCOptionCalcCall
 End Sub
 
+Private Sub mnuCtxSaveSimulatedVola_Click()
+    On Error Resume Next
+    Screen.MousePointer = vbHourglass
+    m_Aux.Grp.Und.VolaSrv.SaveSimulatedVol
+    Screen.MousePointer = vbDefault
+End Sub
+
 Private Sub mnuCtxShowMarketDepthView_Click()
 
     Dim nOptType As Long
@@ -6436,9 +5616,12 @@ Dim dVola1#, dVola2#
         Dim dN As Double
         Dim dChange As Double
         Dim dRatio As Double
+        Dim dtNow As Date
                     
-        dP = findVola.Expiry - findVolaBeforeLessStrike.Expiry
-        dN = findVolaAfterLessStrike.Expiry - findVolaBeforeLessStrike.Expiry
+        dtNow = GetNewYorkTime
+        
+        dP = Sqr(findVola.Expiry - dtNow) - Sqr(findVolaBeforeLessStrike.Expiry - dtNow)
+        dN = Sqr(findVolaAfterLessStrike.Expiry - dtNow) - Sqr(findVolaBeforeLessStrike.Expiry - dtNow)
                     
         dChange = dVola2 - dVola1
         dRatio = dP / dN
@@ -6561,7 +5744,7 @@ End Function
 
 Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExpAtom, _
                                     ByRef arrVola() As VolatilitySourcesLib.ExpiryStrikeVolaData, _
-                                    bSilent As Boolean) As Long
+                                    bSilent As Boolean, lSurfaceID As Long) As Long
     On Error Resume Next
     Dim aStr As EtsMmQuotesLib.MmQvStrikeAtom, aPair As EtsMmQuotesLib.MmQvOptPairAtom
     Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom
@@ -6577,49 +5760,61 @@ Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExp
     Dim aFrm As New frmInfoMsgBox
     Dim msgStr As String
     
+    Dim aSurfaceStrikeColl As EtsMmQuotesLib.MmQvStrikeColl
+    
     nBadBidCount = 0
     bOneVolaExists = False
     FitToImpFillVolasForExpiry = 0
     If aExp.Strike.Count <= 0 Then Exit Function
     
+    ''''''''''''''''''''''''''''''''''''''''''''''''''
+    ' Generate strike collection for current surface '
+    ''''''''''''''''''''''''''''''''''''''''''''''''''
+    Set aSurfaceStrikeColl = GetStrikeCollBySurface(lSurfaceID, aExp.Strike)
+    
+    If (aSurfaceStrikeColl.Count <= 0) Then Exit Function
+    
     nExactCount = -1
     nExactCount = UBound(arrVola)
     If nExactCount > 0 Then
-        ReDim Preserve arrVola(1 To nExactCount + aExp.Strike.Count)
+        ReDim Preserve arrVola(1 To nExactCount + aSurfaceStrikeColl.Count)
     Else
         nExactCount = 0
-        ReDim arrVola(1 To aExp.Strike.Count)
+        ReDim arrVola(1 To aSurfaceStrikeColl.Count)
     End If
     
     nFirstIdx = nExactCount + 1
-    nLastIdx = nExactCount + aExp.Strike.Count
+    nLastIdx = nExactCount + aSurfaceStrikeColl.Count
     dUndPrice = -1#
     nFutureID = 0
+    
     If m_Aux.Grp.IsStockOrIndex Then
         Set aUndDefQuote = m_Aux.Grp.Und.Quote(0)
         dUndPrice = m_Aux.Grp.Und.UndPriceProfile.GetUndPriceMid(aUndDefQuote.PriceBid, aUndDefQuote.PriceAsk, _
                                                         aUndDefQuote.PriceLast, g_Params.UndPriceToleranceValue, _
                                                         g_Params.PriceRoundingRule, enPriceStatus)
         Set aUndDefQuote = Nothing
-        
         dAtmStrike = m_Aux.Grp.Und.AtmStrike(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
     End If
     
-    nAtmIdx = -1
+    nAtmIdx = nFirstIdx
         
     ' OTM - take call if strike >= undprice, and put if strike < undprice
     nIdx = nFirstIdx - 1
-    For Each aStr In aExp.Strike
+    For Each aStr In aSurfaceStrikeColl
         div = 0#
         dIVBetter = 0#
         Dim bAdd As Boolean
         bAdd = False
         bFlat = False
         
+        
         For Each aPair In aStr.OptPair
             Dim dRootID As Long
             
             nFutureID = aPair.RootID
+            
+            If (m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(nFutureID) = lSurfaceID) Then
             
             If Not m_Aux.Grp.IsStockOrIndex And dUndPrice = -1 Then
                 For Each aFut In m_Aux.Grp.Und.Fut
@@ -6640,6 +5835,7 @@ Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExp
             ElseIf Not aPair.Opt(enOtPut) Is Nothing Then
                 dRootID = aPair.Opt(enOtPut).RootID
             End If
+                
             If g_Params.QuoteFitToImpCurveType = enFitToImpCurveOTM And dUndPrice > 0 Then
                 If aStr.Strike >= dUndPrice Then
                     Set aQuote = aPair.Opt(enOtCall).Quote(0)
@@ -6659,7 +5855,8 @@ Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExp
             End If
             
             If Not aQuote Is Nothing Then
-               If m_Aux.Grp.Und.OptRoot(dRootID).IsFit Then
+                    'If m_Aux.Grp.Und.OptRoot(dRootID).IsFit Then
+                    If True Then
                     bAdd = True
 
                     div = aQuote.IV
@@ -6688,10 +5885,15 @@ Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExp
             End If
                 
             Set aQuote = Nothing
+            Else
+                Debug.Print "Not"
+            End If
         Next
+        
             nIdx = nIdx + 1
             arrVola(nIdx).Expiry = aExp.ExpiryOV
             arrVola(nIdx).Strike = aStr.Strike
+    
         If bAdd Then
             arrVola(nIdx).Vola = IIf(dIVBetter <= 0#, div, dIVBetter) * 100#
             bSomeAdded = True
@@ -6706,9 +5908,11 @@ Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExp
         End If
         
         If dAtmStrike > aStr.Strike Then nAtmIdx = nIdx
+        
     Next
+    
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    If nBadBidCount = aExp.Strike.Count And g_Params.QuoteFitToImpFlatNoBid Then
+    If nBadBidCount = aSurfaceStrikeColl.Count And aSurfaceStrikeColl.Count > 0 And g_Params.QuoteFitToImpFlatNoBid Then
         msgStr = "Currently there are no option bids on Quote View."
         aFrm.SetCheckBoxCaption "Use Flat Vola if No Bid"
         aFrm.SetCheckBoxChecked g_Params.QuoteFitToImpFlatNoBid
@@ -6718,12 +5922,14 @@ Private Function FitToImpFillVolasForExpiry(ByRef aExp As EtsMmQuotesLib.MmQvExp
         GoTo Ex
     End If
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    
     If bSomeAdded And bSomeRemoved Then
     ' interpolate missing
         Dim nIdxInterpolate&, nIdxFind&
         Dim dLastGoodVola#: dLastGoodVola = 0#
         
         For nIdxInterpolate = nFirstIdx To nLastIdx
+        
             If arrVola(nIdxInterpolate).Vola = BAD_DOUBLE_VALUE Then
                 Dim dStrike1#, dStrike2#
                 Dim dVola1#, dVola2#
@@ -6766,6 +5972,7 @@ Found:
             ElseIf arrVola(nIdxInterpolate).Vola = -1# And dLastGoodVola > 0# Then
                 arrVola(nIdxInterpolate).Vola = dLastGoodVola
             End If
+            
             If arrVola(nIdxInterpolate).Vola >= 0# Then
                 dLastGoodVola = arrVola(nIdxInterpolate).Vola
             End If
@@ -6774,12 +5981,14 @@ Found:
         FitToImpFillVolasForExpiry = -1
         GoTo Ex
     Else
-        FitToImpFillVolasForExpiry = aExp.Strike.Count
+        FitToImpFillVolasForExpiry = aSurfaceStrikeColl.Count
     End If
     
     ' search for nearest to ATM strike with vola
     If nAtmIdx >= 0 Then
+    
         If arrVola(nAtmIdx).Vola <= 0 Then
+        
             nLastGoodIdx = -1
 
             ' search forth
@@ -6802,9 +6011,11 @@ Found:
 
             nAtmIdx = nLastGoodIdx
         End If
+        
     End If
 
     If nAtmIdx > 0 Then
+    
         nLastGoodIdx = nAtmIdx
         ' go forth from nearest to ATM strike with vola
         For nIdx = nAtmIdx + 1 To nLastIdx
@@ -6829,8 +6040,10 @@ Found:
             End If
         Next
 
-        FitToImpFillVolasForExpiry = aExp.Strike.Count
+        FitToImpFillVolasForExpiry = aSurfaceStrikeColl.Count
+        
     Else
+    
         If Not bSilent Then _
             LogEvent EVENT_ERROR, m_Aux.Grp.Und.Symbol & _
                     ": Fail to fit vola to implied. No valid implied vola to fit for " _
@@ -6839,8 +6052,11 @@ Found:
         If nExactCount > 0 Then
             ReDim Preserve arrVola(1 To nExactCount)
         Else
-            Erase arrVola
+            If (nExactCount = 0) Then
+                nExactCount = aSurfaceStrikeColl.Count
+            End If
         End If
+        
         If bSomeRemoved Then
             If nExactCount = 0 Then FitToImpFillVolasForExpiry = -1
         Else
@@ -6849,6 +6065,7 @@ Found:
         
     End If
 Ex:
+    Set aSurfaceStrikeColl = Nothing
 End Function
 
 
@@ -6919,7 +6136,9 @@ Private Sub mnuCtxVolaFitToImpAll_Click()
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     Dim nCountTmp As Long
     
+    Dim aSurfaceColl As Collection
     
+    'Prepare expiry collection
     If m_bInProc And m_bLastQuoteReqNow Or m_Aux.Grp.ID = 0 _
         Or m_enMenuGrid <> GT_QUOTES_VOLA _
             And m_enMenuGrid <> GT_QUOTES_OPTIONS _
@@ -6931,19 +6150,33 @@ Private Sub mnuCtxVolaFitToImpAll_Click()
         Set aExpColl = m_Aux.Grp.ExpAll
     End If
     
+    '''''''''''''''''''''''''''''''''''''''''''''
+    'Generate surface coll for all expiry's     '
+    '''''''''''''''''''''''''''''''''''''''''''''
+    Set aSurfaceColl = GetSurfaceCollByExpiryColl(aExpColl)
+    
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ' Process fit2impl for all expiry's in expiry collection
+    Dim vtSurfaceID As Variant
+    Dim lSurfaceID As Long
+    For Each vtSurfaceID In aSurfaceColl
+    
     If aExpColl.Count > 0 Then
         Screen.MousePointer = vbHourglass
 
+            ReDim arrVola(0 To 0)
+            lSurfaceID = CLng(vtSurfaceID)
+            
         nExactCount = 0
         If m_Aux.Grp.IsStockOrIndex Then
             For Each aExp In aExpColl
-                nCountTmp = FitToImpFillVolasForExpiry(aExp, arrVola, False)
+                    nCountTmp = FitToImpFillVolasForExpiry(aExp, arrVola, False, lSurfaceID)
                 nExactCount = nExactCount + IIf(nCountTmp = -1, 0, nCountTmp)
             Next
         Else
             For Each aFut In m_Aux.Grp.Und.Fut
                 For Each aExp In aFut.Exp
-                    nCountTmp = FitToImpFillVolasForExpiry(aExp, arrVola, False)
+                        nCountTmp = FitToImpFillVolasForExpiry(aExp, arrVola, False, lSurfaceID)
                     nExactCount = nExactCount + IIf(nCountTmp = -1, 0, nCountTmp)
                 Next
             Next
@@ -6951,37 +6184,37 @@ Private Sub mnuCtxVolaFitToImpAll_Click()
 
         If nExactCount > 0 Then
             Err.Clear
-         
            If FitToImpiledInterpolatedMissing(arrVola) > 0 Then
-            m_Aux.Grp.Und.VolaSrv.SetExpiryAndStrikeVolaAll arrVola
+                    m_Aux.Grp.Und.VolaSrv.SetExpiryAndStrikeVolaAll arrVola, lSurfaceID
             If Err.Number = 0 Then
-
                 m_bVolaChangedNow = True
                 g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                 m_bVolaChangedNow = False
+                    Else
+                        LogEvent EVENT_ERROR, m_Aux.Grp.Und.Symbol & ": Fail to fit vola to implied. " & Err.Description
+                    End If
+                End If
+            End If
+            
+            Screen.MousePointer = vbDefault
+        End If
+        
+    Next
 
                 If g_Params.UseTheoVolatility Then
-                    CalculateUnderlyingOptions True
-                    m_AuxOut.UnderlyingUpdateTotals
-                    UpdateTotals
-                Else
                     OptionsUpdateVola
+                    CalculateUnderlyingOptions True, , , True
+                    m_AuxOut.UnderlyingUpdateTotals
+                    m_AuxOut.VolaUpdateValues
+                    UpdateTotals
                 End If
 
                 m_AuxOut.FuturesUpdate False, True, True
                 m_AuxOut.OptionsUpdate False, True, True
-            Else
-                LogEvent EVENT_ERROR, m_Aux.Grp.Und.Symbol & ": Fail to fit vola to implied. " & Err.Description
-            End If
-            
-            m_AuxOut.VolaUpdateValues
-           End If
-        End If
-        Screen.MousePointer = vbDefault
-    End If
     
     Set aExpColl = Nothing
     Erase arrVola
+    Set aSurfaceColl = Nothing
 End Sub
 
 Private Sub mnuCtxVolaFitToImpCur_Click()
@@ -6998,9 +6231,16 @@ Private Sub mnuCtxVolaFitToImpCur_Click()
     Dim arrVola() As VolatilitySourcesLib.ExpiryStrikeVolaData, nExactCount&, dVola#
     Dim aExpColl As EtsMmQuotesLib.MmQvExpColl
         
+    Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    Dim aFutRoot As EtsMmQuotesLib.MmQvFutRootAtom
+    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
+    Dim aSurfaceStrikeColl As EtsMmQuotesLib.MmQvStrikeColl
+    Dim aSurfaceColl As Collection
+        
     If m_bInProc And m_bLastQuoteReqNow Or m_Aux.Grp.ID = 0 _
         Or m_enMenuGrid <> GT_QUOTES_VOLA And m_enMenuGrid <> GT_QUOTES_OPTIONS Then Exit Sub
     
+    'Get expiry and expiry collection
     If m_Aux.Grp.IsStockOrIndex Then
         Set aExpColl = m_Aux.Grp.Und.Exp
         Set aExp = Nothing
@@ -7029,9 +6269,7 @@ Private Sub mnuCtxVolaFitToImpCur_Click()
         End If
     End If
     
-        
-    
-    If aExp Is Nothing Then Exit Sub
+    If aExp Is Nothing Then GoTo Ex
     
     nMask(enOtPut) = GetGreeksMask(enOtPut)
     nMask(enOtCall) = GetGreeksMask(enOtCall)
@@ -7039,47 +6277,79 @@ Private Sub mnuCtxVolaFitToImpCur_Click()
     Screen.MousePointer = vbHourglass
     m_Aux.GridLock(GT_QUOTES_OPTIONS).LockRedraw
     
+    '''''''''''''''''''''''''''''''''''''''''''
+    'Generate surface coll for current expiry '
+    '''''''''''''''''''''''''''''''''''''''''''
+    Set aSurfaceColl = GetSurfaceCollByExpiry(aExp)
     
-    nExactCount = FitToImpFillVolasForExpiry(aExp, arrVola, True)
-    If nExactCount = -2 Then GoTo Ex 'No one bid for current Expiry is exists
-    If nExactCount = -1 Then 'No one point is added to surface
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'Process FIt2Impl for all surfaces in current expiry '
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    
+    Dim vtSurfaceID As Variant
+    Dim lSurfaceID As Long
+    For Each vtSurfaceID In aSurfaceColl
+    
+        ReDim arrVola(0 To 0)
+        ReDim arrVolaTmp(0 To 0)
+        lSurfaceID = CLng(vtSurfaceID)
+        
+        nExactCount = FitToImpFillVolasForExpiry(aExp, arrVola, True, lSurfaceID)
+        
+        ''''''''''''''''''''''''''''''''''''''''''''''''''
+        ' Generate strike collection for current surface '
+        ''''''''''''''''''''''''''''''''''''''''''''''''''
+        Set aSurfaceStrikeColl = GetStrikeCollBySurface(lSurfaceID, aExp.Strike)
+        
+        If nExactCount = -2 Then GoTo NXT 'No one bid for current Expiry is exists
+        
+        If nExactCount = -1 Then 'No one point is added to surface
+            
+            'in this case we need interpolate value from other expiry's
+            
+            'fit for all expiry's in temp for future use
         For Each aExpInt In aExpColl
-          FitToImpFillVolasForExpiry aExpInt, arrVolaTmp, True
+                FitToImpFillVolasForExpiry aExpInt, arrVolaTmp, True, lSurfaceID
         Next
+            
           FitToImpiledInterpolatedMissing arrVolaTmp
 
         Dim posCount As Long: posCount = 1
-        ReDim arrVola(1 To aExp.Strike.Count)
-        For Each aStr In aExp.Strike
+            ReDim arrVola(1 To aSurfaceStrikeColl.Count)
+            
+            For Each aStr In aSurfaceStrikeColl
             arrVola(posCount).Expiry = aExp.ExpiryOV
             arrVola(posCount).Strike = aStr.Strike
-            arrVola(posCount).Vola = InterpolateVola(arrVolaTmp, arrVola(posCount))  'GetVola(arrVolaTmp, aExp.ExpiryMonth, aStr.Strike) * 100#
+                arrVola(posCount).Vola = InterpolateVola(arrVolaTmp, arrVola(posCount))
             If arrVola(posCount).Vola > 0# Then posCount = posCount + 1
         Next
         nExactCount = posCount - 1
+            
     End If
+    
     If nExactCount > 0 Then
             
         Err.Clear
         
-        m_Aux.Grp.Und.VolaSrv.SetExpiryAndStrikeVolaAll arrVola
+            'save volatilities in vme and db then publish changed
+            m_Aux.Grp.Und.VolaSrv.SetExpiryAndStrikeVolaAll arrVola, lSurfaceID
+            
         If Err.Number = 0 Then
             
             m_bVolaChangedNow = True
             g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
             m_bVolaChangedNow = False
             
-            For Each aStr In aExp.Strike
+                'recalc all options
+                For Each aStr In aSurfaceStrikeColl
                 Dim bAssignedFromPair As Boolean:  bAssignedFromPair = False
-                For Each aPair In aStr.OptPair
-                    dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
                     
+                For Each aPair In aStr.OptPair
                     For nOptType = enOtPut To enOtCall
                         Set aOpt = aPair.Opt(nOptType)
                         If aOpt.ID <> 0 Then
-                            aOpt.Vola = dVola
+                                aOpt.Vola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike, lSurfaceID)
                             bAssignedFromPair = True
-                            
                             For Each aQuote In aOpt.Quote
                                 If g_Params.UseTheoVolatility Or aQuote.CalcGreeksIVType = enMmQvCalcGreeksIVTheo Then
                                     CalcOptionGreeks aOpt, aQuote, aExp, nMask(nOptType), GetIvMask(nOptType)
@@ -7089,37 +6359,46 @@ Private Sub mnuCtxVolaFitToImpCur_Click()
                         Set aOpt = Nothing
                     Next
                 Next
-                If Not bAssignedFromPair Then _
+                    
+                    If Not bAssignedFromPair Then
                     aOpt.Vola = GetVola(arrVolaTmp, aOpt.Expiry, aOpt.Strike)
+                    End If
+                Next
                 
-            Next
         Else
             LogEvent EVENT_ERROR, m_Aux.Grp.Und.Symbol & ": Fail to fit vola to implied. " & Err.Description
         End If
         
-        m_AuxOut.VolaUpdateValues
     Else
        LogEvent EVENT_ERROR, m_Aux.Grp.Und.Symbol & _
                     ": Fail to fit vola to implied. No valid implied vola to fit for " _
                     & Format$(aExp.Expiry, "MMMYY") & " expiry."
     End If
     
+NXT:
+        Set aSurfaceStrikeColl = Nothing
+    Next
+    
+    'update and recalc
     If g_Params.UseTheoVolatility Then
-        CalculateUnderlyingOptions False
+        'CalculateUnderlyingOptions False
         m_AuxOut.UnderlyingUpdateTotals
+        m_AuxOut.VolaUpdateValues
         UpdateTotals
     End If
     
 Ex:
     Set aExp = Nothing
     Set aExpColl = Nothing
+    Set aSurfaceStrikeColl = Nothing
+    Set aSurfaceColl = Nothing
+    Set aFutRoot = Nothing
+    Set aRoot = Nothing
     
     m_Aux.GridLock(GT_QUOTES_OPTIONS).UnlockRedraw
     Erase arrVola
     Screen.MousePointer = vbDefault
 End Sub
-
-
 
 Private Sub mnuCtxVolaFlatAllByCur_Click()
     On Error Resume Next
@@ -7130,11 +6409,15 @@ Private Sub mnuCtxVolaFlatAllByCur_Click()
     
     Dim aExp As EtsMmQuotesLib.MmQvExpAtom, dVola#, nColIdx&, bUpdateOptions As Boolean
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
+    Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    Dim lSurfaceID As Long
     
     If m_bInProc And m_bLastQuoteReqNow Or m_Aux.Grp.ID = 0 _
         Or m_enMenuGrid <> GT_QUOTES_VOLA And m_enMenuGrid <> GT_QUOTES_OPTIONS Then Exit Sub
     
+    'find expiry date atom
     If m_enMenuGrid = GT_QUOTES_VOLA Then
+    
         If m_Aux.Grp.IsStockOrIndex Then
             If m_nMenuGridCol < 1 Or m_nMenuGridCol > m_Aux.Grp.Und.Exp.Count Then Exit Sub
         Else
@@ -7142,7 +6425,6 @@ Private Sub mnuCtxVolaFlatAllByCur_Click()
         End If
         
         Set aExp = fgVol.ColData(m_nMenuGridCol)
-        
     Else 'If m_enMenuGrid = GT_QUOTES_OPTIONS Then
         
         nColIdx = fgOpt.ColKey(m_nMenuGridCol)
@@ -7155,12 +6437,15 @@ Private Sub mnuCtxVolaFlatAllByCur_Click()
 
     Screen.MousePointer = vbHourglass
     
-    If True Then 'Not aExp.AtmStrike Is Nothing Then
+    'Process fit2impl
+    If True Then
         If m_Aux.Grp.IsStockOrIndex Then
-            dVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            For Each aRoot In aExp.Roots
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aRoot.ID)
+                dVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, False, lSurfaceID)
             If dVola > 0# Then
                 Err.Clear
-                m_Aux.Grp.Und.VolaSrv.SetExpiryVolaAll dVola
+                    m_Aux.Grp.Und.VolaSrv.SetExpiryVolaAll dVola, lSurfaceID
                 If Err.Number = 0 Then
                     bUpdateOptions = True
                     
@@ -7173,16 +6458,16 @@ Private Sub mnuCtxVolaFlatAllByCur_Click()
             Else
                 bUpdateOptions = True
             End If
-
-        Else
+            Next
+        Else 'Process future options
             For Each aFut In m_Aux.Grp.Und.Fut
-                dVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFut.FutRootID)
+                dVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, lSurfaceID)
                 If dVola > 0# Then
                     Err.Clear
-                    m_Aux.Grp.Und.VolaSrv.SetExpiryVolaAll dVola
+                    m_Aux.Grp.Und.VolaSrv.SetExpiryVolaAll dVola, lSurfaceID
                     If Err.Number = 0 Then
                         bUpdateOptions = True
-                        
                         m_bVolaChangedNow = True
                         g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                         m_bVolaChangedNow = False
@@ -7196,22 +6481,24 @@ Private Sub mnuCtxVolaFlatAllByCur_Click()
         End If
         
         Set aExp = Nothing
-        
+        ' Update view and recalculate data
         If bUpdateOptions Then
+        
             If g_Params.UseTheoVolatility Then
+                m_Aux.Grp.Und.SetDirty
                 m_bInProc = True
                 CalculateUnderlyingOptions True
                 m_bInProc = False
-                
                 m_AuxOut.UnderlyingUpdateTotals
                 UpdateTotals
             Else
                 OptionsUpdateVola
             End If
+            
             m_AuxOut.FuturesUpdate False, True, True
             m_AuxOut.OptionsUpdate False, True, True
-            
             m_AuxOut.VolaUpdateValues
+            
         End If
     End If
     
@@ -7229,18 +6516,21 @@ Private Sub mnuCtxVolaFlatCur_Click()
     Dim aOpt As EtsMmQuotesLib.MmQvOptAtom, aQuote As EtsMmQuotesLib.MmQvQuoteAtom, nMask(enOtPut To enOtCall) As Long, nRow&
     Dim aExp As EtsMmQuotesLib.MmQvExpAtom, dVola#, nColIdx&, nFutureID&, aPair As EtsMmQuotesLib.MmQvOptPairAtom
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom, aExpTemp As EtsMmQuotesLib.MmQvExpAtom
+    Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    
     Dim bUpdateOptions As Boolean
     
     If m_bInProc And m_bLastQuoteReqNow Or m_Aux.Grp.ID = 0 _
         Or m_enMenuGrid <> GT_QUOTES_VOLA And m_enMenuGrid <> GT_QUOTES_OPTIONS Then Exit Sub
     
+    'find expiry date
     If m_enMenuGrid = GT_QUOTES_VOLA Then
+    
         If m_Aux.Grp.IsStockOrIndex Then
             If m_nMenuGridCol < 1 Or m_nMenuGridCol > m_Aux.Grp.Und.Exp.Count Then Exit Sub
         Else
             If m_nMenuGridCol < 1 Or m_nMenuGridCol > m_Aux.Grp.ExpAll.Count Then Exit Sub
         End If
-        
         
         If Not m_Aux.Grp.IsStockOrIndex Then
             For Each aFut In m_Aux.Grp.Und.Fut
@@ -7255,46 +6545,70 @@ Private Sub mnuCtxVolaFlatCur_Click()
             Set aExp = fgVol.ColData(m_nMenuGridCol)
         End If
         
-        
     Else 'If m_enMenuGrid = GT_QUOTES_OPTIONS Then
         
         nColIdx = fgOpt.ColKey(m_nMenuGridCol)
         If nColIdx >= QOC_C_SYMBOL And nColIdx <= QOC_LAST_COLUMN Then
             Set aExp = QV.OptsRowData(m_nMenuGridRow).Exp
         End If
+        
     End If
     
     If aExp Is Nothing Then Exit Sub
+    Dim lSurfaceID As Long
+    'Process fit2impl
+    If True Then
     
-    If True Then 'Not aExp.AtmStrike Is Nothing Then
         Screen.MousePointer = vbHourglass
         m_Aux.GridLock(GT_QUOTES_OPTIONS).LockRedraw
         
         nMask(enOtPut) = GetGreeksMask(enOtPut)
         nMask(enOtCall) = GetGreeksMask(enOtCall)
                 
+        'Update volatilities in VME
         If m_Aux.Grp.IsStockOrIndex Then
-            dVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            For Each aRoot In aExp.Roots
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aRoot.ID)
+                dVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, False, lSurfaceID)
+                If dVola > 0# Then
+                
+                    Err.Clear
+                    m_Aux.Grp.Und.VolaSrv.SetExpiryVola aExp.ExpiryOV, dVola, lSurfaceID
+            
+                    If Err.Number = 0 Then
+                        bUpdateOptions = True
+                        m_bVolaChangedNow = True
+                        g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
+                        m_bVolaChangedNow = False
+                    Else
+                        LogEvent EVENT_ERROR, m_Aux.Grp.Und.Symbol & ": Fail to flat vola. " & Err.Description
+                    End If
         Else
+                    bUpdateOptions = True
+                End If
+            Next
+        Else ' FutureOptions fit2Impl
+            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(0)
             nFutureID = QV.OptsRowData(m_nMenuGridRow).Opt(IIf(nColIdx < QOC_P_SYMBOL, enOtCall, enOtPut)).RootID
             If nFutureID = 0 Then
                 dVola = fgVol.TextMatrix(m_nMenuGridRow, m_nMenuGridCol) / 100#
             Else
                 For Each aFut In m_Aux.Grp.Und.Fut
                     If aFut.ID = nFutureID Then
-                        dVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                        lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFut.FutRootID)
+                        dVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, lSurfaceID)
                         Exit For
                     End If
                 Next
             End If
-        End If
 
         If dVola > 0# Then
+            
             Err.Clear
-            m_Aux.Grp.Und.VolaSrv.SetExpiryVola aExp.ExpiryOV, dVola
+                m_Aux.Grp.Und.VolaSrv.SetExpiryVola aExp.ExpiryOV, dVola, lSurfaceID
+            
             If Err.Number = 0 Then
                 bUpdateOptions = True
-            
                 m_bVolaChangedNow = True
                 g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                 m_bVolaChangedNow = False
@@ -7304,18 +6618,29 @@ Private Sub mnuCtxVolaFlatCur_Click()
         Else
             bUpdateOptions = True
         End If
+        End If
                 
+        'update options vola in current expiry period
         If bUpdateOptions Then
             For Each aStr In aExp.Strike
                 
                 For Each aPair In aStr.OptPair
-                    dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
-                    
+                    If (m_Aux.Grp.IsStockOrIndex) Then
+                        lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aPair.RootID)
+                    Else
+                        Set aFut = m_Aux.Grp.Und.Fut(aPair.RootID)
+                        If (Not aFut Is Nothing) Then
+                            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFut.FutRootID)
+                        Else
+                            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(0)
+                        End If
+                    End If
+                    dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike, lSurfaceID)
                     For nOptType = enOtPut To enOtCall
                         Set aOpt = aPair.Opt(nOptType)
+                        If (Not aOpt Is Nothing) Then
                         If aOpt.ID <> 0 Then
                             aOpt.Vola = dVola
-                                
                             For Each aQuote In aOpt.Quote
                                 If g_Params.UseTheoVolatility Or aQuote.CalcGreeksIVType = enMmQvCalcGreeksIVTheo Then
                                     CalcOptionGreeks aOpt, aQuote, aExp, nMask(nOptType), GetIvMask(nOptType)
@@ -7323,11 +6648,13 @@ Private Sub mnuCtxVolaFlatCur_Click()
                             Next
                         End If
                         Set aOpt = Nothing
+                        End If
                     Next
                 Next
             Next
         End If
     
+        'Upadte view and recalc data
         If g_Params.UseTheoVolatility Then
             CalculateUnderlyingOptions False
             m_AuxOut.UnderlyingUpdateTotals
@@ -7350,37 +6677,32 @@ Private Sub mnuCtxVolaFlatAll_Click()
         g_PerformanceLog.LogMmInfo enLogUserAction, "Popup menu. ""RightClick -> Flat Vola -> All Expiries by Their ATM"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
     
     Dim nCount&, aExp As EtsMmQuotesLib.MmQvExpAtom, dVola#
-    Dim arrVola() As VolatilitySourcesLib.ExpiryVolaData, nExactCount&
     Dim aExpColl As EtsMmQuotesLib.MmQvExpColl, bUpdateOptions As Boolean
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
+    Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    Dim lSurfaceID As Long
 
     If m_bInProc And m_bLastQuoteReqNow Or m_Aux.Grp.ID = 0 _
-        Or m_enMenuGrid <> GT_QUOTES_VOLA And m_enMenuGrid <> GT_QUOTES_OPTIONS And m_enMenuGrid <> GT_QUOTES_UNDERLYING Then Exit Sub
+        Or m_enMenuGrid <> GT_QUOTES_VOLA And m_enMenuGrid <> GT_QUOTES_OPTIONS And m_enMenuGrid <> GT_QUOTES_UNDERLYING _
+        And (Not m_Aux.IsSimulatedFlat) Then Exit Sub
 
     If m_Aux.Grp.IsStockOrIndex Then
+    
       Set aExpColl = m_Aux.Grp.Und.Exp
-      nCount = aExpColl.Count
-      If nCount > 0 Then
+
         Screen.MousePointer = vbHourglass
 
-        nExactCount = 0
-        ReDim arrVola(1 To nCount)
         For Each aExp In aExpColl
-            dVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+            For Each aRoot In aExp.Roots
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aRoot.ID)
+                dVola = m_Aux.Grp.Und.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, False, lSurfaceID)
 
             If dVola > 0# Then
-                nExactCount = nExactCount + 1
-                arrVola(nExactCount).Expiry = aExp.ExpiryOV
-                arrVola(nExactCount).Vola = dVola * 100#
-            End If
-        Next
-        If nExactCount > 0 Then
-            If nExactCount <> nCount Then ReDim Preserve arrVola(1 To nExactCount)
+                    Err.Clear
+                    m_Aux.Grp.Und.VolaSrv.SetExpiryVola aExp.ExpiryOV, dVola, lSurfaceID
 
-            m_Aux.Grp.Und.VolaSrv.SetExpiryVolaByExpiry arrVola
             If Err.Number = 0 Then
                 bUpdateOptions = True
-
                 m_bVolaChangedNow = True
                 g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                 m_bVolaChangedNow = False
@@ -7390,49 +6712,23 @@ Private Sub mnuCtxVolaFlatAll_Click()
         Else
             bUpdateOptions = True
         End If
-        
-        If bUpdateOptions Then
-            If g_Params.UseTheoVolatility Then
-                CalculateUnderlyingOptions True
-                m_AuxOut.UnderlyingUpdateTotals
-                UpdateTotals
-            Else
-                OptionsUpdateVola
-            End If
-    
-            m_AuxOut.FuturesUpdate False, True, True
-            m_AuxOut.OptionsUpdate False, True, True
-            m_AuxOut.VolaUpdateValues
-        End If
-        Screen.MousePointer = vbDefault
-      End If
-        
-    
+            Next
+        Next
     Else
         For Each aFut In m_Aux.Grp.Und.Fut
           Set aExpColl = aFut.Exp
-          nCount = aExpColl.Count
-          If nCount > 0 Then
             Screen.MousePointer = vbHourglass
 
-            nExactCount = 0
-            ReDim arrVola(1 To nCount)
             For Each aExp In aExpColl
-                dVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFut.FutRootID)
+                dVola = aFut.atmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, lSurfaceID)
 
                 If dVola > 0# Then
-                    nExactCount = nExactCount + 1
-                    arrVola(nExactCount).Expiry = aExp.ExpiryOV
-                    arrVola(nExactCount).Vola = dVola * 100#
-                End If
-            Next
-            If nExactCount > 0 Then
-                If nExactCount <> nCount Then ReDim Preserve arrVola(1 To nExactCount)
+                    Err.Clear
+                    m_Aux.Grp.Und.VolaSrv.SetExpiryVola aExp.ExpiryOV, dVola, lSurfaceID
 
-                m_Aux.Grp.Und.VolaSrv.SetExpiryVolaByExpiry arrVola 'fokiny
                 If Err.Number = 0 Then
                     bUpdateOptions = True
-
                     m_bVolaChangedNow = True
                     g_Params.FireInternalVolatilityChanged m_Aux.Grp.Und.Symbol
                     m_bVolaChangedNow = False
@@ -7442,30 +6738,149 @@ Private Sub mnuCtxVolaFlatAll_Click()
             Else
                 bUpdateOptions = True
             End If
+            Next
+        Next
+    End If
 
             If bUpdateOptions Then
                 If g_Params.UseTheoVolatility Then
+                    m_Aux.Grp.Und.SetDirty
                     CalculateUnderlyingOptions True
                     m_AuxOut.UnderlyingUpdateTotals
                     UpdateTotals
                 Else
                     OptionsUpdateVola
                 End If
-
                 m_AuxOut.FuturesUpdate False, True, True
                 m_AuxOut.OptionsUpdate False, True, True
                 m_AuxOut.VolaUpdateValues
             End If
             Screen.MousePointer = vbDefault
+    
+    Set aExpColl = Nothing
+End Sub
+
+Private Function GetSurfaceCollByExpiry(ByRef pExp As EtsMmQuotesLib.MmQvExpAtom) As Collection
+On Error Resume Next
+    'Generate surface coll for current expiry
+    Dim aSurfaceColl As Collection
+    Set aSurfaceColl = New Collection
+    Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    Dim aFutRoot As EtsMmQuotesLib.MmQvFutRootAtom
+    
+    Dim lSurfaceID As Long
+    Dim vtSurfInCollID As Long
+    If (m_Aux.Grp.IsStockOrIndex) Then
+        For Each aRoot In pExp.Roots
+            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aRoot.ID)
+            On Error Resume Next
+            vtSurfInCollID = aSurfaceColl(Str(lSurfaceID))
+            If (CLng(vtSurfInCollID) = 0) Then
+                aSurfaceColl.Add lSurfaceID, Str(lSurfaceID)
+            End If
+            vtSurfInCollID = 0
+        Next
+    Else
+        For Each aFutRoot In pExp.FutureRoots
+            lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFutRoot.ID)
+            On Error Resume Next
+            vtSurfInCollID = aSurfaceColl(Str(lSurfaceID))
+            If (CLng(vtSurfInCollID) = 0) Then
+                aSurfaceColl.Add lSurfaceID, Str(lSurfaceID)
+            End If
+            vtSurfInCollID = 0
+        Next
           End If
 
+    Set GetSurfaceCollByExpiry = aSurfaceColl
+End Function
+
+Private Function GetSurfaceCollByExpiryColl(ByRef pExpColl As EtsMmQuotesLib.MmQvExpColl) As Collection
+On Error Resume Next
+    'Generate surface coll by current expiry collection
+    Dim aSurfaceColl As Collection
+    Set aSurfaceColl = New Collection
+    Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
+    Dim aFutRoot As EtsMmQuotesLib.MmQvFutRootAtom
+    Dim aExp As EtsMmQuotesLib.MmQvExpAtom
+    ''''''''''''''''''''''''''''''''''''''''''''''''''
+    Dim lSurfaceID As Long
+    Dim vtSurfInCollID As Long
+    ''''''''''''''''''''''''''''''''''''''''''''''''''
+    'Generate surface coll for all expiry's
+    If (m_Aux.Grp.IsStockOrIndex) Then
+        For Each aExp In pExpColl
+            For Each aRoot In aExp.Roots
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aRoot.ID)
+                On Error Resume Next
+                vtSurfInCollID = aSurfaceColl(Str$(lSurfaceID))
+                If (CLng(vtSurfInCollID) = 0) Then
+                    aSurfaceColl.Add lSurfaceID, Str(lSurfaceID)
+                End If
+                vtSurfInCollID = 0
+            Next
+        Next
+    Else
+        For Each aExp In pExpColl
+            For Each aFutRoot In aExp.FutureRoots
+                lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFutRoot.ID)
+                On Error Resume Next
+                vtSurfInCollID = aSurfaceColl(Str(lSurfaceID))
+                If (CLng(vtSurfInCollID) = 0) Then
+                    aSurfaceColl.Add lSurfaceID, Str(lSurfaceID)
+                End If
+                vtSurfInCollID = 0
+            Next
         Next
     End If
         
+    Set GetSurfaceCollByExpiryColl = aSurfaceColl
+End Function
     
-    Set aExpColl = Nothing
-    Erase arrVola
-End Sub
+Private Function GetStrikeCollBySurface(ByVal lSurfaceID As Long, ByRef pStrike As EtsMmQuotesLib.MmQvStrikeColl) As EtsMmQuotesLib.MmQvStrikeColl
+On Error Resume Next
+    Dim aStrikes As EtsMmQuotesLib.MmQvStrikeColl
+    Set aStrikes = New EtsMmQuotesLib.MmQvStrikeColl
+    Dim aStr As EtsMmQuotesLib.MmQvStrikeAtom
+    Dim aPair As EtsMmQuotesLib.MmQvOptPairAtom
+    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
+    Dim aNewStrike As EtsMmQuotesLib.MmQvStrikeAtom
+    Dim lRootID As Long
+    
+    If (aStrikes Is Nothing) Then
+        Set GetStrikeCollBySurface = Nothing
+        Exit Function
+    End If
+    
+    For Each aStr In pStrike
+        For Each aPair In aStr.OptPair
+            lRootID = 0
+            If (m_Aux.Grp.IsStockOrIndex) Then
+                lRootID = aPair.RootID
+            Else
+                If (Not m_Aux.Grp.Und.Fut Is Nothing) Then
+                    Set aFut = m_Aux.Grp.Und.Fut(aPair.RootID)
+                    If (Not aFut Is Nothing) Then
+                        lRootID = aFut.FutRootID
+                        Set aFut = Nothing
+                    End If
+                End If
+            End If
+            If (lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(lRootID)) Then
+                If (aStrikes(aStr.Strike) Is Nothing) Then
+                    Set aNewStrike = aStrikes.Add(aStr.Strike)
+                    If (Not aNewStrike Is Nothing) Then
+                        aNewStrike.OptPair.Add aPair.RootID, Str(aPair.RootID), aPair
+                    End If
+                End If
+            End If
+        Next
+    Next
+    
+    Set GetStrikeCollBySurface = aStrikes
+    Set aPair = Nothing
+    Set aStr = Nothing
+End Function
 
 Private Sub OptionsUpdateVola()
     On Error Resume Next
@@ -7473,19 +6888,26 @@ Private Sub OptionsUpdateVola()
     Dim aPair As EtsMmQuotesLib.MmQvOptPairAtom, dVola#
     Dim aExpColl As EtsMmQuotesLib.MmQvExpColl
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
+    Dim lSurfaceID As Long
+    Dim lRootID As Long
+    Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom
 
     If m_Aux.Grp.IsStockOrIndex Then
         Set aExpColl = m_Aux.Grp.Und.Exp
         For Each aExp In aExpColl
             For Each aStr In aExp.Strike
                 For Each aPair In aStr.OptPair
-                    dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
                     
                     Set aOpt = aPair.Opt(enOtCall)
+                    
+                    lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aPair.RootID)
+                    dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike, lSurfaceID)
+                    
                     If aOpt.ID <> 0 Then aOpt.Vola = dVola
                     
                     Set aOpt = aPair.Opt(enOtPut)
                     If aOpt.ID <> 0 Then aOpt.Vola = dVola
+                    
                 Next
             Next
         Next
@@ -7496,7 +6918,9 @@ Private Sub OptionsUpdateVola()
             For Each aExp In aExpColl
                 For Each aStr In aExp.Strike
                     For Each aPair In aStr.OptPair
-                        dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike)
+                        
+                        lSurfaceID = m_Aux.Grp.Und.VolaSrv.GetSurfaceByRoot(aFut.FutRootID)
+                        dVola = m_Aux.Grp.Und.VolaSrv.OptionVola(aExp.ExpiryOV, aStr.Strike, lSurfaceID)
                         
                         Set aOpt = aPair.Opt(enOtCall)
                         If aOpt.ID <> 0 Then aOpt.Vola = dVola
@@ -7737,6 +7161,8 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                         aOpt.RootID = aCurOpt.RootID
                         aOpt.Symbol = aCurOpt.Symbol
                         aOpt.Expiry = aCurOpt.Expiry
+                        aOpt.ExpiryOV = aCurOpt.ExpiryOV
+                        aOpt.TradingClose = aCurOpt.TradingClose
                         aOpt.Strike = aCurOpt.Strike
                         
                         If nColIdx = QOC_C_ASK Or nColIdx = QOC_P_ASK Then
@@ -8190,6 +7616,11 @@ Private Sub tmrRealTime_Timer()
         If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "tmrRealTime_Timer: Risks are not in realtime mode", m_frmOwner.GetCaption
     End If
+    
+    If m_Aux.bFlatVolaToATM Then
+        m_Aux.bFlatVolaToATM = False
+        mnuCtxVolaFlatAll_Click
+    End If
 End Sub
 
 Private Sub tmrShow_Timer()
@@ -8324,6 +7755,13 @@ Private Sub tmrShow_Timer()
     UserControl_Resize
     dtCalculationDate.Value = Now
     
+'    If (g_Params.QuoteDirectlyToRealtime And Not bInRefresh) Then
+'        Do While (Not mnuCtxRealTime.Enabled)
+'            Sleep 1
+'            DoEvents
+'        Loop
+'        StartRealTime
+'    End If
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.FinishLogMmOperation nOperation, OPER_LOADDATA, m_frmOwner.GetCaption, QV.UndQuotesCount, QV.OptQuotesCount, QV.FutQuotesCount
@@ -8338,7 +7776,7 @@ pbProgress.Value = 0
     
 If m_Aux.Grp.Und.Fut.Count = 0 Then Exit Sub
     
-    fgFut.Rows = 1
+    fgFut.rows = 1
         For Each aFut In m_Aux.Grp.Und.Fut
             For Each aExch In aFut.FutExch
                 Set aRowData = New MmQvRowData
@@ -8349,7 +7787,7 @@ If m_Aux.Grp.Und.Fut.Count = 0 Then Exit Sub
                                                
                 If Not aRowData.FutQuote Is Nothing Then
                     fgFut.AddItem ""
-                    nRow = fgFut.Rows - 1
+                    nRow = fgFut.rows - 1
     
                     fgFut.RowData(nRow) = aRowData
    
@@ -8415,7 +7853,7 @@ Private Sub ClearViewAndData()
     sSymbol = g_ContractAll(m_nNewGrpID).Symbol
     If Not m_bShutDown Then
         With fgUnd
-            .Rows = 2
+            .rows = 2
             .RowHidden(m_nUndMainRow) = False
             .RowData(m_nUndMainRow) = Empty
             .Row = m_nUndMainRow
@@ -8437,7 +7875,7 @@ Private Sub ClearViewAndData()
         With fgFut
             m_Aux.GridLock(GT_QUOTES_FUTURES).LockRedraw
             
-            .Rows = 1
+            .rows = 1
             fgFut.FlexDataSource = Nothing
             'RefreshOptsGrid
             m_Aux.FormatFutGrid
@@ -8449,7 +7887,7 @@ Private Sub ClearViewAndData()
         With fgOpt
             m_Aux.GridLock(GT_QUOTES_OPTIONS).LockRedraw
             
-            .Rows = 1
+            .rows = 1
             fgOpt.FlexDataSource = Nothing
             'RefreshOptsGrid
             m_Aux.FormatOptGrid
@@ -8462,7 +7900,7 @@ Private Sub ClearViewAndData()
             m_Aux.GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
             
             .Cols = QDC_LAST_COLUMN
-            .TextMatrix(1, QDC_TRADES) = m_Aux.TradesFilter
+            .TextMatrix(1, QDC_TRADES) = "0"
             .TextMatrix(1, QDC_OPTIONS) = "1"
             .TextMatrix(1, QDC_MODEL) = g_Params.CalcModelName(g_Params.CalcModel)
             .TextMatrix(1, QDC_STYLE) = "1"
@@ -8472,6 +7910,12 @@ Private Sub ClearViewAndData()
             .TextMatrix(1, QDC_DATE) = ""
             .TextMatrix(1, QDC_AMT) = ""
             .TextMatrix(1, QDC_RATE) = "0"
+            .TextMatrix(1, QDC_FLT_TRADER) = "0"
+            .TextMatrix(1, QDC_FLT_STRATEGY) = "0"
+            .TextMatrix(1, QDC_VOLA_IS_MANUAL) = "0"
+            .TextMatrix(1, QDC_DATECALC) = Date
+            .TextMatrix(1, QDC_VOLA_FLAT) = "0"
+            .TextMatrix(1, QDC_VOLA_SIM) = "0"
             
             .ColHidden(QDC_DATE) = True
             .ColHidden(QDC_AMT) = True
@@ -8487,8 +7931,8 @@ Private Sub ClearViewAndData()
         End With
     Else
       fgOpt.FlexDataSource = Nothing
-      fgFut.Rows = 1
-      fgUnd.Rows = 2
+      fgFut.rows = 1
+      fgUnd.rows = 2
     End If
    
     
@@ -8520,8 +7964,6 @@ Private Sub RequestLastQuotes()
         QV.UndResponses = 0
         QV.OptResponses = 0
         QV.FutResponses = 0
-        
-        m_DecExpectations = 0
         
         If m_Aux.QuoteReqsAll.Count > 0 Then
             m_bInProc = True
@@ -8656,14 +8098,13 @@ Private Sub CheckRtCount()
         If TypeOf aForm.Frm Is frmQuotesViewSingle Then
             If aForm.Frm.IsRealTime Then
                 nRtCount = nRtCount + 1
+                aForm.Frm.CheckPassiveRealtime
             End If
             Set aForm = Nothing
         End If
     Next
     g_RTQuantity = nRtCount
-    
-    Debug.Print "Count of RT Quotes windows: " & Str(nRtCount)
-    
+        
 End Sub
 
 Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNumberEnum, ByVal Description As String, ByVal ReqType As PRICEPROVIDERSLib.RequestsTypeEnum, ByVal Request As Variant)
@@ -8734,6 +8175,12 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
                 If g_RTQuantity > g_MaxRTQuantity Then
                     frmMain.StopExtraRT
                 End If
+
+                If m_Aux.bFlatVolaToATM And tmrRealTime.Enabled = False Then
+                    m_Aux.bFlatVolaToATM = False
+                    mnuCtxVolaFlatAll_Click
+                End If
+                
                 CheckRtCount
             ElseIf m_nQuoteReqDone > nRequests Then
                 If tmrPriceProviderIdle.Enabled = True Then tmrPriceProviderIdle.Enabled = False
@@ -8761,20 +8208,12 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
             ' Future options symbology has not been changed for Globex's symbols yet,
             ' so that's no need to write about it as about an error... I suppose...
             If Request.Type <> enFOP Or Request.Exchange <> "G" Then
-
-                m_DecExpectations = m_DecExpectations + 1
-                
                 If Not m_Aux.QuoteReqsAll(sKey) Is Nothing Then
                     LogEvent EVENT_WARNING, sKey & ": " & Description
                 End If
-                                                            Else
-                '    m_nQuoteReqCount = m_nQuoteReqCount - 1
-                    
             End If
             
             m_nQuoteReqDone = m_nQuoteReqDone + 1
-            
-            
             
             Set aReq = m_Aux.QuoteReqsAll(sKey)
             If Not aReq Is Nothing Then
@@ -8788,13 +8227,17 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
             bFinishedAll = (m_nQuoteReqDone = QV.QuoteReqsAll.Count)
         
             If bFinished Then
-                Debug.Print "OnError: Finished = True:  tmrQuoteCalculation.Enabled = True"
                 If tmrPriceProviderIdle.Enabled = True Then tmrPriceProviderIdle.Enabled = False
                 tmrPriceProviderIdle.Enabled = True
                 m_nVisibleRequestDone = m_nVisibleRequestDone + 1
                 pbProgress.Value = pbProgress.Max
                 imgStop.Visible = False
                 imgStopDis.Visible = True
+
+                If m_Aux.bFlatVolaToATM Then
+                    m_Aux.bFlatVolaToATM = False
+                    mnuCtxVolaFlatAll_Click
+                End If
                 tmrQuoteCalculation.Enabled = True
             ElseIf m_nQuoteReqDone > nRequests Then
                 If tmrPriceProviderIdle.Enabled = True Then tmrPriceProviderIdle.Enabled = False
@@ -8855,7 +8298,6 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
     
     QV.Quote(Params) = Results
     
-    'Debug.Print "Ask: " & Str(Results.AskPrice) & " Bid: " & Str(Results.BidPrice) & " Last: " & Str(Results.LastPrice) & " " & Params.Symbol
     sKey = Params.Symbol
     If Len(Params.Exchange) > 0 Then
         sKey = sKey & "." & Params.Exchange
@@ -8877,8 +8319,13 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         pbProgress.Value = pbProgress.Max
         imgStop.Visible = False
         imgStopDis.Visible = True
+
+        If m_Aux.bFlatVolaToATM Then
+            m_Aux.bFlatVolaToATM = False
+            mnuCtxVolaFlatAll_Click
+        End If
+        
         m_nVisibleRequestDone = m_nVisibleRequestDone + 1
-        Debug.Print "OnLastQuote: Finished = True:  tmrQuoteCalculation.Enabled = True"
         tmrQuoteCalculation.Enabled = True
         If tmrPriceProviderIdle.Enabled = True Then tmrPriceProviderIdle.Enabled = False
                    tmrPriceProviderIdle.Enabled = True
@@ -8888,6 +8335,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         If tmrPriceProviderIdle.Enabled = True Then tmrPriceProviderIdle.Enabled = False
         tmrPriceProviderIdle.Enabled = True
     End If
+    
     If bFinishedAll Then
         tmrPriceProviderIdle.Enabled = False
         m_bLastQuoteReqNow = False
@@ -8895,6 +8343,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         AdjustState
         RaiseEvent OnScreenRefresh
     End If
+    
 End Sub
 Private Sub PriceProvider_OnSubscribed(Params As PRICEPROVIDERSLib.QuoteUpdateParams)
  On Error Resume Next
@@ -8916,7 +8365,6 @@ Private Sub PriceProvider_OnSubscribed(Params As PRICEPROVIDERSLib.QuoteUpdatePa
     If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "On Subscribed: " & Params.Symbol & " - " & Params.Exchange & " - " & Params.Type & "[" & CStr(lAddition) & "]", m_frmOwner.GetCaption
     
-    Debug.Print "Subscribed " & CStr(m_nQuoteReqDone) & " From " & CStr(nRequests) & "( " & CStr(QV.QuoteReqsAll.Count) & " )"
     
     If (m_nQuoteReqDone >= nRequests) Then
         m_nFinSubStep = m_nFinSubStep + 1
@@ -8937,9 +8385,6 @@ Private Sub PriceProvider_OnSubscribed(Params As PRICEPROVIDERSLib.QuoteUpdatePa
         If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_SUBSCRIBEQUOTE, m_frmOwner.GetCaption, QV.UndResponses, QV.OptResponses, QV.FutResponses
         m_BatchPriceProvider.UnNotifiedSubscribtionQuantity True
-        
-        'If tmrPriceProviderIdle.Enabled = True Then tmrPriceProviderIdle.Enabled = False
-        'tmrPriceProviderIdle.Enabled = True
 
         pbProgress.Visible = False
         lblStatus.Visible = True
@@ -8962,6 +8407,12 @@ Private Sub PriceProvider_OnSubscribed(Params As PRICEPROVIDERSLib.QuoteUpdatePa
         If g_RTQuantity > g_MaxRTQuantity Then
             frmMain.StopExtraRT
         End If
+
+        If m_Aux.bFlatVolaToATM And tmrRealTime.Enabled = False Then
+            m_Aux.bFlatVolaToATM = False
+            mnuCtxVolaFlatAll_Click
+        End If
+
         CheckRtCount
         
      ElseIf m_nQuoteReqDone > nRequests Then
@@ -8982,7 +8433,7 @@ End Sub
 
 Private Sub PriceProvider_OnQuoteUpdate()
     On Error Resume Next
-    
+
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "OnQuoteUpdate", m_frmOwner.GetCaption
         
@@ -9040,26 +8491,24 @@ End Sub
 
 Private Sub RealTimeQuotesUpdate()
     On Error Resume Next
+    
     If Not m_Aux.RealTime Then
         If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: not in Realtime mode", m_frmOwner.GetCaption
         Exit Sub
     End If
+    
     If m_bInProc Then
         If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: InProc", m_frmOwner.GetCaption
         Exit Sub
     End If
+    
     If m_bInRealTimeCalc Then
         If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: In Realtime calc", m_frmOwner.GetCaption
         Exit Sub
     End If
-'    If m_bSubscribingNow Then
-'        If Not g_PerformanceLog Is Nothing Then _
-'            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: Subscribing now", m_frmOwner.GetCaption
-'        Exit Sub
-'    End If
 
     If m_BatchPriceProvider Is Nothing Then
         If Not g_PerformanceLog Is Nothing Then _
@@ -9071,7 +8520,6 @@ Private Sub RealTimeQuotesUpdate()
     Dim aQuote As EtsMmQuotesLib.MmQvQuoteAtom, aUnd As EtsMmQuotesLib.MmQvUndAtom
     Dim enCalcIV As EtsMmQuotesLib.MmQvIvCalcEnum, nMask&, nTime&
     Dim Params As PRICEPROVIDERSLib.QuoteUpdateParams, Results As PRICEPROVIDERSLib.QuoteUpdateInfo
-    'Dim Infos() As PRICEPROVIDERSLib.QuoteUpdateFullInfo, nLBound&, nUBound&, i&
     Dim bOptUpd As Boolean, bUndUpd As Boolean
     Dim aRoot As EtsMmQuotesLib.MmQvOptRootAtom
     Dim aSynthRoots As New EtsMmQuotesLib.MmQvOptRootColl
@@ -9117,22 +8565,24 @@ Private Sub RealTimeQuotesUpdate()
     
     If (ProcessRealTime And QV.IsMarketDataChanged) Or bForceRecalc Then
         
-        If Not g_PerformanceLog Is Nothing Then nOperation = g_PerformanceLog.BeginLogMmOperation
+        If Not g_PerformanceLog Is Nothing Then
+            nOperation = g_PerformanceLog.BeginLogMmOperation
+        End If
         
         Dim bIsCanceled As Boolean
         CalculateUnderlyingOptions True, , , , bIsCanceled
+        
         If bIsCanceled Then
             If Not g_PerformanceLog Is Nothing Then _
                 g_PerformanceLog.LogMmInfo enLogEnhDebug, "Calculation canceled by user", m_frmOwner.GetCaption
             GoTo Ex
         End If
-       bUndUpd = True
+        bUndUpd = True
       
-       DoEvents
-       If m_bShutDown Then Exit Sub
+        DoEvents
+        If m_bShutDown Then Exit Sub
         
-       If Not g_PerformanceLog Is Nothing Then nLogTime = g_PerformanceLog.CheckLogMmOperation(nOperation)
-'       m_bCalculationDateChanged = False
+        If Not g_PerformanceLog Is Nothing Then nLogTime = g_PerformanceLog.CheckLogMmOperation(nOperation)
     End If
         
     m_nLastRecalcCycle = timeGetTime - nTime
@@ -9173,8 +8623,7 @@ End Sub
 'comment this sub in production for prevent statistic output
 Private Sub UpdateStat()
     On Error Resume Next
-    Debug.Print Format$(m_nLastDataSize, "#0000") & _
-                vbTab & Format$(m_nLastRecalcCycle, "#000000") & _
+    Debug.Print Format$(m_nLastRecalcCycle, "#000000") & _
                 vbTab & Format$(m_nLastOutCycle, "#000000") & _
                 vbTab & Format$(m_nLastRecalcCycle + m_nLastOutCycle, "#000000")
 End Sub
@@ -9226,29 +8675,19 @@ Private Sub CalculateUnderlyingOptions(ByVal bRecalcAll As Boolean, Optional aSy
     End If
     
     'a_chuchev
+    dDayShift = 0
     dtCalcDate = GetNewYorkTime
-    If dtCalculationDate.Value > Now Then
-        dtToday = dtCalculationDate.Value
-        dtNow = Now
-        dtToday = DateSerial(Year(dtToday), Month(dtToday), Day(dtToday)) + TimeSerial(Hour(dtToday), Minute(dtToday), 0)
-        dtNow = DateSerial(Year(dtNow), Month(dtNow), Day(dtNow)) + TimeSerial(Hour(dtNow), Minute(dtNow), 0)
-        dDayShift = IIf(m_Aux.RealTime, 0, dtToday - dtNow)
-    Else
-        dDayShift = 0
+    If ClipSeconds(dtCalculationDate.Value) > ClipSeconds(Now) Then
+        dDayShift = IIf(m_Aux.RealTime, 0, ClipSeconds(dtCalculationDate.Value) - ClipSeconds(Now))
     End If
     dtCalcDate = dtCalcDate + dDayShift
 
-    
-    Debug.Print "[Enter] CalculateUnderlyingOptions"
-        
     m_Aux.Grp.Und.CalcAllOptions nCallMask, nPutMask, enCallCalcIV, enPutCalcIV, g_Params.CalcModel, _
                             g_Params.UseTheoVolatility, g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, _
                             bRecalcAll, aSynthRoots, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, _
-                            m_Aux.Grp.UseCustRates, nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc
-     
-    Debug.Print "[Exit] CalculateUnderlyingOptions"
-    
-    
+                            m_Aux.Grp.UseCustRates, nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc, _
+                            g_Main.CalculationParametrs
+        
     bIsCanceled = CBool(Err.Number = ERROR_CANCELLED)
     If Err.Number <> 0 Then
     
@@ -9270,41 +8709,32 @@ Private Sub CalcOptionGreeks(aOpt As EtsMmQuotesLib.MmQvOptAtom, aQuote As EtsMm
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Calculation Greeks Enter.", m_frmOwner.GetCaption
     
-    Dim aExpColl As EtsMmQuotesLib.MmQvExpColl
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom, aFutForGreeks As EtsMmQuotesLib.MmQvFutAtom
     
     Dim dtCalcDate As Date
     Dim dDayShift As Double
-    Dim sDate As String
     
+    dDayShift = 0
     dtCalcDate = GetNewYorkTime
+    
+    If ClipSeconds(CDate(dtCalculationDate.Value)) > ClipSeconds(Now) Then
+        dDayShift = IIf(m_Aux.RealTime, 0, ClipSeconds(CDate(dtCalculationDate.Value)) - ClipSeconds(Now))
+    End If
+    dtCalcDate = dtCalcDate + dDayShift
+    
     If m_Aux.Grp.IsStockOrIndex Then
-        Set aExpColl = m_Aux.Grp.Und.Exp
-        
-        sDate = fgDiv.TextMatrix(1, fgDiv.Cols - 2)
-        If Len(sDate) Then
-            dDayShift = IIf(m_Aux.RealTime, 0, (CDate(sDate) - Now))
-        Else
-            dDayShift = 0
-        End If
-        dtCalcDate = dtCalcDate + dDayShift
-            
         m_Aux.Grp.Und.CalcOptionGreeks aOpt, aQuote, aExp, m_Aux.Grp.Und.OptRoot(aOpt.RootID), nMask, enCalcIV, g_Params.CalcModel, _
                                     g_Params.UseTheoVolatility, g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, _
-                                    g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, m_Aux.Grp.UseCustRates, dtCalcDate, ManualEdit
+                                    g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, m_Aux.Grp.UseCustRates, dtCalcDate, ManualEdit, _
+                                    g_Main.CalculationParametrs
+                                    
         
 
     Else
-        
-        sDate = fgDiv.TextMatrix(1, fgDiv.Cols - 2)
-        dDayShift = 0
-        
-        If Len(sDate) Then dDayShift = IIf(m_Aux.RealTime, 0, (CDate(sDate) - Now))
-        dtCalcDate = dtCalcDate + dDayShift
-        
         m_Aux.Grp.Und.CalcFutureOptionGreeks aOpt, aQuote, aExp, nMask, enCalcIV, g_Params.CalcModel, _
                                     g_Params.UseTheoVolatility, g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, _
-                                    g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, m_Aux.Grp.UseCustRates, dtCalcDate, ManualEdit
+                                    g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, m_Aux.Grp.UseCustRates, dtCalcDate, ManualEdit, _
+                                    g_Main.CalculationParametrs
                                    
     End If
     
@@ -9312,7 +8742,6 @@ Private Sub CalcOptionGreeks(aOpt As EtsMmQuotesLib.MmQvOptAtom, aQuote As EtsMm
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Calculation Greeks Exit.", m_frmOwner.GetCaption
                             
-    'Debug.Assert Err.Number = 0 'fokiny
 End Sub
 
 Private Function GetGreeksMask(ByVal nOptType As Long) As Long
@@ -9371,6 +8800,7 @@ Private Function UnderlyingAdjustRates(ByVal bForceUpdateCustom As Boolean) As B
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     Dim aExpAll As EtsMmQuotesLib.MmQvExpAtom
     
+    
     Dim dtNow As Date
     dtNow = GetNewYorkTime
     
@@ -9396,56 +8826,36 @@ Private Function UnderlyingAdjustRates(ByVal bForceUpdateCustom As Boolean) As B
         m_Aux.Grp.Und.UseMidRates = bUseMidRates
         m_Aux.Grp.Und.UndPosForRates = dPos
         
+        
         If m_Aux.Grp.IsStockOrIndex Then
             Set aExpColl = m_Aux.Grp.Und.Exp
-            For Each aExp In aExpColl
-                If bUseMidRates Then
-                    If Not m_Aux.Grp.Und.IsHTB Then
-                        aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
-                    Else
-                        aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
-                    End If
-                Else
-                    If Not m_Aux.Grp.Und.IsHTB Then
-                        aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                    Else
-                        aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                    End If
-                End If
-                
-                If bForceUpdateCustom Or Not m_Aux.Grp.UseCustRates Then
-                    If QV.CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
-                        aExp.RateCust = aExp.Rate
-                    Else
-                        aExp.RateCust = QV.CustRates(CStr(CLng(aExp.ExpiryMonth))).Data3
-                    End If
-                End If
-            Next
-
         Else
-            For Each aExp In m_Aux.Grp.ExpAll
-                    If bUseMidRates Then
-                        If Not m_Aux.Grp.Und.IsHTB Then
-                            aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
-                        Else
-                            aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
-                        End If
-                    Else
-                        If Not m_Aux.Grp.Und.IsHTB Then
-                            aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                        Else
-                            aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
-                        End If
-                    End If
-                    
-                    If bForceUpdateCustom Or Not m_Aux.Grp.UseCustRates Then
-                        If QV.CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
-                            aExp.RateCust = aExp.Rate
-                        Else
-                            aExp.RateCust = QV.CustRates(CStr(CLng(aExp.ExpiryMonth))).Data3
-                        End If
-                    End If
-            Next
+            Set aExpColl = m_Aux.Grp.ExpAll
+        End If
+        
+        Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(m_Aux.Grp.Und.ID)
+        
+        For Each aExp In aExpColl
+            If bUseMidRates Then
+                aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
+            Else
+                aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+            End If
+            
+            If bIsHTBRatesExist Then
+                aExp.HTBRate = GetHTBRate(m_Aux.Grp.Und.ID, dtNow, aExp.ExpiryOV)
+            Else
+                aExp.HTBRate = BAD_DOUBLE_VALUE
+            End If
+            
+            If bForceUpdateCustom Or Not m_Aux.Grp.UseCustRates Then
+                If QV.CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
+                    aExp.RateCust = aExp.Rate
+                End If
+            End If
+        Next
+        
+        If m_Aux.Grp.IsStockOrIndex = False Then
             For Each aExpAll In m_Aux.Grp.ExpAll
                 For Each aFut In m_Aux.Grp.Und.Fut
                     For Each aExp In aFut.Exp
@@ -9459,6 +8869,68 @@ Private Function UnderlyingAdjustRates(ByVal bForceUpdateCustom As Boolean) As B
             Next
         End If
         
+'        If m_Aux.Grp.IsStockOrIndex Then
+'            Set aExpColl = m_Aux.Grp.Und.Exp
+'            For Each aExp In aExpColl
+'                If bUseMidRates Then
+'                    If Not m_Aux.Grp.Und.IsHTB Then
+'                        aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
+'                    Else
+'                        aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
+'                    End If
+'                Else
+'                    If Not m_Aux.Grp.Und.IsHTB Then
+'                        aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+'                    Else
+'                        aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+'                    End If
+'                End If
+'
+'                If bForceUpdateCustom Or Not m_Aux.Grp.UseCustRates Then
+'                    If QV.CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
+'                        aExp.RateCust = aExp.Rate
+'                    Else
+'                        aExp.RateCust = QV.CustRates(CStr(CLng(aExp.ExpiryMonth))).Data3
+'                    End If
+'                End If
+'            Next
+'
+'        Else
+'            For Each aExp In m_Aux.Grp.ExpAll
+'                    If bUseMidRates Then
+'                        If Not m_Aux.Grp.Und.IsHTB Then
+'                            aExp.Rate = GetNeutralRate(dtNow, aExp.ExpiryOV)
+'                        Else
+'                            aExp.Rate = GetNeutralHTBRate(dtNow, aExp.ExpiryOV)
+'                        End If
+'                    Else
+'                        If Not m_Aux.Grp.Und.IsHTB Then
+'                            aExp.Rate = IIf(dPos < 0#, GetShortRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+'                        Else
+'                            aExp.Rate = IIf(dPos < 0#, GetHTBRate(dtNow, aExp.ExpiryOV), GetLongRate(dtNow, aExp.ExpiryOV))
+'                        End If
+'                    End If
+'
+'                    If bForceUpdateCustom Or Not m_Aux.Grp.UseCustRates Then
+'                        If QV.CustRates(CStr(CLng(aExp.ExpiryMonth))) Is Nothing Then
+'                            aExp.RateCust = aExp.Rate
+'                        Else
+'                            aExp.RateCust = QV.CustRates(CStr(CLng(aExp.ExpiryMonth))).Data3
+'                        End If
+'                    End If
+'            Next
+'            For Each aExpAll In m_Aux.Grp.ExpAll
+'                For Each aFut In m_Aux.Grp.Und.Fut
+'                    For Each aExp In aFut.Exp
+'                        If aExpAll.ExpiryMonth = aExp.ExpiryMonth Then
+'                            aExp.RootNames = aExpAll.RootNames
+'                            aExp.Rate = aExpAll.Rate
+'                            aExp.RateCust = aExpAll.RateCust
+'                        End If
+'                    Next
+'                Next
+'            Next
+'        End If
         
         UnderlyingAdjustRates = True
     End If
@@ -9466,19 +8938,19 @@ End Function
 
 
 
-Private Sub AcceptTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bAddTrade As Boolean, bRecalc As Boolean)
+Private Sub AcceptTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom, bAddTrade As Boolean, bRecalc As Boolean)
     On Error Resume Next
     Dim aOpt As EtsMmQuotesLib.MmQvOptAtom, nRow&, nBS&, bUpdate As Boolean, dtExpiryMonth As Date
     Dim bRecalcOption As Boolean, aExp As EtsMmQuotesLib.MmQvExpAtom, bRatesUpdated As Boolean
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     Dim bUpdatePos As Boolean
     
-    If g_CurTraderID <> 0 And aTrd.Trader.ID <> g_CurTraderID Or m_Aux.Grp.Und.ID <> aTrd.UndID Then Exit Sub
+    If (Not aTrd.CheckByFilter(QV.TradeFilter)) Then Exit Sub
     
     bUpdate = False
     bRatesUpdated = False
     bRecalcOption = False
-    bUpdatePos = m_Aux.CheckTradeFilter(aTrd)
+    bUpdatePos = True
     
     If aTrd.ContractType = enCtIndex Or aTrd.ContractType = enCtStock Then
         bRatesUpdated = UnderlyingAdjustRates(False) And Not m_Aux.Grp.UseCustRates
@@ -9664,7 +9136,7 @@ Private Sub AcceptTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bAddTrade As Bo
     Set aOpt = Nothing
 End Sub
 
-'Private Sub UpdateTrade(aNewTrd As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub UpdateTrade(aNewTrd As EtsGeneralLib.MmTradeInfoAtom, aOldTrd As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim aOpt As EtsMmQuotesLib.MmQvOptAtom, nRow&, nNewBS&, nOldBS&, bUpdate As Boolean, dtExpiryMonth As Date
 '    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
@@ -9918,10 +9390,10 @@ End Sub
 '    Set aExp = Nothing
 '    Set aOpt = Nothing
 'End Sub
-Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, Optional bRecalc As Boolean = True)
+Private Sub AddTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom, Optional bRecalc As Boolean = True)
     AcceptTrade aTrd, True, bRecalc
 End Sub
-Private Sub DeleteTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, Optional bRecalc As Boolean = True)
+Private Sub DeleteTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom, Optional bRecalc As Boolean = True)
     AcceptTrade aTrd, False, bRecalc
 End Sub
 
@@ -10220,7 +9692,7 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
 
 End Sub
 
-'Private Sub DeleteTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub DeleteTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim aOpt As EtsMmQuotesLib.MmQvOptAtom, nRow&, nBS&, bUpdate As Boolean, dtExpiryMonth As Date
 '    Dim bRatesUpdated As Boolean, bUpdatePos As Boolean
@@ -10344,7 +9816,7 @@ End Sub
 '    Set aOpt = Nothing
 'End Sub
 
-Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
     If m_bShutDown Or m_bDataLoad Then Exit Sub
     If m_Aux.Grp.ID = 0 Then Exit Sub
@@ -10360,15 +9832,13 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
             DeleteTrade aOldTrdInfo, False
             AddTrade aNewTrdInfo, True
             
-           'UpdateTrade aNewTrdInfo, aOldTrdInfo
-
         Case enTaTradeDelete
             Debug.Assert Not aOldTrdInfo Is Nothing
             DeleteTrade aOldTrdInfo
     End Select
 End Sub
 
-Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, aTrdTo As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If m_bShutDown Or m_bDataLoad Then Exit Sub
     If m_Aux.Grp.ID = 0 Then Exit Sub
@@ -10397,7 +9867,7 @@ Private Sub UserControl_Resize()
     
     With fgUnd
         nVisRows = 0
-        nRows = .Rows - 1
+        nRows = .rows - 1
         For i = 1 To nRows
             If Not .RowHidden(i) Then nVisRows = nVisRows + 1
         Next
@@ -10453,10 +9923,10 @@ Private Sub UserControl_Resize()
             nTotalCols = nTotalCols + IIf(fgDiv.ColHidden(i), 0, 1)
         Next
         If ScaleWidth < nDivWidth Then
-            fgDiv.Height = fgDiv.RowHeight(0) + (fgDiv.Rows - 1) * fgDiv.RowHeight(1) + ScaleY(fgDiv.GridLineWidth * 2, vbPixels, vbTwips) + fgDiv.RowHeight(0)
+            fgDiv.Height = fgDiv.RowHeight(0) + (fgDiv.rows - 1) * fgDiv.RowHeight(1) + ScaleY(fgDiv.GridLineWidth * 2, vbPixels, vbTwips) + fgDiv.RowHeight(0)
              fgDiv.ScrollBars = flexScrollBarHorizontal
         Else
-            fgDiv.Height = fgDiv.RowHeight(0) + (fgDiv.Rows - 1) * fgDiv.RowHeight(1) + ScaleY(fgDiv.GridLineWidth * 2, vbPixels, vbTwips)
+            fgDiv.Height = fgDiv.RowHeight(0) + (fgDiv.rows - 1) * fgDiv.RowHeight(1) + ScaleY(fgDiv.GridLineWidth * 2, vbPixels, vbTwips)
             fgDiv.ScrollBars = flexScrollBarNone
         End If
         fgDiv.Width = ScaleWidth
@@ -10473,9 +9943,9 @@ Private Sub UserControl_Resize()
         Next
         nVolWidth = nVolWidth
         If ScaleWidth < nVolWidth Then
-            fgVol.Height = fgVol.RowHeight(0) * 2 + (fgVol.Rows - 2) * fgVol.RowHeight(2) + ScaleY(fgVol.GridLineWidth * 2, vbPixels, vbTwips) + fgVol.RowHeight(0)
+            fgVol.Height = fgVol.RowHeight(0) * 2 + (fgVol.rows - 2) * fgVol.RowHeight(2) + ScaleY(fgVol.GridLineWidth * 2, vbPixels, vbTwips) + fgVol.RowHeight(0)
         Else
-            fgVol.Height = fgVol.RowHeight(0) * 2 + (fgVol.Rows - 2) * fgVol.RowHeight(2) + ScaleY(fgVol.GridLineWidth * 2, vbPixels, vbTwips)
+            fgVol.Height = fgVol.RowHeight(0) * 2 + (fgVol.rows - 2) * fgVol.RowHeight(2) + ScaleY(fgVol.GridLineWidth * 2, vbPixels, vbTwips)
         End If
         fgVol.Width = ScaleWidth
         nHeight = nHeight + fgVol.Height + GRID_VERT_SPACE
@@ -10568,7 +10038,6 @@ Public Sub Term()
     
     Set frmLayout = Nothing
     Set TradeChannel = Nothing
-    Set VolaSource = Nothing
     
     If Not PriceProvider Is Nothing Then
         lblStatus.Visible = True
@@ -10633,10 +10102,10 @@ Public Sub Term()
     Set m_BatchPriceProvider = Nothing
     
     ClearViewAndData
-    fgUnd.Rows = 1
-    fgOpt.Rows = 1
-    fgDiv.Rows = 1
-    fgVol.Rows = 1
+    fgUnd.rows = 1
+    fgOpt.rows = 1
+    fgDiv.rows = 1
+    fgVol.rows = 1
     
     Set geOpt = Nothing
     Set m_Aux.QuoteReqsAll = Nothing
@@ -10648,7 +10117,7 @@ Public Sub Term()
     m_Aux.RealTime = False
     m_Aux.Term
     
-
+    Set VolaSource = Nothing
     Set pbProgress = Nothing
     Set lblProcess = Nothing
     Set lblStatus = Nothing
@@ -11590,17 +11059,6 @@ Private Sub StartRealTime()
                 QV.StartRealTime
                 tmr = GetTickCount - tmr
                 ttt = 0
-'                aParam.Type = enMStart
-'                PriceProvider.SubscribeQuote aParam
-'
-'                For Each aReq In m_Aux.QuoteReqsAll
-'                    If m_bShutDown Or Not m_bSubscribingNow Then Exit For
-'                    PriceProvider.SubscribeQuote aReq.QuoteUpdateParam
-'                    DoEvents
-'                Next
-'
-'                aParam.Type = enMStop
-'                PriceProvider.SubscribeQuote aParam
             Else
                 aParam.Symbol = m_Aux.Grp.Und.Symbol
                 aParam.Type = IIf(m_Aux.Grp.Und.UndType = enCtStock, enSTK, enIDX)
@@ -11804,7 +11262,9 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     
     If Len(sKey) > 0 Then sKey = "." & sKey
-    
+        
+    SaveParams
+        
     aStorage.SetLongValue "Coordinates" & sKey, "Left", m_frmOwner.Left
     aStorage.SetLongValue "Coordinates" & sKey, "Top", m_frmOwner.Top
     aStorage.SetLongValue "Coordinates" & sKey, "Width", m_frmOwner.Width
@@ -11813,14 +11273,14 @@ Public Sub SaveToFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     ' common info
     aStorage.SetStringValue "Quote" & sKey, "Symbol", m_Aux.Grp.Symbol
     aStorage.SetLongValue "Quote" & sKey, "ShowModel", m_Aux.CalcModelVisible
-    'aStorage.SetLongValue "Quote" & sKey, "ShowCalendar", m_Aux.ExpCalendarVisible
     aStorage.SetLongValue "Quote" & sKey, "ShowDivs", m_Aux.DividendsVisible
     aStorage.SetLongValue "Quote" & sKey, "ShowVola", m_Aux.VolaVisible
     aStorage.SetLongValue "Quote" & sKey, "ShowRates", m_Aux.RatesVisible
     aStorage.SetLongValue "Quote" & sKey, "ShowFutures", m_Aux.FuturesVisible
-'    aStorage.SetLongValue "Quote" & sKey, "CurrentExpiryIdx", m_nCurrentExpiryIdx
-'    aStorage.SetLongValue "Quote" & sKey, "CurrentOptExchIdx", m_nCurrentOptExchIdx
-    aStorage.SetLongValue "Quote" & sKey, "TradesFilter", m_Aux.TradesFilter
+    aStorage.SetLongValue "Quote" & sKey, "TradesFilter", QV.TradeFilter.Data(enFtTrades)
+    aStorage.SetLongValue "Quote" & sKey, "TradesStrategy", QV.TradeFilter.Data(enFtStrategy)
+    aStorage.SetLongValue "Quote" & sKey, "TradesTrader", QV.TradeFilter.Data(enFtTrader)
+    aStorage.SetLongValue "Quote" & sKey, "IsVolaSimulated", m_Aux.IsVolaSimulated
 
     StoreVisibles
     
@@ -11948,7 +11408,9 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     Dim i&, sSym$, aValues() As String, sValue$, aValues2() As String, sItemKey$
     Dim nValue&, nLBound&, nUBound&, nLBound2&, nUBound2&, dValue#
     Dim aContract As EtsGeneralLib.EtsContractAtom
-    
+        
+    LoadParams
+        
     If Len(sKey) > 0 Then sKey = "." & sKey
     
     m_frmOwner.Left = aStorage.GetLongValue("Coordinates" & sKey, "Left", m_frmOwner.Left)
@@ -11959,14 +11421,14 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String)
     ' common info
     sSym = Trim$(aStorage.GetStringValue("Quote" & sKey, "Symbol"))
     m_Aux.CalcModelVisible = aStorage.GetLongValue("Quote" & sKey, "ShowModel", True)
-    'm_Aux.ExpCalendarVisible = aStorage.GetLongValue("Quote" & sKey, "ShowCalendar", True)
     m_Aux.DividendsVisible = aStorage.GetLongValue("Quote" & sKey, "ShowDivs", True)
     m_Aux.VolaVisible = aStorage.GetLongValue("Quote" & sKey, "ShowVola", True)
     m_Aux.RatesVisible = aStorage.GetLongValue("Quote" & sKey, "ShowRates", True)
     m_Aux.FuturesVisible = aStorage.GetLongValue("Quote" & sKey, "ShowFutures", True)
-'    m_nCurrentExpiryIdx = aStorage.GetLongValue("Quote" & sKey, "CurrentExpiryIdx")
-'    m_nCurrentOptExchIdx = aStorage.GetLongValue("Quote" & sKey, "CurrentOptExchIdx")
-    m_Aux.TradesFilter = aStorage.GetLongValue("Quote" & sKey, "TradesFilter", 0)
+    QV.TradeFilter.Data(enFtTrades) = aStorage.GetLongValue("Quote" & sKey, "TradesFilter", 0)
+    QV.TradeFilter.Data(enFtStrategy) = aStorage.GetLongValue("Quote" & sKey, "TradesStrategy", 0)
+    QV.TradeFilter.Data(enFtTrader) = aStorage.GetLongValue("Quote" & sKey, "TradesTrader", 0)
+    m_Aux.IsVolaSimulated = aStorage.GetLongValue("Quote" & sKey, "IsVolaSimulated", 0)
     
     QV.VisibleExp.Clear
     sValue = aStorage.GetStringValue("Quote" & sKey, "VisibleExp")
@@ -12162,6 +11624,7 @@ Private Sub Recalculate(ByVal bSymbol As Boolean, Optional ManualEdit As Boolean
         Screen.MousePointer = vbHourglass
         m_bInProc = True
         
+        QV.Grp.Und.SetDirty
         CalculateUnderlyingOptions True, , ManualEdit, bForceRecalc
         m_AuxOut.OptionsUpdate bSymbol, True, True
         m_AuxOut.FuturesUpdate bSymbol, True, True
@@ -12187,6 +11650,7 @@ Public Sub Refresh()
     
     StoreVisibles
      
+    m_nOldGrpID = m_nNewGrpID
     m_nNewGrpID = m_Aux.Grp.ID
     m_bInRefreshMode = True
         
@@ -12352,26 +11816,12 @@ Public Property Let FuturesVisible(ByVal bVisible As Boolean)
     AdjustState
 End Property
 
-'Public Property Get ExpCalendarVisible() As Boolean
-'    On Error Resume Next
-'    ExpCalendarVisible = m_Aux.ExpCalendarVisible
-'End Property
-
-'Public Property Let ExpCalendarVisible(ByVal bVisible As Boolean)
-'    On Error Resume Next
-'    If m_bShutDown Then Exit Property
-'    m_Aux.ExpCalendarVisible = bVisible
-'    m_Aux.AdjustDivsAndRatesVisible
-'    UserControl_Resize
-'    AdjustState
-'End Property
-
 Private Sub VolaSource_VolatilityChanged(ByVal Symbol As String)
     On Error Resume Next
-    If m_bShutDown Or (Not m_Aux.RealTime And Not m_bSubscribingNow) Or m_Aux.Grp.ID = 0 Then Exit Sub
+    If m_bShutDown Or m_bSubscribingNow Or m_Aux.Grp.ID = 0 Then Exit Sub
 
     If Symbol = m_Aux.Grp.Und.Symbol Then
-        If Not m_bSubscribingNow And m_Aux.RealTime Then 'And ProcessRealTime Then
+        If Not m_bSubscribingNow Then
             Recalculate False
         Else
             m_bVolaChangedExt = True
@@ -12387,25 +11837,13 @@ End Sub
 
 Private Sub AdjustState()
     On Error Resume Next
-    Dim aExpColl As EtsMmQuotesLib.MmQvExpColl
-    Dim aFut As EtsMmQuotesLib.MmQvFutAtom
     
-    If m_Aux.Grp.IsStockOrIndex Then
-         Set aExpColl = m_Aux.Grp.Und.Exp
-         fgDiv.ColHidden(QDC_COLUMN_COUNT + aExpColl.Count) = m_Aux.RealTime
-         If m_Aux.RealTime Then
-             fgDiv.TextMatrix(1, QDC_COLUMN_COUNT + aExpColl.Count) = Date
-             dtCalculationDate.Value = Date
-         End If
-    Else
-        'fokiny
-        fgDiv.ColHidden(QDC_COLUMN_COUNT + m_Aux.Grp.ExpAll.Count) = m_Aux.RealTime
-        If m_Aux.RealTime Then
-            fgDiv.TextMatrix(1, QDC_COLUMN_COUNT + m_Aux.Grp.ExpAll.Count) = Date
-            dtCalculationDate.Value = Date
-        End If
+    fgDiv.ColHidden(QDC_DATECALC) = m_Aux.RealTime
+    If m_Aux.RealTime Then
+        fgDiv.TextMatrix(1, QDC_DATECALC) = Date
+        dtCalculationDate.Value = Date
     End If
-   
+       
     UpdateMenu
     RaiseEvent OnStateChange
 End Sub
@@ -12445,7 +11883,7 @@ Private Sub InitVola(ByRef aUnd As EtsMmQuotesLib.MmQvUndAtom)
     Dim nLoopCounter As Long: nLoopCounter = 1
     
     Err.Clear
-    aUnd.VolaSrv.Init aUnd.Symbol, aUnd.UndType, VolaSource
+    aUnd.VolaSrv.Init aUnd.Symbol, aUnd.UndType, VolaSource, m_Aux.IsVolaSimulated
     
     While Err.Number <> 0 And nLoopCounter < 10
         If Not g_PerformanceLog Is Nothing Then _
@@ -12453,7 +11891,7 @@ Private Sub InitVola(ByRef aUnd As EtsMmQuotesLib.MmQvUndAtom)
 
         MMSleep 20
         Err.Clear
-        aUnd.VolaSrv.Init aUnd.Symbol, aUnd.UndType, VolaSource
+        aUnd.VolaSrv.Init aUnd.Symbol, aUnd.UndType, VolaSource, m_Aux.IsVolaSimulated
 
         nLoopCounter = nLoopCounter + 1
     Wend
@@ -12533,6 +11971,7 @@ Public Sub OTCOptionCalcCall()
     Dim dDivAmount As Double
     
     Dim dRate As Double
+    Dim dHTBRate As Double: dHTBRate = BAD_DOUBLE_VALUE
     
     Dim dDivDate As Double
     Dim dDivFreq As Double
@@ -12616,9 +12055,7 @@ Public Sub OTCOptionCalcCall()
                                 If (aExp.RateCust > 0) And (aExp.Rate = 0) Then
                                    dRate = aExp.RateCust
                                 End If
-                                'dStrike = m_Aux.Grp.Und.AtmStrike(g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-                                'dVola = m_Aux.Grp.Und.AtmVola(aExp, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-
+                                dHTBRate = aExp.HTBRate
                                 
                                 Exit For
                             End If
@@ -12667,7 +12104,7 @@ Public Sub OTCOptionCalcCall()
     """" & CStr(dtExpiryOV) & """" & " " & _
     CStr(lContractType) & " " & CStr(dYield * 100) & " " & CStr(lDivType) & " " & _
     CStr(dDivAmount) & " " & CStr(dDivDate) & " " & CStr(dDivFreq) & " " & _
-    CStr(lCDStockID) & " " & CStr(lCDCount) & " " & CStr(dRate) & " " & CStr(dVola) & " " & CStr(lCalcModel)
+    CStr(lCDStockID) & " " & CStr(lCDCount) & " " & CStr(dRate) & " " & CStr(dVola) & " " & CStr(lCalcModel) & " " & CStr(dHTBRate)
 
     If ShellExecute(0&, "Open", sPath, sParams, "", SW_SHOWNORMAL) <= 32 Then
          gCmn.MyMsgBox Me, "Fail to open OTC OptionCalc at '" & sPath & "'.", vbCritical
@@ -12894,6 +12331,96 @@ Private Function IsUndSpreadColumn(nColumn As Long) As Boolean
     IsUndSpreadColumn = IsUndSpreadBuyColumn(nColumn) Or IsUndSpreadSellColumn(nColumn)
 End Function
 
+Private Function HandleSimulatedVolatility(ByVal Row As Long, ByVal Col As Long) As Boolean
+    On Error Resume Next
+    
+    HandleSimulatedVolatility = False
+    
+    If Col = QDC_VOLA_SIM Then
+        
+        HandleSimulatedVolatility = True
+        
+        If fgDiv.TextMatrix(Row, Col) = False Then
+            If SaveSimulatedVolatility(True) Then
+                DoEvents
+                
+                Screen.MousePointer = vbHourglass
+                
+                m_Aux.IsVolaSimulated = False
+                m_Aux.IsSimulatedFlat = False
+                OptionsUpdateVola
+                If g_Params.UseTheoVolatility Then
+                    m_bInProc = True
+                    m_Aux.Grp.Und.SetDirty
+                    CalculateUnderlyingOptions True, , True, True
+                    m_AuxOut.UnderlyingUpdateTotals
+                    UpdateTotals
+                    m_bInProc = False
+                End If
+        
+                m_AuxOut.OptionsUpdate True, True, True
+                m_AuxOut.VolaUpdateValues
+                m_AuxOut.RatesUpdate
+                
+                Screen.MousePointer = vbDefault
+                
+            Else
+                fgDiv.TextMatrix(Row, Col) = Not fgDiv.TextMatrix(Row, Col)
+            End If
+        Else
+            m_Aux.IsSimulatedFlat = False
+            m_Aux.Grp.Und.VolaSrv.Init m_Aux.Grp.Und.Symbol, m_Aux.Grp.Und.UndType, VolaSource, True
+            m_Aux.IsVolaSimulated = m_Aux.Grp.Und.VolaSrv.SimulatedVol
+            DoEvents
+            m_AuxOut.VolaUpdateValues
+            m_AuxOut.RatesUpdate
+        End If
+    
+        Exit Function
+    End If
+    
+    If Col = QDC_VOLA_FLAT Then
+        m_Aux.IsSimulatedFlat = fgDiv.TextMatrix(Row, Col)
+        
+        If fgDiv.TextMatrix(Row, Col) = True Then
+            mnuCtxVolaFlatAll_Click
+        End If
+        
+        HandleSimulatedVolatility = True
+        Exit Function
+    End If
+    
+End Function
+
+Public Function SaveSimulatedVolatility(Optional ByVal bInit As Boolean = False) As Boolean
+    On Error Resume Next
+    
+    SaveSimulatedVolatility = True
+    
+    If m_Aux.Grp.ID = 0 Or Not m_Aux.IsVolaSimulated Then Exit Function
+    
+    Dim nMsgResult As VbMsgBoxResult
+    nMsgResult = vbNo
+            
+    If nMsgResult = vbCancel Or nMsgResult = 0 Then
+        SaveSimulatedVolatility = False
+        Exit Function
+    End If
+            
+    If nMsgResult = vbNo Then
+        If bInit Then _
+            m_Aux.Grp.Und.VolaSrv.Init m_Aux.Grp.Und.Symbol, m_Aux.Grp.Und.UndType, VolaSource, Not m_Aux.Grp.Und.VolaSrv.SimulatedVol
+    End If
+            
+    If nMsgResult = vbYes Then
+        Screen.MousePointer = vbHourglass
+        m_Aux.Grp.Und.VolaSrv.SaveSimulatedVol
+        If bInit Then _
+            m_Aux.Grp.Und.VolaSrv.Init m_Aux.Grp.Und.Symbol, m_Aux.Grp.Und.UndType, VolaSource, Not m_Aux.Grp.Und.VolaSrv.SimulatedVol
+        Screen.MousePointer = vbDefault
+    End If
+    
+End Function
 
 Private Sub m_aSpreadData_OnSpreadItemAdded(ByVal pSpread As EtsMmQuotesLib.IMmQvSpreadAtom)
     On Error Resume Next

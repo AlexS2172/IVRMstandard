@@ -55,52 +55,19 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EtsMmVolaAnalysis", "MM\Ets
 		{4ADBB0CD-44E3-4B4C-958C-682276C4C2D5} = {4ADBB0CD-44E3-4B4C-958C-682276C4C2D5}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EtsMmRisksCV", "MM\EtsMmRisksCV\EtsMmRisksCV.vcproj", "{083B4CC2-C81C-474F-A1EC-D67788ACA0C3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E39ACD9D-9D72-4E28-823E-6D64CBFCF3C4} = {E39ACD9D-9D72-4E28-823E-6D64CBFCF3C4}
+		{4ADBB0CD-44E3-4B4C-958C-682276C4C2D5} = {4ADBB0CD-44E3-4B4C-958C-682276C4C2D5}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EtsMmQuotesCV", "MM\EtsMmQuotesCV\EtsMmQuotesCV.vcproj", "{B5D0007C-7A87-4130-BA60-2F6AEA033864}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4ADBB0CD-44E3-4B4C-958C-682276C4C2D5} = {4ADBB0CD-44E3-4B4C-958C-682276C4C2D5}
+		{E39ACD9D-9D72-4E28-823E-6D64CBFCF3C4} = {E39ACD9D-9D72-4E28-823E-6D64CBFCF3C4}
+	EndProjectSection
+EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 11
-		SccLocalPath0 = .
-		CanCheckoutShared = false
-		SccProjectUniqueName1 = EtsGeneral\\EtsGeneral.vcproj
-		SccLocalPath1 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection1 = EtsGeneral\\
-		SccProjectUniqueName2 = MM\\EtsMmStockHedge\\EtsMmStockHedge.vcproj
-		SccLocalPath2 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection2 = MM\\EtsMmStockHedge\\
-		SccProjectUniqueName3 = MM\\EtsMmIndexHedge\\EtsMmIndexHedge.vcproj
-		SccLocalPath3 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection3 = MM\\EtsMmIndexHedge\\
-		SccProjectUniqueName4 = MM\\EtsMmRisks\\EtsMmRisks.vcproj
-		SccLocalPath4 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection4 = MM\\EtsMmRisks\\
-		SccProjectUniqueName5 = MM\\EtsMmQuotes\\EtsMmQuotes.vcproj
-		SccLocalPath5 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection5 = MM\\EtsMmQuotes\\
-		SccProjectUniqueName6 = MM\\EtsMmHedge\\EtsMmHedge.vcproj
-		SccLocalPath6 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection6 = MM\\EtsMmHedge\\
-		SccProjectUniqueName7 = MM\\EtsMmGeneral\\EtsMmGeneral.vcproj
-		SccProjectName7 = \u0022$/ETS/Production\u00202.1\u0020CIBC/Components/MM/EtsMmGeneral\u0022,\u0020GUYCAAAA
-		SccLocalPath7 = MM\\EtsMmGeneral
-		CanCheckoutShared = false
-		SccProjectUniqueName8 = MM\\EtsMmGreeks\\EtsMmGreeks.vcproj
-		SccProjectName8 = \u0022$/ETS/Production\u00202.1\u0020CIBC/Components/MM/EtsMmGreeks\u0022,\u0020KRGDAAAA
-		SccLocalPath8 = MM\\EtsMmGreeks
-		CanCheckoutShared = false
-		SccProjectUniqueName9 = MM\\EtsMmReports\\EtsMmReports.vcproj
-		SccProjectName9 = \u0022$/ETS/Production\u00202.1\u0020CIBC/Components/MM/EtsMmReports\u0022,\u0020NEFDAAAA
-		SccLocalPath9 = MM\\EtsMmReports
-		CanCheckoutShared = false
-		SccProjectUniqueName10 = MM\\EtsMmVolaAnalysis\\EtsMmVolaAnalysis.vcproj
-		SccProjectName10 = \u0022$/ETS/Production\u00202.1\u0020CIBC/Components/MM/EtsMmVolaAnalysis\u0022,\u0020OWGDAAAA
-		SccLocalPath10 = MM\\EtsMmVolaAnalysis
-		CanCheckoutShared = false
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
@@ -146,6 +113,14 @@ Global
 		{2B7B7256-A1F4-4954-A1D2-C5FE52934292}.Debug|Win32.Build.0 = Debug|Win32
 		{2B7B7256-A1F4-4954-A1D2-C5FE52934292}.Release|Win32.ActiveCfg = Release|Win32
 		{2B7B7256-A1F4-4954-A1D2-C5FE52934292}.Release|Win32.Build.0 = Release|Win32
+		{083B4CC2-C81C-474F-A1EC-D67788ACA0C3}.Debug|Win32.ActiveCfg = Debug|Win32
+		{083B4CC2-C81C-474F-A1EC-D67788ACA0C3}.Debug|Win32.Build.0 = Debug|Win32
+		{083B4CC2-C81C-474F-A1EC-D67788ACA0C3}.Release|Win32.ActiveCfg = Release|Win32
+		{083B4CC2-C81C-474F-A1EC-D67788ACA0C3}.Release|Win32.Build.0 = Release|Win32
+		{B5D0007C-7A87-4130-BA60-2F6AEA033864}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B5D0007C-7A87-4130-BA60-2F6AEA033864}.Debug|Win32.Build.0 = Debug|Win32
+		{B5D0007C-7A87-4130-BA60-2F6AEA033864}.Release|Win32.ActiveCfg = Release|Win32
+		{B5D0007C-7A87-4130-BA60-2F6AEA033864}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

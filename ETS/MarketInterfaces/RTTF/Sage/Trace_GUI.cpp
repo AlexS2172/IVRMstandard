@@ -7,6 +7,8 @@
 #include "Trace.h"
 #include "Win32Error.h"
 #include "io.h"
+#include "SgConst.h"
+#include "Sage.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 CPublisher* CTracer::m_pPublisher = 0;
@@ -31,15 +33,11 @@ void __stdcall CTracer::CreateFileName()
 
 	TCHAR szUserName[256] = { 0 };
 	DWORD dwSize = 255;
-
-	CXMLParamsHelper XMLParams;
-	XMLParams.LoadXMLParams();
-
-	_bstr_t sbsUserGroup;
-	XMLParams.GetUserGroup(sbsUserGroup.GetAddress());
-
-	CString strSubjectPrefix = (LPTSTR)sbsUserGroup;
+	::GetUserName((LPTSTR)&szUserName, &dwSize);
 	
+	//build log file name
+	CString strSubjectPrefix = (LPTSTR)szUserName;
+
     _stprintf(m_pFileName, _T("Logs/STrace_%s_%02d_%02d_%4d.log"), strSubjectPrefix.GetString(),
 		vtFileDate.get_day(), vtFileDate.get_month(), vtFileDate.get_year());
 }

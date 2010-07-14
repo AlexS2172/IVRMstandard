@@ -784,8 +784,7 @@ Private Declare Function OleCreatePictureIndirect Lib "oleaut32.dll" _
 Private Declare Function OleCreatePictureIndirect2 Lib "oleaut32.dll" _
         (pDicDesc As IconType, riid As Guid, ByVal fown As Long, _
         lpUnk As Object) As Long
-
-
+        
 ' Return current time as UTC
 Public Function SystemTime() As Date
     Dim t As SystemTime

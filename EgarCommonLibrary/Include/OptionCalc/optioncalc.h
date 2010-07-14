@@ -33,6 +33,15 @@ bool OPTIONCALC_API TmToDateEx( struct tm* pTm, double *pDateOut );
 
 bool OPTIONCALC_API GetNYDateTimeAsDATE(double *pdtDate);
 
+bool OPTIONCALC_API GetCalculationParams(double		dtNow,
+										 double		dtExpiryOV,
+										 double		dtCloseTime,
+										 bool		bUseTime,
+										 double*	dtDateCalc,
+										 double*	dtExpiryCalc,
+										 double*	dtCloseTimeCalc,
+										 double*	dtYte);
+
 double OPTIONCALC_API  InterpolateRates(	long nCount, 
 											const RATE *pRates, 
 											double dYte);

@@ -6,7 +6,7 @@
 #include "resource.h"       // main symbols
 #include "EtsGeneral.h"
 
-_COM_SMARTPTR_TYPEDEF(IEtsPriceProfileAtom, IID_IEtsPriceProfileAtom);
+//_COM_SMARTPTR_TYPEDEF(IEtsPriceProfileAtom, IID_IEtsPriceProfileAtom);
 
 struct __EtsPriceProfileAtom
 {
@@ -33,7 +33,7 @@ struct __EtsPriceProfileAtom
 // CEtsPriceProfileAtom
 
 class ATL_NO_VTABLE CEtsPriceProfileAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel/*CComMultiThreadModel*/>,
 	public CComCoClass<CEtsPriceProfileAtom, &CLSID_EtsPriceProfileAtom>,
 	public ISupportErrorInfoImpl<&IID_IEtsPriceProfileAtom>,
 	public IDispatchImpl<IEtsPriceProfileAtom, &IID_IEtsPriceProfileAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -42,6 +42,7 @@ class ATL_NO_VTABLE CEtsPriceProfileAtom :
 public:
 	CEtsPriceProfileAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSPRICEPROFILEATOM)
@@ -51,19 +52,24 @@ BEGIN_COM_MAP(CEtsPriceProfileAtom)
 	COM_INTERFACE_ENTRY(IEtsPriceProfileAtom)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
+		m_pUnkMarshaler.Release();
 	}
 
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

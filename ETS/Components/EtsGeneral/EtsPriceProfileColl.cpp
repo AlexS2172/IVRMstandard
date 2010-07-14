@@ -1,7 +1,7 @@
 // EtsPriceProfileColl.cpp : Implementation of CEtsPriceProfileColl
 
 #include "stdafx.h"
-#include "EtsPriceProfileColl1.h"
+#include "EtsPriceProfileColl.h"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -39,5 +39,23 @@ STDMETHODIMP CEtsPriceProfileColl::Add(LONG Key, BSTR SortKey, IEtsPriceProfileA
 	}
 
 	return S_OK;
+}
+
+IEtsPriceProfileAtomPtr CEtsPriceProfileColl::AddNew(long lID, _bstr_t bsSymbol, CComObject<CEtsPriceProfileAtom>** pAtom )
+{
+	CComObject<CEtsPriceProfileAtom>* pNewVal;
+	IEtsPriceProfileAtomPtr spRet;
+
+	_CHK(CComObject<CEtsPriceProfileAtom>::CreateInstance(&pNewVal), _T("Fail to create PriceProfile."));
+	spRet.Attach(pNewVal, TRUE);
+
+	pNewVal->m_nID = lID;
+
+	if(FAILED(IEtsPriceProfileCollImpl::Add(lID, bsSymbol, pNewVal)))
+		EgLib::CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Fail to add PriceProfile."));
+
+	if(pAtom)
+		*pAtom = pNewVal;
+	return spRet;
 }
 

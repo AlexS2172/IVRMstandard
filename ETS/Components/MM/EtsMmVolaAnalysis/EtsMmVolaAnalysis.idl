@@ -66,6 +66,7 @@ library EtsMmVolaAnalysisLib
 		ETSGENERAL_PROP_DEF(17,			DOUBLE,					DeltaBid)
 		ETSGENERAL_PROP_DEF(18,			DOUBLE,					DeltaAsk)
 		ETSGENERAL_PROP_DEF(22,			DATE,					ExpiryOV)
+		ETSGENERAL_PROP_DEF(23,			LONG,					OptionRootID)
 
 		[id(19), helpstring("method ClearValues")]
 		HRESULT ClearValues([in] VARIANT_BOOL WithIV);
@@ -174,9 +175,11 @@ library EtsMmVolaAnalysisLib
 		ETSGENERAL_PROP_DEF(5,			DATE,				ExpiryOV)
 		ETSGENERAL_PROP_DEF(6,			DATE,				TradingClose)
 
+		ETSGENERAL_PROP_DEF(7,			DOUBLE,				HTBRate)
+
 		ETSGENERAL_PROPREADONLY_DEF(8,	DATE,				LocalExpiryOV)
 
-		[id(7), helpstring("method FindAtmStrike")]
+		[id(39), helpstring("method FindAtmStrike")]
 		HRESULT FindAtmStrike([in] DOUBLE UnderlyingSpot);
 	};
 
@@ -276,7 +279,8 @@ library EtsMmVolaAnalysisLib
 
 		[id(50), helpstring("method CalcCurrentValues")]
 		HRESULT CalcCurrentValues([in] DOUBLE dVegaAmount, [in] enum EtsCalcModelTypeEnum enCalcModel,
-								[in] VARIANT_BOOL bUseTheoVolatility);
+								[in] VARIANT_BOOL bUseTheoVolatility,
+								[in] ICalculationParametrs* Params);
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

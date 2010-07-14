@@ -15,7 +15,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsFutCollDispImpl, IEtsFutAtom
 
 // CEtsFutColl
 class ATL_NO_VTABLE CEtsFutColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsFutColl, &CLSID_EtsFutColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsFutColl>,
 	public IEtsFutCollImpl
@@ -23,6 +23,7 @@ class ATL_NO_VTABLE CEtsFutColl :
 public:
 	CEtsFutColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSFUTCOLL)
@@ -31,20 +32,25 @@ BEGIN_COM_MAP(CEtsFutColl)
 	COM_INTERFACE_ENTRY(IEtsFutColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsFutCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
 
+	CComPtr<IUnknown> m_pUnkMarshaler;
 public:
 
 	STDMETHOD(Add)(LONG Key, BSTR SortKey, IEtsFutAtom* Value, IEtsFutAtom** pRetVal);

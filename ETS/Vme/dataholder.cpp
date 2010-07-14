@@ -1,11 +1,27 @@
 #include "stdafx.h"
 #include "DataHolder.h"
+#include "OptionCalc\optioncalc.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
 // 
 // CDataHolder implementation
 //
+/////////////////////////////////////////////////////////////////////////////
+
+void CDataHolder::CopyTo(CDataHolder* pDest)
+{
+	CObjectLock(this);
+	if (pDest)
+	{
+		pDest->m_bDiscreteAcceleration	=	m_bDiscreteAcceleration;
+		pDest->m_bPriceOverride		= m_bPriceOverride;
+		pDest->m_dSmileAccelerator	= m_dSmileAccelerator;
+		pDest->m_dUnderlinePrice	= m_dUnderlinePrice;
+		pDest->m_dInterpolationFactor = m_dInterpolationFactor;
+		pDest->m_vola = m_vola;
+	}
+}
 /////////////////////////////////////////////////////////////////////////////
 void CDataHolder::SetUnderlinePrice( double dUP ) 
 { 
@@ -185,15 +201,6 @@ void CDataHolder::SetPoint( long nID, double dStrike,
 
 	CPoint pt;
 	skew.InitPoint( pt, nID,dStrike, vtVola, vtIsBasePoint);													
-	/*pt.nID			= nID;
-	pt.dStrike		= dStrike;
-	if( vtVola.vt == VT_R4 )
-		pt.dVola = vtVola.fltVal;
-	else if( vtVola.vt == VT_R8 )
-		pt.dVola = vtVola.dblVal;
-	else
-		pt.dVola = -1;
-	pt.bIsBasePoint = (bool)vtIsBasePoint;*/
 
 	skew.PutPoint( pt, NULL );
 	skew.m_bInterpolationVectorUpdated = false;
@@ -223,16 +230,6 @@ void CDataHolder::ImportPoint( long nID, double dStrike, const _variant_t& vtExp
 			{
 				CPoint pt;
 				skew.InitPoint( pt, nID,dStrike, vtVola, vtIsBasePoint);
-				/*pt.nID			= nID;
-				pt.dStrike		= dStrike;
-				if( vtVola.vt == VT_R4 )
-					pt.dVola = vtVola.fltVal;
-				else if( vtVola.vt == VT_R8 )
-					pt.dVola = vtVola.dblVal;
-				else
-					pt.dVola = -1;
-				pt.bIsBasePoint = (bool)vtIsBasePoint;*/
-
 				skew.PutPoint( pt, NULL );
 				break;
 			}
@@ -515,11 +512,14 @@ double	CDataHolder::ExpirationInterpolate( DATE dtExpDate, double dStrike, doubl
 		dV2 = skw2.GetPointVolatility( dStrike + dStrikeDelta * m_dSmileAccelerator );
 		dV2 = dV2 > 0 ? dV2 : 0.0f;
 
+		double dtNYNow;
+		::GetNYDateTimeAsDATE(&dtNYNow);
 		// interpolate
 		/*double dE = static_cast<double>(static_cast<long>(itNext->first) - static_cast<long>(ritPrev->first));
 		double dE1 = static_cast<double>(static_cast<long>(dtExpDate) - static_cast<long>(ritPrev->first));*/
-		double dE  = sqrt(itNext->first.date_) - sqrt(ritPrev->first.date_);
-		double dE1 = sqrt(dtExpDate) - sqrt(ritPrev->first.date_);
+
+		double dE  = sqrt(itNext->first.date_ - dtNYNow) - sqrt(ritPrev->first.date_ - dtNYNow);
+		double dE1 = sqrt(dtExpDate - dtNYNow) - sqrt(ritPrev->first.date_ - dtNYNow);
 
 		if ( dE1 == 0.0 ) 
 			dE1 = 1.0;
@@ -573,7 +573,7 @@ double	CDataHolder::ExpirationInterpolate( DATE dtExpDate, double dStrike, doubl
 }
 
 // Returns volatility value for particular strike and underline price
-double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double UnderlinePrice )
+double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double UnderlinePrice)
 {
 	CObjectLock(this);
 	
@@ -606,17 +606,23 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double Un
 	//	dVola = dVola > 0 ? dVola : 0.0f;
 	//}
 
-	CSkew& skew = m_vola.GetSkew(  ExpDate(dtExpDate), m_dInterpolationFactor );
-	if (!skew.GetUsefulPtCount()) {
+	CSkew& skew = m_vola.GetSkew(ExpDate(dtExpDate), m_dInterpolationFactor);
+
+	if (!skew.GetBasePointsCount()) 
+	{
 		// no volatilities for this expiration
 		// perform interpolation between expirations
 		dVola = ExpirationInterpolate( dtExpDate, Strike, UnderlinePrice);
-		if(Strike > 0.1) 
-			AddPoint(dtExpDate, Strike, dVola, false, true);
+		
+		//if(Strike > 0.1) 
+		//	AddPoint(dtExpDate, Strike, dVola, false, true);
+		
 		return dVola;
 	}
+
 	double dStrikeDelta = 0.0f;
-	if( m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0 )
+	
+	if (UnderlinePrice > 0 && (m_dUnderlinePrice != UnderlinePrice || m_dSmileAccelerator == 0.0))
 	{
 		if( !m_bDiscreteAcceleration )
 			dStrikeDelta = ( m_dUnderlinePrice - UnderlinePrice);
@@ -625,6 +631,7 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double Un
 						   skew.GetATMPoint( m_dUnderlinePrice, false ).GetStrike();
 	}
 
+	//skew.SetBasePointsInterpolation(true);
 	dVola = skew.GetPointVolatility( Strike + dStrikeDelta * m_dSmileAccelerator );
 	dVola = dVola > 0 ? dVola : 0.0f;
 
@@ -633,7 +640,7 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike, double Un
 
 
 // Returns volatility value for particular strike
-double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike )
+/*double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike )
 {
 	CObjectLock(this);
 
@@ -651,7 +658,7 @@ double CDataHolder::GetPointVolatility( DATE dtExpDate, double Strike )
 	}
 
 	return dVola;
-}
+}  */
 
 
 // Returns volatility value of particular point

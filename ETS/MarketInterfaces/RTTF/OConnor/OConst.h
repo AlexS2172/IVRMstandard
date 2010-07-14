@@ -30,12 +30,12 @@
 #define	MAX_DBRECONNECTION_TRIES		10
 #define	DBRECONNECTION_DELAY			10
 // Files
-#define TRADES_FILENAME					_T("Logs/OConnorTrades.log")
+//#define TRADES_FILENAME					_T("Logs/OConnorTrades.log")
 #define TRADES_FILENAME_BEGIN			_T("Logs/OTrades")
 #define TRADES_FILENAME_END				_T(".log")
-#define FAILES_FILENAME_BEGIN			_T("Logs/OFails")
+#define FAILES_FILENAME_BEGIN			_T("Logs/OFailes")
 #define FAILES_FILENAME_END				_T(".log")
-#define STRUCTURE_FILENAME				_T("Logs/OConnorStructure.log")
+#define STRUCTURE_FILENAME				_T("Logs/OStructure")
 // security_type
 #define OPTION_FLAG                 'O'
 #define STOCK_FLAG                  'S'

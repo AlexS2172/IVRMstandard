@@ -38,7 +38,7 @@ double CVpUndVolaSource::Vola(double dUndPrice, DATE dtExpiry, double dStrike) c
 	COleDateTime odtFirstDayMonth(odtExpiry.GetYear(),odtExpiry.GetMonth(),1,0,0,0);
 
 	Trace(EODCO::enTrLogDebug,__FUNCTION__,_T("Completed"));
-	return m_spSymbolVola->GetVolatility(dUndPrice, dStrike, odtFirstDayMonth) /100.;
+	return m_spSymbolVola->GetVolatility(dUndPrice, dStrike, odtFirstDayMonth, 0) /100.;
 }
 
 };

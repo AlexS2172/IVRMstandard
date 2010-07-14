@@ -70,6 +70,7 @@ STDMETHODIMP CTimeSkewVolatilities::get_ExpDate(long index, DATE *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL (e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMTimeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"TimeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -88,6 +89,7 @@ STDMETHODIMP CTimeSkewVolatilities::get_Volatility(DATE ExpDate, double *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		return CComErrorWrapper::SetError(e, L"TimeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMTimeSkewVolatilities, e.Error() );
 	}
@@ -106,6 +108,7 @@ STDMETHODIMP CTimeSkewVolatilities::get_Strike(DATE ExpDate, double *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		return CComErrorWrapper::SetError(e, L"TimeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMTimeSkewVolatilities, e.Error() );
@@ -123,6 +126,7 @@ STDMETHODIMP CTimeSkewVolatilities::put_VolatilityDelta(DATE ExpDate, double new
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMTimeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"TimeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -157,6 +161,7 @@ STDMETHODIMP CTimeSkewVolatilities::Save()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 	//	return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMTimeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"TimeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
     }
@@ -173,6 +178,7 @@ STDMETHODIMP CTimeSkewVolatilities::Reload()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL (e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMTimeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"TimeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}

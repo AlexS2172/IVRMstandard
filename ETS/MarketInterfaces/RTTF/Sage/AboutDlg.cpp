@@ -16,11 +16,8 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 extern CSageApp    theApp;
-extern _bstr_t     m_bsConnectionString;
-
 /////////////////////////////////////////////////////////////////////////////
 // CAboutDlg dialog
-
 
 CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
 {
@@ -88,7 +85,7 @@ void CAboutDlg::FillProductInfo()
 
 	CString strFmt;
 
-	AddInfoStr (_T("Components:\tVersion:\r\n"));
+	AddInfoStr (_T("Components:\tUserGroup:\tVersion:\r\n"));
 	FillDBVersion ();
 }
 
@@ -110,39 +107,44 @@ void CAboutDlg::AddInfoStr(LPCTSTR szStr)
 void CAboutDlg::FillDBVersion()
 {
 	CString strVer = _T("N/A");
+	CString strFmt;
 	try
 	{
         _bstr_t bsConnectionString;
+		CDBConnection db;
 
-        if (CSage::m_hStopApplication)
-        {
-            bsConnectionString = CPublisher::m_bsConnectionString;
-        }
-        else
-        {
-            ISettingsPtr spSettings;
-	    	HRESULT hr = spSettings.CreateInstance(__uuidof (Settings));
-		    if(FAILED(hr))
-			    utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to create Settings object.");
-            bsConnectionString = spSettings->DatabaseConnection;
-        }
+		CXMLParamsHelper XMLParams;
+		XMLParams.LoadXMLParams();
 
-        CDBConnection db;
-        db.Open(bsConnectionString, 120, 120);
+		UserGroups clUserGroups;
+		long dwGroupsCount = GetCommandLineParams(clUserGroups);
+		
+		if (dwGroupsCount > 0)
+		{
+			for (UGIterator it = clUserGroups.begin(); it != clUserGroups.end(); it++)
+			{
+				if(FAILED(XMLParams.GetMainXMLString(DB_XML_KEY, (BSTR)it->first, &bsConnectionString)))
+					utils::ThrowErrorNoSetErrorInfo(E_FAIL, L"Failed to load connection string");
 
-    	CStoredProc<CDefaultRecordset> spVer(db, L"usp_DataInfo_Get");	
-    	spVer << 1;	
-	    spVer.Open();
-	    strVer = (LPCTSTR) (_bstr_t) spVer[L"vcKeyValue"];
-        spVer.Close();
-        db.Close();
+				if (bsConnectionString.length() > 0)
+				{
+					db.Open(bsConnectionString, 120, 120);
+					CStoredProc<CDefaultRecordset> spVer(db, L"usp_DataInfo_Get");	
+					spVer << 1;	
+					spVer.Open();
+					strVer = (LPCTSTR) (_bstr_t) spVer[L"vcKeyValue"];
+					spVer.Close();
+					db.Close();
+					strFmt.Format (_T("Database:\t%s\t%s"), (LPCTSTR)it->first, (LPCTSTR) strVer);
+					AddInfoStr (strFmt);
+				}
+			}
+		}
 	}
-    catch (...) { }
-
-	CString strFmt;
-	strFmt.Format (_T("Database\t%s"), (LPCTSTR) strVer);
-
-	AddInfoStr (strFmt);
+	catch (...) 
+	{
+		CTracer::Trace(_T("Unable to get database info."));
+	}
 }
 
 void CAboutDlg::FillObjectVersion(CLSID clsid)

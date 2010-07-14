@@ -14,22 +14,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ETSManager", "..\ETSManager\ETSManager.vcproj", "{5839078E-D296-4475-B330-6A9409F31E6F}"
 EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 4
-		SccProjectName0 = SAK
-		SccLocalPath0 = .
-		SccProvider0 = MSSCCI:ClearCase
-		CanCheckoutShared = false
-		SccProjectUniqueName1 = ..\\ETSManager\\ETSManager.vcproj
-		SccLocalPath1 = ..\\ETSManager
-		CanCheckoutShared = false
-		SccProjectUniqueName2 = EtsEodManager\\EtsEodManager.vcproj
-		SccLocalPath2 = EtsEodManager
-		CanCheckoutShared = false
-		SccProjectUniqueName3 = EtsEodServer\\EtsEodServer.vcproj
-		SccLocalPath3 = EtsEodServer
-		CanCheckoutShared = false
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
@@ -65,11 +49,3 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
-		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
-	EndGlobalSection
-	GlobalSection(DevPartner) = postSolution
-	EndGlobalSection
-	GlobalSection(DevPartner) = postSolution
-	EndGlobalSection
-EndGlobal

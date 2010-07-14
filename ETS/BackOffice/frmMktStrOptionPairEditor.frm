@@ -6,7 +6,7 @@ Begin VB.Form frmMktStrOptionPairEditor
    BackColor       =   &H80000005&
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Option Call/Put Editor"
-   ClientHeight    =   3585
+   ClientHeight    =   4005
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   5550
@@ -14,7 +14,7 @@ Begin VB.Form frmMktStrOptionPairEditor
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   3585
+   ScaleHeight     =   4005
    ScaleWidth      =   5550
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
@@ -22,13 +22,26 @@ Begin VB.Form frmMktStrOptionPairEditor
       Appearance      =   0  'Flat
       BackColor       =   &H80000005&
       ForeColor       =   &H80000008&
-      Height          =   2895
+      Height          =   3375
       Left            =   120
-      ScaleHeight     =   2865
+      ScaleHeight     =   3345
       ScaleWidth      =   5265
       TabIndex        =   0
       Top             =   120
       Width           =   5295
+      Begin MSComCtl2.DTPicker dtpCloseTime 
+         Height          =   345
+         Left            =   3000
+         TabIndex        =   22
+         Top             =   840
+         Width           =   2175
+         _ExtentX        =   3836
+         _ExtentY        =   609
+         _Version        =   393216
+         CustomFormat    =   "hh:mm tt"
+         Format          =   50397186
+         CurrentDate     =   39743.5652777778
+      End
       Begin MSComCtl2.DTPicker dtpExpiryOV 
          Height          =   300
          Left            =   3000
@@ -51,7 +64,7 @@ Begin VB.Form frmMktStrOptionPairEditor
          Index           =   1
          Left            =   1800
          TabIndex        =   19
-         Top             =   2520
+         Top             =   3000
          Width           =   1695
       End
       Begin VB.TextBox txtStrike 
@@ -72,7 +85,7 @@ Begin VB.Form frmMktStrOptionPairEditor
          Height          =   1575
          Left            =   120
          TabIndex        =   3
-         Top             =   840
+         Top             =   1320
          Width           =   2295
          Begin VB.TextBox txtExportSymbol 
             Appearance      =   0  'Flat
@@ -149,9 +162,9 @@ Begin VB.Form frmMktStrOptionPairEditor
          Caption         =   "Put"
          ForeColor       =   &H80000008&
          Height          =   1575
-         Left            =   2760
+         Left            =   2640
          TabIndex        =   6
-         Top             =   840
+         Top             =   1320
          Width           =   2415
          Begin VB.TextBox txtExportSymbol 
             Appearance      =   0  'Flat
@@ -235,6 +248,15 @@ Begin VB.Form frmMktStrOptionPairEditor
          CurrentDate     =   38718
          MinDate         =   38718
       End
+      Begin VB.Label lblTradingClose 
+         BackStyle       =   0  'Transparent
+         Caption         =   "TradingClose:"
+         Height          =   255
+         Left            =   1800
+         TabIndex        =   23
+         Top             =   840
+         Width           =   975
+      End
       Begin VB.Label Label1 
          Alignment       =   1  'Right Justify
          Appearance      =   0  'Flat
@@ -280,7 +302,7 @@ Begin VB.Form frmMktStrOptionPairEditor
       Height          =   300
       Left            =   4080
       TabIndex        =   10
-      Top             =   3120
+      Top             =   3600
       Width           =   1335
       _ExtentX        =   2355
       _ExtentY        =   529
@@ -300,7 +322,7 @@ Begin VB.Form frmMktStrOptionPairEditor
       Height          =   300
       Left            =   2640
       TabIndex        =   9
-      Top             =   3120
+      Top             =   3600
       Width           =   1335
       _ExtentX        =   2355
       _ExtentY        =   529
@@ -398,6 +420,11 @@ EH:
     ShowError "Unable to load Market Values View"
 End Sub
 
+Private Sub dtpCloseTime_Change()
+    If mbLoading Then Exit Sub
+    m_bChanged = True
+End Sub
+
 Private Sub Form_Load()
 On Error Resume Next
     gCmn.CustomizeForm Me
@@ -421,6 +448,7 @@ On Error GoTo EH
     txtStrike.Text = gCmn.FmtDbl(m_OptPair.fStrike)
     dtpExpire.Value = m_OptPair.dExpiry
     dtpExpiryOV.Value = m_OptPair.dExpiryOV
+    dtpCloseTime.Value = ClipDays(m_OptPair.dTradingClose)
     
     mbLoading = False
 Exit Sub
@@ -515,9 +543,11 @@ End Sub
 Private Function CheckData() As Boolean
     On Error GoTo EH
     Dim s As String, l As Long, rs As ADODB.Recordset, dtExpiry As Date, dtExpiryOV As Date
+    Dim dtTradingClose As Date
     
     mdExpiry = dtpExpire.Value
     dtExpiryOV = dtpExpiryOV.Value
+    dtTradingClose = dtpCloseTime.Value
        
     s = Trim(txtStrike.Text)
     If IsNumeric(s) Then
@@ -542,6 +572,7 @@ Private Function CheckData() As Boolean
         .bPutManual = chkManuallyEntered(1).Value <> 0
         .sCallImportSymbol = Trim(UCase(txtExportSymbol(1).Text))
         .sPutImportSymbol = Trim(UCase(txtExportSymbol(0).Text))
+        .dTradingClose = dtTradingClose
     End With
     
     If (Len(Trim$(m_OptPair.sCallSymbol)) < 3 And Len(Trim$(m_OptPair.sCallSymbol)) > 0) Or _

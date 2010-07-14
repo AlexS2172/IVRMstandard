@@ -26,9 +26,11 @@ struct __MmHsOptAtom
 	DOUBLE				m_dVega;
 	DOUBLE				m_dVegaWeight;
 	DOUBLE				m_dVola;
+	DOUBLE				m_dHTBRate;
 
 	DATE				m_dtExpiryOV;
 	DATE				m_dtTradingClose;
+	LONG				m_nOptionRootID;
 
 	void ClearValues()
 	{
@@ -48,9 +50,10 @@ struct __MmHsOptAtom
 		m_dVega = BAD_DOUBLE_VALUE;
 		m_dVegaWeight = 0.;
 		m_dVola = 0.;
-
+		m_dHTBRate = BAD_DOUBLE_VALUE;
 		m_dtExpiryOV = 0;
 		m_dtTradingClose = 0;
+		m_nOptionRootID = 0;
 	}
 
 	__MmHsOptAtom()
@@ -107,6 +110,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				PriceLast,		m_dPriceLast)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG,					Qty,			m_nQty)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				Rate,			m_dRate)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				HTBRate,		m_dHTBRate)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG,					UndID,			m_nUndID)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE,				Strike,			m_dStrike)
 	IMPLEMENT_BSTR_PROPERTY(Symbol,		m_bstrSymbol)
@@ -116,6 +120,7 @@ public:
 
 	IMPLEMENT_SIMPLE_PROPERTY(DATE,					ExpiryOV,		m_dtExpiryOV)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE,					TradingClose,	m_dtTradingClose)
+	IMPLEMENT_SIMPLE_PROPERTY(LONG,					OptionRootID,	m_nOptionRootID)
 
 	STDMETHOD(ClearValues)();
 };

@@ -5,7 +5,7 @@ Begin VB.Form frmMain
    Caption         =   "ETS"
    ClientHeight    =   870
    ClientLeft      =   165
-   ClientTop       =   855
+   ClientTop       =   735
    ClientWidth     =   6495
    Icon            =   "frmMain.frx":0000
    LinkTopic       =   "Form1"
@@ -194,6 +194,9 @@ Begin VB.Form frmMain
       End
       Begin VB.Menu mnuToolsBackOffice 
          Caption         =   "&Back Office..."
+      End
+      Begin VB.Menu mnuToolsEtsMMCv 
+         Caption         =   "&Custom Variables Extention..."
       End
       Begin VB.Menu mnuToolsHedger 
          Caption         =   "&Hedger..."
@@ -428,7 +431,7 @@ Private Sub Form_Load()
     mnuToolsShowEventsLog.Checked = g_Params.ShowEventLog
     mnuToolsAlwaysOnTop.Checked = g_Params.MainWinAlwaysOnTop
     
-    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
     
     mnuFileOrderView.Visible = g_Params.OrdersVisible
     mnuFileOrderView.Enabled = g_Params.OrdersEnabled
@@ -441,6 +444,10 @@ Private Sub Form_Load()
 
     mnuVarSwapCalc.Enabled = g_Params.IsVSCalcEnabled
     mnuVarSwapCalc.Visible = g_Params.IsVSCalcEnabled
+    
+    mnuToolsEtsMMCv.Enabled = g_Params.IsCVEnabled
+    mnuToolsEtsMMCv.Visible = g_Params.IsCVEnabled
+    
     SetWindowPos Me.hWnd, IIf(g_Params.MainWinAlwaysOnTop, HWND_TOPMOST, HWND_NOTOPMOST), 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE
     
     Set m_frmParams = New frmParams
@@ -462,10 +469,12 @@ Public Sub InitMessaging()
             Set aPubManager = MmwMsgManager
             aPubManager.RegPublisher enMtActiveFuturesChange, Nothing
             aPubManager.RegPublisher enMtFlexOption, Nothing
+            aPubManager.RegPublisher enMtSettingsUpdate, Nothing
             Set aPubManager = Nothing
             
             MmwMsgManager.SubActiveFuturesChange
             MmwMsgManager.SubFlexOption
+            MmwMsgManager.SubSettingsUpdate
             
         End If
     Exit Sub
@@ -595,9 +604,11 @@ Private Sub Form_Unload(Cancel As Integer)
     Set aPubManager = MmwMsgManager
     aPubManager.UnregPublisher enMtActiveFuturesChange, Nothing
     aPubManager.UnregPublisher enMtFlexOption, Nothing
+    aPubManager.UnregPublisher enMtSettingsUpdate, Nothing
+    
     MmwMsgManager.UnsubActiveFuturesChange
     MmwMsgManager.UnsubFlexOption
-    
+    MmwMsgManager.UnsubSettingsUpdate
     
     Set aParams = Nothing
     Set m_frmParams = Nothing
@@ -707,6 +718,38 @@ err_exeption:
                    g_PerformanceLog.LogMmInfo enLogUserAction, "Error while trying to add new root", "MmwMsgManager [frmMain]"
 End Sub
 
+Private Sub MmwMsgManager_OnSettingsUpdate(ByVal Data As MSGSTRUCTLib.ISettingsUpdate)
+On Error GoTo error_exception
+    g_Params.UseTheoVolatility = IIf(Data.GreeksCalculationMode = enGcmTheoreticalVolatility, True, False)
+Exit Sub
+error_exception:
+    gCmn.ErrorMsgBox Me, "Fail to process updated settings."
+End Sub
+
+Public Sub UpdateSettings()
+On Error GoTo error_exception
+
+        Dim aPubManager As MMWLib.IPubManager
+        Dim aData As SettingsUpdate
+        
+        Set aData = New SettingsUpdate
+        Set aPubManager = MmwMsgManager
+            
+        aData.GreeksCalculationMode = IIf(g_Params.UseTheoVolatility, _
+        enGcmTheoreticalVolatility, enGcmImpliedVolatility)
+        
+        aData.GreeksCalculationModel = g_Params.CalcModel
+        aData.GreeksCalculationPrecision = IIf(g_Params.UseTTE, 1, 0)
+        aData.PriceRoundingRule = g_Params.PriceRoundingRule
+        aData.PriceTolerance = g_Params.UndPriceToleranceValue
+        aData.UseTheoVolaIfBadMarketVola = g_Params.UseTheoBadMarketVola
+        aData.UseTheoVolaIfNoBid = g_Params.UseTheoNoBid
+        
+        aPubManager.PubSettingsUpdate aData
+Exit Sub
+error_exception:
+    gCmn.ErrorMsgBox Me, "Fail to process updated settings."
+End Sub
 
 Private Sub mnuExchangeRate_Click()
     On Error Resume Next
@@ -1202,6 +1245,16 @@ Public Sub RunBackOffice()
         gCmn.MyMsgBox Me, "Fail to run ETS Back Office application. ('" & sPath & "')", vbCritical
     End If
 End Sub
+
+Public Sub RunEtsMmCV()
+    On Error Resume Next
+    Dim sPath$
+    sPath = App.Path & "\EtsMmCv.exe"
+    If Shell(sPath, vbNormalFocus) = 0 Then
+        gCmn.MyMsgBox Me, "Fail to run IvRm (Custom Variable) application. ('" & sPath & "')", vbCritical
+    End If
+End Sub
+
 Public Sub RunOptionScanner()
     On Error Resume Next
     Dim sInfo As STARTUPINFO
@@ -1292,9 +1345,15 @@ Public Sub RunVolaManager(Optional ByVal sSymbol As String = "")
     End If
 End Sub
 
+
+
 Private Sub mnuToolsBackOffice_Click()
     On Error Resume Next
     RunBackOffice
+End Sub
+
+Private Sub mnuToolsEtsMMCv_Click()
+    RunEtsMmCV
 End Sub
 
 Private Sub mnuToolsEventLog_Click()
@@ -1512,7 +1571,7 @@ Public Sub WindowsShowInTaskBar(ByVal bShow As Boolean)
     Dim i&, nCount&
     
     g_Params.ShowWindowsInTaskbar = bShow
-    mnuWindowShowInTaskbar.Checked = g_Params.ShowWindowsInTaskbar
+    mnuWindowShowInTaskBar.Checked = g_Params.ShowWindowsInTaskbar
     
     nCount = g_ViewFrm.Count
     For i = 1 To nCount
@@ -1971,6 +2030,22 @@ Private Sub tmrPerformance_Timer()
         g_PerformanceLog.LogPerformanceCounters
 End Sub
 
+Public Sub PassiveRealtimeControl()
+    On Error Resume Next
+    Dim i&, aForm As clsFormAtom
+    
+    For i = 1 To g_ViewFrm.Count
+        Set aForm = g_ViewFrm(i)
+        If (TypeOf aForm.Frm Is frmQuotesViewSingle Or TypeOf aForm.Frm Is frmRiskView) Then
+            If aForm.Frm.IsRealTime Then
+                aForm.Frm.CheckPassiveRealtime
+            End If
+            Set aForm = Nothing
+        End If
+    Next
+    
+End Sub
+
 Public Sub StopExtraRT()
     On Error Resume Next
     Dim i&, nCount&, aForm As clsFormAtom
@@ -1986,6 +2061,43 @@ Public Sub StopExtraRT()
         For i = 1 To g_ViewFrm.Count
             Set aForm = g_ViewFrm(i)
             If TypeOf aForm.Frm Is frmQuotesViewSingle Then
+                If aForm.Frm.IsRealTime Then
+                    lCurrentRT = aForm.Frm.lRTNum
+                    If lCurrentRT < lMinRT Then
+                        lMinRT = lCurrentRT
+                        lMinRTFormNum = i
+                    End If
+                End If
+            End If
+            Set aForm = Nothing
+        Next
+        
+        If lMinRTFormNum > 0 Then
+            Set aForm = g_ViewFrm(lMinRTFormNum)
+            If Not aForm Is Nothing Then
+                aForm.Frm.StopRT
+            End If
+            Set aForm = Nothing
+        End If
+    Loop
+
+End Sub
+
+Public Sub StopExtraRvRT()
+    On Error Resume Next
+    Dim i&, nCount&, aForm As clsFormAtom
+    Dim lCurrentRT As Long
+    Dim lMinRT As Long
+    Dim lMinRTFormNum As Long
+
+    Do While g_RvRTQuantity > g_MaxRvRTQuantity
+        lMinRT = 1000000
+        lMinRTFormNum = -1
+        lCurrentRT = -1
+        
+        For i = 1 To g_ViewFrm.Count
+            Set aForm = g_ViewFrm(i)
+            If TypeOf aForm.Frm Is frmRiskView Then
                 If aForm.Frm.IsRealTime Then
                     lCurrentRT = aForm.Frm.lRTNum
                     If lCurrentRT < lMinRT Then

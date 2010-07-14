@@ -3,6 +3,7 @@
 
 #include "InterpolationEngine.h"
 #include "..\include\DataProtector.h"
+#include "boost\shared_ptr.hpp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -160,7 +161,7 @@ public:
 	{
 	}
 	double	ExpirationInterpolate( DATE dtExpDate, double dStrike, double UnderlyingPrice );
-
+	void CopyTo(CDataHolder* pDest);
 // Interface
 public:
 
@@ -255,10 +256,10 @@ public:
 	void SetIsBasePoint( DATE dtExpDate, double Strike, bool bIsBasePoint );
 
 	// Returns volatility value for particular strike and underline price
-	double GetPointVolatility( DATE dtExpDate, double Strike, double UnderlinePrice );
+	double GetPointVolatility( DATE dtExpDate, double Strike, double UnderlinePrice = 0);
 
 	// Returns volatility value for particular strike
-	double GetPointVolatility( DATE dtExpDate, double Strike );
+	/*double GetPointVolatility( DATE dtExpDate, double Strike );*/
 
 	// Returns volatility value of particular point
 	double GetPointVolatility( DATE dtExpDate, long nIndex );
@@ -289,6 +290,82 @@ public:
 
 	// Removes points marked as deleted and sets other points status to unchanged
 	void UpdateSkewStatus( DATE dtExpDate );
+};
+
+//--------------------------------------------------------------------//
+// Synthetic Volatility Surface Support								  //
+//--------------------------------------------------------------------//
+class CSubSurface
+{
+public:
+	//_bstr_t m_bsRootSymbol;
+	long	m_lSurfaceID;
+	long	m_lRootID;
+
+	CSubSurface(): /*m_bsRootSymbol(""),*/ m_lSurfaceID(0), m_lRootID(0)
+	{};
+
+	CSubSurface(/*_bstr_t bsRootSymbol,*/ long lRootID, long lSurfaceID)
+	{
+		/*m_bsRootSymbol	= _bstr_t(bsRootSymbol);*/
+		m_lSurfaceID	= lSurfaceID;
+		m_lRootID		= lRootID;
+	};
+};
+typedef std::map<long, CSubSurface> CRootSurfaceMap;
+typedef CRootSurfaceMap::iterator it_srm;
+typedef boost::shared_ptr<CDataHolder> CDataHolderPtr;
+
+class CSurfaceGroup: public std::map<long, CDataHolderPtr>
+{
+public:
+
+	CDataHolder& GetDataHolderBySurfaceID(long lSurfaceID)
+	{
+		iterator it = find(lSurfaceID);
+		if (it == end())
+		{
+			it = insert(value_type(lSurfaceID, CDataHolderPtr(new CDataHolder()))).first;
+		}
+		return *(it->second);
+	};
+
+	long GetSurfaceByRoot(long lRootID)
+	{
+		it_srm it = m_SurfaceMap.find( lRootID );
+		if (it == m_SurfaceMap.end())
+			it = m_SurfaceMap.find(-1);
+
+		return it->second.m_lSurfaceID;
+	};
+
+	CRootSurfaceMap m_SurfaceMap;
+
+	void AddSurface(_bstr_t bsRootSymbol, long lRootID, long lSurfaceID)
+	{
+		it_srm it = m_SurfaceMap.find(lRootID);
+		if ( it == m_SurfaceMap.end() )
+			m_SurfaceMap.insert( CRootSurfaceMap::value_type(lRootID, CSubSurface(/*bsRootSymbol,*/ lRootID, lSurfaceID)) );
+
+		GetDataHolderBySurfaceID( lSurfaceID );
+	};
+
+	void ProcessSurface(const _variant_t& vcRootSymbol, long lRootID, long nSurfaceID)
+	{
+		AddSurface( _bstr_t(vcRootSymbol), lRootID, nSurfaceID );
+	};
+
+
+	void ClearAll()
+	{
+		iterator it = begin();
+		for(it; it != end(); it++)
+		{
+			it->second->ClearAll();
+		}
+		clear();
+	};
+	//friend CDataHolder;
 };
 
 #endif //__DATAHOLDER_H__

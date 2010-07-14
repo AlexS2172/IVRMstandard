@@ -16,7 +16,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IMmTntCardBySeqCollDispImpl, IMm
 // CMmTntCardBySeqColl
 
 class ATL_NO_VTABLE CMmTntCardBySeqColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmTntCardBySeqColl, &CLSID_MmTntCardBySeqColl>,
 	public ISupportErrorInfoImpl<&IID_IMmTntCardBySeqColl>,
 	public IMmTntCardBySeqCollImpl

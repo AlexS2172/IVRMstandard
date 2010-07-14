@@ -141,50 +141,100 @@ void	SEgarSTK2Activ( std::vector<std::string>& Ex, std::vector<std::string>& Ax,
 		regions[i] =  ActivKey.length() ? ActivFeedSettings::g_spUserSettings->Settings->ActivExchange[EgarKey].GetExchangeRegion() : "USA";
 	}
 }
-void	SEgarOPT2Activ( std::vector<std::string>& Ex, std::vector<std::string>& Ax )
-{
-	size_t t = Ex.size();
-	for ( size_t i = 0; i < t; i++)
-	{
-		if( Ex[i] == " " || Ex[i] == "" )
-			Ax[i] = "_";
-		else
-			Ax[i] = Ex[i];
-		std::string strEgar( Ax[i] );
-		ActivFeedSettings::CExchangeKey exhKey = ActivFeedSettings::CExchangeKey(strEgar, ActivFeedSettings::CExchangeKey::enExchangeOption );
-		ActivFeedSettings::CEgarExchangeKey EgarKey(exhKey);
-		ActivFeedSettings::CActivExchangeKey ActivKey = ActivFeedSettings::g_spUserSettings->Settings->ActivExchange[EgarKey];
-		if(ActivKey.length())
-			Ax[i] = ActivKey;
-	}
-}
+//void	SEgarOPT2Activ( std::vector<std::string>& Ex, std::vector<std::string>& Ax )
+//{
+//	size_t t = Ex.size();
+//	for ( size_t i = 0; i < t; i++)
+//	{
+//		if( Ex[i] == " " || Ex[i] == "" )
+//			Ax[i] = "_";
+//		else
+//			Ax[i] = Ex[i];
+//		std::string strEgar( Ax[i] );
+//		ActivFeedSettings::CExchangeKey exhKey = ActivFeedSettings::CExchangeKey(strEgar, ActivFeedSettings::CExchangeKey::enExchangeOption );
+//		ActivFeedSettings::CEgarExchangeKey EgarKey(exhKey);
+//		ActivFeedSettings::CActivExchangeKey ActivKey = ActivFeedSettings::g_spUserSettings->Settings->ActivExchange[EgarKey];
+//		if(ActivKey.length())
+//			Ax[i] = ActivKey;
+//	}
+//}
 
-void	EgarOPT2Activ( std::string& Es, std::string& Ex, std::string& As, std::string& Ax ) 
-{
-	As = Es;
-	basic_string <char>::iterator it = ( As.end ( ) - 2 );
-	As.insert ( it , '/' );
-	it+=2;
-	As.insert ( it , '/' );
-	Ax = Ex;
-	if( Ax == " " || Ax == "" )
-		Ax = "_";
-	if( Ax.length() )
-	{
-		std::string strEgar( Ax );
-		ActivFeedSettings::CExchangeKey exhKey = ActivFeedSettings::CExchangeKey(strEgar, ActivFeedSettings::CExchangeKey::enExchangeOption );
-		ActivFeedSettings::CEgarExchangeKey EgarKey(exhKey);
-		ActivFeedSettings::CActivExchangeKey ActivKey = ActivFeedSettings::g_spUserSettings->Settings->ActivExchange[EgarKey];
-
-		if(ActivKey.length())
-			Ax = ActivKey;
-	}
-}
+//void	EgarOPT2Activ( std::string& Es, std::string& Ex, std::string& As, std::string& Ax ) 
+//{
+//	As = Es;
+//	basic_string <char>::iterator it = ( As.end ( ) - 2 );
+//	As.insert ( it , '/' );
+//	it+=2;
+//	As.insert ( it , '/' );
+//	Ax = Ex;
+//	if( Ax == " " || Ax == "" )
+//		Ax = "_";
+//	if( Ax.length() )
+//	{
+//		std::string strEgar( Ax );
+//		ActivFeedSettings::CExchangeKey exhKey = ActivFeedSettings::CExchangeKey(strEgar, ActivFeedSettings::CExchangeKey::enExchangeOption );
+//		ActivFeedSettings::CEgarExchangeKey EgarKey(exhKey);
+//		ActivFeedSettings::CActivExchangeKey ActivKey = ActivFeedSettings::g_spUserSettings->Settings->ActivExchange[EgarKey];
+//
+//		if(ActivKey.length())
+//			Ax = ActivKey;
+//	}
+//}
 
 void	EgarIDX2Activ( std::string& Es )
 {
 	Es = '=' + Es;
 }
+
+
+void
+CActivFeedContentGateway::ConvertExchange(_QuoteRequestPtr request, std::string &exchange_code){
+	if (request){
+		if (enOPT == request->Type){
+
+			exchange_code = request->Exchange;
+
+			if (exchange_code == ""){ //NBBO mapping exchange code
+				exchange_code = "_";
+			}
+
+			if (exchange_code.length()){
+				std::string strEgar( exchange_code );
+				
+				ActivFeedSettings::CExchangeKey exhKey = 
+					ActivFeedSettings::CExchangeKey(strEgar, ActivFeedSettings::CExchangeKey::enExchangeOption );
+
+				ActivFeedSettings::CEgarExchangeKey EgarKey(exhKey);
+
+				ActivFeedSettings::CActivExchangeKey ActivKey = 
+					ActivFeedSettings::g_spUserSettings->Settings->ActivExchange[EgarKey];
+
+				if(ActivKey.length())
+					exchange_code = ActivKey;
+			}
+		}
+	}
+}
+
+void
+CActivFeedContentGateway::ConvertRequest(_QuoteRequestPtr request, std::string &key){
+	if (request){
+		if (enOPT == request->Type){
+			static Activ::ContentPlatform::Feed::UsEquityOptionHelper optionHelper;
+
+			std::string exchange;
+			ConvertExchange(request, exchange);
+			
+			if(optionHelper.GetSymbolFromOsiSymbol(key,
+												request->Symbol,
+												exchange)
+												==STATUS_CODE_FAILURE)
+			{
+				key = request->Symbol + ".O";
+			}
+		}
+	}
+};
 
 void
 CActivFeedContentGateway::CancelStock(VARIANT Params)
@@ -387,10 +437,6 @@ CActivFeedContentGateway::RequestFUT( _QuoteRequestPtr& m_spRequest )
 	Blk1.m_fieldIdList.push_back( Feed::FID_NET_CHANGE );
 	Params.m_requestBlockList.push_back( Blk1 );
 
-	// 	Blk2.m_relationshipId = Feed::RELATIONSHIP_ID_FUTURE_ROOT;
-	// 	Blk2.m_fieldIdList.push_back(Feed::FID_CONTRACT_SIZE);
-	// 	Blk2.m_fieldIdList.push_back(Feed::FID_CURRENCY );
-	// 	Params.m_requestBlockList.push_back( Blk2 );
 	Params.m_matchType = MatchRequestParameters::MATCH_TYPE_COMPOSITE;
 
 	std::string sKey = m_spRequest->Symbol;
@@ -436,7 +482,7 @@ CActivFeedContentGateway::RequestIDX( _QuoteRequestPtr& m_spRequest, std::string
 	Params.m_requestBlockList.push_back( Blk1 );
 	Params.m_tableNumber = Feed::TABLE_NO_INDEX;
 	Params.m_symbolPattern = sKey;
-	//Params.m_maxResponseBlocks = 1;
+	
 	StatusCode SC = GetMultiplePatternMatch::PostRequest( *this, *spRequestID,	Params);
 	if( SC == STATUS_CODE_SUCCESS ) 
 		AddLastQuoteRequestToMap("", m_spRequest, spRequestID );
@@ -485,8 +531,8 @@ StatusCode	CActivFeedContentGateway::RequestLastQuote( _QuoteRequestPtr& spReque
 		}
 	case enOPT:
 		{
-			EgarOPT2Activ( spRequest->Symbol, spRequest->Exchange, As, Ae );
-			return RequestOPT( spRequest, As, Ae, enRequestType);
+			//EgarOPT2Activ( spRequest->Symbol, spRequest->Exchange, As, Ae );
+			return RequestOPT( spRequest, enRequestType);
 		}
 	case enMetal:
 	case enFX:
@@ -498,12 +544,14 @@ StatusCode	CActivFeedContentGateway::RequestLastQuote( _QuoteRequestPtr& spReque
 
 
 StatusCode	
-CActivFeedContentGateway::RequestOPT( _QuoteRequestPtr& spRequest, std::string& As, std::string& xch, CActivFeedContentGateway::CRequestType enRequestType )
+CActivFeedContentGateway::RequestOPT( _QuoteRequestPtr& spRequest, CActivFeedContentGateway::CRequestType enRequestType )
 {
 	StatusCode SC = STATUS_CODE_SUCCESS;
 
 	RequestBlock Blk1, Blk2, Blk3;
-	std::string sKey = As + '.' + xch;
+
+	std::string sKey = "";//As + '.' + xch;
+	ConvertRequest(spRequest, sKey);
 
 	if(enRegularRequest == enRequestType || enStartMultipleRequest == enRequestType)
 	{
@@ -570,8 +618,6 @@ CActivFeedContentGateway::RequestOPT( _QuoteRequestPtr& spRequest, std::string& 
 
 			m_MultipleOptionsRequest.m_symbolIdList.push_back( SymbolId( Feed::TABLE_NO_US_EQUITY_OPTION, sKey ) );
 
-			// 			ATLTRACE(sKey.c_str());
-			// 			ATLTRACE("\n");
 			AddLastQuoteRequestToMap(sKey, spRequest, spRequestID );
 		}break;
 	case enEndMultipleRequest:
@@ -582,9 +628,6 @@ CActivFeedContentGateway::RequestOPT( _QuoteRequestPtr& spRequest, std::string& 
 			spRequestID->Set(&lRequestID, sizeof(lRequestID));
 			m_MultipleOptionsRequest.m_symbolIdList.push_back( SymbolId( Feed::TABLE_NO_US_EQUITY_OPTION, sKey ) );
 			AddLastQuoteRequestToMap(sKey, spRequest, spRequestID );
-
-			// 			ATLTRACE(sKey.c_str());
-			// 			ATLTRACE("\n");
 			SC = GetMultipleEqual::PostRequest(*this, *spRequestID,	m_MultipleOptionsRequest );
 		}   	
 	}
@@ -860,12 +903,13 @@ bool	CActivFeedContentGateway::SubscribeIDX( _RealtimeQuoteAtomPtr& r, std::stri
 	return false;
 }
 
-bool	CActivFeedContentGateway::SubscribeOPT( _RealtimeQuoteAtomPtr& r, std::string& Opt, std::string& xch, CActivFeedContentGateway::CRequestType enRequestType)
+bool	CActivFeedContentGateway::SubscribeOPT( _RealtimeQuoteAtomPtr& r, CActivFeedContentGateway::CRequestType enRequestType)
 {
 	StatusCode SC = STATUS_CODE_SUCCESS;
 
 	RequestBlock Blk1, Blk2, Blk3;
-	std::string sKey = Opt + '.' + xch;
+	std::string sKey = ""; //Opt + '.' + xch;
+	ConvertRequest(r->m_spRequest, sKey);
 
 	if(enRegularRequest == enRequestType || enStartMultipleRequest == enRequestType)
 	{
@@ -1145,15 +1189,19 @@ bool CActivFeedContentGateway::SubscribeQuote(_QuoteRequestPtr& spRequest, CActi
 		break;
 	case enOPT:
 		{
-			As = spRequest->Symbol;
+			//As = spRequest->Symbol;
 			size_t t = Ee.size();
-			for( size_t i = 0; i < t; i++ )
-				Ae.push_back( std::string("") );
-			SEgarOPT2Activ( Ee, Ae );
-			basic_string <char>::iterator it = ( As.end ( ) - 2 );
+
+			//for( size_t i = 0; i < t; i++ )
+			//	Ae.push_back( std::string("") );
+
+			//SEgarOPT2Activ( Ee, Ae );
+
+			/*basic_string <char>::iterator it = ( As.end ( ) - 2 );
 			As.insert ( it , '/' );
 			it+=2;
-			As.insert ( it , '/' );
+			As.insert ( it , '/' );*/
+
 			for ( size_t i = 0; i < t; i++ )
 			{
 				_RealtimeQuoteAtomPtr rtu( new _RealtimeQuoteAtom );
@@ -1161,7 +1209,7 @@ bool CActivFeedContentGateway::SubscribeQuote(_QuoteRequestPtr& spRequest, CActi
 				rtu->m_spRequest->Symbol = spRequest->Symbol;
 				rtu->m_spRequest->Type = spRequest->Type;
 				rtu->m_spRequest->TryCount = spRequest->TryCount;
-				if( !SubscribeOPT( rtu, As, Ae[ i ], enType ) )
+				if( !SubscribeOPT( rtu, enType ) )
 					return false;
 			}
 		}
@@ -1657,11 +1705,6 @@ void	CActivFeedContentGateway::CopyUpdatedQuotes( QuoteUpdateFullInfo *pqufi, UI
 				fullinfo->Info.BidExchange= SysAllocString(CA2W( r->m_spResponse->BidExchange.c_str()) );
 				fullinfo->Info.AskExchange= SysAllocString(CA2W( r->m_spResponse->AskExchange.c_str()) );
 
-				//long Skipped;
-				//long TotalRequests;
-				//long WaitTime;
-
-				//fullinfo.CopyTo( &pqufi[c]);
 				EgLib::CEgLibTraceManager::Trace(LogWarning, __FUNCTION__ , _T("RTU - %S.%S[%d]"), SafeBSTR( pqufi[c].Params.Symbol), SafeBSTR( pqufi[c].Params.Exchange), pqufi[c].Params.Type );
 				r->m_bUpdate = false;
 				InterlockedDecrement( &m_UpdateCount );
@@ -1709,11 +1752,6 @@ CActivFeedContentGateway::OnGetEqualResponse(HeapMessage &response)
 					return;
 				}
 			}
-			/*			else{
-			CComVariant vtRequest;
-			vtRequest.Clear();
-			pApplication->OnSPError(enNoDataAvailableForSymbol, "No data received", enRequestStock, vtRequest);
-			}*/
 		}
 
 	}
@@ -1810,9 +1848,6 @@ CActivFeedContentGateway::OnGetEqualResponse(HeapMessage &response)
 
 			if( IsCompleteResponse(response) )
 			{
-
-				//				GetEqual::ResponseParameters Params;
-				//				StatusCode statusCode = GetEqual::Deserialize(*this, response, Params);
 				if( STATUS_CODE_SUCCESS == statusCode )
 				{
 					ResponseBlockList rbl = Params.m_responseBlockList;
@@ -1842,8 +1877,7 @@ CActivFeedContentGateway::OnGetEqualResponse(HeapMessage &response)
 									CAutoLock lc1( m_csPSMap );
 									m_PSMap.erase( m_PSMap.find( pRequestID ) );
 								}
-								//							else
-								//								r->m_spRequest->TryCount--;
+
 								pApp = NULL;
 								break;
 							}
@@ -1951,12 +1985,8 @@ void  CActivFeedContentGateway::OnResponse(HeapMessage &response,  T& Params,  R
 			}
 
 		}
-		// 		char buffer[1024]={0};
-		// 		sprintf(buffer, "%d\n", GetTickCount());
-		// 		ATLTRACE(buffer);
 		return;
 	}
-	// p == null if this response is for subscription
 	if(!pMap) 
 	{
 		CSMap* pSubsMap = NULL; 
@@ -2314,16 +2344,6 @@ void  CActivFeedContentGateway::OnResponse(HeapMessage &response,  T& Params,  R
 
 							if( (  p->m_spResponse->LastPrice == BAD_DOUBLE_VALUE || ! p->m_spResponse->LastPrice) /*&& pRequest && pRequest->Type != enOPT/*&& !bRealTime*/ ) 
 								p->m_spResponse->LastPrice =  p->m_spResponse->ClosePrice;
-							// 							 if( m_MarketOpenTime.wYear ) {
-							// 								 SYSTEMTIME st;
-							// 								 ::GetLocalTime( &st );
-							// 								 int t1 = st.wHour * 100 + st.wMinute;
-							// 								 int t2 = m_MarketOpenTime.wHour * 100 + m_MarketOpenTime.wMinute;
-							// 								 if ( t1 < t2 ) {
-							// 									 if( (  p->m_spResponse->LastPrice == BAD_DOUBLE_VALUE || ! p->m_spResponse->LastPrice) /*&& pRequest && pRequest->Type != enOPT/*&& !bRealTime*/ ) 
-							// 										 p->m_spResponse->LastPrice =  p->m_spResponse->ClosePrice;
-							// 								 }
-							// 							 }
 						}
 						break;
 					case Feed::FID_CONTRACT_SIZE:
@@ -2390,8 +2410,6 @@ void  CActivFeedContentGateway::OnResponse(HeapMessage &response,  T& Params,  R
 	}
 
 	if (NotFound) {
-		//std::string e = "Unsupported symbol";
-		//_bstr_t e1( e.c_str() );
 		if ( IsValidResponse( response ) ) {
 			const ResponseBlock& rb = *rbl.begin();
 			pApp->OnBIError( enSymbolNotSupported, ResponseBlock::StatusToString( rb.m_status ).c_str(), enRequestLastQuote, p->m_spRequest );
@@ -2484,178 +2502,8 @@ CActivFeedContentGateway::OnGetMultiplePatternMatchListResponse(HeapMessage &res
 	}
 }
 
-/*
-_QuoteAtomPtr FindLastQuoteRequest( RequestIdPtr& p )
-{
-CAutoLock l( m_csLU );
-CLUMap::iterator i =  m_LU.find( p);
-if( i != m_LU.end() )
-return i->second;
-return _QuoteAtomPtr( NULL );
-}
-_RealtimeQuoteAtomPtr	FindPendingSubscription( RequestIdPtr& p )
-{
-CAutoLock l( m_csPSMap );
-CPSMap::iterator i =  m_PSMap.find( p);
-if( i != m_PSMap.end() )
-return i->second;
-return _RealtimeQuoteAtomPtr( NULL );
-}
-
-void SPMulPatMtchResponse( RequestIdPtr& pRequstID, HeapMessage &response, RequestIdPtr& p )
-{
-bool IsLast = false;
-if(IsCompleteResponse(response))
-IsLast = true;
-
-switch(pRequest->m_enType)
-{
-case CRequestBase::_enRequestStock:
-{
-CRequest<StockParams>::CRequestPtr spOptRequest = boost::shared_dynamic_cast<CRequest<StockParams> >(pRequest);
-OnIndex(spOptRequest, response);
-if(IsLast)
-DeleteRequest(pRequestID);		
-}
-break;
-case CRequestBase::_enRequestFutures:
-{
-CRequest<FutureRootParams>::CRequestPtr spOptRequest = boost::shared_dynamic_cast<CRequest<FutureRootParams> >(pRequest);
-OnFutureByRoot(spOptRequest, response);
-if(IsLast)
-DeleteRequest(pRequestID);		
-}
-break;
-case CRequestBase::_enRequestFuture:
-{
-CRequest<FutureParams>::CRequestPtr spOptRequest = boost::shared_dynamic_cast<CRequest<FutureParams> >(pRequest);
-OnFuture(spOptRequest, response);
-if(IsLast)
-DeleteRequest(pRequestID);		
-}
-break;
-case CRequestBase::_enRequestFuturesOption:
-{
-SaveFutureOptionRoots(response);
-if(IsLast)
-RequestFutureOptionsByRoot(pRequestID);
-}
-break;
-case CRequestBase::_enRequestOption:
-{
-SaveIndexOptionRoots(response);
-RequestOptionsByRoot(pRequestID);
-}
-break;
-default:
-{
-// trace error
-
-}
-}
-}
-void SPMulPatMtchResponseErr( RequestIdPtr& p )
-{
-}
-
-void BIMulPatMtchResponseForRequestLastQuote( RequestIdPtr& pRequstID, HeapMessage &response, _QuoteAtomPtr& p )
-{
-CActivFeedAppication* pApp = dynamic_cast<CActivFeedAppication*>( &GetApplication() );
-if ( !pApp ) {
-// trace internal error
-}
-
-GetMultiplePatternMatch::ResponseParameters Params;
-StatusCode SC = GetMultiplePatternMatch::Deserialize( *this, response, Params);
-/*if( !IsValidResponse(response) ){
-pApp->OnBIError( enSymbolNotSupported, StatusCodeToString( response.GetStatusCode() ).c_str(), enRequestLastQuote, p->m_spRequest );
-return;
-}
-if( response.GetStatusCode() != STATUS_CODE_SUCCESS &&  response.GetStatusCode() != STATUS_CODE_PENDING ) {
-pApp->OnBIError( enSymbolNotSupported, StatusCodeToString( response.GetStatusCode() ).c_str(), enRequestLastQuote, p->m_spRequest );
-CAutoLock lock(m_csLU);
-m_LU.erase( m_LU.find( pRequestID) );
-return;
-}
-if( STATUS_CODE_SUCCESS != SC ) {
-// trace error and notify client
-
-}
-ResponseBlockList rbl = Params.m_responseBlockList;
-ResponseBlockList::const_iterator it = rbl.begin(), itend = rbl.end();
-for( it = rbl.begin(); it != itend; it++ ) {
-const ResponseBlock& rb = *it;
-if( rb.m_status != ResponseBlock::STATUS_SUCCESS ) {
-pApp->OnBIError( enSymbolNotSupported, ResponseBlock::StatusToString( rb.m_status ).c_str(), enRequestLastQuote, p->m_spRequest );
-}
-else{
-ApplyMPResponseToQUI( rb, p->m_spResponse.get() );
-pApp->OnRequstLast( p->m_spRequest, p->m_spResponse );
-CAutoLock lock(m_csLU);
-m_LU.erase( m_LU.find( pRequestID) );
-break;
-}
-}
-
-else{
-pApp->OnBIError( enSymbolNotSupported, StatusCodeToString( response.GetStatusCode() ).c_str(), enRequestLastQuote, p->m_spRequest );
-pApp = NULL;
-}
-// notify client
-if( pApp )
-pApp->OnRequstLast( p->m_spRequest, p->m_spResponse );
-{
-CAutoLock lock(m_csLU);
-m_LU.erase( m_LU.find( pRequestID) );
-}
-return;
-}
-
-void BIMulPatMtchResponseForSubscribeQuote( RequestIdPtr& pRequstID, HeapMessage &response, _RealtimeQuoteAtomPtr& p )
-{
-}
-
-void BIMulPatMtchResponseForRequestLastQuoteErr( _QuoteAtomPtr& p, const char *errmsg )
-{
-}
-
-void BIMulPatMtchResponseForSubscribeQuoteErr( _RealtimeQuoteAtomPtr& p, const char *errmsg )
-{
-}
-*/
 void CActivFeedContentGateway::OnGetMultiplePatternMatchResponse(HeapMessage &response)
 {
-	/*CActivFeedAppication *pApp = NULL;
-
-	// check is it valid response
-	if ( IsValidResponse( response ) ) {
-	RequestIdPtr pRequestID(new RequestId(response.GetRequestId()));
-	CRequestBasePtr pRequest = GetRequest(pRequestID);
-
-	if ( pRequest ) 
-	SPMulPatMtchResponse( pRequestID, response, pRequest );								// response for request from Structure Provider
-	else if ( ( _QuoteAtomPtr p = FindLastQuoteRequest( pRequestID) ) ) 
-	BIMulPatMtchResponseForRequestLastQuote( pRequestID, response, p );		// response for request last quote from Batch Info
-	else if ( ( _RealtimeQuoteAtomPtr p = FindPendingSubscription( response, pRequestID) ) ) 
-	BIMulPatMtchResponseForSubscribeQuote( pRequestID, response, p );			// response for subscribe to quote request from Batch Info
-	else{
-	// this is error
-	}
-	}
-	else{
-	RequestIdPtr pRequestID(new RequestId(response.GetRequestId()));
-	CRequestBasePtr pRequest = GetRequest(pRequestID);
-
-	if ( pRequest ) 
-	SPMulPatMtchResponseErr( response, pRequest );								// error in request from Structure Provider
-	else if ( ( _QuoteAtomPtr p = FindLastQuoteRequest( pRequestID) ) ) 
-	BIMulPatMtchResponseForRequestLastQuoteErr( p, StatusCodeToString( response.GetStatusCode() ).c_str() );		// error for request last quote from Batch Info
-	else if ( ( _RealtimeQuoteAtomPtr p = FindPendingSubscription( pRequestID) ) ) 
-	BIMulPatMtchResponseForSubscribeQuoteErr( p, StatusCodeToString( response.GetStatusCode() ).c_str() );			// error for subscribe to quote request from Batch Info
-	else{
-	// this is error
-	}
-	}*/
 	bool bHack = false;
 
 	if (!IsValidResponse(response)){
@@ -4050,249 +3898,7 @@ CActivFeedAppication*	CActivFeedContentGateway::ApplyResponseToQUI( _Reaquest &P
 	}
 	return pApp;
 }
-//void	CActivFeedContentGateway::ApplyMEResponseToQUI( ResponseBlock& rb, _QuoteInfo *p )
-//{
-//	if( rb.IsValidResponse() )
-//	{
-//		if( STATUS_CODE_SUCCESS == m_FieldListValidator.Initialize( rb.m_fieldData ) )
-//		{
-//			FieldListValidator::ConstIterator fit, fitEnd;
-//			for ( fit = m_FieldListValidator.Begin(), fitEnd = m_FieldListValidator.End(); fit != fitEnd; fit++ ) 
-//			{
-//				const FieldListValidator::Field& fld = fit.GetField();
-//				if ( FIELD_STATUS_DEFINED == fld.m_fieldStatus ) 
-//				{
-//					switch( fld.m_fieldId) 
-//					{
-//					case Feed::FID_OPEN_INTEREST:
-//						{
-//							Activ::UInt bidsize;
-//							IFieldType* pUpdateField = static_cast<Activ::UInt*>(&bidsize);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->OpenInterest = static_cast<long>( bidsize.Get());
-//						}
-//						break;
-//					case Feed::FID_CURRENCY:
-//						{
-//							Activ::TextArray pText;
-//							IFieldType* pUpdateField = static_cast<Activ::TextArray*>(&pText);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->Currency = pText.ToString();
-//						}
-//						break;
-//					case Feed::FID_PREVIOUS_BID:
-//						{
-//							if( ( p->BidPrice == BAD_DOUBLE_VALUE || !p->BidPrice ) ) {
-//								Activ::Rational bid;
-//								IFieldType* pUpdateField = static_cast<Activ::Rational*>(&bid);
-//								(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//								p->BidPrice = bid.Get();
-//							}
-//						}
-//						break;
-//					case Feed::FID_BID:
-//						{
-//							Activ::TRational bid;
-//							IFieldType* pUpdateField = static_cast<Activ::TRational*>(&bid);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->BidPrice = bid.Get();
-//							Activ::TRational::Tick t = bid.GetTick();
-//							switch( t )
-//							{
-//							case Activ::TRational::TICK_DOWN:
-//								p->PriceTick |= enBidDnTick;
-//								break;
-//							case Activ::TRational::TICK_UP:
-//								p->PriceTick |= enBidUpTick;
-//								break;
-//							default:;
-//							}
-//						}
-//						break;
-//					case Feed::FID_BID_SIZE:
-//						{
-//							Activ::UInt bidsize;
-//							IFieldType* pUpdateField = static_cast<Activ::UInt*>(&bidsize);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->BidSize = static_cast<long>(bidsize.Get());
-//						}
-//						break;
-//					case Feed::FID_BID_EXCHANGE:
-//						{
-//							Activ::TextString pText;
-//							IFieldType* pUpdateField = static_cast<Activ::TextString*>(&pText);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->BidExchange = pText.ToString();
-//						}
-//						break;
-//					case Feed::FID_PREVIOUS_ASK:
-//						{
-//							if( ( p->AskPrice == BAD_DOUBLE_VALUE ||  !p->AskPrice )  ) {
-//								Activ::Rational ask;
-//								IFieldType* pUpdateField = static_cast<Activ::Rational*>(&ask);
-//								(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//								p->AskPrice = ask.Get();
-//							}
-//						}
-//						break;
-//					case Feed::FID_ASK:
-//						{
-//							Activ::TRational ask;
-//							IFieldType* pUpdateField = static_cast<Activ::TRational*>(&ask);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->AskPrice = ask.Get();
-//							Activ::TRational::Tick t = ask.GetTick();
-//							switch( t )
-//							{
-//							case Activ::TRational::TICK_DOWN:
-//								p->PriceTick |= enAskDnTick;
-//								break;
-//							case Activ::TRational::TICK_UP:
-//								p->PriceTick |= enAskUpTick;
-//								break;
-//							default:;
-//							}
-//						}
-//						break;
-//					case Feed::FID_ASK_SIZE:
-//						{
-//							Activ::UInt asksize;
-//							IFieldType* pUpdateField = static_cast<Activ::UInt*>(&asksize);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->AskSize = static_cast<long>(asksize.Get());
-//						}
-//						break;
-//					case Feed::FID_ASK_EXCHANGE:
-//						{
-//							Activ::TextString pText;
-//							IFieldType* pUpdateField = static_cast<Activ::TextString*>(&pText);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->AskExchange = pText.ToString();
-//						}
-//						break;
-//					case Feed::FID_TRADE_EXCHANGE:
-//						{
-//							Activ::TextString pText;
-//							IFieldType* pUpdateField = static_cast<Activ::TextString*>(&pText);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->Exchange = pText.ToString();
-//						}
-//						break;
-//					case Feed::FID_OPEN:
-//						{
-//							Activ::Rational opn;
-//							IFieldType* pUpdateField = static_cast<Activ::Rational*>(&opn);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->OpenPrice = opn.Get();
-//						}
-//						break;
-//					case Feed::FID_LAST_UPDATE_DATE:
-//						{
-//							Activ::Date dt;
-//							EgLib::vt_date	pdate( p->UpdateDateTime );
-//							IFieldType* pUpdateField = static_cast<Activ::Date*>(&dt);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							int year = dt.GetYear();
-//							int month = dt.GetMonth();
-//							int day = dt.GetDay();
-//							EgLib::vt_date d( year, month, day, 0/*pdate.get_hour()*/, 0/*pdate.get_minute()*/, 0/*pdate.get_second()*/ );
-//							p->UpdateDateTime = d;
-//						}
-//						break;
-//					case Feed::FID_LAST_UPDATE_TIME:
-//						{
-//							Activ::Time dt;
-//							EgLib::vt_date	pdate( p->UpdateDateTime );
-//							IFieldType* pUpdateField = static_cast<Activ::Time*>(&dt);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							int hour = dt.GetHour();
-//							int minute = dt.GetMinute();
-//							int second = dt.GetSecond();
-//							EgLib::vt_date d( pdate.get_year(), pdate.get_month(), pdate.get_day(),hour, minute, second );
-//							p->UpdateDateTime = d;
-//						}
-//						break;
-//					case Feed::FID_CUMULATIVE_VOLUME:
-//						{
-//							Activ::UInt volume;
-//							IFieldType* pUpdateField = static_cast<Activ::UInt*>(&volume);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->Volume = static_cast<long>(volume.Get());
-//						}
-//						break;
-//					case Feed::FID_CLOSE:
-//						{
-//							Activ::Rational opn;
-//							IFieldType* pUpdateField = static_cast<Activ::Rational*>(&opn);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->ClosePrice = opn.Get();
-//						}
-//						break;
-//					case Feed::FID_CONTRACT_SIZE:
-//					case Feed::FID_SHARES_PER_CONTRACT:
-//						{
-//							Activ::UInt asksize;
-//							IFieldType* pUpdateField = static_cast<Activ::UInt*>(&asksize);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->LotSize = static_cast<long>(asksize.Get());
-//						}
-//						break;
-//					case Feed::FID_TRADE:
-//						{
-//							Activ::TRational ask;
-//							IFieldType* pUpdateField = static_cast<Activ::TRational*>(&ask);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->LastPrice = ask.Get();
-//							Activ::TRational::Tick t = ask.GetTick();
-//							switch( t )
-//							{
-//							case Activ::TRational::TICK_DOWN:
-//								p->PriceTick |= enLastSaleDnTick;
-//								break;
-//							case Activ::TRational::TICK_UP:
-//								p->PriceTick |= enLastSaleUpTick;
-//								break;
-//							default:;
-//							}
-//						}
-//						break;
-//					case Feed::FID_TRADE_HIGH:
-//						{
-//							Activ::Rational opn;
-//							IFieldType* pUpdateField = static_cast<Activ::Rational*>(&opn);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->HighPrice = opn.Get();
-//						}
-//						break;
-//					case Feed::FID_TRADE_LOW:
-//						{
-//							Activ::Rational opn;
-//							IFieldType* pUpdateField = static_cast<Activ::Rational*>(&opn);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->LowPrice = opn.Get();
-//						}
-//						break;
-//					case Feed::FID_NET_CHANGE:
-//						{
-//							Activ::TRational ask;
-//							IFieldType* pUpdateField = static_cast<Activ::TRational*>(&ask);
-//							(void) pUpdateField->Assign(fld.m_pIFieldType); // set new field values
-//							p->NetChange = ask.Get();
-//						}
-//						break;
-//					default:;
-//						p->Status = enQuoteStatus_Unreliable;
-//					}
-//				}
-//				else
-//				{
-//					p->Status = enQuoteStatus_Unreliable;
-//				}
-//			}
-//
-//		}
-//	}
-//}
+
 void	CActivFeedContentGateway::ApplyMPResponseToQUI( ResponseBlock& rb, _QuoteInfo * p, bool bRealTime , _QuoteRequest *pRequest)
 {
 	if( rb.IsValidResponse() )

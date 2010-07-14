@@ -11,37 +11,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Pequote", "Pequote\Pequote.vcproj", "{EB28C32D-3FEE-40A7-87EC-99FE60B40D3A}"
 EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 6
-		SccProjectName0 = RTTF
-		SccLocalPath0 = .
-		SccProvider0 = MSSCCI:ClearCase
-		CanCheckoutShared = false
-		SccProjectUniqueName1 = Sage\\Sage_GUI.vcproj
-		SccProjectName1 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MarketInterfaces/RTTF/Sage\u0022,\u0020KTZCAAAA
-		SccLocalPath1 = Sage
-		CanCheckoutShared = false
-		SccProjectUniqueName2 = Sage\\Utils\\TradesUploader\\TradesUploader.vcproj
-		SccProjectName2 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MarketInterfaces/RTTF/Sage/Utils/TradesUploader\u0022,\u0020PVZCAAAA
-		SccLocalPath2 = Sage\\Utils\\TradesUploader
-		CanCheckoutShared = false
-		SccProjectUniqueName3 = OConnor\\OConnor.vcproj
-		SccProjectName3 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MarketInterfaces/RTTF/OConnor\u0022,\u0020ZRZCAAAA
-		SccLocalPath3 = OConnor
-		CanCheckoutShared = false
-		SccProjectUniqueName4 = CIBC\\CIBCTradeFeedAdapter.vcproj
-		SccProjectName4 = \u0022$/ETS/Production\u00202.1\u0020CIBC\u0020(2)/MarketInterfaces/RTTF/CIBC\u0022,\u0020USUDAAAA
-		SccLocalPath4 = CIBC
-		CanCheckoutShared = false
-		SccProjectUniqueName5 = Pequote\\Pequote.vcproj
-		SccProjectName5 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MarketInterfaces/RTTF/Pequote\u0022,\u0020ZRZCAAAA
-		SccLocalPath5 = Pequote
-		CanCheckoutShared = false
-		SccProjectUniqueName5 = Pequote\\Pequote.vcproj
-		SccProjectName5 = \u0022$/ETS/Production\u00202.1\u0020CIBC/MarketInterfaces/RTTF/Pequote\u0022,\u0020ZRZCAAAA
-		SccLocalPath5 = Pequote
-		CanCheckoutShared = false
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32

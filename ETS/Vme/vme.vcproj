@@ -5,9 +5,6 @@
 	Name="VME"
 	ProjectGUID="{B04BBDBA-BAB9-419A-8D8D-034D9AE0F947}"
 	RootNamespace="VME"
-	SccProjectName="SAK"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="AtlProj"
 	>
 	<Platforms>

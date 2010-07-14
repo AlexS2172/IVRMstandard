@@ -46,15 +46,16 @@ BOOL CSageApp::InitInstance()
 	SetMiniDumpDefaultCrashHandler();
 #endif
 
-	CString strCmdStart("-Start");
-	CString strCmdStop ("-Stop");
 	CSageDlg dlg;
 
-	if(strCmdStop.CompareNoCase(m_lpCmdLine)==0)
+	CString sParams(m_lpCmdLine);
+	
+	if( sParams.Find(_T("-Stop")) >= 0 )
 	{
 		dlg.AutoStop(true);
 		return FALSE;
 	}
+
 
 	LPCTSTR szSingleInstanceMutex = _T("EGAR SAGE {1772A390-F4B7-4d4c-8949-1A11955CC803}");
 	m_hSingleInstanceMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, szSingleInstanceMutex);
@@ -72,7 +73,7 @@ BOOL CSageApp::InitInstance()
 	CTracer::CreateFileName();
 	
     m_pMainWnd = &dlg;
-	dlg.AutoStart(strCmdStart.CompareNoCase(m_lpCmdLine)==0);
+	dlg.AutoStart( sParams.Find(_T("-Start")) >= 0 );
     dlg.DoModal();
 
     CoUninitialize();

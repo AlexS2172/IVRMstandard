@@ -9,7 +9,8 @@
 STDMETHODIMP CMmGaGroupAtom::CalcUnderlying(IMmGaUndAtom* aUnd, EtsCalcModelTypeEnum enCalcModel,
 											VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
 											VARIANT_BOOL bUseTheoVolaBadMarket, DOUBLE dUndPriceTolerance, 
-											EtsPriceRoundingRuleEnum enPriceRoundingRule )
+											EtsPriceRoundingRuleEnum enPriceRoundingRule,
+											ICalculationParametrs* pParams)
 {
 	if(aUnd == NULL)
 	{
@@ -21,7 +22,7 @@ STDMETHODIMP CMmGaGroupAtom::CalcUnderlying(IMmGaUndAtom* aUnd, EtsCalcModelType
 		IMmGaUndAtomPtr spUnd(aUnd);
 		__CHECK_HRESULT(spUnd->CalcPositions(m_spUnd, enCalcModel, bUseTheoVolatility, 
 									bUseTheoVolaNoBid, bUseTheoVolaBadMarket, dUndPriceTolerance, 
-									enPriceRoundingRule), _T("Fail to calculate underlying positions."));
+									enPriceRoundingRule, pParams), _T("Fail to calculate underlying positions."));
 	}
 	catch(const _com_error& e)
 	{

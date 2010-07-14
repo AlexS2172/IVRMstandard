@@ -4,9 +4,6 @@
 	Version="8.00"
 	Name="EgHttp"
 	ProjectGUID="{48DD7667-1914-42F1-A5AE-9A300BE448D5}"
-	SccProjectName="&quot;$/EgCommon&quot;, HNDAAAAA"
-	SccLocalPath=".."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="Win32Proj"
 	>
 	<Platforms>

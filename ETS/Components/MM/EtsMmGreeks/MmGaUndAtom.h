@@ -151,7 +151,8 @@ private:
 	STDMETHOD(_CalcPosition)(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp, IMmGaUndColl* pCollUnd, DOUBLE dUndPriceMid,
 							EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid,
 							VARIANT_BOOL bUseTheoVolaBadMarket, DOUBLE dUndPriceTolerance, 
-							EtsPriceRoundingRuleEnum enPriceRoundingRule );
+							EtsPriceRoundingRuleEnum enPriceRoundingRule,
+							ICalculationParametrs* pParams);
 
 	STDMETHOD(_GetSyntheticUnderlyingPrice)(IMmGaUndColl* pCollUnd, ISynthRootAtom* pSynthRoot,
 											DOUBLE& dSpotBid, DOUBLE& dSpotAsk, DOUBLE& dSpotLast);
@@ -212,7 +213,8 @@ public:
 	STDMETHOD(CalcPositions)(IMmGaUndColl* collUnd, EtsCalcModelTypeEnum enCalcModel,
 							VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
 							VARIANT_BOOL bUseTheoVolaBadMarket, DOUBLE dUndPriceTolerance, 
-							EtsPriceRoundingRuleEnum enPriceRoundingRule );
+							EtsPriceRoundingRuleEnum enPriceRoundingRule,
+							ICalculationParametrs* pParams);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmGaUndAtom), CMmGaUndAtom)

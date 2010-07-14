@@ -4,9 +4,7 @@
 	Version="8.00"
 	Name="MsgStruct"
 	ProjectGUID="{BED720E9-4235-47DC-A717-F150003C548C}"
-	SccProjectName="&quot;$/ETS/Production 2.1 CIBC/MsgStruct&quot;, CDZCAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
+	RootNamespace="MsgStruct"
 	Keyword="AtlProj"
 	>
 	<Platforms>
@@ -947,6 +945,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SettingsUpdate.cpp"
+				>
+			</File>
+			<File
 				RelativePath="StdAfx.cpp"
 				>
 				<FileConfiguration
@@ -1252,6 +1254,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SettingsUpdate.h"
+				>
+			</File>
+			<File
 				RelativePath="StdAfx.h"
 				>
 			</File>
@@ -1314,6 +1320,10 @@
 			</File>
 			<File
 				RelativePath=".\PriceUpdate.rgs"
+				>
+			</File>
+			<File
+				RelativePath=".\SettingsUpdate.rgs"
 				>
 			</File>
 			<File

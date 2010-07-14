@@ -4,9 +4,6 @@
 	Version="8.00"
 	Name="Pequote"
 	ProjectGUID="{EB28C32D-3FEE-40A7-87EC-99FE60B40D3A}"
-	SccProjectName="&quot;$/ETS/Production 2.1 CIBC/MarketInterfaces/RTTF/Pequote&quot;, ZRZCAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="MFCProj"
 	>
 	<Platforms>

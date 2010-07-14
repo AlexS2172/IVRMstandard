@@ -25,7 +25,7 @@ struct __MmTntCounterPartyAtom
 /////////////////////////////////////////////////////////////////////////////
 //
 class ATL_NO_VTABLE CMmTntCounterPartyAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmTntCounterPartyAtom, &CLSID_MmTntCounterPartyAtom>,
 	public ISupportErrorInfoImpl<&IID_IMmTntCounterPartyAtom>,
 	public IDispatchImpl<IMmTntCounterPartyAtom, &IID_IMmTntCounterPartyAtom, &LIBID_EtsMmGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,

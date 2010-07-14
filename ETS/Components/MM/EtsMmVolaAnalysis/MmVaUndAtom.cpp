@@ -22,7 +22,8 @@ void CMmVaUndAtom::_GetBasketIndexDividends(REGULAR_DIVIDENDS* pDivs, LONG nMaxC
 /////////////////////////////////////////////////////////////////////////////
 //
 STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTypeEnum enCalcModel,
-											VARIANT_BOOL bUseTheoVolatility)
+											VARIANT_BOOL bUseTheoVolatility,
+											ICalculationParametrs* pParams)
 {
 	try
 	{
@@ -41,14 +42,18 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 				DOUBLE dStrike = 0.;
 				__CHECK_HRESULT3(spAtmStr->get_Strike(&dStrike));
 
-				DATE dtTemp = 0., dTemp = 0., dtExpiryOV = 0., tmCloseTime = 0., dtNow = 0.;
+				DATE	dtTemp = 0., dTemp = 0., dtExpiryOV = 0., tmCloseTime = 0., dtNow = 0.;
 				DOUBLE	dYTE = 0.;
-				GREEKS aGreeks;
+				bool	bUseTimePrecision = true;
+				GREEKS	aGreeks;
 
 				__CHECK_HRESULT3(m_spCurExpiry->get_ExpiryOV(&dtExpiryOV));
 				__CHECK_HRESULT3(m_spCurExpiry->get_TradingClose(&tmCloseTime));
+				if (pParams)
+					bUseTimePrecision = (pParams->UseTimePrecision != VARIANT_FALSE);
+
 				::GetNYDateTimeAsDATE(&dtNow);
-				dYTE = (dtExpiryOV - dtNow) / 365.;
+				::GetCalculationParams(dtNow, dtExpiryOV, tmCloseTime, bUseTimePrecision, &dtNow, &dtExpiryOV, &tmCloseTime, &dYTE);
 
 				LONG nDivCount = 0L, nRetCount = 0L;
 				DOUBLE dYield = 0.;
@@ -116,58 +121,15 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 					break;	
 				}
 
-				//if(m_enUndType == enCtStock)
-				//{
-				//	if (m_spDividend != NULL)
-				//		nDivCount = 0;
-				//	m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
-				//	if (nDivCount< 0)
-				//		nDivCount = 0;
-
-				//	if (nDivCount> 0)
-				//	{
-				//		LPSAFEARRAY psaDates = NULL;
-				//		LPSAFEARRAY psaAmounts = NULL;
-				//		m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
-				//		saDates.Attach(psaDates);
-				//		saAmounts.Attach(psaAmounts);
-				//	}
-				//}
-				//else
-				//{
-				//	dYield = m_dYield;
-				//	if(m_spBasketIndex != NULL)
-				//	{
-				//		LONG nBaskDivCount = 0L; VARIANT_BOOL bIsBasket = VARIANT_FALSE;
-				//		nDivCount = 0;
-				//		IEtsIndexDivCollPtr spDivColl = NULL;
-				//		m_spBasketIndex->get_BasketDivs(&spDivColl);
-				//		_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
-
-				//		if(bIsBasket)
-				//			dYield = 0.0;
-
-				//		if ( bIsBasket && spDivColl != NULL)
-				//		{
-				//			spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
-				//			if(nDivCount > 0L)
-				//			{
-				//				LPSAFEARRAY psaDates = NULL;
-				//				LPSAFEARRAY psaAmounts = NULL;
-				//				spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
-				//				saDates.Attach(psaDates);
-				//				saAmounts.Attach(psaAmounts);
-				//			}
-				//		}
-				//	}
-
-				//}
 				if(nDivCount <= 0)
 					nDivCount = 0;
 
 
 				DOUBLE dRate = 0.;
 				__CHECK_HRESULT3(m_spCurExpiry->get_Rate(&dRate));
+
+				DOUBLE dHTBRate = BAD_DOUBLE_VALUE;
+				__CHECK_HRESULT3(m_spCurExpiry->get_HTBRate(&dHTBRate));
 
 				LONG nModel = static_cast<LONG>(enCalcModel);
 				LONG nIsAmerican = (m_bIsAmerican ? 1L : 0L);
@@ -250,7 +212,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								// calc iv bid for call
 								if(dOptCallBid > 0.)
 								{
-									dIvCallBid = ::CalcVolatilityMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dOptCallBid, dStrike, dYTE,
+									dIvCallBid = ::CalcVolatilityMM2(dRate, dYield, dHTBRate, m_dPriceLast, dOptCallBid, dStrike, dYTE,
 												enOtCall, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel);
 									if(dIvCallBid > 0.)
 									{
@@ -261,7 +223,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								// calc iv bid for ask
 								if(dOptPutBid > 0.)
 								{
-									dIvPutBid = ::CalcVolatilityMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dOptPutBid, dStrike, dYTE,
+									dIvPutBid = ::CalcVolatilityMM2(dRate, dYield, dHTBRate, m_dPriceLast, dOptPutBid, dStrike, dYTE,
 												enOtPut, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel);
 									if(dIvPutBid > 0.)
 									{
@@ -279,7 +241,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								if(dIvCallBid > 0.)
 								{
 									aGreeks.nMask = GT_VEGA | GT_DELTA;
-									nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dStrike, dIvCallBid, dYTE,
+									nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, m_dPriceLast, dStrike, dIvCallBid, dYTE,
 												enOtCall, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 									if(nRetCount != 0L)
 									{
@@ -301,7 +263,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								if(dIvPutBid > 0.)
 								{
 									aGreeks.nMask = GT_VEGA | GT_DELTA;
-									nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dStrike, dIvPutBid, dYTE,
+									nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, m_dPriceLast, dStrike, dIvPutBid, dYTE,
 												enOtPut, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 									if(nRetCount != 0L)
 									{
@@ -347,7 +309,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								// calc iv ask for call
 								if(dOptCallAsk > 0.)
 								{
-									dIvCallAsk = ::CalcVolatilityMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dOptCallAsk, dStrike, dYTE,
+									dIvCallAsk = ::CalcVolatilityMM2(dRate, dYield, dHTBRate, m_dPriceLast, dOptCallAsk, dStrike, dYTE,
 												enOtCall, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel);
 									if(dIvCallAsk > 0.)
 									{
@@ -358,7 +320,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								// calc iv ask for put
 								if(dOptPutAsk > 0.)
 								{
-									dIvPutAsk = ::CalcVolatilityMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dOptPutAsk, dStrike, dYTE,
+									dIvPutAsk = ::CalcVolatilityMM2(dRate, dYield, dHTBRate, m_dPriceLast, dOptPutAsk, dStrike, dYTE,
 												enOtPut, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel);
 									if(dIvPutAsk > 0.)
 									{
@@ -376,7 +338,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								if(dIvCallAsk > 0.)
 								{
 									aGreeks.nMask = GT_VEGA | GT_DELTA;
-									nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dStrike, dIvCallAsk, dYTE,
+									nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, m_dPriceLast, dStrike, dIvCallAsk, dYTE,
 												enOtCall, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 									if(nRetCount != 0L)
 									{
@@ -398,7 +360,7 @@ STDMETHODIMP CMmVaUndAtom::CalcCurrentValues(DOUBLE dVegaAmount, EtsCalcModelTyp
 								if(dIvPutAsk > 0.)
 								{
 									aGreeks.nMask = GT_VEGA | GT_DELTA;
-									nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, m_dPriceLast, dStrike, dIvPutAsk, dYTE,
+									nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, m_dPriceLast, dStrike, dIvPutAsk, dYTE,
 												enOtPut, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 									if(nRetCount != 0L)
 									{

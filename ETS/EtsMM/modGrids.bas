@@ -9,7 +9,10 @@ Public Const GRID_VERT_SPACE As Long = 0
 ' ------------------------------------------------------------------------------------------------------
 ' - Risk View                                                                                          -
 ' ------------------------------------------------------------------------------------------------------
-
+Public g_RTC_COLUMN_COUNT As Long
+Public g_RTC_LAST_COLUMN As Long
+Public g_RPC_COLUMN_COUNT As Long
+Public g_RPC_LAST_COLUMN As Long
 'Public Enum RisksFilterColumnEnum
 '    RFC_NONE = IDX_NONE
 '
@@ -121,6 +124,9 @@ Public Enum MatrixScenarioColumnEnum
     MSC_NONE = IDX_NONE
     
     MSC_NAME
+    
+    MSC_VALUE_CHANGE
+    
     MSC_HORZ_AXIS
     MSC_HORZ_POINTS
     MSC_HORZ_STEP
@@ -137,8 +143,15 @@ Public Enum MatrixScenarioColumnEnum
     MSC_VERT_STEP_MIN
     
     MSC_VERT_UNITS
-    MSC_VOLA_SHIFT
     
+    MSC_CALC_MODEL
+    
+    MSC_VOLA_SHIFT
+    MSC_VOLA_SPECIFIC
+    
+    MSC_SPOT_SHIFT
+    MSC_CORR_INDEX
+    MSC_SPOT_SPECIFIC
     
     MSC_COLUMN_COUNT
     MSC_LAST_COLUMN = MSC_COLUMN_COUNT - 1
@@ -405,17 +418,18 @@ End Enum
 ' - Greeks View                                                                                        -
 ' ------------------------------------------------------------------------------------------------------
 
-'Public Enum GreeksFilterColumnEnum
-'    GFC_NONE = IDX_NONE
-'
-'    GFC_GROUP
-'    GFC_VALUE
-'    GFC_TYPE
-'    GFC_MODEL
-'
-'    GFC_COLUMN_COUNT
-'    GFC_LAST_COLUMN = GFC_COLUMN_COUNT - 1
-'End Enum
+Public Enum GreeksUnderlyingRowEnum
+    GUR_NONE = IDX_NONE
+    GUR_TIME_VALUE = 1
+    GUR_DELTA_EQ
+    GUR_DELTA_IN_SHARES
+    GUR_GAMMA_EQ
+    GUR_VEGA
+    GUR_RHO
+    GUR_THETA
+    GUR_ROW_COUNT
+    GUR_LAST_ROW = GUR_ROW_COUNT - 1
+End Enum
 
 Public Enum GreeksUnderlyingColumnEnum
     GUC_NONE = IDX_NONE
@@ -430,6 +444,9 @@ Public Enum GreeksUnderlyingColumnEnum
     GUC_COLUMN_COUNT
     GUC_LAST_COLUMN = GUC_COLUMN_COUNT - 1
 End Enum
+
+Public g_GUR_ROW_COUNT As Long
+Public g_GUR_LAST_ROW As Long
 
 ' ------------------------------------------------------------------------------------------------------
 ' - Hedge Summary                                                                                      -
@@ -538,6 +555,7 @@ Public Enum UnderlyinsListColumnEnum
     NLC_FUT_UND
     NLC_FUT_MATURITY
     NLC_SOQ
+    NLC_ALLOW_LENDING
     NLC_HEDGE_SYMBOL
     NLC_HEAD_COMP
     NLC_COEFF
@@ -875,7 +893,8 @@ Public Enum GridTypeEnum
     GT_VOLAANALYSIS_UNDERLYING
     
     GT_GREEKS_FILTER
-    GT_GREEKS_UNDERLYING
+    GT_GREEKS_COLUMNS
+    GT_GREEKS_ROWS
     
     GT_HEDGESUMMARY_FILTER
     GT_HEDGESUMMARY_INSTRUMENTS
@@ -1090,8 +1109,12 @@ Private Sub InitQuotesGrids()
         .Col(QDC_AMT).Init "Amt", "Dividends Amount", "#,##0.00", flexDTDouble, True, False, True, False
         .Col(QDC_RATE).Init "Rates", "Interest Rates Type", "", flexDTString, True, False, True, False
         .Col(QDC_RATE_VAL).Init "Rate", "Interest Rate Value", "#,##0.00", flexDTDouble, True, False, True, False
+        .Col(QDC_FLT_TRADER).Init "Trader", "Trader Name", "", flexDTString, True, False, True, False
+        .Col(QDC_FLT_STRATEGY).Init "Strategy", "Strategy Name", "", flexDTString, True, False, True, False
         .Col(QDC_VOLA_IS_MANUAL).Init "ManualVola", "Is Vola Manual", "", flexDTBoolean, True, False, True, False
         .Col(QDC_DATECALC).Init "Calculation Date", "Calculation Date", "MM/DD/YYYY hh:mm AMPM", flexDTDate, False, False, True, True
+        .Col(QDC_VOLA_SIM).Init "Vol Simulation", "Vol Simulation", "", flexDTBoolean, True, False, True, True
+        .Col(QDC_VOLA_FLAT).Init "Flat Vol", "Flat Vol", "", flexDTBoolean, True, False, True, True
     End With
     
     ' quotes vola grid
@@ -1105,7 +1128,7 @@ Private Sub InitQuotesGrids()
         
         .Col(QVC_VOLA).Init "Moneyness", "Expiry", "", flexDTString, False, False, True, False
         .Col(QVC_VOLA_VAL).Init "Vola", "ATM Volatility", "#,##0.00", flexDTDouble, True, False, True, False
-    
+        
     End With
     
     ' quotes futures grid
@@ -1505,7 +1528,7 @@ Private Sub InitTntCardsGrids()
     End With
 End Sub
 
-Private Sub InitRisksGrids()
+Public Sub InitRisksGrids(Optional ByVal cvGrpCount As Long = 0, Optional ByVal cvOptCount As Long = 0)
     On Error Resume Next
     Dim i&
     Set g_DefGrids(GT_RISKS_FILTER) = Nothing
@@ -1520,7 +1543,7 @@ Private Sub InitRisksGrids()
     With g_DefGrids(GT_RISKS_FILTER)
         .Init RFC_SYMBOL, RFC_LAST_COLUMN
         .IsRowSelection = False
-        
+
         For i = 0 To RFC_LAST_COLUMN
             .Idx(i) = i
         Next
@@ -1530,22 +1553,22 @@ Private Sub InitRisksGrids()
         .Col(RFC_GROUPS).Init "Group", "Groups", "", flexDTString, True, False, True, False
         .Col(RFC_TRADER).Init "Trader", "Traders", "", flexDTString, True, False, True, False
         .Col(RFC_STRATEGY).Init "Strategy", "Strategy Type", "", flexDTString, True, False, True, False
-        
+
         .Col(RFC_EXPIRY).Init "Expiry", "Options Expiry", "", flexDTString, True, False, True, False
         .Col(RFC_INDEX).Init "Hedge Symbol", "Hedge Symbol for Calculations", "", flexDTString, True, False, True, False
         .Col(RFC_MODEL).Init "Model", "Options Calculation Model", "", flexDTString, False, False, True, False
         .Col(RFC_SIM_DATE).Init "Calculation Date", "Calculation Date", "MM/DD/YYYY hh:mm AMPM", flexDTDate, False, False, False, False
     End With
-    
+
     ' risks total grid
     With g_DefGrids(GT_RISKS_TOTALS)
-        .Init RTC_PNL_MTM, RTC_LAST_COLUMN
+        .Init RTC_PNL_MTM, RTC_LAST_COLUMN + cvGrpCount
         .IsRowSelection = False
-        
+
         For i = 0 To RTC_LAST_COLUMN
             .Idx(i) = i
         Next
-        
+
         .Col(RTC_PNL_MTM).Init "P&L MTM", "Mark to Market P&L", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         .Col(RTC_PNL_THEO).Init "P&L Theo", "Theoretical P&L", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         .Col(RTC_PNL_EDGE).Init "P&L Edge", "P&L Edge", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
@@ -1561,20 +1584,24 @@ Private Sub InitRisksGrids()
         '.Col(RTC_NET_DELTA).Init "NetDlt", "Underlyings NetDlt Sum", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         '.Col(RTC_NET_GAMMA).Init "NetGma$1", "Underlyings Gma$1 Sum", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         .Col(RTC_BETA_WTD_DELTA_USD).Init "BtWtdDlt$", "Beta Weighted Delta $ Equivalent", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
-    
+
         .Col(RTC_NET_EXPOSURE_LONG).Init "NetExpLong%", "Net Exposure Long%", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         .Col(RTC_NET_EXPOSURE_SHORT).Init "NetExpShort%", "Net Exposure Short%", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
         .Col(RTC_NET_EXPOSURE).Init "NetExp%", "Net Exposure%", "#,##0.00", flexDTDouble, False, True, True, True, "Some Items N/A"
-        
-    
+
+
         For i = RTC_PNL_MTM To RTC_LAST_COLUMN
             .Col(i).ForeColorAlt1 = &HC0&
         Next
+
+        g_RTC_LAST_COLUMN = RTC_LAST_COLUMN
+        g_RTC_COLUMN_COUNT = RTC_COLUMN_COUNT
+
     End With
     
     ' risks list grid
     With g_DefGrids(GT_RISKS_POSITIONS)
-        .Init RPC_SYMBOL, RPC_LAST_COLUMN
+        .Init RPC_SYMBOL, RPC_LAST_COLUMN + cvOptCount
         .IsRowSelection = True
         
         For i = RPC_SYMBOL To RPC_LAST_COLUMN
@@ -1631,7 +1658,8 @@ Private Sub InitRisksGrids()
         '.Col(RPC_SYNTHETIC_PRICE).Init "SU Prc", "Synthetic Price", "#,##0.00", flexDTDouble, False, True, True, True
         .Col(RPC_THEO_VOL).Init "TheoVol", "Theo Volatility", "#,##0.00", flexDTDouble, False, True, False, True
         .Col(RPC_ACTIVEPRC).Init "Active Prc", "Active Price", "#,##0.00", flexDTDouble, True, True, True, True
-
+        .Col(RPC_IMPLIED_VOLA).Init "IVol", "Implied Volatility", "#,##0.00", flexDTDouble, False, True, False, True
+        
         .Col(RPC_FPRICE_FORMAT).Init "FPrFormat", "Fut Price Format", "", flexDTString, False, True, True, True, "Some Items N/A"
         '.Col(RPC_FCNTR_SIZE).Init "FCntrSize", "Fut Cntr Size", "#,##0", flexDTLong, False, True, True, True, "Some Items N/A"
         .Col(RPC_FQUOT_UNIT).Init "FQuotUnit", "Fut Quote Unit", "", flexDTString, False, True, True, True, "Some Items N/A"
@@ -1653,8 +1681,42 @@ Private Sub InitRisksGrids()
         For i = RPC_PNL_MTM To RPC_BETA_WTD_DELTA_USD
             .Col(i).ForeColorAlt1 = &HC0&
         Next
+        
+        g_RPC_LAST_COLUMN = RPC_LAST_COLUMN
+        g_RPC_COLUMN_COUNT = RPC_COLUMN_COUNT
+        
     End With
 End Sub
+
+Public Function AddRisksColumn(Info As CVLib.cvInfo, GridType As GridTypeEnum) As Long
+    On Error Resume Next
+    
+    Select Case GridType
+        Case GT_RISKS_POSITIONS
+            g_RPC_LAST_COLUMN = g_RPC_LAST_COLUMN + 1
+            g_RPC_COLUMN_COUNT = g_RPC_COLUMN_COUNT + 1
+    
+            g_DefGrids(GT_RISKS_POSITIONS).Idx(g_RPC_LAST_COLUMN - RPC_SYMBOL) = g_RPC_LAST_COLUMN
+            g_DefGrids(GT_RISKS_POSITIONS).Col(g_RPC_LAST_COLUMN).Init Info.Caption, Info.Name, _
+            "#,##0.00", IIf(Info.Type = cvNumeric, flexDTDouble, flexDTString), False, True, True, True, "", "", IIf(Info.Type = cvNumeric, True, False)
+    
+            AddRisksColumn = g_RPC_LAST_COLUMN
+            Exit Function
+        Case GT_RISKS_TOTALS
+            g_RTC_LAST_COLUMN = g_RTC_LAST_COLUMN + 1
+            g_RTC_COLUMN_COUNT = g_RTC_COLUMN_COUNT + 1
+    
+            g_DefGrids(GT_RISKS_TOTALS).Idx(g_RTC_LAST_COLUMN) = g_RTC_LAST_COLUMN
+            g_DefGrids(GT_RISKS_TOTALS).Col(g_RTC_LAST_COLUMN).Init Info.Caption, Info.Name, _
+            "#,##0.00", IIf(Info.Type = cvNumeric, flexDTDouble, flexDTString), False, True, True, True, "", "", IIf(Info.Type = cvNumeric, True, False)
+    
+            AddRisksColumn = g_RTC_LAST_COLUMN
+            Exit Function
+    End Select
+    
+End Function
+
+
 
 Private Sub InitRiskMatrixGrids()
     On Error Resume Next
@@ -1682,12 +1744,8 @@ Private Sub InitRiskMatrixGrids()
         .Col(MFC_TRADER).Init "Trader", "Traders", "", flexDTString, True, False, True, False
         .Col(MFC_TRADER_GROUP).Init "TraderGroup", "Traders groups", "", flexDTString, True, False, True, False
         .Col(MFC_STRATEGY).Init "Strategy", "Strategy Type", "", flexDTString, True, False, True, False
-        
-        .Col(MFC_SHIFT).Init "Shift", "Shift Type", "", flexDTString, True, False, True, False
         .Col(MFC_EXPIRY).Init "Expiry", "Options Expiry", "", flexDTString, True, False, True, False
-        .Col(MFC_INDEX).Init "Hedge Symbol", "Hedge Symbol for Calculations", "", flexDTString, True, False, True, False
-        .Col(MFC_MODEL).Init "Model", "Options Calculation Model", "", flexDTString, True, False, True, False
-        
+                
         .Col(MFC_PNL).Init "P&L", "Theo P&L", "", flexDTBoolean, True, False, True, False
         .Col(MFC_DELTA).Init "NetDlt$", "Net Delta $ Equivalent", "", flexDTBoolean, True, False, True, False
         .Col(MFC_NET_DELTA).Init "NetDlt", "Net Delta", "", flexDTBoolean, True, False, True, False
@@ -1710,6 +1768,9 @@ Private Sub InitRiskMatrixGrids()
         Next
         
         .Col(MSC_NAME).Init "Scenario", "Scenario Name", "", flexDTString, True, False, True, False
+        
+        .Col(MSC_VALUE_CHANGE).Init "Change", "Value Change", "", flexDTBoolean, True, False, True, False
+        
         .Col(MSC_HORZ_AXIS).Init "hAxis", "Horizontal Axis Type", "", flexDTString, True, False, True, False
         .Col(MSC_HORZ_POINTS).Init "hPts", "Horizontal Points Count", "", flexDTString, True, False, True, False
         .Col(MSC_HORZ_STEP).Init "hStep", "Horizontal Step Value", "#,##0.00", flexDTDouble, True, False, True, False
@@ -1726,7 +1787,16 @@ Private Sub InitRiskMatrixGrids()
         .Col(MSC_VERT_STEP_MIN).Init "minutes", "", "#,##0", flexDTLong, True, False, True, False
         
         .Col(MSC_VERT_UNITS).Init "vUnits", "Vertical Units Type", "", flexDTString, True, False, True, False
+        
+        .Col(MSC_CALC_MODEL).Init "Model", "Options Calculation Model", "", flexDTString, True, False, True, False
+        
         .Col(MSC_VOLA_SHIFT).Init "VolShift", "Volatility Shift Type", "", flexDTString, True, False, True, False
+        .Col(MSC_VOLA_SPECIFIC).Init "VolaGroupShift", "Volatility Specific Shift Type", "", flexDTString, True, False, True, False
+        
+        .Col(MSC_SPOT_SHIFT).Init "SpotShift", "Shift Type", "", flexDTString, True, False, True, False
+        .Col(MSC_SPOT_SPECIFIC).Init "SpotGroupShift", "Spot Specific Shift Type", "", flexDTString, True, False, True, False
+        .Col(MSC_CORR_INDEX).Init "SpotShiftIndex", "Index Symbol for Calculations", "", flexDTString, True, False, True, False
+        
     End With
     
     ' matrix values grid
@@ -2118,10 +2188,10 @@ Private Sub InitGreeksGrids()
     On Error Resume Next
     Dim i&
     Set g_DefGrids(GT_GREEKS_FILTER) = Nothing
-    Set g_DefGrids(GT_GREEKS_UNDERLYING) = Nothing
+    Set g_DefGrids(GT_GREEKS_COLUMNS) = Nothing
     
     Set g_DefGrids(GT_GREEKS_FILTER) = New clsGridDef
-    Set g_DefGrids(GT_GREEKS_UNDERLYING) = New clsGridDef
+    Set g_DefGrids(GT_GREEKS_COLUMNS) = New clsGridDef
     
     ' greeks filter grid
     With g_DefGrids(GT_GREEKS_FILTER)
@@ -2142,7 +2212,7 @@ Private Sub InitGreeksGrids()
     End With
     
     ' greeks underlyings grid
-    With g_DefGrids(GT_GREEKS_UNDERLYING)
+    With g_DefGrids(GT_GREEKS_COLUMNS)
         .Init GUC_SYMBOL, GUC_LAST_COLUMN
         .IsRowSelection = True
         
@@ -2161,6 +2231,64 @@ Private Sub InitGreeksGrids()
         For i = GUC_EXPIRY_ODD To GUC_SYM_TOTAL
             .Col(i).ForeColorAlt1 = &HC0&
         Next
+    End With
+End Sub
+
+Public Sub LoadGreekRowsDefaults()
+    On Error Resume Next
+    Dim aStorage As New clsSettingsStorage
+    Dim sPath$, sFileName$
+    
+    sFileName = GetDefaultSettingsFileName(GT_GREEKS_COLUMNS)
+    sPath = MakeCommonFilePath("EtsSettings", sFileName, False)
+    aStorage.Init sPath
+    aStorage.ReadData
+    If Err.Number = 0 Then
+        If aStorage.GetStringValue("Type", "Value") = GetDefaultSettingsTypeName(GT_GREEKS_COLUMNS) Then
+            g_DefGrids(GT_GREEKS_COLUMNS).ReadFromStorage "Grid", aStorage
+        End If
+    End If
+
+End Sub
+
+Public Function AddGreeksRow(Info As CVLib.cvInfo) As Long
+    On Error Resume Next
+    
+    g_GUR_LAST_ROW = g_GUR_LAST_ROW + 1
+    g_GUR_ROW_COUNT = g_GUR_ROW_COUNT + 1
+
+    g_DefGrids(GT_GREEKS_ROWS).Idx(g_GUR_LAST_ROW - GUR_TIME_VALUE) = g_GUR_LAST_ROW
+    g_DefGrids(GT_GREEKS_ROWS).Col(g_GUR_LAST_ROW).Init Info.Caption, Info.Name, _
+    "#,##0.00", IIf(Info.Type = cvNumeric, flexDTDouble, flexDTString), False, True, True, True
+
+    AddGreeksRow = g_GUR_LAST_ROW
+    
+End Function
+
+Public Sub InitGreeksRows(Optional ByVal cvCount As Long = 0)
+    On Error Resume Next
+    Dim i&
+    Set g_DefGrids(GT_GREEKS_ROWS) = Nothing
+    Set g_DefGrids(GT_GREEKS_ROWS) = New clsGridDef
+    
+    With g_DefGrids(GT_GREEKS_ROWS)
+        .Init GUR_TIME_VALUE, GUR_LAST_ROW + cvCount
+        .IsRowSelection = True
+        
+        For i = GUR_TIME_VALUE To GUR_LAST_ROW + cvCount
+            .Idx(i - GUR_TIME_VALUE) = i
+        Next
+    
+        .Col(GUR_TIME_VALUE).Init "TimeValue", "TimeValue", "#,##0", flexDTEmpty, False, True, True, True
+        .Col(GUR_DELTA_EQ).Init "OptDlt$", "OptDlt$", "#,##0", flexDTEmpty, False, True, True, True
+        .Col(GUR_DELTA_IN_SHARES).Init "OptDlt", "OptDlt", "#,##0", flexDTEmpty, False, True, True, True
+        .Col(GUR_GAMMA_EQ).Init "NetGma$", "NetGma$", "#,##0", flexDTEmpty, False, True, True, True
+        .Col(GUR_RHO).Init "Rho", "Rho", "#,##0", flexDTEmpty, False, True, True, True
+        .Col(GUR_VEGA).Init "Vega", "Vega", "#,##0", flexDTEmpty, False, True, True, True
+        .Col(GUR_THETA).Init "Tht", "Tht", "#,##0", flexDTEmpty, False, True, True, True
+        
+        g_GUR_LAST_ROW = GUR_LAST_ROW
+        g_GUR_ROW_COUNT = GUR_ROW_COUNT
     End With
 End Sub
 
@@ -2310,6 +2438,7 @@ Private Sub InitUnderlyingsGrids()
         .Col(NLC_FUT_UND).Init "FutUnd", "Futures Underlying Symbol", "", flexDTString, False, True, False, True
         .Col(NLC_FUT_MATURITY).Init "FutMat", "Futures Maturity Date", "MM/DD/YYYY", flexDTDate, False, True, False, True
         .Col(NLC_SOQ).Init "SOQ", "Start Opening Quotation", "#,##0.00", flexDTDouble, True, True, True, True
+        .Col(NLC_ALLOW_LENDING).Init "Allow Lending", "Is Allow Lending", "", flexDTBoolean, True, True, True, True
         .Col(NLC_HEDGE_SYMBOL).Init "Hedge", "Hedge Symbol", "", flexDTBoolean, True, True, True, True
         .Col(NLC_HEAD_COMP).Init "Head comp", "Head component", "", flexDTString, False, True, False, True
         .Col(NLC_COEFF).Init "Coeff", "Coefficient", "#,##0.00", flexDTDouble, True, True, False, True
@@ -2672,8 +2801,10 @@ Public Function GetDefaultSettingsFileName(ByVal enGridType As GridTypeEnum) As 
             GetDefaultSettingsFileName = "VolaAnalysisUnderlyings.Default"
         Case GT_GREEKS_FILTER
             GetDefaultSettingsFileName = "GreeksFilter.Default"
-        Case GT_GREEKS_UNDERLYING
+        Case GT_GREEKS_COLUMNS
             GetDefaultSettingsFileName = "GreeksUnderlyings.Default"
+        Case GT_GREEKS_ROWS
+            GetDefaultSettingsFileName = "GreeksRows.Default"
         Case GT_HEDGESUMMARY_FILTER
             GetDefaultSettingsFileName = "HedgeSummaryFilter.Default"
         Case GT_HEDGESUMMARY_INSTRUMENTS
@@ -2746,7 +2877,7 @@ Public Function GetDefaultSettingsTypeName(ByVal enGridType As GridTypeEnum) As 
             GetDefaultSettingsTypeName = "Quotation"
         Case GT_VOLAANALYSIS_FILTER, GT_VOLAANALYSIS_UNDERLYING
             GetDefaultSettingsTypeName = "Volatility Analysis"
-        Case GT_GREEKS_FILTER, GT_GREEKS_UNDERLYING
+        Case GT_GREEKS_FILTER, GT_GREEKS_COLUMNS, GT_GREEKS_ROWS
             GetDefaultSettingsTypeName = "Greeks"
         Case GT_HEDGESUMMARY_FILTER, GT_HEDGESUMMARY_INSTRUMENTS, GT_HEDGESUMMARY_RESULTS, GT_HEDGESUMMARY_TOTAL
             GetDefaultSettingsTypeName = "Hedge Summary"
@@ -2785,7 +2916,7 @@ Public Function GetDefaultGridViewName(ByVal enGridType As GridTypeEnum) As Stri
             GetDefaultGridViewName = "Quotation"
         Case GT_VOLAANALYSIS_FILTER, GT_VOLAANALYSIS_UNDERLYING
             GetDefaultGridViewName = "Volatility Analysis"
-        Case GT_GREEKS_FILTER, GT_GREEKS_UNDERLYING
+        Case GT_GREEKS_FILTER, GT_GREEKS_COLUMNS, GT_GREEKS_ROWS
             GetDefaultGridViewName = "Greeks"
         Case GT_HEDGESUMMARY_FILTER, GT_HEDGESUMMARY_INSTRUMENTS, GT_HEDGESUMMARY_RESULTS, GT_HEDGESUMMARY_TOTAL
             GetDefaultGridViewName = "Hedge Summary"
@@ -2856,8 +2987,10 @@ Public Function GetDefaultGridColumnsName(ByVal enGridType As GridTypeEnum) As S
             GetDefaultGridColumnsName = "Underlyings"
         Case GT_GREEKS_FILTER
             GetDefaultGridColumnsName = "Filter"
-        Case GT_GREEKS_UNDERLYING
+        Case GT_GREEKS_COLUMNS
             GetDefaultGridColumnsName = "Underlyings"
+        Case GT_GREEKS_ROWS
+            GetDefaultGridColumnsName = "ValueRows"
         Case GT_HEDGESUMMARY_FILTER
             GetDefaultGridColumnsName = "Filter"
         Case GT_HEDGESUMMARY_INSTRUMENTS
@@ -2911,6 +3044,61 @@ Public Function GetDefaultGridColumnsName(ByVal enGridType As GridTypeEnum) As S
     End Select
 End Function
 
+Public Sub LoadRisksDefaults()
+    On Error Resume Next
+    Dim aStorage As New clsSettingsStorage
+    Dim sPath$, sFileName$
+    
+    sFileName = GetDefaultSettingsFileName(GT_RISKS_TOTALS)
+    sPath = MakeCommonFilePath("EtsSettings", sFileName, False)
+    aStorage.Init sPath
+    aStorage.ReadData
+    If Err.Number = 0 Then
+        If aStorage.GetStringValue("Type", "Value") = GetDefaultSettingsTypeName(GT_RISKS_TOTALS) Then
+            g_DefGrids(GT_RISKS_TOTALS).ReadFromStorage "Grid", aStorage, True
+        End If
+    End If
+    
+    sFileName = GetDefaultSettingsFileName(GT_RISKS_POSITIONS)
+    sPath = MakeCommonFilePath("EtsSettings", sFileName, False)
+    aStorage.Init sPath
+    aStorage.ReadData
+    If Err.Number = 0 Then
+        If aStorage.GetStringValue("Type", "Value") = GetDefaultSettingsTypeName(GT_RISKS_POSITIONS) Then
+            g_DefGrids(GT_RISKS_POSITIONS).ReadFromStorage "Grid", aStorage, True
+        End If
+    End If
 
+End Sub
 
+Public Function DisplayNewCol(ByVal enGridType As GridTypeEnum, ByVal nID As Long)
+    On Error Resume Next
+    Dim i  As Long
+    
+    For i = 0 To GetColumnsCount(enGridType)
+        If g_DefGrids(enGridType).Idx(i) = IDX_NONE Then
+            g_DefGrids(enGridType).Idx(i) = nID
+            Exit For
+        End If
+    Next
+    
+    Dim aGridTemp As New clsGridDef
+    g_DefGrids(enGridType).CopyTo aGridTemp
+    SaveGridDefAsDefault aGridTemp, enGridType
+    
+End Function
+
+Public Function GetColumnsCount(ByVal enGridType As GridTypeEnum) As Long
+    On Error Resume Next
+    Select Case enGridType
+        Case GT_RISKS_TOTALS
+            GetColumnsCount = g_RTC_COLUMN_COUNT
+        Case GT_RISKS_POSITIONS
+            GetColumnsCount = g_RPC_COLUMN_COUNT
+'        Case GT_GREEKS_UND_ROWS
+'            GetColumnsCount = g_GUR_ROW_COUNT
+        Case Else
+            GetColumnsCount = 0
+    End Select
+End Function
 

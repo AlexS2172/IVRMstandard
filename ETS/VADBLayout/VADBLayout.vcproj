@@ -5,9 +5,6 @@
 	Name="VADBLayout"
 	ProjectGUID="{E92ACEC9-601B-4411-A4F9-2B9CD98AA6A4}"
 	RootNamespace="VADBLayout"
-	SccProjectName="SAK"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="AtlProj"
 	>
 	<Platforms>

@@ -147,6 +147,7 @@ Form=frmEndOfDay.frm
 Form=frmAssetGroupEditor.frm
 Class=clsTradesColl; clsTradesColl.cls
 Class=clsTradeAtom; clsTradeAtom.cls
+Form=frmSubSurfaceEditor.frm
 IconForm="frmMain"
 Startup="Sub Main"
 HelpFile=""

@@ -5,14 +5,24 @@
 
 
 // CMmTradeView
+//--------------------------------------------------------------------------------------------//
 bool CTradeViewSort::operator()(const IMmTradeInfoAtomPtr& Ptr1,  const IMmTradeInfoAtomPtr& Ptr2)
 {
-	CMmTradeInfoAtom* pPtr1 = static_cast<CMmTradeInfoAtom*>((IMmTradeInfoAtom*)Ptr1);
-	CMmTradeInfoAtom* pPtr2 = static_cast<CMmTradeInfoAtom*>((IMmTradeInfoAtom*)Ptr2);
-	if(pPtr1 && pPtr2)
+	//CMmTradeInfoAtom* pPtr1 = static_cast<CMmTradeInfoAtom*>((IMmTradeInfoAtom*)Ptr1);
+	//CMmTradeInfoAtom* pPtr2 = static_cast<CMmTradeInfoAtom*>((IMmTradeInfoAtom*)Ptr2);
+
+	if(Ptr1 && Ptr2)
 	{
-		_variant_t vt1;  bool bvt1 = pPtr1->GetField(m_enSortField, vt1, true);
-		_variant_t vt2;  bool bvt2 = pPtr2->GetField(m_enSortField, vt2, true);
+		VARIANT_BOOL bHasValue1, bHasValue2;
+		_variant_t vt1, vt2;		
+		Ptr1->raw_GetField(m_enSortField, VARIANT_TRUE, &vt1.GetVARIANT(), &bHasValue1);
+		Ptr2->raw_GetField(m_enSortField, VARIANT_TRUE, &vt2.GetVARIANT(), &bHasValue2);
+
+		bool bvt1 = (bHasValue1 == VARIANT_TRUE);
+		bool bvt2 = (bHasValue2 == VARIANT_TRUE);
+		
+		//bool bvt1 = pPtr1->GetField(m_enSortField, vt1, true);
+		//bool bvt2 = pPtr2->GetField(m_enSortField, vt2, true);
 
 		if(bvt1 && bvt2)
 		{
@@ -68,6 +78,7 @@ bool CTradeViewSort::operator()(const IMmTradeInfoAtomPtr& Ptr1,  const IMmTrade
 }
 
 
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::get_TradeViewFilter(/*[in]*/ EtsTradesFilterEnum Filter, /*[out, retval]*/ LONG* pVal)
 {
 	try{
@@ -86,18 +97,17 @@ STDMETHODIMP CMmTradeView::get_TradeViewFilter(/*[in]*/ EtsTradesFilterEnum Filt
 	return S_OK;
 }
 
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::put_TradeViewFilter(/*[in]*/ EtsTradesFilterEnum Filter, /*[in]*/ LONG newVal)
 {
 	try {
 		if(Filter > TFC_NONE && Filter <= TFC_LAST_COLUMN)
 		{
-			//long lOldOne = m_TradeViewFilters[Filter];
-			//m_TradeViewFilters[Filter] = newVal;
 			long lOldOne = m_spFilterData->Data[Filter];
 			m_spFilterData->Data[Filter] = newVal;
 			if(m_vecShow.empty() || lOldOne!=newVal)
 			{
-				m_pTradeChannel->FilterData(m_spFilterData, m_vecShow);
+				FilterData(m_spFilterData, m_vecShow);
 				PerformSorting();
 			}
 		}
@@ -112,6 +122,7 @@ STDMETHODIMP CMmTradeView::put_TradeViewFilter(/*[in]*/ EtsTradesFilterEnum Filt
 	return S_OK;
 }
 
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::put_TradeViewColumnsOrder(SAFEARRAY** colOrder)
 {
 	try
@@ -141,32 +152,41 @@ STDMETHODIMP CMmTradeView::put_TradeViewColumnsOrder(SAFEARRAY** colOrder)
 	return S_OK;
 }
 
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::raw_GetFieldCount (/*[out,retval]*/ long * pFields )
 {
 	//*pFields = static_cast<long>(TLC_COLUMN_COUNT);
 	*pFields = m_lVisibleColumns+1;
 	return S_OK;
 }
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::raw_GetRecordCount(/*[out,retval]*/ long * pRecords )
 {
 	*pRecords  = static_cast<long>(m_vecShow.size());
 	return S_OK;
 }
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::raw_GetFieldName  (/*[in]*/ long Field, /*[out,retval]*/ BSTR * pFieldName )
 {
 	*pFieldName = SysAllocString(L"");
 	return S_OK;
 }
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::raw_GetData		 (/*[in]*/ long Field, /*[in]*/ long Record, /*[out,retval]*/ BSTR * pData )
 {
 	*pData = NULL;
 	if(Field > 0 && m_ColumnsEncoding[Field-1]>=0 && static_cast<size_t>(Record) < m_vecShow.size())
 	{
 		IMmTradeInfoAtomPtr spPtr = m_vecShow[Record];
-		CMmTradeInfoAtom* pAtom = static_cast<CMmTradeInfoAtom*>((IMmTradeInfoAtom*)spPtr);
 
-		_variant_t  vt; 
-		if(pAtom->GetField(static_cast<TradesListColumnEnum>(m_ColumnsEncoding[Field-1]), vt))
+		_variant_t  vt;
+		VARIANT_BOOL bHaseValue;
+		spPtr->raw_GetField(static_cast<TradesListColumnEnum>(m_ColumnsEncoding[Field-1]),
+							VARIANT_FALSE,
+							&vt.GetVARIANT(),
+							&bHaseValue);
+
+		if (bHaseValue == VARIANT_TRUE)
 			*pData = _bstr_t(vt).copy();
 		else
 		{
@@ -177,11 +197,13 @@ STDMETHODIMP CMmTradeView::raw_GetData		 (/*[in]*/ long Field, /*[in]*/ long Rec
 		*pData = SysAllocString(L"Undefined");
 	return S_OK;
 }
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::raw_SetData		 (/*[in]*/ long Field,	/*[in]*/ long Record,/*[in]*/ BSTR newData )
 {
 	return S_OK;
 }
 
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::Sort(TradesListColumnEnum enField, EtsSortingEnum enSort)
 {
 	bool bResort = false;
@@ -200,6 +222,7 @@ STDMETHODIMP CMmTradeView::Sort(TradesListColumnEnum enField, EtsSortingEnum enS
 	return S_OK;
 }
 
+//--------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmTradeView::get_RowData(LONG lRow, IMmTradeInfoAtom** ppVal)
 {
 	HRESULT hr = S_OK;
@@ -223,3 +246,43 @@ STDMETHODIMP CMmTradeView::get_RowData(LONG lRow, IMmTradeInfoAtom** ppVal)
 	}
 	return hr;
 }
+//--------------------------------------------------------------------------------------------//
+void CMmTradeView::FilterData(IEtsFilterDataPtr spFilter, CTradeInfoViewData& refTrades)
+{
+	refTrades.clear();
+	IMmTradeInfoCollPtr spTrades = NULL;
+	_CHK(m_spTradeChannel->raw_GetData(spFilter, &spTrades), _T("Fail to GetData(Filter) from TradeChannel."));
+
+	if (static_cast<bool>(spTrades)){
+		long lItemsCount = 0L;
+		_CHK(spTrades->get_Count(&lItemsCount), _T("Fail to get count of items in collection."));
+
+		if (lItemsCount > 0){
+
+			IMmTradeInfoAtomPtr spItem = NULL;
+			_variant_t varItem;
+			ULONG nFetched		= 0L;
+			HRESULT hrStatus	= S_OK;
+
+			IUnknownPtr spUnk;
+			_CHK(spTrades->get__NewEnum(&spUnk), _T("Fail to get trade item from collection."));
+
+			IEnumVARIANTPtr spEnum(spUnk);
+			_CHK(spEnum->Reset(), _T("Fail to reset ATM option pair collection."));
+			while((hrStatus = spEnum->Next(1L, &varItem, &nFetched)) == S_OK)
+			{
+				ATLASSERT(varItem.vt == VT_DISPATCH);
+				spItem = varItem;
+				if(nFetched > 0 && spItem != NULL){
+					refTrades.push_back(spItem);
+				}
+				varItem.Clear();
+			}
+		}
+		spTrades->Clear();
+		spTrades.Release();
+		spTrades = NULL;
+	}
+}
+//--------------------------------------------------------------------------------------------//
+

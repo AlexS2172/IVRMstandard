@@ -62,13 +62,15 @@ double CoxRoss(	double	S,		// Underlying spot price
 	// This array contains dividends' payments on each step
 	double	Payment[cnTreeStepsMax] = {0.}; 
 
+	double	dDividendPv = 0.;
 	// Computes steps and cumulative dividend payment
 	for (long k = 0; k < DC; k++) 
 	{
 		if (DT[k] < 0. || !ValueNEQZero(DT[k]) || DT[k] > T || DA[k] < 0. || !ValueNEQZero(DA[k]))
 			continue;
-
-		S -= DividendPv(DA[k], Rd, Rb, DT[k]);						// Discounts the underlying
+		
+		dDividendPv = DividendPv(DA[k], Rd, Rb, DT[k]);						// Discounts the underlying
+		S -= dDividendPv;
 			
 		if (S < 0.)
 			return BadDoubleValue;
@@ -77,28 +79,32 @@ double CoxRoss(	double	S,		// Underlying spot price
 	
 		// Sometimes it can has two dividend payments in one day
 		if(Step < cnTreeStepsMax && Step >= 0L)
-			Payment[Step] += DividendPv(DA[k], Rd, Rb, DT[k]);
+			Payment[Step] += dDividendPv;
 	}
 	const double	S0 = S;		// stock price without dividends
+	const double	TimeStep = T / Steps;
 
 	const double	R = Rd - (Rf + Rb);						// Summary rate of underlying
-	const double	A = exp(R * T / Steps);					// Yield on one step 
-	const double	U = V * sqrt(T / Steps);				
+	const double	A = exp(R * TimeStep);					// Yield on one step 
+	const double	U = V * sqrt(TimeStep);				
 	const double	D = -U;
 	const double	P = (A - exp(D)) / (exp(U) - exp(D)); 
 	
 	// Probabilities of changing spot price 
-	double	Pu = P / exp(Rd * T / Steps);		// Upper
-	double	Pd = (1-P) / exp(Rd * T / Steps);	// Lower
-
+	double  StepDiscountFactor = 1. / exp(Rd * TimeStep);
+	double	Pu = P * StepDiscountFactor;		// Upper
+	double	Pd = StepDiscountFactor - Pu;		// Lower
+	
 	// It's the indexes of border point of step 
 	long	Bottom	= 0;
 	long	Top		= Steps * 2;
 
 	// Set start values of the option prices at the last step
+	double	SpotShiftFactor[607];
 	for (long i = Bottom; i <= Top; i++)
 	{
-		double _S	= S * exp((IsCall ? U : -U) * (Steps - i));
+		SpotShiftFactor[i] = exp((IsCall ? U : -U) * (Steps - i));
+		double _S	= S * SpotShiftFactor[i];
 		double C	= (IsCall ? _S - K : K - _S);
 
 		_Tree[i] = Tree[i] = max(C, 0);
@@ -118,9 +124,9 @@ double CoxRoss(	double	S,		// Underlying spot price
 		{
 #ifndef NonPropDividend
 			//ProportionalDividendCalculation
-			for (int i = Bottom; i <= Top; i++)
+			for (register int i = Bottom; i <= Top; i++)
 			{
-				double _S = S * exp((IsCall ? U : -U) * (Steps - i)) + Payment[Step];
+				double _S = S * SpotShiftFactor[i] + Payment[Step];
 				double C  = (IsCall ? _S - K : K - _S);	
 
 				_Tree[i] = max(C, 0);
@@ -128,11 +134,12 @@ double CoxRoss(	double	S,		// Underlying spot price
 				if ((i - Bottom) % 2 == 0)
 					Tree[i] = max(Tree[i], _Tree[i]);			
 			}
+			S += Payment[Step];
 #else
 			S += Payment[Step];
 			for (int i = Bottom; i <= Top; i++)
 			{
-				double _S = S * exp((IsCall ? U : -U) * (Steps - i));
+				double _S = S * SpotShiftFactor[i];
 				double C  = (IsCall ? _S - K : K - _S);	
 
 				_Tree[i] = max(C, 0);

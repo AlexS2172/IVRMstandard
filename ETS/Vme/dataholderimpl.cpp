@@ -25,7 +25,27 @@ DATE CDataHolder::CVolaValuesMap::GetExpirationDate( long index )
 
 CDataHolder::CSkew& CDataHolder::CVolaValuesMap::GetSkew( ExpDate date, double dIF )
 {
-	iterator it = find( date );
+	//double	dInt, dFrac;
+	//dFrac = modf(date.date_, &dInt);
+
+	//iterator it = end();
+	//if (fabs(dFrac) < 0.0000001) // expiry date without time info
+	//{
+	//	double dDelta = 1., dComputeDlt;
+	//	for(iterator it_s = begin(); it_s != end(); it_s++)
+	//	{
+	//		dComputeDlt = fabs(it_s->first.date_ - date.date_);
+	//		if (dComputeDlt < dDelta){
+	//			dDelta = dComputeDlt;
+	//			it = it_s;
+	//		}
+	//	}
+	//}
+	/*else
+		it = find( date );*/
+
+	//TODO: Uncomment this code when one version of this service will be used for all IVRM versions
+	iterator it = find( date ); 
 	if( it == end() )
 		it = insert( value_type(date, CSkew( dIF ) ) ).first;
 

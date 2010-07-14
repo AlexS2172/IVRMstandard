@@ -19,7 +19,7 @@ Public Const GCOLOR_LABEL_INVALID As Long = &HC0&
 
 Private Const APP_TITLE As String = "IVRm"
 Private Const APP_LONG_TITLE As String = "IV Risk Management"
-Private Const APP_COPYRIGHT As String = "Copyright © 2001-2006, EGAR Technology Inc."
+Private Const APP_COPYRIGHT As String = "Copyright © 2001-2009, EGAR Technology Inc."
 
 Global g_lMainTop As Long
 Global g_lMainLeft As Long
@@ -29,7 +29,10 @@ Global g_lMainState As Long
 Global g_sComputerName As String
 Global g_lSizeComputerName As Long
 
+Global g_LastActiveWindow As Long
+
 Global g_lMinLogLevel As Long
+Global g_lLogLifetime As Long
 
 Global g_lLogTop As Long
 Global g_lLogLeft As Long
@@ -38,11 +41,9 @@ Global g_lLogHeight As Long
 Global g_frmLog As frmLog
 
 Global gDBW As clsDBWork
-'Global gSupportDB As clsDBWork
 Global gCmn As clsCommon
 Global g_TradeChannel As clsTradeChannel
 Global g_OrdersProcessor As clsOrdersProcessor
-'Global g_TntProcessor As clsTntProcessor
 
 Global g_ViewFrm As clsFormColl
 Global g_ViewFrmID As Long
@@ -88,22 +89,14 @@ Global g_HedgeSymbols As EtsGeneralLib.IndexColl
 Global g_BasketIndex As EtsGeneralLib.IndexColl
 Global g_Exch As EtsGeneralLib.ExchColl
 Global g_PriceProfile As EtsGeneralLib.EtsPriceProfileColl
-Global g_CancelledOrderExecs As EtsMmGeneralLib.MmTradeInfoColl
+Global g_CancelledOrderExecs As EtsGeneralLib.MmTradeInfoColl
 Global g_OrderExecDest As EtsMmGeneralLib.MmOrderExecDestColl
-'Global g_TntCntPty As EtsMmGeneralLib.MmTntCounterPartyColl
-'Global g_TntCntPtyByName As EtsMmGeneralLib.MmTntCounterPartyByNameColl
-'Global g_DefExpCalendar As EtsGeneralLib.EtsExpCalAtom
 Global g_OptRootByName As EtsGeneralLib.EtsOptRootByNameColl
 Global g_ContractAll As EtsGeneralLib.EtsContractColl
 Global g_Contract As EtsGeneralLib.EtsContractColl
 Global g_Stock As EtsGeneralLib.UndColl
 
-'Global g_DefStkPriceProfile As EtsGeneralLib.EtsPriceProfileAtom
-'Global g_DefIdxPriceProfile As EtsGeneralLib.EtsPriceProfileAtom
-'Global g_DefOptPriceProfile As EtsGeneralLib.EtsPriceProfileAtom
-
 Global g_VolaSource As VolatilitySourcesLib.VolatilitySource
-'Global g_MmManager As ISEPROVIDERLib.ISEMMManager
 
 Global g_nQuotesUntitledIdx As Long
 Global g_nRisksUntitledIdx As Long
@@ -122,7 +115,6 @@ Global g_nIndexHedge1UntitledIdx As Long
 Global g_nIndexHedge2UntitledIdx As Long
 
 Global g_frmWtdVegaSettings As frmWtdVegaSettings
-'Global g_frmStockHedgeMaintenance As frmStockHedgeMaintenance
 Global g_nHedgeSummaryFileIdx As Long
 
 Private m_hSingleInstanceMutex As Long
@@ -159,6 +151,10 @@ Global g_RTQuantity As Long
 Global g_MaxRTQuantity As Long
 Global g_RTNumber As Long
 
+Global g_MaxRvRTQuantity As Long
+Global g_RvRTQuantity As Long
+Global g_RvRTNumber As Long
+
 Global g_pOptionInfo As PROCESS_INFORMATION
 Global g_pStrategyInfo As PROCESS_INFORMATION
 Global g_ScannersLogin As String
@@ -168,8 +164,13 @@ Global g_ScreenExport As clsScreenExport
 
 Global g_frmProjections As frmBatchCapability
 
+'CV Functionality
+Global g_cvContextInfo As clsCVInfo
+
+
 Sub Main()
     On Error GoTo EH
+    
     Dim bNewLicense As Boolean
     Dim iTimeRest As Long
 
@@ -178,6 +179,12 @@ Sub Main()
     g_RTQuantity = 0
     g_MaxRTQuantity = 4
     g_RTNumber = 0
+    
+    g_LastActiveWindow = -1
+    
+    g_RvRTQuantity = 0
+    g_MaxRvRTQuantity = 1
+    g_RvRTNumber = 0
     
     g_pOptionInfo.dwProcessId = 0
     g_pOptionInfo.dwThreadId = 0
@@ -229,6 +236,14 @@ Sub Main()
     CreateGlobalCollections
     LoadSettings frmSplash
     g_Params.LoadSettings
+    
+    If (Not g_Main Is Nothing) Then
+        g_Main.SetLogLevel g_lMinLogLevel
+        g_Main.SetLogLifetime g_lLogLifetime
+        g_Main.CalculationSettings.CurveExtrapolationType = g_Params.CurveExtrapolationType
+        g_Main.CalculationSettings.CurveInterpolationType = g_Params.CurveInterpolationType
+    End If
+    
     g_Params.SetIcon WND_MAIN, frmSplash.hWnd, True
     
     InitEventLog
@@ -295,16 +310,14 @@ Sub Main()
     
     Set g_TradeChannel = New clsTradeChannel
     Set g_OrdersProcessor = New clsOrdersProcessor
-'    Set g_TntProcessor = New clsTntProcessor
     
     frmSplash.SetStatus "Connecting to price provider..."
     DoEvents
-    InitPriceProvider
+    'InitPriceProvider
 
     If g_Params.LogAdvancedInfo Then
         Set g_PerformanceLog = New clsPerformanceLog
-'        If Not g_PerformanceLog.Init("EtsMM_PerfLog_" & CStr(Format(Now, "M_d_yyyy_H_mm")) & ".txt") Then
-        If Not g_PerformanceLog.Init("EtsMM_PerfLog") Then
+        If Not g_PerformanceLog.Init("EtsMMStd_PerfLog") Then
             Set g_PerformanceLog = Nothing
         End If
         
@@ -331,7 +344,9 @@ Sub Main()
     If Not g_PerformanceLog Is Nothing Then _
         nOperation = g_PerformanceLog.BeginLogMmOperation
         
+    
     LoadEntities ET_ALL, frmSplash
+    
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.FinishLogMmOperation nOperation, OPER_LOADINITDATA, "EtsMM"
@@ -351,7 +366,6 @@ Sub Main()
     
     Set g_ViewFrm = New clsFormColl
     Set g_frmWtdVegaSettings = New frmWtdVegaSettings
-'    Set g_frmStockHedgeMaintenance = New frmStockHedgeMaintenance
     Set g_frmMatchedTrades = New frmMatchedTrades
     
     frmSplash.SetStatus "Connecting to real-time trades feed..."
@@ -362,16 +376,12 @@ Sub Main()
     If (iTimeRest <> 0) Then LogEvent EVENT_WARNING, "Database has not been updated."
 
     g_OrdersProcessor.InitMessaging
-'    g_TntProcessor.InitAdapter
-    
-'    DeleteOldOrders
 
     If Not g_PerformanceLog Is Nothing Then _
         nOperation = g_PerformanceLog.BeginLogMmOperation
     
     g_TradeChannel.LoadTrades frmSplash
     g_OrdersProcessor.LoadOrders frmSplash
-'    g_TntProcessor.LoadCards frmSplash.lblStatus
     
     Load frmMain
     If Not g_PerformanceLog Is Nothing Then _
@@ -379,12 +389,6 @@ Sub Main()
     
     g_TradeChannel.Start
     g_OrdersProcessor.Start
-'   g_TntProcessor.Start
-
-'   check ISE provider
-'   frmSplash.SetStatus "Checking ISE environment..."
-'   DoEvents
-'   g_bIseEnable = IsIseProviderPresent
     
     Set g_ClipMgr = New clsClipMgr
     Set g_ScreenExport = New clsScreenExport
@@ -450,8 +454,18 @@ Sub Main()
     End If
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '    CheckMarketStructureInCache frmMain
-
+    
+    'CV functionality
+    Set g_cvContextInfo = New clsCVInfo
+    g_cvContextInfo.Init
+    If Not g_cvContextInfo.IsInit Then
+        gCmn.MyMsgBox frmSplash, "Fail to initialize CV context! Application will be closed.", vbCritical
+        ShutDown True
+        Exit Sub
+    End If
+    
     If Len(Command$) > 0 Then frmMain.OpenFromFile Replace$(Command$, """", "")
+        
     Exit Sub
 EH:
     gCmn.ErrorMsgBox g_frmOwner, "Fail to initialize ETS. Application will be closed."
@@ -477,8 +491,6 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     Set g_OrdersProcessor = Nothing
     g_VolaSource.EnableEvents = False
     
-'    g_TntProcessor.ShutDown
-'    Set g_TntProcessor = Nothing
     
     m_PriceProvider.Disconnect
     Set m_PriceProvider = Nothing
@@ -491,7 +503,6 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     Set g_frmProjections = Nothing
     
     Set g_frmOwner = Nothing
-'    Set g_MmManager = Nothing
     
     g_Params.SaveSettings
     g_Params.Terminate
@@ -499,15 +510,9 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     ClearInterestRates
     
     Set g_frmWtdVegaSettings = Nothing
-'    Set g_frmStockHedgeMaintenance = Nothing
     g_VolaSource.UnregisterPublisher
     Set g_VolaSource = Nothing
-    
-'    Set g_DefStkPriceProfile = Nothing
-'    Set g_DefIdxPriceProfile = Nothing
-'    Set g_DefOptPriceProfile = Nothing
-'    Set g_DefExpCalendar = Nothing
-    
+      
     g_Main.Clear
     
     g_RmScenario.Clear
@@ -516,11 +521,14 @@ Public Sub ShutDown(ByVal bEndExecution As Boolean)
     
     ClearDefGrids
     
+    Set g_cvContextInfo = Nothing
+    
     Set gDBW = Nothing
     Set gCmn = Nothing
     Set g_ClipMgr = Nothing
     Set g_ScreenExport = Nothing
     Set g_PerformanceLog = Nothing
+    Set g_Main = Nothing
     
    
     If Not g_Params.IsDebug And m_hSingleInstanceMutex <> 0 Then CloseHandle m_hSingleInstanceMutex
@@ -670,12 +678,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
     Dim dWeight#, dBeta#, aPrProf As EtsGeneralLib.EtsPriceProfileAtom
     Dim aRoot As EtsGeneralLib.EtsOptRootAtom, nOptRootID&
     Dim aExecDest As EtsMmGeneralLib.MmOrderExecDestAtom
-'    Dim aTrader As EtsGeneralLib.EtsTraderAtom
-'    Dim aBroker As EtsGeneralLib.EtsBrokerAtom
-'    Dim aStrategy As EtsGeneralLib.EtsStrategyAtom
     Dim aUndGroup As EtsGeneralLib.EtsUndGroupAtom
-'    Dim aTraderGroup As EtsGeneralLib.EtsTraderGroupAtom
-'    Dim aCntPty As EtsMmGeneralLib.MmTntCounterPartyAtom
     Dim aTrdUnd As EtsGeneralLib.EtsTraderUndAtom
     Dim aFutRoot As EtsGeneralLib.EtsFutRootAtom
     Dim aFut As EtsGeneralLib.EtsFutAtom
@@ -692,94 +695,20 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
     
     If (enType And ET_STRATEGY) = ET_STRATEGY Then
         sStep = "strategies data."
-        'If Not Progress Is Nothing Then Progress.SetStatus "Loading strategies data..."
-        
         g_Main.LoadStrategy
-        
     End If
        
     
     If (enType And ET_BROKER) = ET_BROKER Then
         sStep = "brokers data."
-        'If Not Progress Is Nothing Then Progress.SetStatus "Loading brokers data..."
         g_Main.LoadBroker
     End If
     
     If (enType And ET_PRICE_PROFILE) = ET_PRICE_PROFILE Then
         sStep = "price profiles."
-        If Not Progress Is Nothing Then Progress.SetStatus "Loading price profiles data..."
         g_PriceProfile.Clear
-        
-'        Set g_DefStkPriceProfile = Nothing
-'        Set g_DefIdxPriceProfile = Nothing
-'        Set g_DefOptPriceProfile = Nothing
-        
         gDBW.usp_PriceProfile_CheckDefaults
-        
-        Set rs = gDBW.usp_PriceProfile_Get(0)
-        While Not rs.EOF
-            nID = ReadLng(rs!iPriceProfileID)
-            Set aPrProf = g_PriceProfile(nID)
-            If aPrProf Is Nothing Then
-                Set aPrProf = New EtsGeneralLib.EtsPriceProfileAtom
-                aPrProf.ID = nID
-                aPrProf.Name = ReadStr(rs!vcPriceProfileName)
-                aPrProf.Description = ReadStr(rs!vcPriceProfileDesc)
-                aPrProf.DefaultID = ReadByte(rs!tiDefaultID)
-                aPrProf.IsOptionProfile = (ReadByte(rs!tiIsOptionProfile) <> 0)
-                aPrProf.UseMidMarketForPnL = (ReadByte(rs!tiMidmarketPnL) <> 0)
-                
-                If aPrProf.IsOptionProfile Then
-                    aPrProf.AlwaysUseLast = False
-                    aPrProf.BadOptSinglePriceRule = ReadByte(rs!tiSinglePriceRule)
-                    aPrProf.BadOptBothPriceRule = ReadByte(rs!tiBothPriceRule)
-                    aPrProf.UseZeroBidRule = ReadByte(rs!tiZeroBidRuleForPnL)
-                    
-                    If aPrProf.BadOptSinglePriceRule <> enObsprReplaceWithLast _
-                        And aPrProf.BadOptSinglePriceRule <> enObsprReplaceWithOpposite _
-                        And aPrProf.BadOptSinglePriceRule <> enObsprReplaceWithTheo _
-                        And aPrProf.BadOptSinglePriceRule <> enObsprReplaceWithZero Then
-                        
-                        aPrProf.BadOptSinglePriceRule = enObsprReplaceWithLast
-                    End If
-                    
-                    If aPrProf.BadOptBothPriceRule <> enObbprUseLast _
-                        And aPrProf.BadOptBothPriceRule <> enObbprUseTheo Then
-                        
-                        aPrProf.BadOptBothPriceRule = enObbprUseLast
-                    End If
-                Else
-                    aPrProf.AlwaysUseLast = (ReadByte(rs!tiAlwaysLast) <> 0)
-                    aPrProf.BadUndPriceRule = ReadByte(rs!tiSinglePriceRule)
-                    
-                    If aPrProf.BadUndPriceRule <> enUbprCheckTolerance _
-                        And aPrProf.BadUndPriceRule <> enUbprDoNotCheckTolerance Then
-                        
-                        aPrProf.BadUndPriceRule = enUbprDoNotCheckTolerance
-                    End If
-                End If
-                
-                g_PriceProfile.Add aPrProf.ID, aPrProf.Name, aPrProf
-                
-                If g_Main.DefStkPriceProfile Is Nothing Then
-                    If aPrProf.DefaultID = 1 And Not aPrProf.IsOptionProfile Then Set g_Main.DefStkPriceProfile = aPrProf
-                End If
-            
-                If g_Main.DefIdxPriceProfile Is Nothing Then
-                    If aPrProf.DefaultID = 3 And Not aPrProf.IsOptionProfile Then Set g_Main.DefIdxPriceProfile = aPrProf
-                End If
-            
-                If g_Main.DefOptPriceProfile Is Nothing Then
-                    If aPrProf.DefaultID = 1 And aPrProf.IsOptionProfile Then Set g_Main.DefOptPriceProfile = aPrProf
-                End If
-                
-                CheckPriceProfileDefaults aPrProf
-            End If
-            Set aPrProf = Nothing
-            rs.MoveNext
-            DoEvents
-        Wend
-        Set rs = Nothing
+        g_Main.LoadPriceProfile
     End If
     
     If (enType And ET_EXP_CALENDAR) = ET_EXP_CALENDAR Then
@@ -798,6 +727,9 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         Else
             g_ExpCalendar.Maturity = 30
         End If
+        
+        g_Main.CalculationSettings.Normal = g_ExpCalendar.Maturity
+        
         Set rs = Nothing
         
         Set rs = gDBW.usp_MmVegaWeight_Get
@@ -830,196 +762,12 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
     If (enType And ET_UNDERLYING) = ET_UNDERLYING Then
         sStep = "underlyings data."
         g_Main.LoadUnderlying g_CurTraderID
-'        If Not Progress Is Nothing Then Progress.SetStatus "Loading underlyings data..."
-'        g_Underlying.Clear
-'        g_UnderlyingAll.Clear
-'        g_OptRootByName.Clear
-'        g_Contract.Clear
-'        g_ContractAll.Clear
-'        g_Stock.Clear
-'
-'        Set rs = gDBW.usp_MmUnderlying_Get(g_CurTraderID)
-'        While Not rs.EOF
-'            nID = ReadLng(rs!iContractID)
-'            If g_UnderlyingAll(nID) Is Nothing Then
-'                Set aUnd = New EtsGeneralLib.UndAtom
-'                aUnd.ID = nID
-'                aUnd.UndType = IIf(ReadLng(rs!iContractTypeID) = enCtStock, enCtStock, enCtIndex)
-'                aUnd.Symbol = ReadStr(rs!vcSymbol)
-'                aUnd.ContractName = Trim$(ReadStr(rs!vcContractName))
-'
-'                aUnd.IsAmerican = (ReadByte(rs!tiCalcOptionType) <> 0)
-'                aUnd.IsHTB = (ReadByte(rs!tiIsHTB) <> 0)
-'                aUnd.ExpCalendarID = ReadLng(rs!iExpCalendarID)
-'
-'                If aUnd.ExpCalendarID = 0 Then
-'                    Debug.Assert False
-'                    If Not g_DefExpCalendar Is Nothing Then aUnd.ExpCalendarID = g_DefExpCalendar.ID
-'                End If
-'
-'                aUnd.PriceClose = ReadDbl(rs!fPriceClose)
-'                aUnd.LotSize = 1
-'
-'                aUnd.Skew = ReadDbl(rs!fSkew)
-'                aUnd.Kurt = ReadDbl(rs!fKurt)
-'
-'                If aUnd.UndType = enCtStock Then
-'                    Set aDiv = New EtsGeneralLib.EtsIndexDivAtom
-'
-'                    aDiv.DivType = ReadByte(rs!tiIsDivCustom)
-'
-'                    aDiv.DivFreq = ReadLng(rs!iDivFreq)
-'                    aDiv.DivDate = ReadDate(rs!dtDivDate)
-'                    aDiv.DivAmt = ReadDbl(rs!fDivAmt)
-'                    aDiv.DivFreqCust = ReadLng(rs!iDivFreqCustom)
-'                    aDiv.DivDateCust = ReadDate(rs!dtDivDateCustom)
-'                    aDiv.DivAmtCust = ReadDbl(rs!fDivAmtCustom)
-'                    Set aUnd.Dividend = aDiv
-'                Else
-'                    aUnd.Yield = ReadDbl(rs!fYield)
-'                    aUnd.IsBasketIndex = (ReadByte(rs!tiIsBasket) <> 0)
-'                End If
-'
-'                aUnd.IsTraderContract = (g_CurTraderID = ReadLng(rs!iTraderID))
-'                aUnd.IsActive = (ReadByte(rs!tiIsActive) <> 0)
-'                Set aUnd.UndPriceProfile = g_PriceProfile(ReadLng(rs!iUndPriceProfileID))
-'                Set aUnd.OptPriceProfile = g_PriceProfile(ReadLng(rs!iOptPriceProfileID))
-'
-'                If aUnd.UndPriceProfile Is Nothing Then
-'                    If aUnd.UndType = enCtStock Then
-'                        Set aUnd.UndPriceProfile = g_DefStkPriceProfile
-'                    Else
-'                        Set aUnd.UndPriceProfile = g_DefIdxPriceProfile
-'                    End If
-'                End If
-'
-'                If aUnd.OptPriceProfile Is Nothing Then Set aUnd.OptPriceProfile = g_DefOptPriceProfile
-'
-'                Debug.Assert Not aUnd.UndPriceProfile Is Nothing And Not aUnd.OptPriceProfile Is Nothing
-'
-'                aUnd.Volume10Day = ReadLng(rs!iVolume10Day)
-'                aUnd.Volume5Expiration = ReadLng(rs!iVolume5Expiration)
-'
-'                g_UnderlyingAll.Add aUnd.ID, aUnd.Symbol, aUnd
-'
-'                If aUnd.IsTraderContract Then
-'                    g_Underlying.Add aUnd.ID, aUnd.Symbol, aUnd
-'
-'                    If aUnd.UndType = enCtStock Then
-'                        g_Stock.Add aUnd.ID, aUnd.Symbol, aUnd
-'                    End If
-'                End If
-'
-'                If g_ContractAll(aUnd.ID) Is Nothing Then
-'                    Set aContract = New EtsGeneralLib.EtsContractAtom
-'                    Set aContract.Und = aUnd
-'
-'                    g_ContractAll.Add aContract.Und.ID, aContract.Und.Symbol, aContract
-'
-'                    If aUnd.IsTraderContract Then g_Contract.Add aContract.Und.ID, aContract.Und.Symbol, aContract
-'                    Set aContract = Nothing
-'                End If
-'
-'                Set aUnd = Nothing
-'            End If
-'            rs.MoveNext
-'            DoEvents
-'        Wend
-        Set rs = Nothing
-        sStep = "Custom Dividends data."
-        If Not Progress Is Nothing Then Progress.SetStatus "Loading option roots data..."
-        
-        ' --------------------------------------------------------------------
-        '   Try to get custom dividend for underlying
-               Set rsCust = gDBW.usp_MmCustomDividend_Get()
-               If Not rsCust.EOF Then
-                Dim iUnd As Long
-                While Not rsCust.EOF
-                    iUnd = ReadLng(rsCust!StockID)
-                    Set aUnd = g_UnderlyingAll(iUnd)
-                    If Not aUnd Is Nothing Then
-                        If aUnd.Dividend Is Nothing Then
-                            Set aUndDiv = New EtsGeneralLib.EtsIndexDivAtom
-                            Set aUnd.Dividend = aUndDiv
-                        End If
-                
-                        Set aCustDivColl = aUnd.Dividend.CustomDivs
-                        If aCustDivColl Is Nothing Then
-                            Set aCustDivColl = New EtsGeneralLib.EtsDivColl
-                            Set aUnd.Dividend.CustomDivs = aCustDivColl
-                        End If
-                        
-                        If (Not aUnd.Dividend.Holidays Is Nothing) Then
-                            Set aCustDivColl.Holidays = aUnd.Dividend.Holidays
-                        End If
-                        
-                
-                        dDate = ReadDate(rsCust!DivYtes)
-                        dAmount = ReadDbl(rsCust!DivAmnt)
-                        aCustDivColl.AddNonUnique dDate, dAmount
-                    End If
-                    rsCust.MoveNext
-                Wend
-                    rsCust.Close
-               Set rsCust = Nothing
-             End If
-            '   Try to get custom dividend for underlying
-            ' --------------------------------------------------------------------
 
-    
         sStep = "option roots data."
         If Not Progress Is Nothing Then Progress.SetStatus "Loading option roots data..."
+        g_Main.LoadOptionRoots
     
-        Set rs = gDBW.usp_MmOptionRoot_Get(0)
-        While Not rs.EOF
-            nID = ReadLng(rs!iUnderlyingID)
-            Set aUnd = g_UnderlyingAll(nID)
-            If Not aUnd Is Nothing Then
-                nOptRootID = ReadLng(rs!iRootID)
-                If aUnd.Roots(nOptRootID) Is Nothing Then
-                    Set aRoot = New EtsGeneralLib.EtsOptRootAtom
-                    aRoot.ID = nOptRootID
-                    aRoot.UndID = nID
-                    aRoot.Name = ReadStr(rs!vcSymbol)
-                    aRoot.LotSize = ReadLng(rs!iLotSize)
-                    aRoot.IsFit = IIf(ReadByte(rs!tiIsFitEnabled) <> 0, True, False)
-                    aRoot.IsSynth = IIf(ReadByte(rs!tiIsSynthetic) <> 0, True, False)
-                    
-                    If Not aUnd.HaveOptions Then aUnd.HaveOptions = True
-                    
-                    If aRoot.IsSynth Then
-                        If aUnd.SyntheticRoots Is Nothing Then
-                            aUnd.HaveSyntheticRoots = True
-                            Set aUnd.SyntheticRoots = New EtsGeneralLib.SynthRootColl
-                        End If
-                        
-                        Set aSyntRoot = New EtsGeneralLib.SynthRootAtom
-                        aSyntRoot.Basket = (ReadByte(rs!tiSyntheticIsBasket) <> 0)
-                        aSyntRoot.CashValue = ReadDbl(rs!fCash)
-                        aSyntRoot.Skew = ReadDbl(rs!fSyntheticSkew)
-                        aSyntRoot.Kurt = ReadDbl(rs!fSyntheticKurt)
-                        aSyntRoot.Yield = ReadDbl(rs!fSyntheticYield)
-                        aSyntRoot.OptRootID = nOptRootID
-                                                
-                        aUnd.SyntheticRoots.Add aSyntRoot.OptRootID, aSyntRoot
-                        
-                        Set aSyntRoot = Nothing
-                    End If
-                
-                    aUnd.Roots.Add aRoot.ID, aRoot.Name, aRoot
-                    
-                    If g_OptRootByName(aRoot.Name) Is Nothing Then _
-                        g_OptRootByName.Add aRoot.Name, aRoot
-                    
-                    Set aRoot = Nothing
-                End If
-                Set aUnd = Nothing
-            End If
-            rs.MoveNext
-            DoEvents
-        Wend
-        Set rs = Nothing
-    
+        
         Set rs = gDBW.usp_MmSyntheticRootParams_Get(0)
         While Not rs.EOF
             nUndID = ReadLng(rs!iUnderlyingID)
@@ -1100,6 +848,8 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         sStep = "futures data."
         If Not Progress Is Nothing Then Progress.SetStatus "Loading futures data..."
         
+        Dim future_contract As IContract
+        
         Set rs = gDBW.usp_MmFuture_Get(0)
         While Not rs.EOF
             nUndID = ReadLng(rs!iUnderlyingID)
@@ -1113,7 +863,9 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
 
                     If aFutRoot.Futures(nFutID) Is Nothing Then
                         Set aFut = New EtsGeneralLib.EtsFutAtom
-
+                                        
+                        Set future_contract = g_Main.GetContract(nFutID)
+                        
                         aFut.ID = nFutID
                         aFut.Symbol = ReadStr(rs!vcFutureSymbol)
                         aFut.ContractName = ReadStr(rs!vcFutureName)
@@ -1149,11 +901,6 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
                             Set aUnd.ActiveFuture = aFut
                         End If
                         
-'                        If aFut.ExpCalendarID = 0 Then
-'                            Debug.Assert False
-'                            If Not g_Main.DefExpCalendar Is Nothing Then aFut.ExpCalendarID = g_Main.DefExpCalendar.ID
-'                        End If
-
                         aFut.MaturityDate = ReadDate(rs!dtMaturityDate)
                         aFut.IsAmerican = (ReadByte(rs!tiCalcOptionType) <> 0)
                         aFut.IsActive = (ReadByte(rs!tiIsActive) <> 0)
@@ -1220,87 +967,13 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
     End If
     
     If (enType And ET_UNDERLYING_GROUP) = ET_UNDERLYING_GROUP Then
-        sStep = "underlying groups data."
-        If Not Progress Is Nothing Then Progress.SetStatus "Loading underlying groups data..."
-        g_UnderlyingGroup.Clear
-        Set rs = gDBW.usp_ContractGroup_Get(Null)
-        While Not rs.EOF
-            nID = ReadLng(rs!iGroupID)
-            If g_UnderlyingGroup(nID) Is Nothing Then
-                Set aUndGroup = New EtsGeneralLib.EtsUndGroupAtom
-                aUndGroup.ID = nID
-                aUndGroup.Name = ReadStr(rs!vcGroupName)
-                aUndGroup.Desc = ReadStr(rs!vcDescription)
-                
-                Set rs2 = gDBW.usp_ContractInGroup_Get(aUndGroup.ID)
-                While Not rs2.EOF
-                    nID = ReadLng(rs2!iContractID)
-                    
-                    If g_CurTraderID = 0 Then
-                        Set aUnd = g_UnderlyingAll(nID)
-                    Else
-                        Set aUnd = g_Underlying(nID)
-                    End If
-                    
-                    If Not aUnd Is Nothing Then
-                        If aUndGroup.Und(nID) Is Nothing Then
-                            aUndGroup.Und.Add aUnd.ID, aUnd.Symbol, aUnd
-                        End If
-                        Set aUnd = Nothing
-                    End If
-                    rs2.MoveNext
-                Wend
-                Set rs2 = Nothing
-            
-                If g_CurTraderID = 0 Or aUndGroup.Und.Count > 0 Then
-                    g_UnderlyingGroup.Add aUndGroup.ID, aUndGroup.Name, aUndGroup
-                End If
-                
-                Set aUndGroup = Nothing
-            End If
-            rs.MoveNext
-            DoEvents
-        Wend
-        Set rs = Nothing
+        g_Main.LoadGroups g_CurTraderID
     End If
     
     If (enType And ET_RM_SCENARIO) = ET_RM_SCENARIO Then
         sStep = "risk matrix scenarios data."
         If Not Progress Is Nothing Then Progress.SetStatus "Loading risk matrix scenarios data..."
         LoadScenariosFromDB
-'        g_RmScenario.Clear
-'        Set aScn = Nothing
-'        Set rs = gDBW.usp_RMScenario_Get(Null)
-'        While Not rs.EOF
-'            nID = ReadLng(rs!iRMScenarioID)
-'            Set aScn = g_RmScenario(CStr(nID))
-'            If aScn Is Nothing Then
-'                Set aScn = g_RmScenario.Add(CStr(nID))
-'                aScn.ID = nID
-'
-'                aScn.ScenarioName = ReadStr(rs!vcScenarioName)
-'                aScn.Description = ReadStr(rs!vcDescription)
-'
-'                aScn.Axis(RMA_HORZ) = ReadByte(rs!tiType1)
-'                aScn.Points(RMA_HORZ) = ReadLng(rs!iPoints1)
-'                aScn.Step(RMA_HORZ) = ReadDbl(rs!fStep1)
-'                aScn.Units(RMA_HORZ) = ReadByte(rs!tiIsAbs1)
-'
-'                aScn.Axis(RMA_VERT) = ReadByte(rs!tiType2)
-'                aScn.Points(RMA_VERT) = ReadLng(rs!iPoints2)
-'                aScn.Step(RMA_VERT) = ReadDbl(rs!fStep2)
-'                aScn.Units(RMA_VERT) = ReadByte(rs!tiIsAbs2)
-'
-'                aScn.VolaShiftType = IIf(ReadByte(rs!tiVolaShift) <> 0, RMVS_WEIGHTED, RMVS_COMMON)
-'
-'                aScn.FixValues
-'
-'                Set aScn = Nothing
-'            End If
-'            rs.MoveNext
-'            DoEvents
-'        Wend
-'        Set rs = Nothing
     End If
     
     If (enType And ET_INDEX) = ET_INDEX Then
@@ -1362,71 +1035,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         
         sStep = "index underlyings beta."
         g_Main.LoadBetas
-        
-'        If Not Progress Is Nothing Then Progress.SetStatus "Loading index underlyings beta..."
-'        Set rs = gDBW.usp_MmIndexUnderlyingBeta_Get()
-'        While Not rs.EOF
-'            dBeta = ReadDbl(rs!fBeta)
-'
-'            If dBeta <> 0# Then
-'                nIdxID = ReadLng(rs!iIndexID)
-'                nID = ReadLng(rs!iContractID)
-'                Set aIdx = g_Index(nIdxID)
-'                If Not aIdx Is Nothing Then
-'
-'                    Set aIdxComp = aIdx.Components(nID)
-'                    If aIdxComp Is Nothing Then
-'                        Set aIdxComp = aIdx.Components.Add(nID)
-'                        aIdxComp.ID = nID
-'                    End If
-'
-'                    aIdxComp.Beta = dBeta
-'
-'                    If dBeta <> 0# Then
-'                        aIdx.HaveComponentBetas = True
-'                    End If
-'
-'                    Set aIdxComp = Nothing
-'                    Set aIdx = Nothing
-'                End If
-'            End If
-'            rs.MoveNext
-'            DoEvents
-'        Wend
-'        Set rs = Nothing
-        
-'        sStep = "synthetic roots index betas."
-'        If Not Progress Is Nothing Then Progress.SetStatus "Loading synthetic roots index betas..."
-'        Set rs = gDBW.usp_MmSyntheticIndexBeta_Get
-'        While Not rs.EOF
-'            dBeta = ReadDbl(rs!fBeta)
-'
-'            If dBeta <> 0# Then
-'                nIdxID = ReadLng(rs!iIndexID)
-'                nID = ReadLng(rs!iOptRootID)
-'                Set aIdx = g_Index(nIdxID)
-'                If Not aIdx Is Nothing Then
-'
-'                    Set aIdxComp = aIdx.SyntheticRootBetas(nID)
-'                    If aIdxComp Is Nothing Then
-'                        Set aIdxComp = aIdx.SyntheticRootBetas.Add(nID)
-'                        aIdxComp.ID = nID
-'                        aIdxComp.Beta = dBeta
-'
-'                        If dBeta <> 0# Then
-'                            aIdx.HaveComponentBetas = True
-'                        End If
-'                    End If
-'
-'                    Set aIdxComp = Nothing
-'                    Set aIdx = Nothing
-'                End If
-'            End If
-'            rs.MoveNext
-'            DoEvents
-'        Wend
-'        Set rs = Nothing
-        
+                
         For Each aIdx In g_Index
             If (aIdx.IsBasket) Then
                 aIdx.InitBasketDivs g_UnderlyingAll
@@ -1519,32 +1128,6 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         Wend
         Set rs = Nothing
     End If
-
-'    If (enType And ET_TNT_CNT_PTY) = ET_TNT_CNT_PTY Then
-'        sStep = "conterparty data."
-'        If Not Progress Is Nothing Then Progress.SetStatus "Loading conterparty data..."
-'        g_TntCntPty.Clear
-'        g_TntCntPtyByName.Clear
-'
-'        Set rs = gDBW.usp_TntCounterParty_Get(0)
-'        While Not rs.EOF
-'            nID = ReadLng(rs!iCptID)
-'            Set aCntPty = g_TntCntPty(nID)
-'            If aCntPty Is Nothing Then
-'                Set aCntPty = New EtsMmGeneralLib.MmTntCounterPartyAtom
-'                aCntPty.ID = nID
-'                aCntPty.Name = ReadStr(rs!vcName)
-'                aCntPty.Desc = ReadStr(rs!vcDesc)
-'
-'                g_TntCntPty.Add aCntPty.ID, aCntPty.Name, aCntPty
-'                g_TntCntPtyByName.Add aCntPty.Name, aCntPty
-'            End If
-'            Set aCntPty = Nothing
-'            rs.MoveNext
-'            DoEvents
-'        Wend
-'        Set rs = Nothing
-'    End If
     
     Exit Sub
 EH:
@@ -1567,12 +1150,7 @@ EH:
     Set aPrProf = Nothing
     Set aRoot = Nothing
     Set aExecDest = Nothing
-'    Set aTrader = Nothing
-'    Set aBroker = Nothing
-'    Set aStrategy = Nothing
     Set aUndGroup = Nothing
-'    Set aTraderGroup = Nothing
-'    Set aCntPty = Nothing
     Set aTrdUnd = Nothing
     Set aFutRoot = Nothing
     Set aFut = Nothing
@@ -1597,15 +1175,11 @@ EH:
     
     If (enType And ET_UNDERLYING) = ET_UNDERLYING Then
         g_Underlying.Clear
-        'g_UnderlyingBySym.Clear
         g_UnderlyingAll.Clear
-        'g_UnderlyingAllBySym.Clear
         g_Contract.Clear
         g_ContractAll.Clear
-        'g_ContractAllBySym.Clear
         g_OptRootByName.Clear
         g_Stock.Clear
-        'g_StockBySym.Clear
     End If
     
     If (enType And ET_UNDERLYING_GROUP) = ET_UNDERLYING_GROUP Then
@@ -1623,7 +1197,6 @@ EH:
     If (enType And ET_INDEX) = ET_INDEX Then
         g_Index.Clear
         g_BasketIndex.Clear
-        'g_BasketIndexUndBySym.Clear
     End If
     
     If (enType And ET_EXCHANGE) = ET_EXCHANGE Then
@@ -1637,12 +1210,7 @@ EH:
     If (enType And ET_ORDER_EXEC_DEST) = ET_ORDER_EXEC_DEST Then
         g_OrderExecDest.Clear
     End If
-
-'    If (enType And ET_TNT_CNT_PTY) = ET_TNT_CNT_PTY Then
-'        g_TntCntPty.Clear
-'        g_TntCntPtyByName.Clear
-'    End If
-    
+   
     Err.Raise nNumber, sSource, sDescription, sHelpFile, nHelpContext
 End Sub
 
@@ -1700,7 +1268,8 @@ Retry:
     Set g_VolaSource.DataSource = vmDB
     g_VolaSource.EnableEvents = True
     g_VolaSource.EnableEditing = True
-
+    
+    Set g_Main.VolatilitySource = g_VolaSource
     Exit Sub
 EH:
     Dim sDescription$, nHelpContext&, sHelpFile$, nNumber&, sSource$
@@ -1956,6 +1525,8 @@ Private Sub CreateGlobalCollections()
     On Error GoTo EH
     Set g_Main = New EtsMain
     
+    g_Main.SetWorkingMode enWmClient
+    
     Set g_Trader = g_Main.Trader
     Set g_TraderGroup = g_Main.TraderGroup
     Set g_Strategy = g_Main.Strategy
@@ -1979,7 +1550,7 @@ Private Sub CreateGlobalCollections()
     
 '    Set g_Exch = New EtsGeneralLib.ExchColl
     Set g_OrderExecDest = New EtsMmGeneralLib.MmOrderExecDestColl
-    Set g_CancelledOrderExecs = New EtsMmGeneralLib.MmTradeInfoColl
+    Set g_CancelledOrderExecs = New EtsGeneralLib.MmTradeInfoColl
 '    Set g_TntCntPty = New EtsMmGeneralLib.MmTntCounterPartyColl
 '    Set g_TntCntPtyByName = New EtsMmGeneralLib.MmTntCounterPartyByNameColl
     
@@ -2121,7 +1692,22 @@ Public Sub LoadScenariosFromDB()
             aScn.Hour(RMA_VERT) = ReadLng(rs!iHours)
             aScn.Minute(RMA_VERT) = ReadLng(rs!iMinutes)
             
-            aScn.VolaShiftType = IIf(ReadByte(rs!tiVolaShift) <> 0, RMVS_WEIGHTED, RMVS_COMMON)
+            aScn.ShowChange = IIf(ReadLng(rs!iShowChange) <> 0, True, False)
+            
+            aScn.SpotShiftType = ReadLng(rs!iSpotShift)
+            aScn.SpotSpecificShiftType = ReadLng(rs!iSpotSpecificShift)
+            
+            aScn.VolaShiftType = ReadByte(rs!tiVolaShift)
+            aScn.VolaSpecificShiftType = ReadLng(rs!iVolaSpecificShift)
+            
+            aScn.CalcModel = ReadLng(rs!iCalcModel)
+            
+            If (aScn.CalcModel = 0) Then
+                aScn.CalcModel = g_Params.MatrixCalcModel
+            End If
+            
+            aScn.CorrIndex = ReadLng(rs!iCorrIndex)
+            aScn.SpecificParams = ReadStr(rs!vcSpecificShiftParams)
             
             aScn.FixValues
             
@@ -2261,5 +1847,7 @@ Public Function AppCopyright() As String
     AppCopyright = APP_COPYRIGHT
  End If
 End Function
+
+
 
 

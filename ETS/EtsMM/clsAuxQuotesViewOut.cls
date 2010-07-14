@@ -100,12 +100,6 @@ Public Function UnderlyingExchUpdateQuote(ByVal nRow As Long) As Boolean
 
         If Not aUnd Is Nothing And Not aQuote Is Nothing _
             And (Not m_Aux.Grp.IsStockOrIndex And Not aFut Is Nothing And Not aFutRoot Is Nothing) Then
-
-         'aQuote.Exch.ID = aFut.PosExchID, aFut.Symbol, "")
-         ' aQuote.Exch.Code
-         'IIf(aQuote.Exch.ID = aFut.PosExchID, aFut.ContractName, "")
-         'IIf(aQuote.Exch.ID = aFut.PosExchID, aFutRoot.FutLotSize, "")
-         'IIf(aQuote.Exch.ID = aFut.PosExchID, aFutRoot.Symbol, "")
          
             If Not m_Aux.RealTime Or aQuote.PriceUpdateStatus = enMmQvPusChanged Then
                  If (nRow > 1) And (aQuote.Exch.Code = "G") Then
@@ -119,7 +113,6 @@ Public Function UnderlyingExchUpdateQuote(ByVal nRow As Long) As Boolean
                                  aFirstRowQuote.Exch.Code = aQuote.Exch.Code
                                  aFirstRowQuote.Exch.Name = aQuote.Exch.Name
                                  aFirstRowQuote.Exch.ID = aQuote.Exch.ID
-                                 
                                  aFirstRowQuote.PriceBid = aQuote.PriceBid
                                  aFirstRowQuote.PriceAsk = aQuote.PriceAsk
                                  aFirstRowQuote.PriceOpen = aQuote.PriceOpen
@@ -130,18 +123,14 @@ Public Function UnderlyingExchUpdateQuote(ByVal nRow As Long) As Boolean
                                  aFirstRowQuote.Volume = aQuote.Volume
                                  aFirstRowQuote.AskExchange = aQuote.AskExchange
                                  aFirstRowQuote.BidExchange = aQuote.BidExchange
-                           
-                                 ' aFut.QtyInShares
-                                 ' aFut.Qty
                                  aFirstRowQuote.NetChange = aQuote.NetChange
                                  aFirstRowQuote.SizeBid = aQuote.SizeBid
                                  aFirstRowQuote.SizeAsk = aQuote.SizeAsk
                                  aFirstRowQuote.UpdateTime = aQuote.UpdateTime
-
                     End If
                 End If
            End If
-                                                             Else
+        Else
            UnderlyingExchUpdateQuote = False
         End If
         m_Aux.GridLock(GT_QUOTES_UNDERLYING).UnlockRedraw
@@ -1638,7 +1627,9 @@ Public Sub TradesFilterUpdate()
     With fgDiv
         m_Aux.GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
     
-        .TextMatrix(1, QDC_TRADES) = m_Aux.TradesFilter
+        .TextMatrix(1, QDC_TRADES) = m_Aux.QV.TradeFilter.Data(enFtTrades)
+        .TextMatrix(1, QDC_FLT_TRADER) = m_Aux.QV.TradeFilter.Data(enFtTrader)
+        .TextMatrix(1, QDC_FLT_STRATEGY) = m_Aux.QV.TradeFilter.Data(enFtStrategy)
         
         .AutoSize 0, .Cols - 1
         
@@ -1896,29 +1887,47 @@ Public Sub RatesUpdate()
             .Cell(flexcpAlignment, 0, 0, 0, .Cols - 1) = flexAlignCenterCenter
             .AutoSize 0, .Cols - 1
         End If
+                
+        m_Aux.GridLock(GT_QUOTES_DIVIDENDS).UnlockRedraw
+    End With
+    
+    UserParamsUpdate
+    
+End Sub
+
+Public Sub UserParamsUpdate()
+On Error Resume Next
+    
+    Dim lColID As Long
+    With fgDiv
+        m_Aux.GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
         
-        'Calculation Date Head Caption
-        .ColFormat(.Cols - 2) = gdDiv.Col(QDC_DATECALC).Format
-        .ColDataType(.Cols - 2) = gdDiv.Col(QDC_DATECALC).DataType
-        .TextMatrix(0, .Cols - 2) = gdDiv.Col(QDC_DATECALC).Caption
-        'Coloring
-        .Cell(flexcpBackColor, 1, .Cols - 2) = IIf(gdDiv.Col(QDC_DATECALC).BackColor <> 0, gdDiv.Col(QDC_DATECALC).BackColor, RGB(1, 1, 1))
-        .Cell(flexcpForeColor, 1, .Cols - 2) = IIf(gdDiv.Col(QDC_DATECALC).ForeColor <> 0, gdDiv.Col(QDC_DATECALC).ForeColor, RGB(1, 1, 1))
-        'Default value
-        .TextMatrix(1, .Cols - 2) = Format(Now)
+        For lColID = QDC_DATECALC To QDC_RATE
         
-        'Manual Vola Check Box Head Caption
-        .ColFormat(.Cols - 1) = gdDiv.Col(QDC_VOLA_IS_MANUAL).Format
-        .ColDataType(.Cols - 1) = gdDiv.Col(QDC_VOLA_IS_MANUAL).DataType
-        .TextMatrix(0, .Cols - 1) = gdDiv.Col(QDC_VOLA_IS_MANUAL).Caption
-        'Coloring
-        .Cell(flexcpBackColor, 1, .Cols - 1) = IIf(gdDiv.Col(QDC_VOLA_IS_MANUAL).BackColor <> 0, gdDiv.Col(QDC_VOLA_IS_MANUAL).BackColor, RGB(1, 1, 1))
-        .Cell(flexcpForeColor, 1, .Cols - 1) = IIf(gdDiv.Col(QDC_VOLA_IS_MANUAL).ForeColor <> 0, gdDiv.Col(QDC_VOLA_IS_MANUAL).ForeColor, RGB(1, 1, 1))
-        'Value
-        If Not m_Aux.Grp.Und Is Nothing Then
-            .TextMatrix(1, .Cols - 1) = IIf(m_Aux.Grp.Und.IsManualVol = True, "-1", "0")
-        End If
-        
+            .ColFormat(lColID) = gdDiv.Col(lColID).Format
+            .ColDataType(lColID) = gdDiv.Col(lColID).DataType
+            .TextMatrix(0, lColID) = gdDiv.Col(lColID).Caption
+            'Coloring
+            .Cell(flexcpBackColor, 1, lColID) = IIf(gdDiv.Col(lColID).BackColor <> 0, gdDiv.Col(lColID).BackColor, RGB(1, 1, 1))
+            .Cell(flexcpForeColor, 1, lColID) = IIf(gdDiv.Col(lColID).ForeColor <> 0, gdDiv.Col(lColID).ForeColor, RGB(1, 1, 1))
+            
+            'Default value
+            If (lColID = QDC_DATECALC) Then
+                .TextMatrix(1, lColID) = Format(Now)
+            ElseIf (lColID = QDC_VOLA_IS_MANUAL) Then
+                If Not m_Aux.Grp.Und Is Nothing Then
+                    .TextMatrix(1, lColID) = IIf(m_Aux.Grp.Und.IsManualVol = True, "-1", "0")
+                End If
+            ElseIf (lColID = QDC_VOLA_SIM) Then
+                .TextMatrix(1, lColID) = m_Aux.IsVolaSimulated
+                .ColData(lColID) = lColID
+            ElseIf (lColID = QDC_VOLA_FLAT) Then
+                .ColData(lColID) = lColID
+                .TextMatrix(1, lColID) = m_Aux.IsSimulatedFlat
+                .ColHidden(lColID) = Not m_Aux.IsVolaSimulated
+            End If
+            
+        Next
         m_Aux.GridLock(GT_QUOTES_DIVIDENDS).UnlockRedraw
     End With
 End Sub
@@ -2000,7 +2009,6 @@ Public Sub VolaUpdate()
 End Sub
 
 Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
-    
     On Error Resume Next
     If m_bShutDown Or m_Aux.Grp Is Nothing Then Exit Sub
     
@@ -2018,6 +2026,7 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
     Dim enPriceStatus As EtsReplacePriceStatusEnum
     Dim bDriverUsed As Boolean
     Dim sCaption As String
+    Dim lSurfaceID As Long
     
     Dim dMinLeft As Double, dMinRight As Double, dBuffVola As Double
     Dim aLExp As EtsMmQuotesLib.MmQvExpAtom, aRExp As EtsMmQuotesLib.MmQvExpAtom
@@ -2066,8 +2075,9 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                 
                 For Each aExp In aExpColl
                 
+                    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(0)
                     'Get Theoretical Vola
-                    dVola = aUnd.VolaSrv.OptionVola(aExp.ExpiryOV, dStrike)
+                    dVola = aUnd.VolaSrv.OptionVola(aExp.ExpiryOV, dStrike, lSurfaceID)
                     .TextMatrix(iRow, iCol + iExpCount) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
                     
                     'Get Implied Vola
@@ -2161,8 +2171,12 @@ Public Sub VolaUpdateValues(Optional ManualEdit As Boolean = False)
                         .TextMatrix(iRow, 0) = sCaption
                     End If
                     
+                    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(0)
+                    If (Not aFutCalc Is Nothing) Then
+                        lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(aFutCalc.FutRootID)
+                    End If
                     'Get Theoretical Vola
-                    dVola = aUnd.VolaSrv.OptionVola(aExpOpt.ExpiryOV, dStrike)
+                    dVola = aUnd.VolaSrv.OptionVola(aExpOpt.ExpiryOV, dStrike, lSurfaceID)
                     .TextMatrix(iRow, iCol + iExpCount) = IIf(dStrike > 0#, dVola * 100#, STR_NA)
                     dBuffVola = dVola
                     

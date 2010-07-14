@@ -28,7 +28,7 @@ using namespace std;
 #include <EgLib/EgLibDbg.h>
 #include <EgLib/EgLibReg.h>
 using namespace EgLib;
-extern _bstr_t g_bstrSubjectPrefix;
+//extern _bstr_t g_bstrSubjectPrefix;
 
 #import "..\tlb\MsgStruct.tlb" no_namespace raw_interfaces_only
 #import "..\tlb\Transport.tlb" no_namespace named_guids raw_interfaces_only , rename("SendMessage", "SendTransportMessage")

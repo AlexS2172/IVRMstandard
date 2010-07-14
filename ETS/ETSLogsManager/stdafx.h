@@ -47,6 +47,10 @@ using namespace ATL;
             
 #include <Pdh.h>
 #include <map>
+#include <deque>
+
+
+#include <boost/shared_ptr.hpp>
 
 #include <EgLib/EgLibDbg.h>
 #include <EgLib/EgLibSync.h>
@@ -59,7 +63,5 @@ using namespace ATL;
 
 #include <EgLib/EgLibTimeZone.h>
 #include <EgLib/EgLibTrace.h>
-
-#include <boost/shared_ptr.hpp>
 
 //using namespace EgLib;

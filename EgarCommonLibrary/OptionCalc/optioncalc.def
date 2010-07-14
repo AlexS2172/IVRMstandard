@@ -34,4 +34,5 @@ EXPORTS
 	TmToDATE @32
 	GetNYDateTimeAsDATE @33
 	TmToDateEx @34
+	GetCalculationParams @35
 	

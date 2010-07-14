@@ -53,8 +53,17 @@ void CMmRvExpTotalColl::Calc()
 	{
 		CollType::iterator itr    = m_coll.begin();
 		CollType::iterator itrEnd = m_coll.end();
-		for(; itr!=itrEnd; ++itr)
+		CMmRvExpTotalAtom* expiry_atom = 0;
+		for(; itr!=itrEnd; ++itr){
 			itr->second->CalcTotals();
+
+			expiry_atom = 
+				dynamic_cast<CMmRvExpTotalAtom*>(itr->second);
+
+			if (expiry_atom){
+				expiry_atom->CalcCV();
+			};
+		}
 	}
 	catch (_com_error& /*e*/)
 	{

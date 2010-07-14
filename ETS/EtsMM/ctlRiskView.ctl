@@ -20,7 +20,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   51249155
+      Format          =   48234499
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -31,7 +31,7 @@ Begin VB.UserControl ctlRiskView
    End
    Begin VB.Timer tmrRealTime 
       Enabled         =   0   'False
-      Interval        =   10
+      Interval        =   5000
       Left            =   2520
       Top             =   4440
    End
@@ -345,6 +345,12 @@ Begin VB.UserControl ctlRiskView
       Begin VB.Menu mnuCtxSeparator1 
          Caption         =   "-"
       End
+      Begin VB.Menu mnuCtxFitVolatilityToMarket 
+         Caption         =   "Fit Vola To Implied"
+      End
+      Begin VB.Menu mnuCtxSeparator10 
+         Caption         =   "-"
+      End
       Begin VB.Menu mnuCtxPositionTransfer 
          Caption         =   "Position Transfer..."
       End
@@ -453,17 +459,15 @@ Public Event OnSetCaption()
 Public Event OnStateChange()
 Public Event OnSetRefreshHint(ByVal bSet As Boolean, ByRef strHint$)
 Public Event OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
-
-
 Public Event OnRefreshComplete()
 Public Event OnRefreshError()
 Public Event OnRefreshEmpty()
 Public Event OnRefreshCancel()
 
-
 Private m_gdFlt As clsGridDef
 Private m_gdTot As clsGridDef
 Private m_gdPos As clsGridDef
+
 Private m_bDateChanged As Boolean
 Private m_bFirstTime  As Boolean
 
@@ -474,9 +478,6 @@ Private m_bIsInitialized As Boolean
 Private WithEvents gePos As clsGridEx
 Attribute gePos.VB_VarHelpID = -1
 
-Private WithEvents PriceProvider As PRICEPROVIDERSLib.BatchPriceInfo
-Attribute PriceProvider.VB_VarHelpID = -1
-Private m_BatchPriceProvider As PRICEPROVIDERSLib.IBatchPriceProvider
 Private WithEvents VolaSource As VolatilitySourcesLib.VolatilitySource
 Attribute VolaSource.VB_VarHelpID = -1
 Private WithEvents TradeChannel As clsTradeChannel
@@ -488,31 +489,25 @@ Private WithEvents frmLayout As frmGridLayout
 Attribute frmLayout.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
+
+Public ProcessRealTime As Boolean
 
 Private m_bInProc As Boolean
 Private m_bDataLoad As Boolean
-Private m_bSubscribingNow As Boolean
-Private m_bInRealTimeCalc As Boolean
-Private m_bLastQuoteReqNow As Boolean
 Private m_bTmrUndCalcNow As Boolean
 Private m_bIsPosRefresh As Boolean
 
-Private m_OpenedUnd As New EtsGeneralLib.EtsMmFilterAtomColl
 Private m_nOpenedExpiry As Long
 
 Private m_bCurUndChanging As Boolean
 Private m_nCurUnd As Long
 
-Private m_nQuoteReqCount As Long
-Private m_nQuoteReqDone As Long
-
 Private m_bVolaChangedNow As Boolean
-Public ProcessRealTime As Boolean
 Private m_bVolaUpdated As Boolean
 Public m_frmOwner As Form
 
@@ -548,17 +543,18 @@ Private m_nUndPositions As Integer
 Private m_nOptPositions As Integer
 
 Private TradeQueue As clsTradeQueueColl
-'Dim m_frmCustDivs As frmCustomDivs
 Dim nSelectedRow As Long
 
 Private m_bIsNewTrades As Boolean
 Private m_AggCols() As Long
 Private m_bTradeActionrefreshPositions As Boolean
+Private simulation_scenario As MarketSimulationScenario
+Private recalculation_time_stemp As Date
 
 Public Sub SetLastRowSelected()
     Dim nRow As Long
-    If fgPos.Rows > 1 Then
-        For nRow = 1 To fgPos.Rows - 1
+    If fgPos.rows > 1 Then
+        For nRow = 1 To fgPos.rows - 1
             If nRow = nSelectedRow Then
                 fgPos.IsSelected(nRow) = True
             Else
@@ -568,40 +564,21 @@ Public Sub SetLastRowSelected()
     End If
 End Sub
 
-'Private Sub UpdateMnuItems()
-'
-'  Dim aRowData As EtsMmRisksLib.MmRvRowData
-'  Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom
-'
-'  If m_enMenuGrid = GT_RISKS_POSITIONS Then
-'
-'    If m_nMenuGridRow > 0 Then
-'        Set aRowData = m_RiskView.PosRowData(m_nMenuGridRow)
-'        Set aUnd = aRowData.Und
-'        Set aPos = aRowData.Pos
-'    End If
-'
-'    If Not aPos Is Nothing Then
-'
-'        mnuCtxUseMaualPrice.Checked = aPos.IsUseManualActivePrice
-'
-'    End If
-'
-' End If
-'
-'End Sub
+Public Sub ctlStopRT()
+    On Error Resume Next
+    If m_bShutDown Then Exit Sub
+    If m_Aux.RealTime Then
+        StopRealTime
+    End If
+End Sub
 
 Public Property Get Filter() As EtsGeneralLib.EtsFilterData
     Set Filter = m_Aux.FilterData
 End Property
 
-
 Public Function Init() As Boolean
-  On Error GoTo EH
-    
-    'Set m_frmCustDivs = New frmCustomDivs
-    Set m_OpenedUnd = New EtsGeneralLib.EtsMmFilterAtomColl
-    'Set m_OpenedStrategy = New EtsGeneralLib.EtsMmFilterAtomColl
+On Error GoTo EH
+
     ReDim m_AggCols(3)
     m_AggCols(0) = RPC_UND
     m_AggCols(1) = RPC_FUTURES
@@ -616,8 +593,12 @@ Public Function Init() As Boolean
     Set m_AuxClc = New clsAuxRiskViewCalc
     Set m_RiskView = m_Aux.RiskView
     
-    m_RiskView.ConnectionString = g_Params.DbConnection
+    Set simulation_scenario = Nothing
     
+    recalculation_time_stemp = 0#
+    
+    m_RiskView.ConnectionString = g_Params.DbConnection
+        
     m_bDateChanged = False
     m_bFirstTime = True
     
@@ -639,11 +620,8 @@ Public Function Init() As Boolean
     mnuCtxTntCardNew.Caption = "New Trade Message..." & vbTab & "Shift+Alt+Ins"
     
     Set VolaSource = g_VolaSource
-    InitColumns
+        
     fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
-    
-    'm_Aux.Grp = New EtsMmRisksLib.MmRvGrpAtom
-    'm_Aux.Idx = New EtsMmRisksLib.MmRvUndAtom
     
     Set m_Aux.VolaSource = VolaSource
     Set m_Aux.gdFlt = m_gdFlt
@@ -652,7 +630,7 @@ Public Function Init() As Boolean
     Set m_Aux.fgFlt = fgFlt
     Set m_Aux.fgTot = fgTot
     Set m_Aux.fgPos = fgPos
-    
+        
     m_AuxClc.Init m_Aux
     
     m_AuxOut.Init m_Aux
@@ -663,11 +641,12 @@ Public Function Init() As Boolean
     Set m_AuxOut.fgPos = fgPos
     Set m_AuxOut.imgBadPrice = imgBadPrice
     
+    InitColumns
+    
     ResetMenuData
     m_nUndPositions = 0
     m_nOptPositions = 0
     
-
     m_sCurrentOriginalText = ""
     m_bKeyDown(GT_RISKS_FILTER) = False
     m_bKeyDown(GT_RISKS_TOTALS) = False
@@ -700,17 +679,6 @@ Public Function Init() As Boolean
     Set TradeChannel = g_TradeChannel
     Set frmWtdVega = g_frmWtdVegaSettings
     
-    Dim aPT As PRICEPROVIDERSLib.IProvider
-    Set PriceProvider = New PRICEPROVIDERSLib.BatchPriceInfo
-    
-    Set aPT = PriceProvider
-    aPT.Type = g_Params.PriceProviderType
-    Set aPT = Nothing
-    
-    PriceProvider.Connect
-    
-    Set m_BatchPriceProvider = PriceProvider
-    If m_BatchPriceProvider Is Nothing Then LogEvent EVENT_ERROR, "Selected price provider is not compatible with Risk view."
     fgFlt.Col = RFC_SYMBOL
     fgFlt.Row = 1
     
@@ -718,12 +686,11 @@ Public Function Init() As Boolean
     fgTot.Row = 1
     
     Set TradeQueue = New clsTradeQueueColl
-    
     Set frmLayout = New frmGridLayout
+    
     Init = True
     Set aParams = g_Params
     
-    'm_frmCustDivs.InitRs
     m_RiskView.NetExposureAUM = g_Params.NetExposureAUM
     
     AdjustCaption
@@ -732,143 +699,26 @@ Public Function Init() As Boolean
 EH:
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to initialize risk view."
     RaiseEvent OnRefreshError
-
-' ********************* This is version from 1.12 *************************
-'    On Error GoTo EH
-'
-'    m_bDateChanged = False
-'
-'    m_bShutDown = False
-'    m_bVolaChangedNow = False
-'    m_bVolaUpdated = False
-'    m_bIsNewTrades = False
-'    m_bIsInitialized = False
-'
-'    mnuCtxTradeNew.Caption = "New Trade..." & vbTab & "Ins"
-'    mnuCtxAutosizeCol.Caption = "Autosize Column" & vbTab & "Ctrl+A"
-'    mnuCtxAutosizeGrid.Caption = "Autosize Grid" & vbTab & "Ctrl+G"
-'    mnuCtxOrderNewStock.Caption = "New Stock Order..." & vbTab & "Alt+Ins"
-'    mnuCtxOrderNewOption.Caption = "New Option Order..." & vbTab & "Ctrl+Alt+Ins"
-'    mnuCtxTntCardNew.Caption = "New Trade Message..." & vbTab & "Shift+Alt+Ins"
-'
-'    Set VolaSource = g_VolaSource
-'    InitColumns
-'
-'    fgFlt.TextMatrix(1, RFC_SIM_DATE) = Date
-'
-'    'm_Aux.Grp = New EtsMmRisksLib.MmRvGrpAtom
-'    'm_Aux.Idx = New EtsMmRisksLib.MmRvUndAtom
-'
-'    Set m_Aux.VolaSource = VolaSource
-'    Set m_Aux.gdFlt = m_gdFlt
-'    Set m_Aux.gdTot = m_gdTot
-'    Set m_Aux.gdPos = m_gdPos
-'    Set m_Aux.fgFlt = fgFlt
-'    Set m_Aux.fgTot = fgTot
-'    Set m_Aux.fgPos = fgPos
-'
-'    m_AuxClc.Init m_Aux
-'
-'    m_AuxOut.Init m_Aux
-'    Set m_AuxOut.gdFlt = m_gdFlt
-'    Set m_AuxOut.gdTot = m_gdTot
-'    Set m_AuxOut.gdPos = m_gdPos
-'    Set m_AuxOut.fgTot = fgTot
-'    Set m_AuxOut.fgPos = fgPos
-'    Set m_AuxOut.imgBadPrice = imgBadPrice
-'
-'    ResetMenuData
-'    m_nUndPositions = 0
-'    m_nOptPositions = 0
-'
-'
-'    m_sCurrentOriginalText = ""
-'    m_bKeyDown(GT_RISKS_FILTER) = False
-'    m_bKeyDown(GT_RISKS_TOTALS) = False
-'    m_bKeyDown(GT_RISKS_POSITIONS) = False
-'
-'    m_Aux.GridLock(GT_RISKS_FILTER).Init fgFlt
-'    m_Aux.GridLock(GT_RISKS_TOTALS).Init fgTot
-'    m_Aux.GridLock(GT_RISKS_POSITIONS).Init fgPos
-'
-'    m_Aux.SortColKey = -2
-'    m_Aux.SortColOrder = flexSortGenericAscending
-'
-'    m_Aux.InitGrids
-'
-'    Set gePos = New clsGridEx
-'    gePos.Init fgPos
-'    Set m_Aux.gePos = gePos
-'
-'    m_Aux.FormatFltGrid
-'    m_Aux.FormatFltColumns
-'
-'    m_Aux.FormatTotGrid
-'    m_Aux.FormatTotColumns
-'
-'    m_Aux.FormatPosGrid
-'    m_Aux.FormatPosColumns
-'
-'    m_Aux.InitFltData
-'
-'    Set TradeChannel = g_TradeChannel
-'    Set frmWtdVega = g_frmWtdVegaSettings
-'
-'    Dim aPT As PRICEPROVIDERSLib.IProvider
-'    Set PriceProvider = New PRICEPROVIDERSLib.BatchPriceInfo
-'
-'    Set aPT = PriceProvider
-'    aPT.Type = g_Params.PriceProviderType
-'    Set aPT = Nothing
-'
-'    PriceProvider.Connect
-'
-'    m_bGroupRequest = False
-'
-'    m_bGroupRequestSupported = g_Params.PriceProviderIsGroupRequestSupported
-'    If m_bGroupRequestSupported Then
-'        Set m_GroupPriceProvider = PriceProvider
-'        If m_GroupPriceProvider Is Nothing Then m_bGroupRequestSupported = False
-'    Else
-'        Set m_GroupPriceProvider = Nothing
-'    End If
-'
-'    Set m_BatchPriceProvider = PriceProvider
-'    If m_BatchPriceProvider Is Nothing Then LogEvent EVENT_ERROR, "Selected price provider is not compatible with Risk view."
-'    fgFlt.Col = RFC_SYMBOL
-'    fgFlt.Row = 1
-'
-'    fgTot.Col = 0
-'    fgTot.Row = 1
-'
-'    Set TradeQueue = New clsTradeQueueColl
-'
-'    Set frmLayout = New frmGridLayout
-'    Init = True
-'    Set aParams = g_Params
-'
-'    m_frmCustDivs.InitRs
-'
-'    AdjustCaption
-'    AdjustState
-'    Exit Function
-'EH:
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to initialize risk view."
 End Function
+
 Public Sub ShowDataByFilter(ByRef aFilters As EtsGeneralLib.EtsFilterData)
     On Error Resume Next
+    
     If m_bShutDown Then Exit Sub
-     m_Aux.Filter(RFC_SYMBOL) = aFilters.Data(RFC_SYMBOL)
-     m_Aux.Filter(RFC_GROUPS) = aFilters.Data(RFC_GROUPS)
-     m_Aux.Filter(RFC_TRADER_GROUP) = aFilters.Data(RFC_TRADER_GROUP)
-     m_Aux.Filter(RFC_TRADER) = aFilters.Data(RFC_TRADER)
-     m_Aux.Filter(RFC_STRATEGY) = aFilters.Data(RFC_STRATEGY)
-     m_Aux.Filter(RFC_TRADES) = aFilters.Data(RFC_TRADES)
+    
+    m_Aux.Filter(RFC_SYMBOL) = aFilters.Data(RFC_SYMBOL)
+    m_Aux.Filter(RFC_GROUPS) = aFilters.Data(RFC_GROUPS)
+    m_Aux.Filter(RFC_TRADER_GROUP) = aFilters.Data(RFC_TRADER_GROUP)
+    m_Aux.Filter(RFC_TRADER) = aFilters.Data(RFC_TRADER)
+    m_Aux.Filter(RFC_STRATEGY) = aFilters.Data(RFC_STRATEGY)
+    m_Aux.Filter(RFC_TRADES) = aFilters.Data(RFC_TRADES)
     
     m_Aux.FilterUpdateAll
     tmrShow.Enabled = True
 End Sub
+
 Public Sub ShowData(Optional ByVal nType As Long = TYPE_UNDERLYING, Optional ByVal nValue As Long = 0)
+
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     Select Case nType
@@ -894,11 +744,7 @@ Public Sub ShowData(Optional ByVal nType As Long = TYPE_UNDERLYING, Optional ByV
     
     m_Aux.FilterUpdateAll
     tmrShow.Enabled = True
-'    If m_bShutDown Then Exit Sub
-'    m_Aux.Filter(RFC_SYMBOL) = nType
-'    m_Aux.Filter(RFC_VALUE) = nValue
-'    m_Aux.FilterUpdateAll
-'    tmrShow.Enabled = True
+
 End Sub
 
 Public Sub FilterUpdateModel(ByVal bAutosize As Boolean)
@@ -913,55 +759,19 @@ Private Function PositionsLoad() As Boolean
     m_AuxClc.OptCount = 0
     
     If m_bInProc Then Exit Function
-    'If m_bInProc Or m_Aux.Filter(RFC_VALUE) = 0 Or m_Aux.Filter(RFC_GROUP) = 0 Then Exit Function
     
-    Dim i&, nCount&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim i&, nCount&, aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom, aExp As EtsGeneralLib.EtsMmEntityAtom
-    Dim collExp As New EtsGeneralLib.EtsMmEntityAtomColl, arrExp() As Long
     
     Dim nStart&
     nStart = GetTickCount
     
-    'm_Aux.Grp.ID = m_Aux.Filter(RFC_VALUE)
-    'm_Aux.Grp.GroupType = m_Aux.Filter(RFC_GROUP)
     m_Aux.Grp.GroupType = TYPE_ALL
     
     m_bInProc = True
     m_bDataLoad = True
     AdjustState
-    
-'    Err.Clear
-'    Select Case m_Aux.Grp.GroupType
-'        Case TYPE_UNDERLYING
-'            m_Aux.Grp.Name = g_Underlying(m_Aux.Grp.ID).Symbol
-'            If Err.Number <> 0 Then m_bDataLoad = False
-'
-'        Case TYPE_GROUP
-'            m_Aux.Grp.Name = g_UnderlyingGroup(m_Aux.Grp.ID).Name
-'            If Err.Number <> 0 Then m_bDataLoad = False
-'
-'        Case TYPE_TRADER_GROUP
-'            m_Aux.Grp.Name = g_TraderGroup(m_Aux.Grp.ID).Name
-'            If Err.Number <> 0 Then m_bDataLoad = False
-'
-'        Case TYPE_TRADER
-'            m_Aux.Grp.Name = g_Trader(m_Aux.Grp.ID).Name
-'            If Err.Number <> 0 Then m_bDataLoad = False
-'
-'        Case TYPE_STRATEGY
-'            If m_Aux.Grp.ID > 0 Then
-'                m_Aux.Grp.Name = g_Strategy(m_Aux.Grp.ID).Name
-'            Else
-'                m_Aux.Grp.Name = NO_STRATEGY_NAME
-'            End If
-'            If Err.Number <> 0 Then m_bDataLoad = False
-'
-'        Case TYPE_ALL
-'            m_Aux.Grp.Name = "<All>"
-'
-'        Case Else
-'            m_bDataLoad = False
-'    End Select
+
     Err.Clear
     m_Aux.Grp.Name = ""
     If m_Aux.Filter(RFC_SYMBOL) > 0 Then
@@ -1018,73 +828,23 @@ Private Function PositionsLoad() As Boolean
     pbProgress.Max = 100
     pbProgress.Visible = True
     
+    Set m_Aux.RiskView.EtsMain = g_Main
+    Set m_Aux.RiskView.VolaSource = VolaSource
+    Set m_Aux.RiskView.TradesCache = g_TradeChannel.TradeChannel
+       
     If Not g_PerformanceLog Is Nothing Then _
                     g_PerformanceLog.LogMmInfo enLogDebug, "Started Positions Loading.", m_frmOwner.GetCaption
                 
     g_TradeChannel.TradeChannel.UpdateManualActivePrices
-    Set mmTradesColl = g_TradeChannel.Trades.FilterTrades(m_Aux.FilterData, g_UnderlyingGroup, False)
-    m_Aux.Grp.ID = mmTradesColl.Count
+    
+    m_Aux.RiskView.LoadPositions m_Aux.FilterData
+        
     m_bIsInitialized = True
     
-    Set m_Aux.RiskView.EtsMain = g_Main
-    Set m_Aux.RiskView.VolaSource = VolaSource
-    m_Aux.RiskView.PositionsLoad mmTradesColl
-    
-    'Don't have any idea where it should be placed properly, since what lets stay here
-    
-    
-    
-    
-'    For Each aTrd In g_TradeChannel.Trades.FilterTrades(m_Aux.Grp.ID, m_Aux.Grp.GroupType, m_Aux.Filter(RFC_TYPE), g_UnderlyingGroup, False)
-'        'If /*m_Aux.CheckTradeFilter(aTrd)*/  Then
-'        If True Then
-'            Set aUnd = m_Aux.Und(aTrd.UndID)
-'            If aUnd Is Nothing Then
-'                Set aUnd = m_AuxClc.AddNewUnderlying(aTrd)
-'                If Not g_PerformanceLog Is Nothing Then _
-'                    g_PerformanceLog.LogMmInfo enLogDebug, "Loading New Underlying " & aUnd.Symbol, m_frmOwner.GetCaption
-'
-'            End If
-'
-'            Set aPos = aUnd.Pos(aTrd.ContractID)
-'            If aPos Is Nothing Then
-'                 Set aPos = m_AuxClc.AddNewPosition(aTrd, aUnd)
-'                If Not g_PerformanceLog Is Nothing Then _
-'                    g_PerformanceLog.LogMmInfo enLogDebug, "Loading New Position " & aPos.Symbol & " For Underlying: " & aUnd.Symbol, m_frmOwner.GetCaption
-'            End If
-'
-'            m_AuxClc.AddNewTradeToPosition aUnd, aPos, aTrd
-'
-'            Set aPos = Nothing
-'            Set aUnd = Nothing
-'        End If
-'
-'        DoEvents
-'        If Not m_bDataLoad Then GoTo EX
-'        IncProgress pbProgress
-'
-'        Set aTrd = Nothing
-'    Next
-        If Not m_bDataLoad Then GoTo Ex
-    
-    nCount = collExp.Count
-    If nCount > 0 Then
-        ReDim arrExp(1 To nCount)
+    If Not m_bDataLoad Then GoTo Ex
         
-        i = 1
-        For Each aExp In collExp
-            arrExp(i) = aExp.ID
-            i = i + 1
-        Next
-        
-        If nCount > 1 Then SortArray arrExp, 1, nCount
-        
-        For i = 1 To nCount
-            m_Aux.Exp.Add CStr(arrExp(i)), collExp(CStr(arrExp(i)))
-        Next
-    End If
+    'm_AuxClc.UnderlyingsAdjustRates True
     
-    m_AuxClc.UnderlyingsAdjustRates True
     PositionsLoad = m_bDataLoad
     If Not g_PerformanceLog Is Nothing Then _
                     g_PerformanceLog.LogMmInfo enLogDebug, "Finished Data Loading. Duration " & GetTickCount - nStart & " ms", m_frmOwner.GetCaption
@@ -1092,7 +852,6 @@ Ex:
     On Error Resume Next
     m_bInProc = False
     m_bDataLoad = False
-    Erase arrExp
     AdjustState
     Exit Function
 EH:
@@ -1121,7 +880,7 @@ End Sub
 
 Private Sub aParams_PriceProfilesChange()
     On Error Resume Next
-    If m_bShutDown Or m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Or m_bSubscribingNow Then Exit Sub
+    If m_bShutDown Or m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Then Exit Sub
     
     If Not m_Aux.RealTime Then
         SetRefreshHint True
@@ -1132,7 +891,7 @@ End Sub
 
 Private Sub aParams_PriceRoundingRuleChange()
     On Error Resume Next
-    If m_bShutDown Or m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Or m_bSubscribingNow Then Exit Sub
+    If m_bShutDown Or m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Then Exit Sub
     
     If Not m_Aux.RealTime Then
         SetRefreshHint True
@@ -1149,7 +908,6 @@ Private Sub DoTradeAction(TrdTmp As clsTradeQueueAtom)
                 AddTrade .TrdNew
                 Debug.Print "DoTradeAction.Add"
                 
-    
             Case enTaTradeUpdate
                 Debug.Assert Not .TrdNew Is Nothing
                 Debug.Assert Not .TrdOld Is Nothing
@@ -1165,23 +923,22 @@ Private Sub DoTradeAction(TrdTmp As clsTradeQueueAtom)
     End With
 End Sub
 
-
 Private Sub CheckTradeQueue()
     On Error Resume Next
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "CheckTradeQueue Enter: " & CStr(TradeQueue.Count), m_frmOwner.GetCaption
     
-  ' TradeQueue manage
-  Dim TrdTmp As clsTradeQueueAtom
-  For Each TrdTmp In TradeQueue
-    If Not IsNull(TrdTmp) Then
-        DoTradeAction TrdTmp
-        Set TrdTmp = Nothing
-    End If
-  Next
+    ' TradeQueue manage
+    Dim TrdTmp As clsTradeQueueAtom
+    For Each TrdTmp In TradeQueue
+        If Not IsNull(TrdTmp) Then
+            DoTradeAction TrdTmp
+            Set TrdTmp = Nothing
+        End If
+    Next
   
-  TradeQueue.Clear
+    TradeQueue.Clear
   
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "CheckTradeQueue Exit", m_frmOwner.GetCaption
@@ -1197,7 +954,7 @@ Private Sub aParams_UnderlyingsParamsChange(collUpdUnd As EtsGeneralLib.EtsMmFil
     If m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Then Exit Sub
     bUpdate = False
     
-    If Not m_Aux.RealTime And Not m_bSubscribingNow Then
+    If Not m_Aux.RealTime Then
         For Each aFilterAtom In collUpdUnd
             If Not m_Aux.Und(aFilterAtom.ID) Is Nothing Then
                 bUpdate = True
@@ -1238,13 +995,13 @@ Private Sub aParams_UnderlyingsParamsChange(collUpdUnd As EtsGeneralLib.EtsMmFil
             Set aContract = Nothing
             Set aFilterAtom = Nothing
         Next
-        If bUpdate And Not m_bSubscribingNow Then RefreshView
+        If bUpdate Then RefreshView
     End If
 End Sub
 
 Private Sub aParams_UndPriceToleranceChange()
     On Error Resume Next
-    If m_bShutDown Or m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Or m_bSubscribingNow Then Exit Sub
+    If m_bShutDown Or m_Aux.Grp.GroupType = 0 Or m_Aux.Grp.ID = 0 Then Exit Sub
     
     If Not m_Aux.RealTime Then
         SetRefreshHint True
@@ -1252,7 +1009,6 @@ Private Sub aParams_UndPriceToleranceChange()
         RefreshView
     End If
 End Sub
-
 
 Private Sub dtPick_Change()
        fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
@@ -1328,7 +1084,7 @@ Private Sub fgFlt_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick False
     End With
@@ -1355,7 +1111,7 @@ Private Sub fgPos_AfterUserResize(ByVal Row As Long, ByVal Col As Long)
     
     If Col >= 0 And Row < 0 Then
         nIdx = fgPos.ColKey(Col)
-        If nIdx >= RPC_SYMBOL And nIdx <= RPC_LAST_COLUMN Then
+        If nIdx >= RPC_SYMBOL And nIdx <= g_RPC_LAST_COLUMN Then
             m_gdPos.Col(nIdx).Width = IIf(fgPos.ColWidth(Col) > 0, fgPos.ColWidth(Col), -1)
         End If
     End If
@@ -1363,7 +1119,7 @@ End Sub
 
 Private Sub fgPos_Compare(ByVal Row1 As Long, ByVal Row2 As Long, Cmp As Integer)
     On Error Resume Next
-    If Not m_bShutDown Then m_Aux.PosGridCompare Row1, Row2, Cmp
+'    If Not m_bShutDown Then m_Aux.PosGridCompare Row1, Row2, Cmp
 End Sub
 
 Private Sub fgTot_DblClick()
@@ -1374,7 +1130,7 @@ Private Sub fgTot_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick False
     End With
@@ -1398,7 +1154,7 @@ Private Sub fgTot_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -1417,8 +1173,6 @@ Private Sub fgTot_KeyUp(KeyCode As Integer, Shift As Integer)
             Case KeyCode = vbKeyInsert And Shift = vbShiftMask + vbAltMask
                 If Not g_PerformanceLog Is Nothing Then _
                     g_PerformanceLog.LogMmInfo enLogUserAction, "Totals Hot key: Alt+Shift+Insert pressed. " & GetOptionInfo, m_frmOwner.Caption
-              
-                mnuCtxTntCardNew_Click
             
             Case (KeyCode = vbKeyInsert Or KeyCode = vbKeyC) And Shift = vbCtrlMask
                 If Not g_PerformanceLog Is Nothing Then _
@@ -1429,228 +1183,13 @@ Private Sub fgTot_KeyUp(KeyCode As Integer, Shift As Integer)
     End If
 End Sub
 
-Private Sub imgStop_Click()
-    On Error Resume Next
-    If m_bShutDown Then Exit Sub
-    If m_bLastQuoteReqNow Then
-        m_bLastQuoteReqNow = False
-        
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        lblStatus.Caption = "Last quotes request cancelling..."
-        lblStatus.Refresh
-        
-        PriceProvider.CancelLastQuote
-    
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogUserAction, "Click on imgStop: Last quotes request cancelling...", m_frmOwner.GetCaption
-           
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_REQUESTQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-            
-        m_bInProc = True
-        AdjustState
-            
-        m_AuxClc.UnderlyingsCalc True, True
-        m_AuxOut.UnderlyingsUpdate False
-        'm_AuxClc.UnderlyingsCalcWtdVega
-        m_AuxOut.TotalsUpdate
-        RefreshPositions
-        
-        m_bInProc = False
-        AdjustState
-        
-    ElseIf m_Aux.RealTime Or m_bSubscribingNow Then
-        m_Aux.RealTime = False
-        m_Aux.RealTimeConnected = False
-        m_bSubscribingNow = False
-        
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        lblStatus.Caption = "Quotes subscription cancelling..."
-        lblStatus.Refresh
-        
-        PriceProvider.UnSubscribeQuote
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogUserAction, "Click on imgStop: Quotes subscription cancelling...", m_frmOwner.GetCaption
-    
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_SUBSCRIBEQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-        
-        AdjustState
-        AdjustCaption
-        
-    ElseIf m_bDataLoad Then
-        m_bDataLoad = False
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogUserAction, "Data loading Canceled by Click on imgStop.", m_frmOwner.GetCaption
-    
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        
-        AdjustState
-        
-    ElseIf m_bInProc Then
-        m_bInProc = False
-        AdjustState
-    End If
-    
-    RaiseEvent OnRefreshCancel
-End Sub
-
 Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
-'    On Error Resume Next
-'    If m_bShutDown Then Exit Sub
-'    Dim sValue$, nValue&, sVal$
-'    Dim sTypeOld As String, sValueOld As String, sTradesOld As String, sIndexOld As String, sExpiryOld As String
-'    Dim sTypeNew As String, sValueNew As String, sTradesNew As String, sIndexNew As String, sExpiryNew As String
-'
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.LogMmInfo enLogUserAction, "Filter_AfterEdit Enter", m_frmOwner.GetCaption
-'
-'
-'    With fgFlt
-'        sValue = Trim$(.TextMatrix(Row, Col))
-'        If m_sCurrentOriginalText <> sValue Then
-'            nValue = CLng(sValue)
-'            If Err.Number <> 0 Then nValue = val(sValue)
-'            If Err.Number = 0 Then
-'                sTypeOld = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_GROUP)
-'                sValueOld = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_VALUE)
-'                sTradesOld = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_TYPE)
-'                sExpiryOld = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_EXPIRY)
-'                sIndexOld = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_INDEX)
-'                Select Case Col
-'                    Case RFC_GROUP
-'                        m_Aux.Filter(RFC_GROUP) = nValue
-'                        If m_Aux.Filter(RFC_GROUP) <> TYPE_ALL Then
-'                            m_Aux.Filter(RFC_VALUE) = 0
-'                            m_Aux.FilterUpdateValue True
-'                            tmrShow.Enabled = True
-'                            sTypeNew = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_GROUP)
-'                            If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogUserAction, "Editing Filter Type: " & _
-'                                "Old Type Filter: " & sTypeOld & "; Value filter: " & sValueOld & _
-'                                "; Trades Filter: " & sTradesOld & "; Expiry Filter: " & sExpiryOld & "; Index Filter: " & sIndexOld & _
-'                                "; New Type Filter: " & sTypeNew _
-'                                , m_frmOwner.GetCaption
-'
-'                            'Dim sTest As String
-'                            'sTest =
-'
-'                        Else
-'                            StoreRecentFilters
-'                            m_Aux.Filter(RFC_VALUE) = -1
-'                            m_Aux.FilterUpdateValue True
-'                            tmrShow.Enabled = True
-'                            sTypeNew = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_GROUP)
-'                            If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogUserAction, "Editing Filter Type: " & _
-'                                "Old Type Filter: " & sTypeOld & _
-'                                "; Trades Filter: " & sTradesOld & "; Expiry Filter: " & sExpiryOld & "; Index Filter: " & sIndexOld & _
-'                                "; New Type Filter: " & sTypeNew _
-'                                , m_frmOwner.GetCaption
-'                        End If
-'
-'                    Case RFC_VALUE
-'                        If m_Aux.Filter(RFC_VALUE) = 0 Then
-'                            'sValue = .ColComboList(Col)
-'                            'sValue = Mid$(sValue, InStr(1, sValue, "|") + 1)
-'                            '.ColComboList(Col) = sValue
-'                            '.TextMatrix(Row, Col) = CStr(nValue)
-'                        End If
-'                        StoreRecentFilters
-'                        m_Aux.Filter(RFC_VALUE) = nValue
-'                        .AutoSize 0, .Cols - 1, , 100
-'                        tmrShow.Enabled = True
-'                        sValueNew = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_VALUE)
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogUserAction, "Editing Filter Value: " & _
-'                                "Type Filter: " & sTypeOld & "; Old Value filter: " & sValueOld & _
-'                                "; Trades Filter: " & sTradesOld & "; Expiry Filter: " & sExpiryOld & "; Index Filter: " & sIndexOld & _
-'                                "; New Value Filter: " & sValueNew _
-'                                , m_frmOwner.GetCaption
-'
-'
-'                    Case RFC_TYPE
-'                        StoreRecentFilters
-'                        m_Aux.Filter(RFC_TYPE) = nValue
-'                        .AutoSize 0, .Cols - 1, , 100
-'                        tmrShow.Enabled = True
-'                        sTradesNew = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_TYPE)
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogUserAction, "Editing Filter Trades: " & _
-'                                " Type Filter: " & sTypeOld & "; Value filter: " & sValueOld & _
-'                                ";Old Trades Filter: " & sTradesOld & "; Expiry Filter: " & sExpiryOld & "; Index Filter: " & sIndexOld & _
-'                                "; New Trades Filter: " & sTradesNew _
-'                                , m_frmOwner.GetCaption
-'
-'
-'                    Case RFC_EXPIRY
-'                        m_Aux.Filter(RFC_EXPIRY) = nValue
-'                        .AutoSize 0, .Cols - 1, , 100
-'                        PositionsApplyFilter
-'                        'tmrShow.Enabled = True
-'                        m_bInProc = True
-'                        m_AuxClc.UnderlyingsCalc True, True
-'                        m_AuxOut.UnderlyingsUpdate False
-'                        m_AuxOut.TotalsUpdate
-'                        m_bInProc = False
-'                        sExpiryNew = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_EXPIRY)
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogUserAction, "Editing Filter Expiry: " & _
-'                                " Type Filter: " & sTypeOld & "; Value filter: " & sValueOld & _
-'                                ";Trades Filter: " & sTradesOld & "; Old Expiry Filter: " & sExpiryOld & "; Index Filter: " & sIndexOld & _
-'                                "; New Expiry Filter: " & sExpiryNew _
-'                                , m_frmOwner.GetCaption
-'                    Case RFC_INDEX
-'                        m_Aux.Filter(RFC_INDEX) = nValue
-'                        .AutoSize 0, .Cols - 1, , 100
-'                        IndexLoad
-'
-'                        If m_Aux.Und.Count > 0 Then
-'                            If m_Aux.RealTime Then
-'                                SubscribeToIndex
-'                            Else
-'                                RequestIndexLastQuote
-'                            End If
-'                        End If
-'                        sIndexNew = m_Aux.fgFlt.Cell(flexcpTextDisplay, Row, RFC_INDEX)
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogUserAction, "Editing Filter Index: " & _
-'                                " Type Filter: " & sTypeOld & "; Value filter: " & sValueOld & _
-'                                ";Trades Filter: " & sTradesOld & "; Expiry Filter: " & sExpiryOld & "; Old Index Filter: " & sIndexOld & _
-'                                "; New Index Filter: " & sIndexNew _
-'                                , m_frmOwner.GetCaption
-'
-'                End Select
-'            Else
-'                .TextMatrix(1, Col) = m_Aux.Filter(Col)
-'            End If
-'        End If
-'    End With
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.LogMmInfo enLogUserAction, "Filter_AfterEdit Exit", m_frmOwner.GetCaption
-     On Error Resume Next
+On Error Resume Next
     If m_bShutDown Then Exit Sub
     Dim sValue$, nValue&, sVal$
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Filter_AfterEdit Enter", m_frmOwner.GetCaption
-    
     
     With fgFlt
         sValue = Trim$(.TextMatrix(Row, Col))
@@ -1693,24 +1232,15 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         .AutoSize 0, .Cols - 1, , 100
                         StoreRecentFilters
                         tmrShow.Enabled = True
-'                    Case RFC_AGGREGATION
-'                        m_Aux.Filter(RFC_AGGREGATION) = nValue
-'                        tmrGrouping.Enabled = True
-'                    Case RFC_SUBAGGREGATION
-'                        m_Aux.Filter(RFC_SUBAGGREGATION) = nValue
-'                        tmrGrouping.Enabled = True
-                           
                     Case RFC_EXPIRY
                         m_Aux.Filter(RFC_EXPIRY) = nValue
                         .AutoSize 0, .Cols - 1, , 100
                        
                         RefreshPositions
-'                        PositionsApplyFilter
                         
                         m_bInProc = True
                         m_AuxClc.UnderlyingsCalc True, True
                         m_AuxOut.UnderlyingsUpdate True
-                        'm_AuxClc.UnderlyingsCalcWtdVega
                         m_AuxOut.TotalsUpdate
                         m_bInProc = False
                         
@@ -1720,15 +1250,6 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         m_Aux.Filter(RFC_INDEX) = nValue
                         .AutoSize 0, .Cols - 1, , 100
                         IndexLoad
-                        
-                        If m_Aux.Und.Count > 0 Then
-                            If m_Aux.RealTime Then
-                                SubscribeToIndex
-                            Else
-                                RequestIndexLastQuote
-                            End If
-                        End If
-                        
                 End Select
             Else
                 .TextMatrix(1, Col) = m_Aux.Filter(Col)
@@ -1759,7 +1280,7 @@ Private Sub fgFlt_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -1784,7 +1305,7 @@ Private Sub fgFlt_KeyUp(KeyCode As Integer, Shift As Integer)
                 If Not g_PerformanceLog Is Nothing Then _
                     g_PerformanceLog.LogMmInfo enLogUserAction, "Filter Hot key Alt+Shift+Insert pressed. " & GetOptionInfo, m_frmOwner.Caption
               
-                mnuCtxTntCardNew_Click
+                'mnuCtxTntCardNew_Click
             
             Case (KeyCode = vbKeyInsert Or KeyCode = vbKeyC) And Shift = vbCtrlMask
                 If Not g_PerformanceLog Is Nothing Then _
@@ -1805,40 +1326,17 @@ Private Sub fgFlt_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             ShowPopup
         End With
     End If
     If fgFlt.Visible = True And fgFlt.MouseCol <> RFC_SIM_DATE Then
         dtPick.Visible = False
-        'fgFlt.TextMatrix(1, RFC_SIM_DATE) = dtPick.Value
     End If
 End Sub
 
 Private Sub fgFlt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boolean)
-'    On Error Resume Next
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.LogMmInfo enLogEnhDebug, "Filter_StartEdit Enter", m_frmOwner.GetCaption
-'
-'    If m_bShutDown Then Exit Sub
-'    Cancel = True
-'
-'    If IsDblClickHandled Then Exit Sub
-'
-'    With fgFlt
-'        If Not m_bInProc And Not m_bDataLoad And Not m_bLastQuoteReqNow And Not m_bSubscribingNow _
-'            And Col >= RFC_SYMBOL And Col <= RFC_LAST_COLUMN Then
-'            Cancel = Not m_gdFlt.Col(Col).CanEdit
-'
-'            If Not Cancel Then Cancel = (Col = RFC_VALUE And m_Aux.Filter(RFC_GROUP) = TYPE_ALL)
-'            If Not Cancel Then m_sCurrentOriginalText = Trim$(.TextMatrix(Row, Col))
-'        End If
-'    End With
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.LogMmInfo enLogEnhDebug, "Filter_StartEdit Exit", m_frmOwner.GetCaption
-'
+    
     On Error Resume Next
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -1847,35 +1345,17 @@ Private Sub fgFlt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     If m_bShutDown Then Exit Sub
     Cancel = True
     
-'    If fgFlt.ColDataType(Col) = flexDTDate And Col = RFC_CALCULATION_DATE Then
-'
-'        Cancel = True
-'
-'        m_dtCalcDate.Move fgFlt.CellLeft, fgFlt.CellTop + fgFlt.Top, fgFlt.CellWidth, fgFlt.CellHeight
-'        m_dtCalcDate.Value = fgFlt
-'        m_dtCalcDate.Tag = fgFlt
-'        'm_dtCalcDate.CalendarForeColor = fgFlt.Cell(flexcpForeColor, 1, fgFlt.Cols - 1)
-'
-'        'm_dtCalcDate.CalendarBackColor = fgFlt.Cell(flexcpBackColor, 1, fgFlt.Cols - 1)
-'
-'        m_dtCalcDate.Visible = True
-'        m_dtCalcDate.SetFocus
-'        'SendKeys "{f4}"
-'        Exit Sub
-'    End If
-    
     If IsDblClickHandled Then Exit Sub
     
     With fgFlt
-        If Not m_bInProc And Not m_bDataLoad And Not m_bLastQuoteReqNow And Not m_bSubscribingNow _
-            And Col >= RFC_SYMBOL And Col <= RFC_LAST_COLUMN Then
+        If Not m_bInProc And Not m_bDataLoad And _
+            Col >= RFC_SYMBOL And Col <= RFC_LAST_COLUMN Then
             Cancel = Not m_gdFlt.Col(Col).CanEdit
            
             If Not Cancel Then m_sCurrentOriginalText = Trim$(.TextMatrix(Row, Col))
         End If
     End With
     
-    'ach_start
     If Col = RFC_SIM_DATE And m_Aux.Grp.ID <> 0 And m_Aux.RealTime = False Then
         ' we'll handle the editing ourselves
         Cancel = True
@@ -1890,8 +1370,6 @@ Private Sub fgFlt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
         ' make it drop down the calendar
         'SendKeys "{f4}"
     End If
-    'ach_end
-    
       
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Filter_StartEdit Exit", m_frmOwner.GetCaption
@@ -1899,15 +1377,18 @@ Private Sub fgFlt_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
 End Sub
 
 Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
+
     On Error Resume Next
+    
     If m_bShutDown Then Exit Sub
+    
     Dim nKey&, sValue$, dValue#, bCalcUnd As Boolean, bCalcPos As Boolean, bCalcSynthUnd As Boolean
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, nUndRow&
     Dim aRowData As EtsMmRisksLib.MmRvRowData, aSynthGreeks As EtsMmRisksLib.MmRvSynthGreeksAtom
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim aUndData As EtsMmRisksLib.IMmRvAggregationDataAtom
     Dim aIdxData As EtsMmRisksLib.IMmRvAggregationDataAtom
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bChangeUnd As Boolean, bChangePos As Boolean
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, bChangeUnd As Boolean, bChangePos As Boolean
     Dim aTradeColl As MmTradeInfoColl
     Dim aFut As MmRvFutAtom
     Dim actPriceChg As Boolean
@@ -2040,7 +1521,6 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     Case RPC_BID
                         dValue = Abs(ReadDbl(sValue))
                         If Not aPos Is Nothing Then
-                            'If aPos.Quote.Price.Bid <> dValue Then
                                 If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceBid Changed " _
                                                                                         & "OldValue=""" & aPos.Quote.price.Bid & """ " _
@@ -2055,6 +1535,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 Debug.Assert nUndRow > 0
                                 
                                 Select Case aPos.ContractType
+                                
                                     Case enCtOption, enCtFutOption
                                         bCalcPos = True
                                 
@@ -2068,6 +1549,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         bCalcUnd = True
                                         
                                     Case Else
+                                    
                                         aUndData.price.Bid = aPos.Quote.price.Bid
                                         aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                         bCalcUnd = True
@@ -2075,14 +1557,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
                                         
                                 End Select
-                            'Else
-                            '     If Not g_PerformanceLog Is Nothing Then _
-                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceBid Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-                           
-                            'End If
                             
                         ElseIf aSynthGreeks Is Nothing Then
-                            'If aUndData.Price.Bid <> dValue Then
                                  If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Changed " _
                                                                                         & "OldValue=""" & aUndData.price.Bid & """ " _
@@ -2112,47 +1588,36 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 Set aPos = aUnd.Pos(aUnd.ID)
                                 If Not aPos Is Nothing Then aPos.Quote.price.Bid = aUndData.price.Bid
                                 If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
-                            'Else
-                            '  If Not g_PerformanceLog Is Nothing Then _
-                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-                           
-                            'End If
                         Else
                             Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
-                            'If aUndData.Price.Bid <> dValue Then
+                            
                             If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Changed " _
                                                                                         & "OldValue=""" & aUndData.price.Bid & """ " _
                                                                                         & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                            
-                                If dValue > 0 Then
-                                    aUndData.price.Bid = dValue
-                                Else
-                                    dValue = aUndData.price.Bid
-                                End If
-                                aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
-                                bCalcSynthUnd = True
-                                
-                                If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
-                                    nUndRow = .FindRow(CStr(aUnd.ID) & "_" & CStr(aUnd.ID), 1, RPC_KEY, , True)
-                                    bCalcUnd = True
-                                End If
-                                
-                                Set aPos = aUnd.Pos(aUnd.ID)
-                                If Not aPos Is Nothing Then aPos.Quote.price.Bid = aUndData.price.Bid
-                                If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
-                            'Else
-                            '  If Not g_PerformanceLog Is Nothing Then _
-                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceBid Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-                           
-                            'End If
+                            If dValue > 0 Then
+                                aUndData.price.Bid = dValue
+                            Else
+                                dValue = aUndData.price.Bid
+                            End If
+                            aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
+                            bCalcSynthUnd = True
+                            
+                            If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
+                                nUndRow = .FindRow(CStr(aUnd.ID) & "_" & CStr(aUnd.ID), 1, RPC_KEY, , True)
+                                bCalcUnd = True
+                            End If
+                            
+                            Set aPos = aUnd.Pos(aUnd.ID)
+                            If Not aPos Is Nothing Then aPos.Quote.price.Bid = aUndData.price.Bid
+                            If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Bid = aUndData.price.Bid
                             
                         End If
                         
                     Case RPC_ASK
                         dValue = ReadDbl(sValue)
                         If Not aPos Is Nothing Then
-                            'If aPos.Quote.Price.Ask <> dValue Then
                                 If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Position PriceAsk Changed " _
                                                                                         & "OldValue=""" & aPos.Quote.price.Ask & """ " _
@@ -2168,7 +1633,9 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 Debug.Assert nUndRow > 0
                                 
                                 Select Case aPos.ContractType
+                                
                                     Case enCtOption, enCtFutOption
+                                    
                                         bCalcPos = True
                                 
                                     Case enCtFuture
@@ -2180,6 +1647,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         bCalcUnd = True
                                         
                                     Case Else
+                                    
                                         aUndData.price.Ask = aPos.Quote.price.Ask
                                         aUnd.VolaSrv.UnderlyingPrice = aUnd.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, aUndData.price.Ask, aUndData.price.Last, dToleranceValue, enRoundingRule)
                                         bCalcUnd = True
@@ -2187,15 +1655,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                         If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Ask = aUndData.price.Ask
                                         
                                 End Select
-                            'Else
-                              'If Not g_PerformanceLog Is Nothing Then _
-                                If Not g_PerformanceLog Is Nothing Then _
-                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions  PriceAsk Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-                           
-                            'End If
                             
                         ElseIf aSynthGreeks Is Nothing Then
-                            'If aUndData.Price.Ask <> dValue Then
                             If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceAsk Changed " _
                                                                                         & "OldValue=""" & aUndData.price.Ask & """ " _
@@ -2227,14 +1688,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 Set aPos = aUnd.Pos(aUnd.ID)
                                 If Not aPos Is Nothing Then aPos.Quote.price.Ask = aUndData.price.Ask
                                 If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Ask = aUndData.price.Ask
-                            'Else
-                              'If Not g_PerformanceLog Is Nothing Then _
-                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceAsk Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-                           
-                            'End If
                         Else
                             Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
-                            'If aUndData.Price.Ask <> dValue Then
                                 If dValue > 0 Then
                                     aUndData.price.Ask = dValue
                                 Else
@@ -2251,11 +1706,6 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 Set aPos = aUnd.Pos(aUnd.ID)
                                 If Not aPos Is Nothing Then aPos.Quote.price.Ask = aUndData.price.Ask
                                 If m_Aux.Idx.ID = aUnd.ID Then aIdxData.price.Ask = aUndData.price.Ask
-                            'Else
-                              'If Not g_PerformanceLog Is Nothing Then _
-                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceAsk Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-                           
-                            'End If
                         End If
                         .TextMatrix(Row, Col) = dValue
 
@@ -2324,7 +1774,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                             & "OldValue=""" & aUnd.price.TheoClose & """ " _
                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             
-                              If aUnd.ContractType <> enCtFutUnd And aFut Is Nothing Then
+                            If aUnd.ContractType <> enCtFutUnd And aFut Is Nothing Then
+                            
                                 aUnd.price.TheoClose = dValue
                                 bChangeUnd = True
                                 bCalcUnd = True
@@ -2339,9 +1790,11 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     bChangePos = True
                                 End If
                                 g_ContractAll(aUnd.ID).Und.PriceTheoclose = dValue
-
+    
                                 If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.TheoClose = aUnd.price.TheoClose
-                              Else
+                                
+                            Else
+                            
                                     aFut.price.TheoClose = dValue
                                     bChangeUnd = True
                                     bCalcUnd = True
@@ -2352,41 +1805,9 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     bChangePos = True
                                     g_ContractAll(aFut.ID).Fut.PriceTheoclose = dValue
                                     
-                              End If
-'                        Else
-'                            Set aUnd = m_Aux.Und(aSynthGreeks.SynthUndID)
-'                            If aUnd.Price.TheoClose <> dValue Then
-'                                If Not g_PerformanceLog Is Nothing Then _
-'                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Changed " _
-'                                                                                        & "OldValue=""" & aUnd.Price.TheoClose & """ " _
-'                                                                                        & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
-'
-'                                aUnd.Price.TheoClose = dValue
-'                                bChangeUnd = True
-'                                bCalcSynthUnd = True
-'
-'                                If Not aUnd.Pos Is Nothing And aUnd.Pos.Count > 0 Then
-'                                    nUndRow = .FindRow(CStr(aUnd.ID) & "_" & CStr(aUnd.ID), 1, RPC_KEY, , True)
-'                                    bCalcUnd = True
-'                                End If
-'
-'                                Set aPos = aUnd.Pos(aUnd.ID)
-'                                If Not aPos Is Nothing Then
-'                                    aPos.Quote.Price.TheoClose = aUnd.Price.TheoClose
-'                                    For Each aTrd In TradeChannel.TradesByUnd(aPos.UndID)
-'                                        If aTrd.ContractID = aPos.ID Then aTrd.Opt.PriceTheoClose = aPos.Quote.Price.TheoClose
-'                                        Set aTrd = Nothing
-'                                    Next
-'                                    bChangePos = True
-'                                End If
-'                                If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.Price.TheoClose = aUnd.Price.TheoClose
-'                            Else
-'                              If Not g_PerformanceLog Is Nothing Then _
-'                                            g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
-'
-'                            End If
+                            End If
                         End If
-                            .TextMatrix(Row, Col) = dValue
+                        .TextMatrix(Row, Col) = dValue
                 
                     Case RPC_CLOSE
                         dValue = Abs(ReadDbl(sValue))
@@ -2451,7 +1872,8 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                                                             & "OldValue=""" & aUnd.price.Close & """ " _
                                                                             & "NewValue=""" & dValue & """. " & GetOptionInfo, m_frmOwner.GetCaption
                             
-                              If aUnd.ContractType <> enCtFutUnd And aFut Is Nothing Then
+                            If aUnd.ContractType <> enCtFutUnd And aFut Is Nothing Then
+                            
                                 aUnd.price.Close = dValue
                                 bChangeUnd = True
                                 bCalcUnd = True
@@ -2472,18 +1894,20 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                 End If
                                 
                                 If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.Close = aUnd.price.Close
-                              Else
-                                    aFut.price.Close = dValue
-                                    bChangeUnd = True
-                                    bCalcUnd = True
-                                    For Each aTrd In TradeChannel.TradesByFut(aFut.ID)
-                                        If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceClose = aFut.price.Close
-                                        Set aTrd = Nothing
-                                    Next
-                                    bChangePos = True
-                                    g_ContractAll(aFut.ID).Fut.PriceClose = dValue
+                                
+                            Else
+                            
+                                aFut.price.Close = dValue
+                                bChangeUnd = True
+                                bCalcUnd = True
+                                For Each aTrd In TradeChannel.TradesByFut(aFut.ID)
+                                    If aTrd.ContractID = aFut.ID Then aTrd.Fut.PriceClose = aFut.price.Close
+                                    Set aTrd = Nothing
+                                Next
+                                bChangePos = True
+                                g_ContractAll(aFut.ID).Fut.PriceClose = dValue
                                     
-                              End If
+                            End If
                               
                               
                         Else
@@ -2512,8 +1936,10 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                                     Next
                                     bChangePos = True
                                 End If
+                                
                                 If m_Aux.Idx.ID = aUnd.ID Then m_Aux.Idx.price.Close = aUnd.price.Close
                             Else
+                            
                               If Not g_PerformanceLog Is Nothing Then _
                                             g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Underlying PriceClose Wasn't Changed " & GetOptionInfo, m_frmOwner.GetCaption
                            
@@ -2522,11 +1948,11 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 End Select
                     
                 If bChangeUnd Or bChangePos Then
+                
                     If bChangeUnd Then
                         g_Underlying(aUnd.ID).PriceClose = aUnd.price.Close
                         g_Underlying(aUnd.ID).PriceTheoclose = aUnd.price.TheoClose
                     End If
-                    
                     
                     Dim bPricePub, dwUndID&, dwPosID&
                     bPricePub = False
@@ -2567,31 +1993,7 @@ Private Sub fgPos_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                 If bCalcUnd Or bCalcPos Or bCalcSynthUnd Then
                     If bCalcPos Then
                         If bChangePos And Not aPos Is Nothing Then m_AuxClc.CalcOptionGreeks aUnd, aPos, IIf(g_Params.UseTheoVolatility, GM_NONE, GM_ALL)
-                        'm_AuxOut.UnderlyingUpdate nUndRow, False
-                        'm_AuxOut.PositionUpdate Row, False
-
-                        'If aUnd.HasSynthetic Then m_AuxOut.SyntheticUnderlyingGreeksUpdate aUnd, False
-                        'If aPos.IsSynthetic Then m_AuxOut.SyntheticPositionGreeksUpdate aUnd.ID, aPos, False
                     End If
-                    'If bCalcUnd Then
-                       
-                        'm_AuxClc.UnderlyingCalc aUnd, True, True, False, False
-
-                        'm_AuxOut.UnderlyingUpdate nUndRow, False
-                        'm_AuxOut.PositionsUpdate nUndRow, False
-
-                        'If Not aUnd.SynthPos Is Nothing Then
-                        '    If aUnd.SynthPos.Count Then
-                        '        m_AuxClc.SyntheticUnderlyingCalc aUnd
-                        '        'm_AuxOut.SyntheticPositionsUpdate aUnd
-                        '    End If
-                        'End If
-                    'End If
-                    'If bCalcSynthUnd Then
-                        'm_AuxClc.SyntheticUnderlyingCalc aUnd
-                        'm_AuxClc.UnderlyingsCalc True, True
-                        'm_AuxOut.SyntheticPositionsUpdate aUnd
-                    'End If
             
                     m_AuxClc.UnderlyingsCalc True, True, False, False
                     RefreshPositions
@@ -2651,7 +2053,7 @@ Private Sub fgPos_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick True
     End With
@@ -2697,7 +2099,7 @@ Private Sub fgPos_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -2723,7 +2125,7 @@ Private Sub fgPos_KeyUp(KeyCode As Integer, Shift As Integer)
                  If Not g_PerformanceLog Is Nothing Then _
                     g_PerformanceLog.LogMmInfo enLogUserAction, "Positions Hot key: Alt+Shift+Insert pressed. " & GetOptionInfo, m_frmOwner.Caption
               
-                mnuCtxTntCardNew_Click
+                'mnuCtxTntCardNew_Click
             
             Case (KeyCode = vbKeyInsert Or KeyCode = vbKeyC) And Shift = vbCtrlMask
                  If Not g_PerformanceLog Is Nothing Then _
@@ -2756,7 +2158,7 @@ Private Sub fgPos_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             
             If m_nMenuGridRow > 0 And m_nMenuGridRow < m_nMenuGridRows And m_nMenuGridCol > 0 And m_nMenuGridCol < m_nMenuGridCols Then
                 .Row = m_nMenuGridRow
@@ -2774,12 +2176,13 @@ Private Sub fgPos_StartEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Bool
     Dim aRowData As MmRvRowData
     
     Cancel = True
-    If m_bInProc Or m_Aux.RealTime Or m_bDataLoad Or m_bLastQuoteReqNow Or m_bSubscribingNow Then
+    If m_bInProc Or m_Aux.RealTime Or m_bDataLoad Then
         If Not IsDblClickHandled And g_Params.ShowMessageUnableToEdit And fgPos.ColKey(Col) = RPC_CLOSE Then
             FixDblClickHandled
             Dim aFrm As New frmInfoMsgBox
             aFrm.Mode = 1
             aFrm.Show vbModeless
+            Set aFrm = Nothing
         End If
         Exit Sub
     End If
@@ -2830,7 +2233,7 @@ Private Sub fgTot_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             ShowPopup
         End With
     End If
@@ -2877,43 +2280,7 @@ Public Sub SetGridLayout(ByVal enGridType As GridTypeEnum, gdGrid As clsGridDef)
     
         Case GT_RISKS_POSITIONS
             gdGrid.CopyTo m_gdPos
-            
-'            m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'            m_Aux.FormatPosGrid
-'            m_Aux.FormatPosColumns
-'            fgPos.FlexDataSource = Nothing
-'            m_RiskView.PosColumnsOrder = m_Aux.gdPos.IdxCopy
-'            m_Aux.RiskView.Refresh RPC_SYMBOL, 0, m_AggCols
-'            fgPos.FlexDataSource = m_Aux.RiskView
-'            m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-'            fgPos.Refresh
-            
-            'm_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-            
             RefreshPositions
-'            m_Aux.FormatPosColumns
-'            fgPos.FlexDataSource = Nothing
-'            m_Aux.RiskView.Refresh RPC_SYMBOL, 0, m_AggCols
-'            fgPos.FlexDataSource = m_Aux.RiskView
-'            m_RiskView.PosColumnsOrder = m_Aux.gdPos.IdxCopy
-'            For i = 1 To fgPos.Rows - 1
-'                Set aRowData = m_RiskView.PosRowData(i)
-'                fgPos.IsSubtotal(i) = aRowData.IsAggregation
-'                If aRowData.IsAggregation Then
-'                    fgPos.Cell(flexcpFontBold, i, 1, i, fgPos.Cols - 1) = True
-'                End If
-'                If Not aRowData Is Nothing Then
-'                    fgPos.RowOutlineLevel(i) = aRowData.OutlineLevel
-'                End If
-'            Next
-'            m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-'            fgPos.Refresh
-'            m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'            m_Aux.FormatPosGrid
-'            m_AuxOut.UnderlyingsUpdate True
-'            m_Aux.FormatPosColumns
-'            m_AuxOut.UnderlyingsUpdateBadStatus
-'            m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
     
     End Select
     
@@ -2930,14 +2297,16 @@ Private Sub frmWtdVega_OnOK()
     m_AuxOut.TotalsUpdate
     RefreshPositions
     m_bInProc = False
+    
 End Sub
 
 Private Sub m_RiskView_Progress(ByVal bsDescription As String, ByVal Precent As Double)
+
     pbProgress.Value = Precent
     lblProcess.Caption = bsDescription
     lblProcess.Refresh
     DoEvents
-    'Sleep 10
+
 End Sub
 
 Private Sub mnuCtxCopy_Click()
@@ -2963,6 +2332,24 @@ Private Sub mnuCtxCopy_Click()
 
     End Select
     Screen.MousePointer = vbDefault
+End Sub
+
+Private Sub mnuCtxFitVolatilityToMarket_Click()
+On Error GoTo error_exception:
+    
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogUserAction, "Popup menu. ""RightClick -> mnuCtxFitVolatilityToMarket"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
+    
+    If (Not m_Aux Is Nothing) Then
+        If (Not m_Aux.RiskView Is Nothing) Then
+            m_Aux.RiskView.FitToMarketVolatility
+        End If
+    End If
+    
+    Exit Sub
+    
+error_exception:
+    gCmn.ErrorMsgBox m_frmOwner, "Risks View: Fail to Fit volatility to Implied."
 End Sub
 
 Private Sub mnuCtxOtcOptionCalc_Click()
@@ -2991,6 +2378,7 @@ If Not g_PerformanceLog Is Nothing Then _
         aData.UpdStatus = enUndAllTheoCloseUpdate
         g_TradeChannel.PubUnderlyingUpdate aData
     End If
+    
     Exit Sub
     
 ErrorExeption:
@@ -2999,7 +2387,9 @@ End Sub
 
 Private Sub mnuCtxTradeExercise_Click()
     On Error Resume Next
+    
     If m_bShutDown Or m_bInProc Or m_enMenuGrid <> GT_RISKS_POSITIONS Then Exit Sub
+    
     Dim aRowData As EtsMmRisksLib.MmRvRowData, bIsSynth As Boolean
     Dim collTrades As New clsTradeExecColl, frmExecTrades As frmExerciseTrades
     
@@ -3014,11 +2404,6 @@ Private Sub mnuCtxTradeExercise_Click()
                         If Not aRowData.Und.SynthRoots Is Nothing Then
                             bIsSynth = Not aRowData.Und.SynthRoots(aRowData.Pos.OptionRootID) Is Nothing
                         End If
-                        
-'                        If bIsSynth Then
-'                            gCmn.MyMsgBox m_frmOwner, "Exercising trades for options with syntetic root is not supported.", vbExclamation
-'                            Exit Sub
-'                        End If
                     
                         TradeChannel.MakeTradesListForExec collTrades, aRowData.Und.ID, 0, aRowData.Pos.ID
                     Else
@@ -3037,10 +2422,12 @@ Private Sub mnuCtxTradeExercise_Click()
             Set aRowData = Nothing
         End If
     End If
+    
 End Sub
 
 Private Sub mnuCtxTradeExpiry_Click()
     On Error Resume Next
+    
     If m_bShutDown Or m_bInProc Or m_enMenuGrid <> GT_RISKS_POSITIONS Then Exit Sub
     Dim aRowData As EtsMmRisksLib.MmRvRowData
     Dim collTrades As New clsTradeExecColl, frmExecTrades As frmExerciseTrades
@@ -3069,13 +2456,15 @@ Private Sub mnuCtxTradeExpiry_Click()
             Set aRowData = Nothing
         End If
     End If
+    
 End Sub
 
 Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                                         ByRef aUnd As EtsGeneralLib.UndAtom, _
                                         ByRef aOpt As EtsGeneralLib.EtsOptAtom, _
                                         ByRef bBuy As Boolean, ByRef dPrice#, ByRef nQty&)
-     On Error Resume Next
+    On Error Resume Next
+     
     Dim aCurUnd As EtsMmRisksLib.MmRvUndAtom, aCurPos As EtsMmRisksLib.MmRvPosAtom
     Dim aRowData As EtsMmRisksLib.MmRvRowData, aCurSynthGreek As EtsMmRisksLib.MmRvSynthGreeksAtom
     Dim aCurUndData As EtsMmRisksLib.IMmRvAggregationDataAtom
@@ -3115,6 +2504,7 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                 End If
                 
                 If dPrice <= 0# Then dPrice = aCurUndData.price.Last
+                
             Else
                 If Not aCurPos Is Nothing Then
                     If aCurPos.ContractType = enCtOption Then
@@ -3131,23 +2521,25 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                     End If
                 End If
             End If
+            
         End If
         
         Set aRowData = Nothing
         Set aCurUnd = Nothing
         Set aCurPos = Nothing
         Set aCurSynthGreek = Nothing
+        
     End If
-    
-    'If aUnd Is Nothing And m_Aux.Filter(RFC_GROUP) = TYPE_UNDERLYING Then _
-        Set aUnd = g_Underlying(m_Aux.Filter(RFC_VALUE))
+
     If aUnd Is Nothing And m_Aux.Filter(RFC_SYMBOL) = TYPE_UNDERLYING Then _
         Set aUnd = g_Underlying(m_Aux.Filter(RFC_SYMBOL))
 End Sub
 
 Private Sub OrderNew(ByVal bIsStock As Boolean)
     On Error Resume Next
+    
     If m_bInProc Then Exit Sub
+    
     Dim bBuy As Boolean, aUnd As EtsGeneralLib.UndAtom
     Dim dPrice#, aOpt As EtsGeneralLib.EtsOptAtom, nQty&
 
@@ -3165,12 +2557,14 @@ Private Sub OrderNew(ByVal bIsStock As Boolean)
     Set aUnd = Nothing
     Set aOpt = Nothing
     Exit Sub
+    
 EH:
     m_bInProc = False
     gCmn.ErrorMsgBox m_frmOwner, "Risks View: Fail to create new order."
     ResetMenuData
     Set aUnd = Nothing
     Set aOpt = Nothing
+    
 End Sub
 
 Private Sub mnuCtxOrderNewOption_Click()
@@ -3189,32 +2583,9 @@ Private Sub mnuCtxOrderNewStock_Click()
     If Not m_bShutDown Then OrderNew True
 End Sub
 
-Private Sub mnuCtxTntCardNew_Click()
-'    On Error Resume Next
-'    If m_bShutDown Or m_bInProc Then Exit Sub
-'    Dim bBuy As Boolean, aUnd As EtsGeneralLib.UndAtom
-'    Dim dPrice#, nQty&, aOpt As EtsGeneralLib.EtsOptAtom
-'
-'    m_bInProc = True
-'    FillDataForOrderFromCurrentSelection False, aUnd, aOpt, bBuy, dPrice, nQty
-'    m_bInProc = False
-'
-'    On Error GoTo EH
-'    frmTntCardEntry.NewCard m_frmOwner, aUnd, aOpt, bBuy, nQty, dPrice
-'
-'    Set aUnd = Nothing
-'    Set aOpt = Nothing
-'    Exit Sub
-'EH:
-'    m_bInProc = False
-'    gCmn.ErrorMsgBox m_frmOwner, "Risks View: Fail to create new trade message."
-'    ResetMenuData
-'    Set aUnd = Nothing
-'    Set aOpt = Nothing
-End Sub
-
 Private Sub mnuCtxTradeNew_Click()
     On Error Resume Next
+    
     If m_bShutDown Or m_bInProc Then Exit Sub
     Dim nUndID&, nID&, bBuy As Boolean, aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom, nColIdx&
     Dim aRowData As EtsMmRisksLib.MmRvRowData, aSynthGreek As EtsMmRisksLib.MmRvSynthGreeksAtom
@@ -3225,8 +2596,9 @@ Private Sub mnuCtxTradeNew_Click()
     bBuy = True
     
     If m_enMenuGrid = GT_RISKS_POSITIONS Then
-     If Not g_PerformanceLog Is Nothing Then _
-                 g_PerformanceLog.LogMmInfo enLogUserAction, "Positions popup menu. ""RightClick -> New Trade"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
+    
+        If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogUserAction, "Positions popup menu. ""RightClick -> New Trade"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
 
         If m_nMenuGridRow > 0 And m_nMenuGridRow < m_nMenuGridRows Then
             Set aRowData = m_RiskView.PosRowData(m_nMenuGridRow) 'fgPos.RowData(m_nMenuGridRow)
@@ -3280,20 +2652,23 @@ Done:
         Set aSynthGreek = Nothing
         
     ElseIf m_enMenuGrid = GT_RISKS_FILTER Then
-         If Not g_PerformanceLog Is Nothing Then _
-                 g_PerformanceLog.LogMmInfo enLogUserAction, "Filter popup menu. ""RightClick -> New Trade"" selected. ", m_frmOwner.GetCaption
+    
+        If Not g_PerformanceLog Is Nothing Then _
+                g_PerformanceLog.LogMmInfo enLogUserAction, "Filter popup menu. ""RightClick -> New Trade"" selected. ", m_frmOwner.GetCaption
 
         If m_Aux.Filter(RFC_SYMBOL) = TYPE_UNDERLYING And m_nMenuGridRow >= 0 And m_nMenuGridCol < m_nMenuGridCols - 1 Then
             nUndID = m_Aux.Filter(RFC_SYMBOL)
             nID = nUndID
             bBuy = (g_Params.RiskOtherColBuy <> 0)
         End If
+        
     End If
 
     m_bInProc = False
     On Error GoTo EH
     If nUndID <> 0 Then frmTradeEditor.NewTrade nID, nUndID, bBuy, m_frmOwner
     Exit Sub
+    
 EH:
     m_bInProc = False
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to create new trade."
@@ -3302,6 +2677,7 @@ End Sub
 
 Private Sub mnuCtxPositionTransfer_Click()
     On Error Resume Next
+    
     If m_bShutDown Or m_bInProc Then Exit Sub
     Dim nUndID&, nID&, aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom
     Dim aRowData As EtsMmRisksLib.MmRvRowData, aSynthGreek As EtsMmRisksLib.MmRvSynthGreeksAtom
@@ -3312,8 +2688,9 @@ Private Sub mnuCtxPositionTransfer_Click()
     nID = 0
     
     If m_enMenuGrid = GT_RISKS_POSITIONS Then
-     If Not g_PerformanceLog Is Nothing Then _
-                 g_PerformanceLog.LogMmInfo enLogUserAction, "Positions popup menu. ""RightClick -> New Position Transfer"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
+    
+        If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogUserAction, "Positions popup menu. ""RightClick -> New Position Transfer"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
 
         If m_nMenuGridRow > 0 And m_nMenuGridRow < m_nMenuGridRows Then
             Set aRowData = m_RiskView.PosRowData(m_nMenuGridRow)
@@ -3357,14 +2734,14 @@ Private Sub mnuCtxPositionTransfer_Click()
         Set aSynthGreek = Nothing
         
     ElseIf m_enMenuGrid = GT_RISKS_FILTER Then
-     If Not g_PerformanceLog Is Nothing Then _
-                 g_PerformanceLog.LogMmInfo enLogUserAction, "Filter popup menu. ""RightClick -> Position Transfer"" selected. ", m_frmOwner.GetCaption
+    
+        If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogUserAction, "Filter popup menu. ""RightClick -> Position Transfer"" selected. ", m_frmOwner.GetCaption
 
-'        If m_Aux.Filter(RFC_GROUP) = TYPE_UNDERLYING And m_nMenuGridRow >= 0 And m_nMenuGridCol < m_nMenuGridCols - 1 Then
-'            nUndID = m_Aux.Filter(RFC_VALUE)
         If m_Aux.Filter(RFC_SYMBOL) > 0 And m_nMenuGridRow >= 0 And m_nMenuGridCol < m_nMenuGridCols - 1 Then
             nUndID = m_Aux.Filter(RFC_SYMBOL)
         End If
+        
     End If
 
     m_bInProc = False
@@ -3378,9 +2755,6 @@ Private Sub mnuCtxPositionTransfer_Click()
         End If
         
         On Error GoTo EH
-'        frmPositionTransfer.TransferPosition nUndID, nID, _
-'                        IIf(m_Aux.Filter(RFC_GROUP) = TYPE_TRADER, m_Aux.Filter(RFC_VALUE), 0), _
-'                        sContractDesc, m_frmOwner
         frmPositionTransfer.TransferPosition nUndID, nID, _
                         IIf(m_Aux.Filter(RFC_TRADER) > 0, m_Aux.Filter(RFC_TRADER), 0), _
                         sContractDesc, m_frmOwner
@@ -3390,24 +2764,6 @@ EH:
     m_bInProc = False
     If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to create new trade."
     ResetMenuData
-End Sub
-
-Private Sub mnuCtxPrint_Click()
-'    On Error Resume Next
-'    If m_bShutDown Then Exit Sub
-'    Screen.MousePointer = vbHourglass
-'    Select Case m_enMenuGrid
-'        Case GT_RISKS_FILTER
-'            frmPrintPreview.Execute m_frmOwner, m_Aux.Grp.Name & " Risks Filter", "Risks Filter", fgFlt
-'
-'        Case GT_RISKS_TOTALS
-'            frmPrintPreview.Execute m_frmOwner, m_Aux.Grp.Name & " Risks Totals", "Risks Totals", fgTot
-'
-'        Case GT_RISKS_POSITIONS
-'            frmPrintPreview.Execute m_frmOwner, m_Aux.Grp.Name & " Risks Positions", "Risks Positions", fgPos
-'
-'    End Select
-'    Screen.MousePointer = vbDefault
 End Sub
 
 Private Sub mnuCtxUseMaualPrice_Click()
@@ -3478,855 +2834,79 @@ Private Sub mnuCtxUseMaualPrice_Click()
 End Sub
 Public Sub RefreshRiskView()
 On Error Resume Next
+
     m_AuxClc.UnderlyingsCalc True, True, False, False
     m_AuxOut.UnderlyingsUpdate False
+    
     RefreshPositions
+    
     m_AuxOut.TotalsUpdate
+    
 End Sub
 
 Private Sub mnuCtxWtdVega_Click()
     On Error Resume Next
-     If Not g_PerformanceLog Is Nothing Then _
-                 g_PerformanceLog.LogMmInfo enLogUserAction, "Popup menu. ""RightClick -> Weighted Vega Settings"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
+    
+    If Not g_PerformanceLog Is Nothing Then _
+                g_PerformanceLog.LogMmInfo enLogUserAction, "Popup menu. ""RightClick -> Weighted Vega Settings"" selected. " & GetOptionInfo, m_frmOwner.GetCaption
 
     If Not m_bShutDown Then ShowWeightedVegaSettings
 End Sub
 
-Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNumberEnum, ByVal Description As String, ByVal ReqType As PRICEPROVIDERSLib.RequestsTypeEnum, ByVal Request As Variant)
-    On Error Resume Next
-    If m_bShutDown Then Exit Sub
-    Dim sKey$, aReq As EtsMmRisksLib.MmRvReqAtom, bFinished As Boolean, bCalcGreeks As Boolean
-    Dim aUnd As EtsMmRisksLib.MmRvUndAtom, nTime&, i&
-    Dim aRowData As EtsMmRisksLib.MmRvRowData
-    Dim nOperation&, nLogTime&
-    
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogFaults, "PriceProvider_OnError: " & Description, m_frmOwner.GetCaption
+Private Sub CheckRtCount()
+    Dim aForm As clsFormAtom
+    Dim nRtCount As Long
+    Dim i As Long
    
-    bFinished = False
-    bCalcGreeks = False
-    
-    If ReqType = enSubscribeQuote Then
-        If Not Request Is Nothing And m_bSubscribingNow Then
-            sKey = CStr(PpInstrumentTypeContractType(Request.Type)) & "_" & Request.Symbol
-            If Len(Request.Exchange) > 0 Then
-                sKey = sKey & "." & Request.Exchange
-            End If
-            
-            If Not m_AuxClc.QuoteReqsAll(sKey) Is Nothing Then
-                LogEvent EVENT_WARNING, Request.Symbol & ": " & Description
-            
-            End If
-            
-            m_nQuoteReqDone = m_nQuoteReqDone + 1
-            IncProgress pbProgress
-            
-            bFinished = (m_nQuoteReqDone = m_nQuoteReqCount)
-                
-        
-            If bFinished Then
-                m_bSubscribingNow = False
-                m_nQuoteReqDone = 0&
-                m_nQuoteReqCount = 0&
-                
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_SUBSCRIBEQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-            
-                pbProgress.Visible = False
-                lblStatus.Visible = True
-                lblProcess.Visible = False
-                lblProcess.Caption = ""
-                imgStopDis.Visible = False
-                imgStop.Visible = False
-                
-                m_Aux.RealTime = True
-                m_Aux.RealTimeConnected = True
-                If m_BatchPriceProvider.IsQuotesUpdated Or m_bVolaUpdated Then tmrRealTime.Enabled = True
-                
-                AdjustState
-                AdjustCaption
-            End If
-        End If
-    
-    ElseIf ReqType = enRequestLastQuote Then
-        If Not Request Is Nothing And m_bLastQuoteReqNow Then
-            sKey = CStr(PpInstrumentTypeContractType(Request.Type)) & "_" & Request.Symbol
-            
-            If (Len(Request.Exchange) > 0) Then
-                sKey = sKey & "." & Request.Exchange
-            End If
-            
-            Set aReq = m_AuxClc.QuoteReqsAll(sKey)
-            If Not aReq Is Nothing Then
-                LogEvent EVENT_WARNING, Request.Symbol & ": " & Description
-            
-            End If
-            
-            m_nQuoteReqDone = m_nQuoteReqDone + 1
-            IncProgress pbProgress
-            
-            bFinished = (m_nQuoteReqDone = m_nQuoteReqCount)
-            
-            
-            If bFinished Then
-                
-                CheckTradeQueue
-                
-                m_bLastQuoteReqNow = False
-                bCalcGreeks = (m_nQuoteReqCount > 1)
-                
-                m_nQuoteReqDone = 0&
-                m_nQuoteReqCount = 0&
-                
-                PriceProvider.CancelLastQuote
-               
-                pbProgress.Value = pbProgress.Max
-                lblProcess.Caption = "Calculation..."
-                
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_REQUESTQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-                
-                nTime = timeGetTime
-                If Not g_PerformanceLog Is Nothing Then _
-                    m_nOperation = g_PerformanceLog.BeginLogMmOperation
-                
-                m_bInProc = True
-                AdjustState
-                
-                If Not bCalcGreeks And Not aReq Is Nothing Then bCalcGreeks = Not aReq.Pos Is Nothing
-                
-                If bCalcGreeks Then
-                   m_AuxClc.UnderlyingsCalc True, True
-                Else
-                   m_AuxClc.UnderlyingsCalc m_AuxClc.m_bHaveFlexOptions, m_AuxClc.m_bHaveFlexOptions
-                End If
-                
-                'm_AuxClc.UnderlyingsCalcWtdVega
-                
-                If Not g_PerformanceLog Is Nothing Then _
-                    nLogTime = g_PerformanceLog.CheckLogMmOperation(m_nOperation)
-                    
-                m_nLastRecalcCycle = timeGetTime - nTime
-                nTime = timeGetTime
-                If Not g_PerformanceLog Is Nothing Then _
-                    nOperation = g_PerformanceLog.BeginLogMmOperation
-                
-                m_AuxOut.UnderlyingsUpdate False
-                m_AuxOut.TotalsUpdate
-                RefreshPositions
-                
-                m_nLastOutCycle = timeGetTime - nTime
-
-                If Not g_PerformanceLog Is Nothing Then
-                    g_PerformanceLog.ContinueLogMmOperation m_nOperation, OPER_CALCULATION, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated, nLogTime
-                    g_PerformanceLog.FinishLogMmOperation nOperation, OPER_REFRESHSCREEN, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-                    g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_CALCREFRESHSCREEN, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-                End If
-        
-                If g_Params.IsDebug Then UpdateStat
-                
-                m_bInProc = False
-                AdjustState
-                
-                pbProgress.Visible = False
-                lblStatus.Visible = True
-                lblProcess.Visible = False
-                imgStop.Visible = False
-                imgStopDis.Visible = False
-                
-                RefreshPositions
-                
-                RaiseEvent OnRefreshComplete
-            End If
-        End If
-    
-    Else
-        Select Case ErrorNumber
-            Case enProviderConnected
-                m_Aux.RealTimeConnected = True
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, Description, m_frmOwner.GetCaption
-                
-                AdjustState
-                
-            Case enProviderConnecting
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, Description, m_frmOwner.GetCaption
-                
-            Case enConnectionWasDisconnected, enCouldNotConnectToProvider, enNotConnected
-                m_Aux.RealTimeConnected = False
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, Description, m_frmOwner.GetCaption
-                
-                AdjustState
-                
-                
-            Case Else
-                LogEvent EVENT_ERROR, Description
-        End Select
-    End If
-End Sub
-
-Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdateParams, Results As PRICEPROVIDERSLib.QuoteUpdateInfo)
-    On Error Resume Next
-    If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit Sub
-    
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider_OnLastQuote Started Symbol: " & Params.Symbol & ", Exchange:  " & Params.Exchange & ", Type:  " & Params.Type, m_frmOwner.GetCaption
-
-    Dim sKey$, aReq As EtsMmRisksLib.MmRvReqAtom, dPriceBid#, dPriceAsk#, dPriceLast#, dNetChange#, nLotSize&
-    Dim aUnd As EtsMmRisksLib.MmRvUndAtom, nTime&, aFut As EtsMmRisksLib.MmRvFutAtom
-    Dim bFinished As Boolean, bCalcGreeks As Boolean
-    Dim nOperation&, nLogTime&, i&
-    Dim aReqUndData As EtsMmRisksLib.IMmRvAggregationDataAtom
-    Dim aReqIdxData As EtsMmRisksLib.IMmRvAggregationDataAtom
-    Dim aRowData As EtsMmRisksLib.MmRvRowData
-    
-    bFinished = False
-    
-    sKey = CStr(PpInstrumentTypeContractType(Params.Type)) & "_" & Params.Symbol
-    
-    If (Len(Params.Exchange) > 0) Then
-        sKey = sKey & "." & Params.Exchange
-    End If
-    
-    Set aReq = m_AuxClc.QuoteReqsAll(sKey)
-    If Not aReq Is Nothing Then
-        dPriceBid = Results.BidPrice
-        dPriceAsk = Results.AskPrice
-        dPriceLast = Results.LastPrice
-        dNetChange = Results.NetChange
-        
-        If Not aReq.IndexOnly Then
-            If Not aReq.Pos Is Nothing Then
-                If dPriceBid > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Bid = dPriceBid
-                If dPriceAsk > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Ask = dPriceAsk
-                If dPriceLast > BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.Last = dPriceLast
-                If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.NetChange = dNetChange
-            End If
-            
-            If Params.Type <> enOPT Then
-                Set aReqUndData = aReq.Und
-                
-                If Params.Type = enSTK Or Params.Type = enIDX Then
-                    If dPriceBid > BAD_DOUBLE_VALUE Then aReqUndData.price.Bid = dPriceBid
-                    If dPriceAsk > BAD_DOUBLE_VALUE Then aReqUndData.price.Ask = dPriceAsk
-                    If dPriceLast > BAD_DOUBLE_VALUE Then aReqUndData.price.Last = dPriceLast
-                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.price.NetChange = dNetChange
-                    
-                    Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                    aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aReqUndData.price.Bid, aReqUndData.price.Ask, aReqUndData.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-                
-                    If m_Aux.Idx.ID = aReq.Und.ID Then
-                        Set aReqIdxData = m_Aux.Idx
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
-                        If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
-                    End If
-                    
-                ElseIf Params.Type = enFUT Then
-                    If Not aReq.Pos Is Nothing Then
-                        Set aFut = aReq.Pos.Fut
-                    ElseIf Not aReq.Fut Is Nothing Then
-                        Set aFut = aReq.Fut
-                    End If
-                
-                    If Not aFut Is Nothing Then
-                        If dPriceBid > BAD_DOUBLE_VALUE Then aFut.price.Bid = dPriceBid
-                        If dPriceAsk > BAD_DOUBLE_VALUE Then aFut.price.Ask = dPriceAsk
-                        If dPriceLast > BAD_DOUBLE_VALUE Then aFut.price.Last = dPriceLast
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aFut.price.NetChange = dNetChange
-
-                        Set aFut = Nothing
-                    End If
-                End If
-            End If
-        Else
-            Debug.Assert m_Aux.Idx.ID = aReq.Und.ID
-            If m_Aux.Idx.ID = aReq.Und.ID Then
-                
-                Set aReqIdxData = m_Aux.Idx
-                If dPriceBid > BAD_DOUBLE_VALUE Then aReqIdxData.price.Bid = dPriceBid
-                If dPriceAsk > BAD_DOUBLE_VALUE Then aReqIdxData.price.Ask = dPriceAsk
-                If dPriceLast > BAD_DOUBLE_VALUE Then aReqIdxData.price.Last = dPriceLast
-                If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
-                
-            End If
-        End If
-    
-        If Params.Type = enSTK Or Params.Type = enIDX Then
-            m_nUndResponses = m_nUndResponses + 1
-            
-        ElseIf Params.Type = enFUT Then
-            m_nFutResponses = m_nFutResponses + 1
-            
-        Else
-            m_nOptResponses = m_nOptResponses + 1
-        End If
-        
-        m_nQuoteReqDone = m_nQuoteReqDone + 1
-        IncProgress pbProgress
-    
-        bFinished = (m_nQuoteReqDone = m_nQuoteReqCount)
-    End If
-        
-
-    If bFinished Then
-        
-        CheckTradeQueue
-        
-        m_bLastQuoteReqNow = False
-        bCalcGreeks = (m_nQuoteReqCount >= 1)
-        
-        m_nQuoteReqDone = 0&
-        m_nQuoteReqCount = 0&
-        
-        PriceProvider.CancelLastQuote
-        'If m_bGroupRequest Then m_GroupPriceProvider.CancelLastGroupQuotes
-        
-        pbProgress.Value = pbProgress.Max
-        lblProcess.Caption = "Calculation..."
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_REQUESTQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-                
-        nTime = timeGetTime
-        If Not g_PerformanceLog Is Nothing Then _
-            m_nOperation = g_PerformanceLog.BeginLogMmOperation
-            
-        m_bInProc = True
-        AdjustState
-    
-        If Not bCalcGreeks And Not aReq Is Nothing Then bCalcGreeks = Not aReq.Pos Is Nothing
-        
-        If bCalcGreeks Then
-            m_AuxClc.UnderlyingsCalc True, True
-        Else
-            m_AuxClc.UnderlyingsCalc m_AuxClc.m_bHaveFlexOptions, m_AuxClc.m_bHaveFlexOptions
-        End If
-        
-        'm_AuxClc.UnderlyingsCalcWtdVega
-        
-        m_nLastRecalcCycle = timeGetTime - nTime
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            nLogTime = g_PerformanceLog.CheckLogMmOperation(m_nOperation)
-            
-        nTime = timeGetTime
-        If Not g_PerformanceLog Is Nothing Then _
-            nOperation = g_PerformanceLog.BeginLogMmOperation
-                
-        'm_AuxOut.UnderlyingsUpdate False
-        m_AuxOut.TotalsUpdate
-        
-        m_nLastOutCycle = timeGetTime - nTime
-
-        If Not g_PerformanceLog Is Nothing Then
-            g_PerformanceLog.ContinueLogMmOperation m_nOperation, OPER_CALCULATION, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated, nLogTime
-            g_PerformanceLog.FinishLogMmOperation nOperation, OPER_REFRESHSCREEN, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-            g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_CALCREFRESHSCREEN, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-        End If
-        
-        If g_Params.IsDebug Then UpdateStat
-                
-        m_bInProc = False
-        AdjustState
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider_OnLastQuote AdjustState complete", m_frmOwner.GetCaption
-        
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        
-        RefreshPositions
-        
-        RaiseEvent OnRefreshComplete
-    End If
-    
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider_OnLastQuote Finished Symbol: " & Params.Symbol & ", Exchange:  " & Params.Exchange & ", Type:  " & Params.Type, m_frmOwner.GetCaption
-    
-    Set aReq = Nothing
-End Sub
-
-Private Sub PriceProvider_OnSubscribed(Params As PRICEPROVIDERSLib.QuoteUpdateParams)
-    On Error Resume Next
-    If m_bShutDown Or Not m_bSubscribingNow Then Exit Sub
-    
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider_OnSubscribed Started Symbol: " & Params.Symbol & ", Exchange:  " & Params.Exchange & ", Type:  " & Params.Type, m_frmOwner.GetCaption
-    
-    Dim bFinished As Boolean, sKey$
-    
-    If PpIsNonGroupReqType(Params.Type) Then
-        sKey = CStr(PpInstrumentTypeContractType(Params.Type)) & "_" & Params.Symbol
-        If Len(Params.Exchange) > 0 Then
-            sKey = sKey & "." & Params.Exchange
-        End If
-        
-        If Not m_AuxClc.QuoteReqsAll(sKey) Is Nothing Then
-'            If Params.Type <> enOPT And m_bGroupRequest Then
-'                m_nQuoteGroupReqDone = m_nQuoteGroupReqDone + 1
-'            End If
-            
-            If Params.Type = enSTK Or Params.Type = enIDX Then
-                m_nUndResponses = m_nUndResponses + 1
-                
-            ElseIf Params.Type = enFUT Then
-                m_nFutResponses = m_nFutResponses + 1
-                
-            Else
-                m_nOptResponses = m_nOptResponses + 1
-            End If
-            
-            m_nQuoteReqDone = m_nQuoteReqDone + 1
-            IncProgress pbProgress
-            
-            bFinished = (m_nQuoteReqDone = m_nQuoteReqCount)
-        End If
-    ElseIf PpIsGroupReqType(Params.Type) Then
-        'm_nQuoteGroupReqDone = m_nQuoteGroupReqDone + 1
-        bFinished = (m_nQuoteReqDone = m_nQuoteReqCount)
-    End If
-
-    If bFinished Then
-        m_bSubscribingNow = False
-        m_nQuoteReqDone = 0&
-        m_nQuoteReqCount = 0&
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_SUBSCRIBEQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-    
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        lblProcess.Caption = ""
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        
-        m_Aux.RealTime = True
-        m_Aux.RealTimeConnected = True
-        If m_BatchPriceProvider.IsQuotesUpdated Or m_bVolaUpdated Then tmrRealTime.Enabled = True
-        
-        AdjustState
-        AdjustCaption
-    End If
-    
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider_OnSubscribed Finished Symbol: " & Params.Symbol & ", Exchange:  " & Params.Exchange & ", Type:  " & Params.Type, m_frmOwner.GetCaption
-End Sub
-
-Private Sub PriceProvider_OnQuoteUpdate()
-    On Error Resume Next
-    'If m_bShutDown Or Not m_Aux.RealTime Then Exit Sub
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "OnQuoteUpdate", m_frmOwner.GetCaption
-        
-    If m_bShutDown Then
-           If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Did not pass condition: m_bShutDown", m_frmOwner.GetCaption
-        
-            Exit Sub
-    
-    End If
-    
-    If Not m_Aux.RealTime Then
-           If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Did not pass condition: Not m_Aux.RealTime", m_frmOwner.GetCaption
-        
-            Exit Sub
-    
-    End If
+    nRtCount = 0&
    
-    If m_bInRealTimeCalc Then
-           If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Did not pass condition: m_bInRealTimeCalc", m_frmOwner.GetCaption
-        
-            Exit Sub
+    For i = 1 To g_ViewFrm.Count
+        Set aForm = g_ViewFrm(i)
+        If TypeOf aForm.Frm Is frmRiskView Then
+            If aForm.Frm.IsRealTime Then
+                nRtCount = nRtCount + 1
+                aForm.Frm.CheckPassiveRealtime
+            End If
+            Set aForm = Nothing
+        End If
+    Next
+    g_RvRTQuantity = nRtCount
     
-    End If
-   
-    If m_bSubscribingNow Then
-           If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Did not pass condition: m_bSubscribingNow", m_frmOwner.GetCaption
-        
-            Exit Sub
+    Debug.Print "Count of RT Risks windows: " & Str(nRtCount)
     
-    End If
-    
-    If Not ProcessRealTime Then
-           If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Did not pass condition: Not ProcessRealTime", m_frmOwner.GetCaption
-        
-            Exit Sub
-    
-    End If
-    
-    If m_BatchPriceProvider Is Nothing Then
-           If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Did not pass condition: m_BatchPriceProvider Is Nothing", m_frmOwner.GetCaption
-        
-            Exit Sub
-    End If
-    
-    If tmrRealTime.Enabled = True Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Update flag allready raised up", m_frmOwner.GetCaption
-    Else
-        tmrRealTime.Enabled = True
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Update flag raised up", m_frmOwner.GetCaption
-    End If
-   
-End Sub
-
-Private Sub PriceProvider_OnUnsubscribed()
-    If Not m_bShutDown Then DoEvents
 End Sub
 
 Private Sub tmrRealTime_Timer()
-    On Error Resume Next
-    
-    tmrRealTime.Enabled = False
-    If Not m_bShutDown And m_Aux.RealTime Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "tmrRealTime_Timer: Start RealTimeQuotesUpdate", m_frmOwner.GetCaption
-        RealTimeQuotesUpdate
-    Else
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "tmrRealTime_Timer: Risks are not in realtime mode", m_frmOwner.GetCaption
-    
-    End If
+On Error GoTo error_handler
         
-End Sub
-
-Private Sub RealTimeQuotesUpdate()
-    On Error Resume Next
-    If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Real Time Quotes Update Enter", m_frmOwner.GetCaption
-    
-    If Not m_Aux.RealTime Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: not in Realtime mode", m_frmOwner.GetCaption
-        Exit Sub
-    End If
-    
-    If m_bInRealTimeCalc Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: in realtime calc", m_frmOwner.GetCaption
-        Exit Sub
-    End If
-    
-    If m_bTmrUndCalcNow Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: in tmr underlying calc", m_frmOwner.GetCaption
-        Exit Sub
-    End If
-    
-    If m_bSubscribingNow Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: in realtime subscribing", m_frmOwner.GetCaption
-        Exit Sub
-    End If
-    If Not ProcessRealTime Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: not Process Realtime", m_frmOwner.GetCaption
-        Exit Sub
-    End If
-    If m_BatchPriceProvider Is Nothing Then
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "RealTimeQuotesUpdate: m_BatchPriceProvider Is Nothing", m_frmOwner.GetCaption
-        Exit Sub
-    End If
-
-    
-    m_bInRealTimeCalc = True
-    
-    
-    Dim sKey$, aReq As EtsMmRisksLib.MmRvReqAtom, nRow&, nUndRow&, dPriceBid#, dPriceAsk#, dPriceLast#, dNetChange#
-    Dim Params As PRICEPROVIDERSLib.QuoteUpdateParams, Results As PRICEPROVIDERSLib.QuoteUpdateInfo
-    Dim Infos() As PRICEPROVIDERSLib.QuoteUpdateFullInfo, nLBound&, nUBound&, i&, nTime&
-    Dim aUnd As EtsMmRisksLib.MmRvUndAtom, nOpt&, nUnd&, aFut As EtsMmRisksLib.MmRvFutAtom, aSynthUnd As EtsMmRisksLib.MmRvUndAtom
-    Dim aUndData As EtsMmRisksLib.IMmRvAggregationDataAtom
-    Dim aIdxData As EtsMmRisksLib.IMmRvAggregationDataAtom
-    
-    Dim nOperation&: nOperation = 0
-    Dim nOperation2&: nOperation2 = 0
-    Dim nUnds&: nUnds = 0
-    Dim nOpts&: nOpts = 0
-    Dim nFuts&: nFuts = 0
-    Dim nLogTime&, aPos As EtsMmRisksLib.MmRvPosAtom, aSyntGreek As EtsMmRisksLib.MmRvSynthGreeksAtom, bOneOfPricesUpdated As Boolean
-    
-    bOneOfPricesUpdated = False
-    If Not g_PerformanceLog Is Nothing Then _
-                g_PerformanceLog.LogMmInfo enLogEnhDebug, "Get Quotes Update", m_frmOwner.GetCaption
-    
-    Infos = m_BatchPriceProvider.GetQuotesUpdates
-    
-    If Err Then
-        If Not g_PerformanceLog Is Nothing Then _
-               g_PerformanceLog.LogMmInfo enLogSystem, "Get Quotes Update exits with error " & CStr(Err.Number) & " " & Err.Description, m_frmOwner.GetCaption
-    Else
-        If Not g_PerformanceLog Is Nothing Then _
-               g_PerformanceLog.LogMmInfo enLogEnhDebug, "Got Quotes Update " & CStr(UBound(Infos) - LBound(Infos) + 1), m_frmOwner.GetCaption
-       End If
-    
-    nLBound = 0: nUBound = -1
-    nLBound = LBound(Infos)
-    nUBound = UBound(Infos)
+        Recalculate
         
-    ' Update quote data
-    m_nLastDataSize = nUBound - nLBound + 1
-    
-    For i = nLBound To nUBound
-    
-        
-        Params = Infos(i).Params
-        Results = Infos(i).Info
-        
-     
-       If Not g_PerformanceLog Is Nothing Then _
-         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Updating quote data, (Symbol: " & Params.Symbol & ", Exchange: " & Params.Exchange & ", Type: " & Params.Type & ")", m_frmOwner.GetCaption
-    
-        sKey = CStr(PpInstrumentTypeContractType(Params.Type)) & "_" & Params.Symbol
-        
-        If (Len(Params.Exchange) > 0) Then
-            sKey = sKey & "." & Params.Exchange
-        End If
-        
-        Set aReq = m_AuxClc.QuoteReqsAll(sKey)
-        If Not aReq Is Nothing Then
-            dPriceBid = Results.BidPrice
-            dPriceAsk = Results.AskPrice
-            dPriceLast = Results.LastPrice
-            dNetChange = Results.NetChange
-            
-           If Not g_PerformanceLog Is Nothing Then _
-             g_PerformanceLog.LogMmInfo enLogEnhDebug, "Results ( Bid: " & CStr(dPriceBid) & ", Ask: " & CStr(dPriceAsk) & ", Last: " & CStr(dPriceLast) & " )", m_frmOwner.GetCaption
-            
-            If Not aReq.IndexOnly Then
-                If Not aReq.Pos Is Nothing Then
-                    If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Pos.Quote.price.NetChange = dNetChange
-                    If dPriceBid > BAD_DOUBLE_VALUE And aReq.Pos.Quote.price.Bid <> dPriceBid Then
-                        aReq.Pos.Quote.price.Bid = dPriceBid
-                        aReq.Pos.CalcGreeks = True
-                        aReq.Und.CalcTotals = True
-                        bOneOfPricesUpdated = True
-                    End If
-                    If dPriceAsk > BAD_DOUBLE_VALUE And aReq.Pos.Quote.price.Ask <> dPriceAsk Then
-                        aReq.Pos.Quote.price.Ask = dPriceAsk
-                        aReq.Pos.CalcGreeks = True
-                        aReq.Und.CalcTotals = True
-                        bOneOfPricesUpdated = True
-                    End If
-                    If dPriceLast > BAD_DOUBLE_VALUE And aReq.Pos.Quote.price.Last <> dPriceLast Then
-                        aReq.Pos.Quote.price.Last = dPriceLast
-                        aReq.Pos.CalcGreeks = True
-                        aReq.Und.CalcTotals = True
-                        bOneOfPricesUpdated = True
-                    End If
-                End If
-                
-                If Params.Type <> enOPT Then
-                    If Params.Type = enSTK Or Params.Type = enIDX Then
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aReq.Und.price.NetChange = dNetChange
-                        Set aUndData = aReq.Und
-                        If dPriceBid > BAD_DOUBLE_VALUE And aUndData.price.Bid <> dPriceBid Then
-                            aUndData.price.Bid = dPriceBid
-                            aReq.Und.CalcGreeks = True
-                            aReq.Und.CalcTotals = True
-                            bOneOfPricesUpdated = True
-                        End If
-                        If dPriceAsk > BAD_DOUBLE_VALUE And aUndData.price.Ask <> dPriceAsk Then
-                            aUndData.price.Ask = dPriceAsk
-                            aReq.Und.CalcGreeks = True
-                            aReq.Und.CalcTotals = True
-                            bOneOfPricesUpdated = True
-                        End If
-                        If dPriceLast > BAD_DOUBLE_VALUE And aUndData.price.Last <> dPriceLast Then
-                            aUndData.price.Last = dPriceLast
-                            aReq.Und.CalcGreeks = True
-                            aReq.Und.CalcTotals = True
-                            bOneOfPricesUpdated = True
-                        End If
-                
-                        If aReq.Und.CalcGreeks Then
-                            Debug.Assert (Not aReq.Und.UndPriceProfile Is Nothing)
-                            aReq.Und.VolaSrv.UnderlyingPrice = aReq.Und.UndPriceProfile.GetUndPriceMid(aUndData.price.Bid, _
-                                aUndData.price.Bid, aUndData.price.Last, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
-                        End If
-                        
-                        If bOneOfPricesUpdated And Not aReq.Und.SynthPos Is Nothing Then
-                            For Each aPos In aReq.Und.SynthPos
-                                aPos.CalcGreeks = True
-                                Set aSynthUnd = m_Aux.Und(aPos.UndID)
-                                
-                                Debug.Assert Not aSynthUnd Is Nothing
-                                
-                                aSynthUnd.CalcTotals = True
-                                Set aSynthUnd = Nothing
-                            Next
-                        End If
-                        
-                        If m_Aux.Idx.ID = aReq.Und.ID Then
-                            If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
-                            Set aIdxData = m_Aux.Idx
-                            If dPriceBid > BAD_DOUBLE_VALUE And aIdxData.price.Bid <> dPriceBid Then
-                                aIdxData.price.Bid = dPriceBid
-                                m_Aux.Idx.CalcTotals = True
-                                bOneOfPricesUpdated = True
-                            End If
-                            If dPriceAsk > BAD_DOUBLE_VALUE And aIdxData.price.Ask <> dPriceAsk Then
-                                aIdxData.price.Ask = dPriceAsk
-                                m_Aux.Idx.CalcTotals = True
-                                bOneOfPricesUpdated = True
-                            End If
-                            If dPriceLast > BAD_DOUBLE_VALUE And aIdxData.price.Last <> dPriceLast Then
-                                aIdxData.price.Last = dPriceLast
-                                m_Aux.Idx.CalcTotals = True
-                                bOneOfPricesUpdated = True
-                            End If
-                        End If
-                        
-                        nUnds = nUnds + 1
-                    
-                    ElseIf Params.Type = enFUT Then
-                        If Not aReq.Pos Is Nothing Then
-                            Set aFut = aReq.Pos.Fut
-                        ElseIf Not aReq.Fut Is Nothing Then
-                            Set aFut = aReq.Fut
-                        End If
-                        If dNetChange <> BAD_DOUBLE_VALUE Then aFut.price.NetChange = dNetChange
-                   
-                        If Not aFut Is Nothing Then
-                            If dPriceBid > BAD_DOUBLE_VALUE And aFut.price.Bid <> dPriceBid Then
-                                aFut.price.Bid = dPriceBid
-                                aFut.CalcGreeks = True
-                                aReq.Und.CalcTotals = True
-                                bOneOfPricesUpdated = True
-                            End If
-                            If dPriceAsk > BAD_DOUBLE_VALUE And aFut.price.Ask <> dPriceAsk Then
-                                aFut.price.Ask = dPriceAsk
-                                aFut.CalcGreeks = True
-                                aReq.Und.CalcTotals = True
-                                bOneOfPricesUpdated = True
-                            End If
-                            If dPriceLast > BAD_DOUBLE_VALUE And aFut.price.Last <> dPriceLast Then
-                                aFut.price.Last = dPriceLast
-                                aFut.CalcGreeks = True
-                                aReq.Und.CalcTotals = True
-                                bOneOfPricesUpdated = True
-                            End If
-                            
-                            Set aFut = Nothing
-                            nFuts = nFuts + 1
-                        End If
-                    End If
-                Else
-                    nOpts = nOpts + 1
-                End If
-            Else
-                Debug.Assert m_Aux.Idx.ID = aReq.Und.ID
-                If dNetChange <> BAD_DOUBLE_VALUE Then m_Aux.Idx.price.NetChange = dNetChange
-               
-                If m_Aux.Idx.ID = aReq.Und.ID Then
-                    If dPriceBid > BAD_DOUBLE_VALUE And m_Aux.Idx.price.Bid <> dPriceBid Then
-                        m_Aux.Idx.price.Bid = dPriceBid
-                        m_Aux.Idx.CalcTotals = True
-                        bOneOfPricesUpdated = True
-                    End If
-                    If dPriceAsk > BAD_DOUBLE_VALUE And m_Aux.Idx.price.Ask <> dPriceAsk Then
-                        m_Aux.Idx.price.Ask = dPriceAsk
-                        m_Aux.Idx.CalcTotals = True
-                        bOneOfPricesUpdated = True
-                    End If
-                    If dPriceLast > BAD_DOUBLE_VALUE And m_Aux.Idx.price.Last <> dPriceLast Then
-                        m_Aux.Idx.price.Last = dPriceLast
-                        m_Aux.Idx.CalcTotals = True
-                        bOneOfPricesUpdated = True
-                    End If
-                End If
-                
-                nUnds = nUnds + 1
-            End If
-    
-            Set aReq = Nothing
-        End If
-        
-        DoEvents
-        
-        If m_bShutDown Then Exit Sub
-    Next
-    
-    If m_bVolaUpdated Then
-        m_bVolaUpdated = False
-        bOneOfPricesUpdated = True
-        
-        For Each aUnd In m_Aux.Und
-            If aUnd.VolaUpdated Then
-                aUnd.VolaUpdated = False
-                aUnd.CalcGreeks = True
-                aUnd.CalcTotals = True
-            End If
-        Next
-    End If
-
-    If bOneOfPricesUpdated Then
-        If Not g_PerformanceLog Is Nothing And (nUnds > 0 Or nOpts > 0) Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Quotes Updated", m_frmOwner.GetCaption, nUnds, nOpts, 0
-    
-        nTime = timeGetTime
-        
-        If m_bShutDown Then Exit Sub
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            nOperation = g_PerformanceLog.BeginLogMmOperation
-            
-        m_AuxClc.UnderlyingsCalc True, True, True
-        'm_AuxClc.UnderlyingsCalcWtdVega
-        
-        If nOperation > 0 And Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.ContinueLogMmOperation nOperation, OPER_CALCULATION, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-        
-        m_nLastRecalcCycle = timeGetTime - nTime
-                                
-        ' Update grid data
-        nTime = timeGetTime
-                    
-        If m_bShutDown Then Exit Sub
-           
-        If Not g_PerformanceLog Is Nothing Then _
-            nOperation2 = g_PerformanceLog.BeginLogMmOperation
-
-        m_AuxOut.UnderlyingsUpdate False, True
-        m_AuxOut.TotalsUpdate
         RefreshPositions
         
-        m_nLastOutCycle = timeGetTime - nTime
-                            
-        If Not g_PerformanceLog Is Nothing Then
-            If nOperation2 > 0 Then _
-                g_PerformanceLog.FinishLogMmOperation nOperation2, OPER_REFRESHSCREEN, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-            If nOperation > 0 Then _
-                g_PerformanceLog.FinishLogMmOperation nOperation, OPER_CALCREFRESHSCREEN, m_frmOwner.GetCaption, m_AuxClc.UndUpdated, m_AuxClc.OptUpdated, m_AuxClc.FutUpdated
-        End If
-            
-        If g_Params.IsDebug Then UpdateStat
-    End If
-    
-    m_bInRealTimeCalc = False
-
-    If m_bShutDown Or Not m_Aux.RealTime Or m_bSubscribingNow Or Not ProcessRealTime Or m_BatchPriceProvider Is Nothing Then
-           If Not g_PerformanceLog Is Nothing Then g_PerformanceLog.LogMmInfo enLogEnhDebug, "Quotes Updated, RT Stopped", m_frmOwner.GetCaption
-           Exit Sub
-    End If
-    If Not g_PerformanceLog Is Nothing Then _
-          g_PerformanceLog.LogMmInfo enLogEnhDebug, "Quotes Updated, RT Enabled", m_frmOwner.GetCaption
+        AdjustCaption
+    Exit Sub
+error_handler:
+    MsgBox "Exception OnTimer() (" & Err.Description & " : " & Err.Number & ")"
 End Sub
+
+Private Sub Recalculate()
+On Error GoTo error_handler
+                
+        m_AuxClc.UnderlyingsCalc True, True, True
+        m_AuxOut.UnderlyingsUpdate False, True
+        m_AuxOut.TotalsUpdate
+        
+        UpdateRecalculationTimeStemp
+        
+    Exit Sub
+    
+error_handler:
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogEnhDebug, "Exception while calling Recalculate() " & _
+                                                  "Error: " & Err.Description & "(" & CStr(Err.Number) & ")", _
+                                                   m_frmOwner.GetCaption
+End Sub
+
 'comment this sub in production for prevent statistic output
 Private Sub UpdateStat()
     On Error Resume Next
@@ -4335,6 +2915,7 @@ Private Sub UpdateStat()
                 vbTab & Format$(m_nLastOutCycle, "#000000") & _
                 vbTab & Format$(m_nLastRecalcCycle + m_nLastOutCycle, "#000000")
 End Sub
+
 Private Sub tmrShow_Timer()
     On Error Resume Next
     Dim nOperation&, i&
@@ -4348,26 +2929,21 @@ Private Sub tmrShow_Timer()
     
     If m_bShutDown Or m_bDataLoad Then Exit Sub
     m_bInProc = True
-    
-    'Screen.MousePointer = vbArrow
-    'DoEvents
+
     m_AuxClc.CalcDate = GetNewYorkTime
     fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
     
-    If m_Aux.Grp.ID <> 0 And Not PriceProvider Is Nothing Then
-        If m_bLastQuoteReqNow Then
-            PriceProvider.CancelLastQuote
+    If m_Aux.Grp.ID <> 0 Then
+        
+        If m_Aux.RealTime Then
+            If g_RvRTQuantity > 0 Then
+                g_RvRTQuantity = g_RvRTQuantity - 1
+            End If
         End If
         
-        If m_Aux.RealTime Or m_bSubscribingNow Then
-            PriceProvider.UnSubscribeQuote
-        End If
-        
-        m_bLastQuoteReqNow = False
-        m_bSubscribingNow = False
         m_Aux.RealTime = False
         
-        If m_bInRealTimeCalc Or m_bTmrUndCalcNow Then
+        If m_bTmrUndCalcNow Then
             If Not g_PerformanceLog Is Nothing Then _
                 g_PerformanceLog.LogMmInfo enLogEnhDebug, "FAIL: in calculation mode now.", m_frmOwner.GetCaption
             
@@ -4386,797 +2962,83 @@ Private Sub tmrShow_Timer()
     End If
     
     ClearViewAndData
+    
     m_bInProc = False
     
     If Not g_PerformanceLog Is Nothing Then _
         nOperation = g_PerformanceLog.BeginLogMmOperation
     
-'    If m_Aux.Filter(RFC_GROUP) <> 0 And m_Aux.Filter(RFC_VALUE) <> 0 Then
-        lblStatus.Visible = False
-        imgStop.Visible = True
-        imgStopDis.Visible = False
-        pbProgress.Min = 0
-        pbProgress.Value = 0
-        pbProgress.Max = TradeChannel.Trades.Count
-        pbProgress.Visible = True
-        lblProcess.Caption = "Data loading..."
-        lblProcess.Visible = True
+
+    lblStatus.Visible = False
+    imgStop.Visible = True
+    imgStopDis.Visible = False
+    
+    pbProgress.Min = 0
+    pbProgress.Value = 0
+    pbProgress.Max = TradeChannel.Trades.Count
+    pbProgress.Visible = True
+    
+    lblProcess.Caption = "Data loading..."
+    lblProcess.Visible = True
+    lblProcess.Refresh
+        
+    If PositionsLoad Then
+    
+        AdjustCaption
+        
+        IndexLoad
+        
+        lblProcess.Caption = "Filter applying..."
         lblProcess.Refresh
         
-        If PositionsLoad Then
-            AdjustCaption
-            
-            IndexLoad
-            
-            lblProcess.Caption = "Filter applying..."
-            lblProcess.Refresh
-            
-            m_Aux.Filter(RFC_EXPIRY) = m_nOpenedExpiry
-            m_Aux.FilterUpdateExpiry False
-            PositionsShow
-        
-            If g_Params.RiskDirectlyToRealtime Then
-                StartRealTime
-            Else
-                RequestLastQuotes
-            End If
-        Else
-            'If m_Aux.Filter(RFC_GROUP) = TYPE_ALL Then m_Aux.Filter(RFC_GROUP) = TYPE_UNDERLYING
-            'm_Aux.Filter(RFC_VALUE) = 0
-            If m_Aux.Grp.ID <> -1 Then
-                ClearViewAndData
-                m_Aux.FilterUpdateAll
-                AdjustCaption
-                AdjustState
-            Else
-                SetRefreshHint True
-            End If
-            
-            imgStop.Visible = False
-            imgStopDis.Visible = False
-            pbProgress.Visible = False
-            lblProcess.Visible = False
-            lblStatus.Visible = True
-        End If
+        m_Aux.Filter(RFC_EXPIRY) = m_nOpenedExpiry
+        m_Aux.FilterUpdateExpiry False
     
-'    End If
+        imgStop.Visible = False
+        imgStopDis.Visible = False
+        pbProgress.Visible = False
+        lblProcess.Visible = False
+        lblStatus.Visible = True
+        
+        If g_Params.RiskDirectlyToRealtime Then
+            StartRealTime
+        End If
+    Else
+    
+        If m_Aux.Grp.ID <> -1 Then
+            ClearViewAndData
+            m_Aux.FilterUpdateAll
+            AdjustCaption
+            AdjustState
+        Else
+            SetRefreshHint True
+        End If
+        
+    End If
+    
+    imgStop.Visible = False
+    imgStopDis.Visible = False
+    pbProgress.Visible = False
+    lblProcess.Visible = False
+    lblStatus.Visible = True
     
     m_nOpenedExpiry = 0
+    
     Screen.MousePointer = vbDefault
-
+    
+    Recalculate
+    
     RefreshPositions
+    
     UserControl_Resize
+    
+    RaiseEvent OnRefreshComplete
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Risk Refresh Finished.", m_frmOwner.GetCaption
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.FinishLogMmOperation nOperation, OPER_LOADDATA, m_frmOwner.GetCaption, m_AuxClc.UndCount, m_AuxClc.OptCount, m_AuxClc.FutCount
-'    On Error Resume Next
-'    Dim nOperation&
-'
-'    If m_bTmrUndCalcNow Then Exit Sub
-'
-'    tmrShow.Enabled = False
-'
-'    If m_bShutDown Or m_bDataLoad Then Exit Sub
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        nOperation = g_PerformanceLog.BeginLogMmOperation
-'
-'    'Screen.MousePointer = vbArrow
-'    'DoEvents
-'
-'    If m_Aux.Grp.ID <> 0 And Not PriceProvider Is Nothing Then
-'        If m_bLastQuoteReqNow Then
-'            PriceProvider.CancelLastQuote
-'            If m_bGroupRequest Then m_GroupPriceProvider.CancelLastGroupQuotes
-'        End If
-'
-'        If m_Aux.RealTime Or m_bSubscribingNow Then
-'            PriceProvider.UnSubscribeQuote
-'            If m_bGroupRequest Then m_GroupPriceProvider.UnSubscribeGroupQuotes
-'        End If
-'
-'        m_bLastQuoteReqNow = False
-'        m_bSubscribingNow = False
-'        m_Aux.RealTime = False
-'
-'        imgStop.Visible = False
-'        imgStopDis.Visible = False
-'        pbProgress.Visible = False
-'        lblProcess.Visible = False
-'        lblStatus.Visible = True
-'        lblProcess.Caption = ""
-'    End If
-'
-'    ClearViewAndData
-'
-'    If m_Aux.Filter(RFC_GROUP) <> 0 And m_Aux.Filter(RFC_VALUE) <> 0 Then
-'        lblStatus.Visible = False
-'        imgStop.Visible = True
-'        imgStopDis.Visible = False
-'        pbProgress.Min = 0
-'        pbProgress.Value = 0
-'        pbProgress.Max = TradeChannel.Trades.Count
-'        pbProgress.Visible = True
-'        lblProcess.Caption = "Data loading..."
-'        lblProcess.Visible = True
-'        lblProcess.Refresh
-'
-'        If PositionsLoad Then
-'            AdjustCaption
-'
-'            IndexLoad
-'            lblProcess.Caption = "Filter applying..."
-'            lblProcess.Refresh
-'
-'            m_Aux.Filter(RFC_EXPIRY) = m_nOpenedExpiry
-'            m_Aux.FilterUpdateExpiry False
-'            PositionsShow
-'
-'            If g_Params.RiskDirectlyToRealtime Then
-'                StartRealTime
-'            Else
-'                RequestLastQuotes
-'            End If
-'        Else
-'            If m_Aux.Filter(RFC_GROUP) = TYPE_ALL Then m_Aux.Filter(RFC_GROUP) = TYPE_UNDERLYING
-'            m_Aux.Filter(RFC_VALUE) = 0
-'            ClearViewAndData
-'            m_Aux.FilterUpdateAll
-'            AdjustCaption
-'            AdjustState
-'
-'            imgStop.Visible = False
-'            imgStopDis.Visible = False
-'            pbProgress.Visible = False
-'            lblProcess.Visible = False
-'            lblStatus.Visible = True
-'        End If
-'
-'    End If
-'
-'    m_nOpenedExpiry = 0
-'
-'    Screen.MousePointer = vbDefault
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.FinishLogMmOperation nOperation, OPER_LOADDATA, m_frmOwner.GetCaption, m_AuxClc.UndCount, m_AuxClc.OptCount, m_AuxClc.FutCount
-End Sub
 
-Private Sub PositionsShow()
-    On Error Resume Next
-    Dim nCol&, aPos As EtsMmRisksLib.MmRvPosAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, aSynthGreek As EtsMmRisksLib.MmRvSynthGreeksAtom
-    Dim nRow&, nUndRow&, bHide As Boolean, aRowData As clsRvRowData
-    Dim bShow As Boolean
-    m_nUndPositions = 0
-    m_nOptPositions = 0
-    bHide = False
-    bShow = True
-
-    
-'    With fgPos
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'
-'        .Rows = 1
-'
-'        For Each aUnd In m_Aux.Und
-'            If aUnd.Pos.Count > 0 Then
-'
-'                .AddItem ""
-'
-'                Set aRowData = New clsRvRowData
-'                Set aRowData.Pos = Nothing
-'                Set aRowData.Und = aUnd
-'                Set aRowData.SynthGreeks = Nothing
-'
-'                nUndRow = .Rows - 1
-'                .RowData(nUndRow) = aRowData
-'
-'                .TextMatrix(nUndRow, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aUnd.ID)
-'                .IsSubtotal(nUndRow) = True
-'                .RowOutlineLevel(nUndRow) = ROL_UND
-'
-'                Set aRowData = Nothing
-'
-'                bHide = m_OpenedUnd(CStr(aUnd.ID)) Is Nothing
-'                bShow = False
-'
-'                If aUnd.HasSynthetic And Not aUnd.SynthGreeks Is Nothing Then
-'                    For Each aSynthGreek In aUnd.SynthGreeks
-'                        Set aRowData = New clsRvRowData
-'                        Set aRowData.Pos = Nothing
-'                        Set aRowData.Und = aUnd
-'                        Set aRowData.SynthGreeks = aSynthGreek
-'                        aSynthGreek.Visible = Not bHide
-'                        bShow = aSynthGreek.Visible
-'
-'                        .AddItem ""
-'                        nRow = .Rows - 1
-'                        .RowData(nRow) = aRowData
-'                        Set aRowData = Nothing
-'                        .TextMatrix(nRow, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aSynthGreek.SynthUndID)
-'                        .RowOutlineLevel(nRow) = ROL_POS
-'
-'                        m_AuxOut.SyntheticGreeksUpdate nRow, True
-'                    Next
-'                End If
-'
-'                For Each aPos In aUnd.Pos
-'                    Set aRowData = New clsRvRowData
-'                    Set aRowData.Pos = aPos
-'                    Set aRowData.Und = aUnd
-'                    Set aRowData.SynthGreeks = Nothing
-'                    .AddItem ""
-'                    nRow = .Rows - 1
-'                    .RowData(nRow) = aRowData
-'                    Set aRowData = Nothing
-'                    .TextMatrix(nRow, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aUnd.ID) & "_" & CStr(aPos.ID)
-'                    .RowOutlineLevel(nRow) = ROL_POS
-'
-'                    aPos.Visible = m_Aux.CheckPosFilter(aPos)
-'
-'                    If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then _
-'                        m_nOptPositions = m_nOptPositions + IIf(aPos.Visible, 1, 0)
-'
-'                    If aPos.ContractType = enCtStock Or aPos.ContractType = enCtIndex Or aPos.ContractType = enCtFuture Then _
-'                        m_nUndPositions = m_nUndPositions + IIf(aPos.Visible, 1, 0)
-'
-'                    If bShow = False Then bShow = aPos.Visible
-'
-'                    .RowHidden(nRow) = Not aPos.Visible
-'
-'                    m_AuxOut.PositionUpdate nRow, True
-'
-'                    If aPos.IsSynthetic And Not aPos.SynthGreeks Is Nothing Then
-'                        For Each aSynthGreek In aPos.SynthGreeks
-'                            Set aRowData = New clsRvRowData
-'                            Set aRowData.Pos = aPos
-'                            Set aRowData.Und = aUnd
-'                            Set aRowData.SynthGreeks = aSynthGreek
-'                            aSynthGreek.Visible = aPos.Visible
-'
-'                            .AddItem ""
-'                            nRow = .Rows - 1
-'                            .RowData(nRow) = aRowData
-'                            Set aRowData = Nothing
-'                            .TextMatrix(nRow, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aSynthGreek.SynthUndID) & "_" & CStr(aPos.ID)
-'                            .RowOutlineLevel(nRow) = ROL_POS
-'
-'                            aSynthGreek.Visible = aPos.Visible
-'
-'                            .RowHidden(nRow) = Not aSynthGreek.Visible
-'                            m_AuxOut.SyntheticGreeksUpdate nRow, True
-'                        Next
-'                    End If
-'                Next
-'
-'                m_AuxOut.UnderlyingUpdate nUndRow, True
-'            End If
-'
-'            If bHide Then
-'                .IsCollapsed(nUndRow) = flexOutlineCollapsed
-'                '.RowHidden(nUndRow) = Not bShow
-'                .RowHidden(nUndRow) = Not bShow
-'            End If
-'        Next
-'
-'        m_OpenedUnd.Clear
-'
-'        lblProcess.Caption = "Formatting..."
-'        lblProcess.Refresh
-'
-'        nCol = -1
-'        nCol = .ColIndex(RPC_SYMBOL)
-'        If nCol >= 0 Then
-'            m_Aux.SortPosNodes nCol, True
-'            .Col = nCol
-'            .Row = 1
-'            m_Aux.SortColKey = RPC_SYMBOL
-'            .Sort = flexSortCustom
-'        End If
-'
-'        gePos.ShowSortImage nCol, 1
-'
-'        m_Aux.FormatPosColumns
-'
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-'    End With
-End Sub
-
-'Private Sub PositionsApplyFilter()
-'    On Error Resume Next
-'    Dim nRow&
-'    Dim bHide As Boolean
-'    Dim aRowData As EtsMmRisksLib.MmRvRowData
-'    Dim nRowSave&
-'    Dim bHasToshow As Boolean
-'    m_nUndPositions = 0
-'    m_nOptPositions = 0
-'
-'    With fgPos
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'
-'        Screen.MousePointer = vbHourglass
-'        imgStop.Visible = False
-'        imgStopDis.Visible = True
-'        lblStatus.Visible = False
-'        pbProgress.Min = 0
-'        pbProgress.Value = 0
-'        pbProgress.Visible = True
-'        lblProcess.Caption = "Filter applying..."
-'        lblProcess.Visible = True
-'        lblProcess.Refresh
-'
-'        pbProgress.Max = .Rows - 1
-'        bHide = False
-'        bHasToshow = False
-'
-'        For nRow = 1 To .Rows - 1
-'            Set aRowData = m_RiskView.PosRowData(nRow) '.RowData(nRow)
-'            If Not aRowData.Pos Is Nothing Then
-'                aRowData.Pos.Visible = m_Aux.CheckPosFilter(aRowData.Pos)
-'
-'                If aRowData.Pos.ContractType = enCtOption Or aRowData.Pos.ContractType = enCtFutOption Then _
-'                    m_nOptPositions = m_nOptPositions + IIf(aRowData.Pos.Visible, 1, 0)
-'
-'                If aRowData.Pos.ContractType = enCtStock Or aRowData.Pos.ContractType = enCtIndex Or aRowData.Pos.ContractType = enCtFuture Then _
-'                    m_nUndPositions = m_nUndPositions + IIf(aRowData.Pos.Visible, 1, 0)
-'
-'                If bHide Then .RowHidden(nRow) = Not aRowData.Pos.Visible
-'                If bHasToshow = False Then bHasToshow = aRowData.Pos.Visible
-'            Else
-'                If aRowData.SynthGreeks Is Nothing Then
-'                    bHide = (.IsCollapsed(nRow) <> flexOutlineCollapsed)
-'                    .RowHidden(nRow) = False
-'                    If bHasToshow = False And nRowSave <> 0 Then
-'                    .RowHidden(nRowSave) = True
-'                    End If
-'                    nRowSave = nRow
-'                    bHasToshow = False
-'                End If
-'            End If
-'            Set aRowData = Nothing
-'            IncProgress pbProgress
-'        Next
-'        If bHasToshow = False And nRowSave <> 0 Then
-'           .RowHidden(nRowSave) = True
-'        End If
-'
-'        lblProcess.Caption = "Formatting..."
-'        lblProcess.Refresh
-'
-'        imgStop.Visible = False
-'        imgStopDis.Visible = False
-'        pbProgress.Visible = False
-'        lblProcess.Visible = False
-'        lblStatus.Visible = True
-'        Screen.MousePointer = vbDefault
-'
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-'        AdjustCaption
-'    End With
-'End Sub
-
-Private Sub RequestLastQuotes()
-On Error GoTo EH
-    If m_bShutDown Or m_bInProc Or m_bSubscribingNow Then Exit Sub
-    Dim aIdxReq As EtsMmRisksLib.MmRvReqAtom, aReq As EtsMmRisksLib.MmRvReqAtom
-    Dim aParam As PRICEPROVIDERSLib.QuoteUpdateParams, aUnd As EtsMmRisksLib.MmRvUndAtom
-    Dim aArgParam As PRICEPROVIDERSLib.QuoteUpdateParams
-    Dim nLoopCounter As Long
-    
-    If Not PriceProvider Is Nothing And Not m_BatchPriceProvider Is Nothing Then
-        Debug.Assert Not m_bLastQuoteReqNow
-        
-        m_nUndResponses = 0
-        m_nOptResponses = 0
-        m_nFutResponses = 0
-        
-        If m_AuxClc.QuoteReqsAll.Count > 0 Then
-            
-            If Not g_PerformanceLog Is Nothing Then _
-                m_nOperation = g_PerformanceLog.BeginLogMmOperation
-            
-            m_bInProc = True
-            m_bLastQuoteReqNow = True
-            AdjustState
-            
-            m_nQuoteReqCount = m_AuxClc.QuoteReqsAll.Count
-            m_nQuoteReqDone = 0&
-            
-            pbProgress.Min = 0
-            pbProgress.Value = 0
-            pbProgress.Max = m_nQuoteReqCount
-            
-            pbProgress.Visible = True
-        
-            lblStatus.Visible = False
-            lblProcess.Visible = True
-            lblProcess.Caption = "Request last quotes..."
-            lblProcess.Refresh
-            imgStop.Visible = True
-            imgStopDis.Visible = False
-            
-            
-            On Error Resume Next
-           
-            Dim sRequests() As QuoteUpdateParams
-            ReDim sRequests(m_AuxClc.QuoteReqsAll.Count - 1)
-            Dim iRequest As Integer
-            Dim aBatchPriceInfo As PRICEPROVIDERSLib.IBatchPriceProvider
-            iRequest = 0
-            
-            For Each aReq In m_AuxClc.QuoteReqsAll
-                If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit For
-                
-                sRequests(iRequest) = aReq.GetQuoteUpdateParam
-                iRequest = iRequest + 1
-                If iRequest = 100 Then
-                    pbProgress.Min = 0
-                End If
-            Next
-            Set aBatchPriceInfo = PriceProvider
-            Err.Clear
-            
-            On Error Resume Next
-            aBatchPriceInfo.RequestMultipleQuotes sRequests
-            
-            
-            nLoopCounter = 1
-            
-            While Err.Number = 438 And nLoopCounter < 10
-                Err.Clear
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, "Can't start request in " & CStr(nLoopCounter) & " attempt.", m_frmOwner.GetCaption
-                    
-                If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit Sub
-                DoEvents
-                aBatchPriceInfo.RequestMultipleQuotes sRequests
-
-
-                nLoopCounter = nLoopCounter + 1
-            Wend
-            
-            If Err Then
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't start multiple request", m_frmOwner.GetCaption
-                GoTo EH
-            End If
-            On Error GoTo EH
-            
-            
-'            For Each aReq In m_AuxClc.QuoteReqsAll
-'
-'
-'
-'                If Not g_PerformanceLog Is Nothing Then _
-'                  g_PerformanceLog.LogMmInfo enLogEnhDebug, "Try get params", m_frmOwner.GetCaption
-'
-'                Err.Clear
-'
-'                aArgParam = aReq.GetQuoteUpdateParam
-'
-'                If Err Then
-'                    If Not g_PerformanceLog Is Nothing Then _
-'                        g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") ctlRiskView.GetQuoteUpdateParam (Symbol: " & aArgParam.Symbol & ", Exchange: " & aArgParam.Exchange & ", Type: " & aArgParam.Type & ")", m_frmOwner.GetCaption
-'
-'                        Else
-'
-'                    If Not g_PerformanceLog Is Nothing Then _
-'                       g_PerformanceLog.LogMmInfo enLogEnhDebug, "Success get params", m_frmOwner.GetCaption
-'
-'
-'
-'                    If Not g_PerformanceLog Is Nothing Then _
-'                      g_PerformanceLog.LogMmInfo enLogEnhDebug, "Try ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-'
-'                    Err.Clear
-'
-'                    PriceProvider.RequestLastQuote aArgParam
-'
-'                    If Err Then
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                            g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-'                        GoTo EH
-'                    End If
-'
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Success ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-'
-'
-'                 End If ' If Err - Else
-'
-'                 DoEvents
-'            Next
-        
-            
-            If Err Then
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't stop multiple request", m_frmOwner.GetCaption
-                GoTo EH
-            End If
-                    
-            If Not g_PerformanceLog Is Nothing Then _
-                 g_PerformanceLog.LogMmInfo enLogEnhDebug, "Multiple request Done", m_frmOwner.GetCaption
-            
-            
-            m_bInProc = False
-            AdjustState
-        Else
-            pbProgress.Visible = False
-            lblStatus.Visible = True
-            lblProcess.Visible = False
-            imgStop.Visible = False
-            imgStopDis.Visible = False
-            
-            RaiseEvent OnRefreshEmpty
-        End If
-    Else
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        If Not m_bShutDown Then gCmn.MyMsgBox m_frmOwner, "You are in offline mode now.", vbExclamation
-    End If
-    
-    Exit Sub
-EH:
-    m_bLastQuoteReqNow = False
-    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to request last quotes."
-    On Error Resume Next
-    Set aUnd = Nothing
-    Set aIdxReq = Nothing
-    pbProgress.Visible = False
-    lblStatus.Visible = True
-    lblProcess.Visible = False
-    lblProcess.Caption = ""
-    imgStop.Visible = False
-    imgStopDis.Visible = False
-    m_bInProc = False
-    AdjustState
-    
-    PriceProvider.CancelLastQuote
-    
-    RaiseEvent OnRefreshError
-
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_REQUESTQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-'    On Error GoTo EH
-'    If m_bShutDown Or m_bInProc Or m_bSubscribingNow Then Exit Sub
-'    Dim aIdxReq As EtsMmRisksLib.MmRvReqAtom, aReq As EtsMmRisksLib.MmRvReqAtom
-'    Dim aParam As PRICEPROVIDERSLib.QuoteUpdateParams, aUnd As EtsMmRisksLib.MmRvUndAtom
-'    Dim aArgParam As PRICEPROVIDERSLib.QuoteUpdateParams
-'    Dim aBugCounter As Long
-'
-'    aBugCounter = 0
-'    If Not PriceProvider Is Nothing And Not m_BatchPriceProvider Is Nothing Then
-'        Debug.Assert Not m_bLastQuoteReqNow
-'
-'        m_nUndResponses = 0
-'        m_nOptResponses = 0
-'        m_nFutResponses = 0
-'
-'        aBugCounter = 1
-'        If m_AuxClc.QuoteReqsAll.Count > 0 Then
-'            m_bGroupRequest = m_bGroupRequestSupported And Not g_Params.RiskReqTypeAlwaysNonGroup
-'
-'            aBugCounter = 2
-'            If Not g_PerformanceLog Is Nothing Then _
-'                m_nOperation = g_PerformanceLog.BeginLogMmOperation
-'
-'            m_bInProc = True
-'            m_bLastQuoteReqNow = True
-'            aBugCounter = 3
-'            AdjustState
-'
-'            m_nQuoteReqCount = m_AuxClc.QuoteReqsAll.Count
-'            m_nQuoteReqDone = 0&
-'
-'            pbProgress.Min = 0
-'            pbProgress.Value = 0
-'            pbProgress.Max = m_nQuoteReqCount
-'
-'            pbProgress.Visible = True
-'
-'            lblStatus.Visible = False
-'            lblProcess.Visible = True
-'            lblProcess.Caption = "Request last quotes..."
-'            lblProcess.Refresh
-'            imgStop.Visible = True
-'            imgStopDis.Visible = False
-'
-'            aBugCounter = 4
-'            If Not m_bGroupRequest Then
-'                m_nQuoteGroupReqCount = 0&
-'                m_nQuoteGroupReqDone = 0&
-'
-'                On Error Resume Next
-'
-'                aBugCounter = 5
-'                If Not g_PerformanceLog Is Nothing Then _
-'                    g_PerformanceLog.LogMmInfo enLogEnhDebug, "Try ctlRiskView.RequestLastQuotes (Start mutliple request list). BugCounter Value: " & CStr(aBugCounter), m_frmOwner.GetCaption
-'
-'                aParam.Type = enMStart
-'
-'                Err.Clear
-'                PriceProvider.RequestLastQuote aParam
-'
-'                ' Advanced RequestLastQuote Call
-'                If Err Then
-'                    If Err.Description = "Object doesn't support this property or method" Then
-'                        Err.Clear
-'                        PriceProvider.RequestLastQuote aParam
-'
-'                        If Err Then
-'                            If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't start multiple request also in second attempt", m_frmOwner.GetCaption
-'                            GoTo EH
-'                        End If
-'                    Else
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                            g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't start multiple request", m_frmOwner.GetCaption
-'                        GoTo EH
-'                    End If
-'                End If
-'
-'                aBugCounter = 6
-'
-'                For Each aReq In m_AuxClc.QuoteReqsAll
-'                    aBugCounter = 7
-'
-'                    If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit For
-'
-'
-'                    If Not g_PerformanceLog Is Nothing Then _
-'                      g_PerformanceLog.LogMmInfo enLogEnhDebug, "Try get params. BugCounter Value: " & CStr(aBugCounter), m_frmOwner.GetCaption
-'
-'                    Err.Clear
-'
-'                    aArgParam = aReq.GetQuoteUpdateParam
-'
-'                    If Err Then
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                            g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") ctlRiskView.GetQuoteUpdateParam (Symbol: " & aArgParam.Symbol & ", Exchange: " & aArgParam.Exchange & ", Type: " & aArgParam.Type & ")", m_frmOwner.GetCaption
-'
-'                            Else
-'
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                           g_PerformanceLog.LogMmInfo enLogEnhDebug, "Success get params", m_frmOwner.GetCaption
-'
-'                        aBugCounter = 8
-'
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                          g_PerformanceLog.LogMmInfo enLogEnhDebug, "Try ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & "). BugCounter Value: " & CStr(aBugCounter), m_frmOwner.GetCaption
-'
-'                        Err.Clear
-'                        PriceProvider.RequestLastQuote aArgParam
-'
-'                        ' Advanced RequestLastQuote Call
-'                        If Err Then
-'                            If Err.Number = 438 Then
-'                                Err.Clear
-'                                PriceProvider.RequestLastQuote aArgParam
-'
-'                                If Err Then
-'                                    If Not g_PerformanceLog Is Nothing Then _
-'                                        g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Unsuccessful second attempt. ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-'                                    GoTo EH
-'                                End If
-'                            Else
-'                                If Not g_PerformanceLog Is Nothing Then _
-'                                    g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-'                                GoTo EH
-'                            End If
-'                        End If
-'
-'                        aBugCounter = 9
-'
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Success ctlRiskView.RequestLastQuotes (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-'
-'                     End If ' If Err - Else
-'
-'                     aBugCounter = 10
-'
-'                     DoEvents
-'                Next
-'
-'                aBugCounter = 11
-'
-'                If Not g_PerformanceLog Is Nothing Then _
-'                    g_PerformanceLog.LogMmInfo enLogEnhDebug, "Try ctlRiskView.RequestLastQuotes (End mutliple request list). BugCounter Value: " & CStr(aBugCounter), m_frmOwner.GetCaption
-'
-'                aParam.Type = enMStop
-'                Err.Clear
-'                PriceProvider.RequestLastQuote aParam
-'
-'                ' Advanced RequestLastQuote Call
-'                If Err Then
-'                    If Err.Number = 438 Then
-'                        Err.Clear
-'                        PriceProvider.RequestLastQuote aParam
-'
-'                        If Err Then
-'                            If Not g_PerformanceLog Is Nothing Then _
-'                                g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't stop multiple request also in second attempt", m_frmOwner.GetCaption
-'                            GoTo EH
-'                        End If
-'                    Else
-'                        If Not g_PerformanceLog Is Nothing Then _
-'                            g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't stop multiple request", m_frmOwner.GetCaption
-'                        GoTo EH
-'                    End If
-'                End If
-'
-'                If Not g_PerformanceLog Is Nothing Then _
-'                     g_PerformanceLog.LogMmInfo enLogEnhDebug, "Multiple request Done", m_frmOwner.GetCaption
-'
-'            Else
-'                aBugCounter = 12
-'                'm_nQuoteGroupReqCount = m_AuxClc.QuoteReqsNonGrp.Count + m_AuxClc.QuoteReqsGrp.Count
-'                'm_nQuoteGroupReqDone = 0&
-'
-'                For Each aReq In m_AuxClc.QuoteReqsNonGrp
-'                    aBugCounter = 13
-'                    If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit For
-'                    PriceProvider.RequestLastQuote aReq.GetQuoteUpdateParam
-'                    aBugCounter = 14
-'                    DoEvents
-'                Next
-'
-'                For Each aReq In m_AuxClc.QuoteReqsGrp
-'                    aBugCounter = 15
-'                    If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit For
-'                    m_GroupPriceProvider.RequestLastGroupQuotes aReq.GetGroupQuoteUpdateParam
-'                    aBugCounter = 16
-'                    DoEvents
-'                Next
-'            End If
-'
-'            m_bInProc = False
-'            aBugCounter = 17
-'            AdjustState
-'        Else
-'            aBugCounter = 18
-'            pbProgress.Visible = False
-'            lblStatus.Visible = True
-'            lblProcess.Visible = False
-'            imgStop.Visible = False
-'            imgStopDis.Visible = False
-'        End If
-'    Else
-'        pbProgress.Visible = False
-'        lblStatus.Visible = True
-'        lblProcess.Visible = False
-'        imgStop.Visible = False
-'        imgStopDis.Visible = False
-'        aBugCounter = 19
-'        If Not m_bShutDown Then gCmn.MyMsgBox m_frmOwner, "You are in offline mode now.", vbExclamation
-'    End If
-'
-'    Exit Sub
-'EH:
-'    m_bLastQuoteReqNow = False
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to request last quotes. Counter Position: " & CStr(aBugCounter)
-'    On Error Resume Next
-'    Set aUnd = Nothing
-'    Set aIdxReq = Nothing
-'    pbProgress.Visible = False
-'    lblStatus.Visible = True
-'    lblProcess.Visible = False
-'    lblProcess.Caption = ""
-'    imgStop.Visible = False
-'    imgStopDis.Visible = False
-'    m_bInProc = False
-'    AdjustState
-'
-'    PriceProvider.CancelLastQuote
-'    If m_bGroupRequest Then m_GroupPriceProvider.CancelLastGroupQuotes
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_REQUESTQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
 End Sub
 
 Private Function IndexLoad() As Boolean
@@ -5210,20 +3072,6 @@ Private Function IndexLoad() As Boolean
         
         If Not aReq Is Nothing Then
             If aReq.IndexOnly Then
-                If Not PriceProvider Is Nothing Then
-                    If m_Aux.RealTime Then
-                        PriceProvider.UnSubscribeQuote aReq.GetQuoteUpdateParam
-                        If Not aReqActiveFuture Is Nothing Then _
-                                PriceProvider.CancelLastQuote aReqActiveFuture.GetQuoteUpdateParam
-
-                    Else
-                        PriceProvider.CancelLastQuote aReq.GetQuoteUpdateParam
-                        If Not aReqActiveFuture Is Nothing Then _
-                                 PriceProvider.UnSubscribeQuote aReqActiveFuture.GetQuoteUpdateParam
-
-                    End If
-
-                End If
                 Set aReq = Nothing
                 
                 m_AuxClc.QuoteReqsAll.Remove sKey
@@ -5243,9 +3091,11 @@ Private Function IndexLoad() As Boolean
     End If
     
     If m_Aux.Filter(RFC_INDEX) <> 0 Then
+    
         nKey = m_Aux.Filter(RFC_INDEX)
         Set aGIdx = g_HedgeSymbols(nKey)
         Debug.Assert Not aGIdx Is Nothing
+        
         If Not aGIdx Is Nothing Then
             m_Aux.Idx.ID = m_Aux.Filter(RFC_INDEX)
             m_Aux.Idx.Symbol = aGIdx.Symbol
@@ -5291,14 +3141,8 @@ Private Function IndexLoad() As Boolean
             
             ' try to get active future for selected index
             '******************************************************
-            'Dim aActiveFuture As EtsMmRisksLib.MmRvFutAtom
             Set m_Aux.Idx.ActiveFuture = Nothing    ' delete active future for previous active
-            
-'            If Not aReqActiveFuture Is Nothing Then
-'                If Not aReqActiveFuture.Fut Is Nothing Then
-'                    Set m_Aux.Idx.ActiveFuture = aReqActiveFuture.Fut
-'                End If
-'            End If
+
             If m_Aux.Idx.ActiveFuture Is Nothing Then
                 If Not g_ContractAll(m_Aux.Idx.ID) Is Nothing Then
                     Set aUndActive = g_ContractAll(m_Aux.Idx.ID).Und
@@ -5365,24 +3209,23 @@ Private Sub ClearViewAndData()
     With fgPos
         m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
         .FlexDataSource = Nothing
+        'fgPos.Rows = 1
         m_Aux.FormatPosGrid
         m_Aux.FormatPosColumns
         m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
     End With
     
+    m_Aux.RiskView.cvRTContext.Clear
+    
     fgTot.Cell(flexcpText, 1, 0, 1, fgTot.Cols - 1) = ""
     fgTot.Row = 1
 
     m_Aux.Grp.Clear
-    m_Aux.Und.Clear
-    m_Aux.Exp.Clear
-    
     m_Aux.Grp.ID = -1
     m_Aux.Grp.Name = "<All>"
     
-    'm_AuxClc.QuoteReqsNonGrp.Clear
-    'm_AuxClc.QuoteReqsGrp.Clear
-    m_AuxClc.QuoteReqsAll.Clear
+    m_Aux.RiskView.QuoteReqsAll.Clear
+    m_Aux.RiskView.Und.Clear
     
     m_nCurUnd = 0
     
@@ -5393,12 +3236,7 @@ Private Sub ClearViewAndData()
     m_Aux.FormatTotColumns
     
     m_Aux.FormatPosGrid
-    m_Aux.FilterUpdateAll
-    
-    AdjustCaption
-    AdjustState
-    
-    m_Aux.FilterUpdateExpiry True
+
     SetRefreshHint False
 End Sub
 
@@ -5407,22 +3245,6 @@ Private Sub ShowPopup()
     Dim aRowData As EtsMmRisksLib.MmRvRowData
     Dim aPos As MmRvPosAtom
     If m_nMenuGridCol < 0 Or m_nMenuGridRow < 0 Then Exit Sub
-
-    'mnuCtxTradeNew         "New Trade..."
-    'mnuCtxPositionTransfer "Position Transfer..."
-    'mnuCtxOrderNewStock    "New Stock Order..."
-    'mnuCtxOrderNewOption   "New Option Order..."
-    'mnuCtxTradeExercise    "Exercise Trades..."
-    'mnuCtxTradeExpiry      "Expiry Trades..."
-    'mnuCtxRealTime         "Real Time Mode"
-    'mnuCtxRefresh          "Refresh"
-    'mnuCtxCopy             "Copy Grid"
-    'mnuCtxPrint            "Print Grid..."
-    'mnuCtxWtdVega          "Weighted Vega Settings..."
-    'mnuCtxHideCol          "Hide Column"
-    'mnuCtxAutosizeCol      "Autosize Column"
-    'mnuCtxAutosizeGrid     "Autosize Grid"
-    'mnuCtxGridLayout       "Grid Layout..."
     
     mnuCtxCopy.Enabled = Not m_bInProc
     mnuCtxTradeExercise.Enabled = False
@@ -5544,14 +3366,15 @@ End Sub
 
 Public Sub ToggleRealtime()
     On Error Resume Next
-    If m_bShutDown Or m_bSubscribingNow Then Exit Sub
-    
+    If m_bShutDown Then Exit Sub
+       
     SetRefreshHint False
         
     'In real time day shift 0
     m_AuxClc.CalcDate = GetNewYorkTime
     'mov to date shift menu today DATE
     fgFlt.TextMatrix(1, RFC_SIM_DATE) = Now
+    'Start Real Time
     'Hide date shift menu
     'fgFlt.ColHidden(RFC_SIM_DATE) = Not m_Aux.RealTime And m_AuxClc.QuoteReqsAll.Count > 0
    
@@ -5566,9 +3389,10 @@ End Sub
 Private Sub StopRealTime()
     On Error Resume Next
     
-    'Screen.MousePointer = vbArrow
+    tmrRealTime.Enabled = False
     m_Aux.RealTime = False
-    m_bSubscribingNow = False
+    
+    m_Aux.RiskView.setRealtime False
     
     lblStatus.Visible = True
     pbProgress.Visible = False
@@ -5579,401 +3403,43 @@ Private Sub StopRealTime()
     lblStatus.Caption = "Real Time (Quotes unsubscription...)"
     lblStatus.Refresh
     
-    PriceProvider.UnSubscribeQuote
+    If g_RvRTQuantity > 0 Then
+       g_RvRTQuantity = g_RvRTQuantity - 1
+    End If
+    
     Screen.MousePointer = vbDefault
     AdjustState
     AdjustCaption
 End Sub
 
-' request last index quote if view is not in realtime
-Private Sub RequestIndexLastQuote()
-    On Error GoTo EH
-    If m_bShutDown Or m_bInProc Or m_Aux.RealTime Then Exit Sub
-    
-    Dim aIdxReq As EtsMmRisksLib.MmRvReqAtom
-    Dim aFutReq As EtsMmRisksLib.MmRvReqAtom
-    m_nQuoteReqCount = 0
-    If m_Aux.Idx.ID > 0 And Not m_Aux.Idx.ActiveFuture Is Nothing Then
-       Set aFutReq = m_AuxClc.QuoteReqsAll(CStr(enCtFuture) & "_" & m_Aux.Idx.ActiveFuture.Symbol)
-       If Not aFutReq Is Nothing Then
-            m_nQuoteReqCount = 1
-            PriceProvider.RequestLastQuote aFutReq.GetQuoteUpdateParam
-       End If
-    End If
-    
-    If m_Aux.Idx.ID > 0 Then Set aIdxReq = m_AuxClc.QuoteReqsAll(CStr(enCtIndex) & "_" & m_Aux.Idx.Symbol)
-    
-    If Not aIdxReq Is Nothing Then
-        If aIdxReq.IndexOnly Then ' no position(s) on this index yet
-            m_bLastQuoteReqNow = True
-            
-            lblStatus.Visible = False
-            imgStop.Visible = True
-            imgStopDis.Visible = False
-            pbProgress.Visible = True
-            pbProgress.Min = 0
-            pbProgress.Value = 0
-            pbProgress.Max = 1
-            lblProcess.Caption = "Index last quotes request..."
-            lblProcess.Visible = True
-            lblProcess.Refresh
-            
-            m_nQuoteReqCount = m_nQuoteReqCount + 1
-            m_nQuoteReqDone = 0&
-            
-            PriceProvider.RequestLastQuote aIdxReq.GetQuoteUpdateParam
-        Else
-            m_AuxClc.UnderlyingsCalc False, False
-            'm_AuxClc.UnderlyingsCalcWtdVega
-            m_AuxOut.TotalsUpdate
-        End If
-        Set aIdxReq = Nothing
-    End If
-    
-    Exit Sub
-EH:
-    m_bLastQuoteReqNow = False
-    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to request last index quote."
-    On Error Resume Next
-    
-    pbProgress.Visible = False
-    lblStatus.Visible = True
-    lblProcess.Visible = False
-    lblProcess.Caption = ""
-    imgStop.Visible = False
-    imgStopDis.Visible = False
-    m_bInProc = False
-    
-    AdjustState
-    AdjustCaption
-    
-    If Not aIdxReq Is Nothing Then
-        If aIdxReq.IndexOnly Then PriceProvider.CancelLastQuote aIdxReq.GetQuoteUpdateParam
-    End If
-    
-    RaiseEvent OnRefreshError
-End Sub
-
-' subscribe to index if view is in realtime
-Private Sub SubscribeToIndex()
-    On Error GoTo EH
-    If m_bShutDown Or m_bInProc Or Not m_Aux.RealTime Then Exit Sub
-    
-    Dim aIdxReq As EtsMmRisksLib.MmRvReqAtom
-    Dim aFutReq As EtsMmRisksLib.MmRvReqAtom
-    
-    m_nQuoteReqCount = 0
-    
-    If m_Aux.Idx.ID > 0 And Not m_Aux.Idx.ActiveFuture Is Nothing Then
-       Set aFutReq = m_AuxClc.QuoteReqsAll(CStr(enCtFuture) & "_" & m_Aux.Idx.ActiveFuture.Symbol)
-       If Not aFutReq Is Nothing Then
-            m_nQuoteReqCount = 1
-            PriceProvider.SubscribeQuote aFutReq.GetQuoteUpdateParam
-       End If
-    End If
-    
-    If m_Aux.Idx.ID > 0 Then Set aIdxReq = m_AuxClc.QuoteReqsAll(CStr(enCtIndex) & "_" & m_Aux.Idx.Symbol)
-    
-    If Not aIdxReq Is Nothing Then
-        If aIdxReq.IndexOnly Then ' no position(s) on this index yet
-            m_bSubscribingNow = True
-            
-            lblStatus.Visible = False
-            imgStop.Visible = True
-            imgStopDis.Visible = False
-            pbProgress.Visible = True
-            pbProgress.Min = 0
-            pbProgress.Value = 0
-            pbProgress.Max = 1
-            lblProcess.Caption = "Subscribe to index quotes..."
-            lblProcess.Visible = True
-            lblProcess.Refresh
-            
-            m_nQuoteReqCount = m_nQuoteReqCount + 1
-            m_nQuoteReqDone = 0&
-            
-            PriceProvider.SubscribeQuote aIdxReq.GetQuoteUpdateParam
-        Else
-            m_AuxClc.UnderlyingsCalc False, False
-            'm_AuxClc.UnderlyingsCalcWtdVega
-            m_AuxOut.TotalsUpdate
-        End If
-        Set aIdxReq = Nothing
-    End If
-    
-    Exit Sub
-EH:
-    m_bSubscribingNow = False
-    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to subscribe to index quotes."
-    On Error Resume Next
-    
-    pbProgress.Visible = False
-    lblStatus.Visible = True
-    lblProcess.Visible = False
-    lblProcess.Caption = ""
-    imgStop.Visible = False
-    imgStopDis.Visible = False
-    m_bInProc = False
-    
-    AdjustState
-    AdjustCaption
-    
-    If Not aIdxReq Is Nothing Then
-        If aIdxReq.IndexOnly Then
-            aParams(1) = aIdxReq.GetQuoteUpdateParam
-            PriceProvider.UnSubscribeQuote aParams
-        End If
-    End If
-End Sub
-
 Private Function StartRealTime() As Boolean
-    On Error GoTo EH
-    If m_bShutDown Or m_bInProc Or m_bLastQuoteReqNow Then Exit Function
-    If m_AuxClc.CantStartRealTime Then Exit Function
-        
-    Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aReq As EtsMmRisksLib.MmRvReqAtom
-    Dim aParam As PRICEPROVIDERSLib.QuoteUpdateParams
-    Dim nLoopCounter As Long
-    
-    
-    If Not PriceProvider Is Nothing And Not m_BatchPriceProvider Is Nothing Then
-        Debug.Assert Not m_bSubscribingNow
-        
-        m_nUndResponses = 0
-        m_nOptResponses = 0
-        m_nFutResponses = 0
-        
-        If m_AuxClc.QuoteReqsAll.Count > 0 Then
-            
-            If Not g_PerformanceLog Is Nothing Then _
-                m_nOperation = g_PerformanceLog.BeginLogMmOperation
-        
-            m_bSubscribingNow = True
-            m_bInProc = True
-            AdjustState
-            
-            m_nQuoteReqCount = m_AuxClc.QuoteReqsAll.Count
-            m_nQuoteReqDone = 0&
-            
-            pbProgress.Min = 0
-            pbProgress.Value = 0
-            pbProgress.Max = m_nQuoteReqCount
-        
-            pbProgress.Visible = True
-        
-            lblStatus.Visible = False
-            lblProcess.Visible = True
-            lblProcess.Caption = "Quotes subscription..."
-            lblProcess.Refresh
-            imgStop.Visible = True
-            imgStopDis.Visible = False
-            
-            Dim sRequests() As QuoteUpdateParams
-            ReDim sRequests(m_AuxClc.QuoteReqsAll.Count - 1)
-            Dim iRequest As Integer
-            Dim aBatchPriceInfo As PRICEPROVIDERSLib.IBatchPriceProvider
-            iRequest = 0
-            
-            For Each aReq In m_AuxClc.QuoteReqsAll
-                If m_bShutDown Or Not m_bSubscribingNow Then Exit Function
-                
-                sRequests(iRequest) = aReq.GetQuoteUpdateParam
-                iRequest = iRequest + 1
-                If iRequest = 100 Then
-                    pbProgress.Min = 0
-                End If
-            Next
-            Set aBatchPriceInfo = PriceProvider
-            
-            Err.Clear
-            
-            On Error Resume Next
-            aBatchPriceInfo.SubscribeMultipleQuotes sRequests
-                               
-            nLoopCounter = 1
-            
-            While Err.Number = 438 And nLoopCounter < 10
-                Err.Clear
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, "Can't start request in " & CStr(nLoopCounter) & " attempt.", m_frmOwner.GetCaption
-                    
-                If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit Function
-                DoEvents
-                aBatchPriceInfo.SubscribeMultipleQuotes sRequests
 
-
-                nLoopCounter = nLoopCounter + 1
-            Wend
-            
-            If Err Then
-                If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogFaults, "Returned error (" & Err.Description & ") Can't start multiple subscribe", m_frmOwner.GetCaption
-                GoTo EH
-            End If
-            On Error GoTo EH
-            
-'            aParam.Type = enMStart
-'            PriceProvider.SubscribeQuote aParam
-'
-'            For Each aReq In m_AuxClc.QuoteReqsAll
-'                If m_bShutDown Or Not m_bSubscribingNow Then Exit For
-'                PriceProvider.SubscribeQuote aReq.GetQuoteUpdateParam
-'                DoEvents
-'            Next
-'
-'            aParam.Type = enMStop
-'            PriceProvider.SubscribeQuote aParam
-            
-            m_bInProc = False
-            AdjustState
-        Else
-            pbProgress.Visible = False
-            lblStatus.Visible = True
-            lblProcess.Visible = False
-            imgStop.Visible = False
-            imgStopDis.Visible = False
-        End If
-    Else
-        pbProgress.Visible = False
-        lblStatus.Visible = True
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        gCmn.MyMsgBox m_frmOwner, "You are in offline mode now.", vbExclamation
-    End If
+    tmrRealTime.Enabled = True
     
-    RecalculateGreeck
-    SetLastRowSelected
+    m_Aux.RealTime = True
+    m_Aux.RealTimeConnected = True
     
-    Exit Function
-EH:
-    m_bSubscribingNow = False
-    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to subscribe to quotes."
-    On Error Resume Next
-    pbProgress.Visible = False
+    m_Aux.RiskView.setRealtime True
+        
     lblStatus.Visible = True
+    pbProgress.Visible = False
     lblProcess.Visible = False
-    lblProcess.Caption = ""
     imgStop.Visible = False
     imgStopDis.Visible = False
-    m_bInProc = False
-    AdjustState
     
-    PriceProvider.UnSubscribeQuote
+    lblStatus.Caption = "Real Time"
+    lblStatus.Refresh
+    
+    If g_RvRTQuantity > 0 Then
+       g_RvRTQuantity = g_RvRTQuantity - 1
+    End If
+    
+    Screen.MousePointer = vbDefault
+    
+    AdjustState
+    AdjustCaption
 
-    If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_SUBSCRIBEQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
-
-'    On Error GoTo EH
-'    If m_bShutDown Or m_bInProc Or m_bLastQuoteReqNow Then Exit Function
-'    If m_AuxClc.CantStartRealTime Then Exit Function
-'
-'    Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aReq As EtsMmRisksLib.MmRvReqAtom
-'    Dim aParam As PRICEPROVIDERSLib.QuoteUpdateParams
-'
-'
-'    If Not PriceProvider Is Nothing And Not m_BatchPriceProvider Is Nothing Then
-'        Debug.Assert Not m_bSubscribingNow
-'
-'        m_nUndResponses = 0
-'        m_nOptResponses = 0
-'        m_nFutResponses = 0
-'
-'        If m_AuxClc.QuoteReqsAll.Count > 0 Then
-'            m_bGroupRequest = m_bGroupRequestSupported And Not g_Params.RiskReqTypeAlwaysNonGroup
-'
-'            If Not g_PerformanceLog Is Nothing Then _
-'                m_nOperation = g_PerformanceLog.BeginLogMmOperation
-'
-'            m_bSubscribingNow = True
-'            m_bInProc = True
-'            AdjustState
-'
-'            m_nQuoteReqCount = m_AuxClc.QuoteReqsAll.Count
-'            m_nQuoteReqDone = 0&
-'
-'            pbProgress.Min = 0
-'            pbProgress.Value = 0
-'            pbProgress.Max = m_nQuoteReqCount
-'
-'            pbProgress.Visible = True
-'
-'            lblStatus.Visible = False
-'            lblProcess.Visible = True
-'            lblProcess.Caption = "Quotes subscription..."
-'            lblProcess.Refresh
-'            imgStop.Visible = True
-'            imgStopDis.Visible = False
-'
-'            If Not m_bGroupRequest Then
-'                m_nQuoteGroupReqCount = 0&
-'                m_nQuoteGroupReqDone = 0&
-'
-'                aParam.Type = enMStart
-'                PriceProvider.SubscribeQuote aParam
-'
-'                For Each aReq In m_AuxClc.QuoteReqsAll
-'                    If m_bShutDown Or Not m_bSubscribingNow Then Exit For
-'                    PriceProvider.SubscribeQuote aReq.GetQuoteUpdateParam
-'                    DoEvents
-'                Next
-'
-'                aParam.Type = enMStop
-'                PriceProvider.SubscribeQuote aParam
-'            Else
-'                m_nQuoteGroupReqCount = m_AuxClc.QuoteReqsNonGrp.Count + m_AuxClc.QuoteReqsGrp.Count
-'                m_nQuoteGroupReqDone = 0&
-'
-'                For Each aReq In m_AuxClc.QuoteReqsNonGrp
-'                    If m_bShutDown Or Not m_bSubscribingNow Then Exit For
-'                    PriceProvider.SubscribeQuote aReq.GetQuoteUpdateParam
-'                    DoEvents
-'                Next
-'
-'                For Each aReq In m_AuxClc.QuoteReqsGrp
-'                    If m_bShutDown Or Not m_bSubscribingNow Then Exit For
-'                    m_GroupPriceProvider.SubscribeGroupQuotes aReq.GetGroupQuoteUpdateParam
-'                    DoEvents
-'                Next
-'            End If
-'
-'            m_bInProc = False
-'            AdjustState
-'        Else
-'            pbProgress.Visible = False
-'            lblStatus.Visible = True
-'            lblProcess.Visible = False
-'            imgStop.Visible = False
-'            imgStopDis.Visible = False
-'        End If
-'    Else
-'        pbProgress.Visible = False
-'        lblStatus.Visible = True
-'        lblProcess.Visible = False
-'        imgStop.Visible = False
-'        imgStopDis.Visible = False
-'        gCmn.MyMsgBox m_frmOwner, "You are in offline mode now.", vbExclamation
-'    End If
-'
-'    Exit Function
-'EH:
-'    m_bSubscribingNow = False
-'    If Not m_bShutDown Then gCmn.ErrorMsgBox m_frmOwner, "Fail to subscribe to quotes."
-'    On Error Resume Next
-'    pbProgress.Visible = False
-'    lblStatus.Visible = True
-'    lblProcess.Visible = False
-'    lblProcess.Caption = ""
-'    imgStop.Visible = False
-'    imgStopDis.Visible = False
-'    m_bInProc = False
-'    AdjustState
-'
-'    PriceProvider.UnSubscribeQuote
-'    If m_bGroupRequest Then m_GroupPriceProvider.UnSubscribeGroupQuotes
-'
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.FinishLogMmOperation m_nOperation, OPER_SUBSCRIBEQUOTE, m_frmOwner.GetCaption, m_nUndResponses, m_nOptResponses, m_nFutResponses
+    
 End Function
 
 Private Sub mnuCtxRefresh_Click()
@@ -6014,7 +3480,7 @@ Private Sub mnuCtxAutosizeCol_Click()
                 .AutoSize m_nMenuGridCol, m_nMenuGridCol
                 
                 nIdx = .ColKey(m_nMenuGridCol)
-                If nIdx >= RPC_SYMBOL And nIdx <= RPC_LAST_COLUMN Then
+                If nIdx >= RPC_SYMBOL And nIdx <= g_RPC_LAST_COLUMN Then
                     m_gdPos.Col(nIdx).Width = IIf(.ColWidth(m_nMenuGridCol) > 0, .ColWidth(m_nMenuGridCol), -1)
                 End If
                 
@@ -6042,7 +3508,7 @@ Private Sub mnuCtxAutosizeGrid_Click()
                 nCount = .Cols - 1
                 For i = 0 To nCount
                     nIdx = .ColKey(i)
-                    If nIdx >= RPC_SYMBOL And nIdx <= RPC_LAST_COLUMN Then
+                    If nIdx >= RPC_SYMBOL And nIdx <= g_RPC_LAST_COLUMN Then
                         m_gdPos.Col(nIdx).Width = IIf(.ColWidth(i) > 0, .ColWidth(i), -1)
                     End If
                 Next
@@ -6070,7 +3536,7 @@ Private Sub mnuCtxHideCol_Click()
             If m_gdTot.Idx(1) = RTC_NONE Then Exit Sub
             
             nColIdx = fgTot.ColKey(m_nMenuGridCol)
-            For i = 0 To RTC_LAST_COLUMN
+            For i = 0 To g_RTC_LAST_COLUMN
                 If m_gdTot.Idx(i) = nColIdx Then
                     m_gdTot.Idx(i) = RTC_NONE
                     m_gdTot.Col(nColIdx).Visible = False
@@ -6078,7 +3544,7 @@ Private Sub mnuCtxHideCol_Click()
                 End If
                 
                 If bMove Then
-                    If i + 1 <= RTC_LAST_COLUMN Then
+                    If i + 1 <= g_RTC_LAST_COLUMN Then
                         m_gdTot.Idx(i) = m_gdTot.Idx(i + 1)
                     Else
                         m_gdTot.Idx(i) = RTC_NONE
@@ -6098,7 +3564,7 @@ Private Sub mnuCtxHideCol_Click()
             bMove = False
             
             nColIdx = fgPos.ColKey(m_nMenuGridCol)
-            For i = 1 To RPC_LAST_COLUMN
+            For i = 1 To g_RPC_LAST_COLUMN
                 If m_gdPos.Idx(i) = nColIdx Then
                     m_gdPos.Idx(i) = RPC_NONE
                     m_gdPos.Col(nColIdx).Visible = False
@@ -6106,7 +3572,7 @@ Private Sub mnuCtxHideCol_Click()
                 End If
                 
                 If bMove Then
-                    If i + 1 <= RPC_LAST_COLUMN Then
+                    If i + 1 <= g_RPC_LAST_COLUMN Then
                         m_gdPos.Idx(i) = m_gdPos.Idx(i + 1)
                     Else
                         m_gdPos.Idx(i) = RPC_NONE
@@ -6145,10 +3611,10 @@ Private Sub mnuCtxGridLayout_Click()
     End Select
 End Sub
 
-Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error GoTo EH
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom
-    Dim sKey$, arrExp() As Long, collExp As EtsGeneralLib.EtsMmEntityAtomColl
+    Dim sKey$
     Dim i&, nCount&, aExp As EtsGeneralLib.EtsMmEntityAtom, bAddUnd As Boolean, bAddPos As Boolean, nRow&, nUndRow&, nGreekRow&
     Dim bGridLocked As Boolean: bGridLocked = False
     Dim aRowData As clsRvRowData, aSynthGreek As EtsMmRisksLib.MmRvSynthGreeksAtom
@@ -6161,7 +3627,6 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     If Not g_PerformanceLog Is Nothing Then _
        g_PerformanceLog.LogMmInfo enLogEnhDebug, "AddTrade Enter", m_frmOwner.GetCaption
 
-    
     If Not m_Aux.CheckTradeFilter(aTrd) Then Exit Sub
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -6169,10 +3634,7 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     
     m_bInProc = True
     AdjustState
-    Set collExp = New EtsGeneralLib.EtsMmEntityAtomColl
-    For Each aExp In m_Aux.Exp
-        collExp.Add CStr(aExp.ID), aExp
-    Next
+    
     If Not g_PerformanceLog Is Nothing Then _
        g_PerformanceLog.LogMmInfo enLogEnhDebug, "Add Trade, Symbol: " & aTrd.Symbol, m_frmOwner.GetCaption
     
@@ -6180,6 +3642,7 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     If aUnd Is Nothing Then
         Set aUnd = m_RiskView.AddNewUnderlying(aTrd, aNewReqsAll)
         bAddUnd = True
+        
         If Not g_PerformanceLog Is Nothing Then _
            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Underlying added, Symbol: " & aUnd.Symbol, m_frmOwner.GetCaption
     End If
@@ -6187,15 +3650,15 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     Set aPos = aUnd.Pos(aTrd.ContractID)
     If aPos Is Nothing Then
         Set aPos = m_RiskView.AddNewPosition(aTrd, aUnd, aNewReqsAll, -1, True)
-        bAddPos = True
+        
         If Not g_PerformanceLog Is Nothing Then _
            g_PerformanceLog.LogMmInfo enLogEnhDebug, "Position added, Symbol: " & aPos.Symbol, m_frmOwner.GetCaption
     
     End If
     
+    bAddPos = True
     m_RiskView.AddNewTradeToPosition aUnd, aPos, aTrd
 
-    
     If bAddUnd Then
         Set aGIdx = g_HedgeSymbols(m_Aux.Idx.ID)
         If Not aGIdx Is Nothing Then
@@ -6207,213 +3670,37 @@ Private Sub AddTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
             Set aGIdx = Nothing
         End If
     End If
-'
-'    If m_Aux.Exp.Count <> collExp.Count Then
-'        m_Aux.Exp.Clear
-'        nCount = collExp.Count
-'        If nCount > 0 Then
-'            ReDim arrExp(1 To nCount)
-'
-'            i = 1
-'            For Each aExp In collExp
-'                arrExp(i) = aExp.ID
-'                i = i + 1
-'            Next
-'
-'            If nCount > 1 Then SortArray arrExp, 1, nCount
-'
-'            For i = 1 To nCount
-'                m_Aux.Exp.Add CStr(arrExp(i)), collExp(CStr(arrExp(i)))
-'            Next
-'        End If
-'        m_Aux.FilterUpdateExpiry True
-'    End If
-'
-'    Erase arrExp
-    Set collExp = Nothing
-'
 
     bRatesUpdated = m_AuxClc.UnderlyingAdjustRates(aUnd, bAddUnd Or bAddPos)
+    
     If bAddUnd Or bAddPos Then m_bTradeActionrefreshPositions = True
-'
-'    With fgPos
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'        bGridLocked = True
-'
-'        sKey = CStr(aUnd.ID) & "_" & CStr(aUnd.ID)
-'
-'        If bAddUnd Then
-'            .AddItem ""
-'            nUndRow = .Rows - 1
-'
-'            Set aRowData = New clsRvRowData
-'            Set aRowData.Pos = Nothing
-'            Set aRowData.Und = aUnd
-'            Set aRowData.SynthGreeks = Nothing
-'
-'            .RowData(nUndRow) = aRowData
-'            .TextMatrix(nUndRow, RPC_KEY) = sKey
-'            .IsSubtotal(nUndRow) = True
-'            .RowOutlineLevel(nUndRow) = ROL_UND
-'
-'            Set aRowData = Nothing
-'
-'            If aUnd.HasSynthetic And Not aUnd.SynthGreeks Is Nothing Then
-'                For Each aSynthGreek In aUnd.SynthGreeks
-'                    Set aRowData = New clsRvRowData
-'                    Set aRowData.Pos = Nothing
-'                    Set aRowData.Und = aUnd
-'                    Set aRowData.SynthGreeks = aSynthGreek
-'                    aSynthGreek.Visible = True
-'
-'                    .AddItem ""
-'                    nGreekRow = .Rows - 1
-'                    .RowData(nGreekRow) = aRowData
-'                    Set aRowData = Nothing
-'                    .TextMatrix(nGreekRow, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aSynthGreek.SynthUndID)
-'                    .RowOutlineLevel(nGreekRow) = ROL_POS
-'                Next
-'            End If
-'
-'            m_AuxClc.UnderlyingCalc aUnd, True, True
-'        Else
-'            nUndRow = .FindRow(sKey, 1, RPC_KEY, , True)
-'        End If
-'
-'        nRow = nUndRow
-'
-'        If nRow <> -1 Then
-'            Do While .RowData(nRow).Pos Is Nothing
-'                If nRow = .Rows - 1 Then
-'                    nRow = nRow + 1
-'                    Exit Do
-'                End If
-'                nRow = nRow + 1
-'            Loop
-'
-'            sKey = CStr(aUnd.ID) & "_" & CStr(aUnd.ID) & "_" & CStr(aPos.ID)
-'
-'            If bAddPos Then
-'                .AddItem "", nRow
-'                Set aRowData = New clsRvRowData
-'                Set aRowData.Pos = aPos
-'                Set aRowData.Und = aUnd
-'                Set aRowData.SynthGreeks = Nothing
-'                .RowData(nRow) = aRowData
-'                .TextMatrix(nRow, RPC_KEY) = sKey
-'                .RowOutlineLevel(nRow) = ROL_POS
-'
-'                aPos.Visible = m_Aux.CheckPosFilter(aPos)
-'                If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then _
-'                    m_nOptPositions = m_nOptPositions + IIf(aPos.Visible, 1, 0)
-'
-'                If aPos.ContractType = enCtStock Or aPos.ContractType = enCtIndex Or aPos.ContractType = enCtFuture Then _
-'                    m_nUndPositions = m_nUndPositions + IIf(aPos.Visible, 1, 0)
-'
-'                .RowHidden(nRow) = Not aPos.Visible Or .IsCollapsed(nUndRow) <> flexOutlineExpanded
-'
-'                nGreekRow = nRow
-'
-'                If Not bAddUnd And aUnd.HasSynthetic And Not aUnd.SynthGreeks Is Nothing Then
-'                    For Each aSynthGreek In aUnd.SynthGreeks
-'
-'                        sKey = CStr(aUnd.ID) & "_" & CStr(aSynthGreek.SynthUndID)
-'
-'                        If .FindRow(sKey, 1, RPC_KEY, , True) < 1 Then
-'                            Set aRowData = New clsRvRowData
-'                            Set aRowData.Pos = Nothing
-'                            Set aRowData.Und = aUnd
-'                            Set aRowData.SynthGreeks = aSynthGreek
-'                            aSynthGreek.Visible = True
-'
-'                            nGreekRow = nGreekRow + 1
-'                            nRow = nRow + 1
-'                            .AddItem "", nUndRow + 1
-'                            .RowData(nUndRow + 1) = aRowData
-'                            Set aRowData = Nothing
-'                            .TextMatrix(nUndRow + 1, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aSynthGreek.SynthUndID)
-'                            .RowOutlineLevel(nUndRow + 1) = ROL_POS
-'                            .RowHidden(nUndRow + 1) = Not aSynthGreek.Visible Or .IsCollapsed(nUndRow) <> flexOutlineExpanded
-'                        End If
-'                    Next
-'                End If
-'
-'                If aPos.IsSynthetic And Not aPos.SynthGreeks Is Nothing Then
-'                    For Each aSynthGreek In aPos.SynthGreeks
-'                        Set aRowData = New clsRvRowData
-'                        Set aRowData.Pos = aPos
-'                        Set aRowData.Und = aUnd
-'                        Set aRowData.SynthGreeks = aSynthGreek
-'                        aSynthGreek.Visible = aPos.Visible
-'
-'                        nGreekRow = nGreekRow + 1
-'                        .AddItem "", nGreekRow
-'                        .RowData(nGreekRow) = aRowData
-'                        Set aRowData = Nothing
-'                        .TextMatrix(nGreekRow, RPC_KEY) = CStr(aUnd.ID) & "_" & CStr(aSynthGreek.SynthUndID) & "_" & CStr(aPos.ID)
-'                        .RowOutlineLevel(nGreekRow) = ROL_POS
-'                        .RowHidden(nGreekRow) = Not aSynthGreek.Visible Or .IsCollapsed(nUndRow) <> flexOutlineExpanded
-'                    Next
-'                End If
-'
-'                If Not bAddUnd And aPos.Visible Then
-'                    aPos.Quote.Vola = aUnd.VolaSrv.OptionVola(aPos.Expiry, aPos.Strike)
-'                    m_AuxClc.CalcOptionGreeks aUnd, aPos, GM_ALL
-'                End If
-'            Else
-'                nRow = .FindRow(sKey, 1, RPC_KEY, , True)
-'            End If
-'        End If
-'
-'        Debug.Assert nUndRow > 0 And nRow > 0
-'
-'        'm_AuxClc.UnderlyingsCalc True, False
-'
-'        If bRatesUpdated Then
-'            m_AuxOut.PositionsUpdate nUndRow, True
-'        Else
-'            m_AuxOut.PositionUpdate nRow, True
-'        End If
-'
-'        m_AuxOut.UnderlyingUpdate nUndRow, True
-'
-'        If aUnd.HasSynthetic Then m_AuxOut.SyntheticUnderlyingGreeksUpdate aUnd, True
-'        If aPos.IsSynthetic Then m_AuxOut.SyntheticPositionGreeksUpdate aUnd.ID, aPos, True
-'
-'        If bAddUnd Then .IsCollapsed(nUndRow) = flexOutlineCollapsed
-'        If bAddUnd Or bAddPos Then m_Aux.FormatPosColumns
-'
-'        m_AuxOut.TotalsUpdate
-'
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-'        bGridLocked = False
-'
-        If Not aNewReqsAll Is Nothing Then
-            If aNewReqsAll.Count > 0 Then
-                If m_Aux.RealTime Then
-                    If Not g_PerformanceLog Is Nothing Then _
-                           g_PerformanceLog.LogMmInfo enLogEnhDebug, "SubscribeToNewPositions Call", m_frmOwner.GetCaption
-                    SubscribeToNewPositions aNewReqsAll
-                Else
-                    If Not g_PerformanceLog Is Nothing Then _
-                           g_PerformanceLog.LogMmInfo enLogEnhDebug, "Set Refresh Hint Call", m_frmOwner.GetCaption
-                    SetRefreshHint True
-                End If
-           End If
-       End If
-'    End With
-'
+    
+    If Not aNewReqsAll Is Nothing Then
+         If aNewReqsAll.Count > 0 Then
+             If m_Aux.RealTime Then
+                 If Not g_PerformanceLog Is Nothing Then _
+                        g_PerformanceLog.LogMmInfo enLogEnhDebug, "SubscribeToNewPositions Call", m_frmOwner.GetCaption
+             Else
+                 If Not g_PerformanceLog Is Nothing Then _
+                        g_PerformanceLog.LogMmInfo enLogEnhDebug, "Set Refresh Hint Call", m_frmOwner.GetCaption
+                 SetRefreshHint True
+             End If
+        End If
+    End If
+
+
     Set aPos = Nothing
     Set aUnd = Nothing
-'
+
     m_bInProc = False
     m_Aux.Grp.ID = 1
     AdjustState
-'
+
     If Not g_PerformanceLog Is Nothing Then _
            g_PerformanceLog.LogMmInfo enLogEnhDebug, "AddTrade Exit, Symbol: " & aTrd.Symbol, m_frmOwner.GetCaption
 
     Exit Sub
+    
 EH:
     If Not g_PerformanceLog Is Nothing Then _
            g_PerformanceLog.LogMmInfo enLogEnhDebug, "AddTrade OnError, Symbol: " & aTrd.Symbol, m_frmOwner.GetCaption
@@ -6423,137 +3710,19 @@ EH:
     On Error Resume Next
     If bGridLocked Then m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
     AdjustState
-    Erase arrExp
-    Set collExp = Nothing
 End Sub
 
-
-Private Sub SubscribeToNewPositions(ByRef aNewReqsAll As EtsMmRisksLib.MmRvReqColl)
+Private Sub DeleteTrade(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error GoTo EH
-    If m_bShutDown Then Exit Sub
-    Dim aReq As EtsMmRisksLib.MmRvReqAtom
     
-    If Not g_PerformanceLog Is Nothing Then _
-       g_PerformanceLog.LogMmInfo enLogEnhDebug, "SubscribeToNewPositions Enter", m_frmOwner.GetCaption
-       
-
-    
-    If aNewReqsAll.Count > 0 Then
-        m_bSubscribingNow = True
-       
-       If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "New Positions Count: " & CStr(aNewReqsAll.Count), m_frmOwner.GetCaption
-        
-        m_nQuoteReqCount = m_nQuoteReqCount + aNewReqsAll.Count
-        
-        lblStatus.Visible = False
-        imgStop.Visible = True
-        imgStopDis.Visible = False
-        pbProgress.Visible = True
-        pbProgress.Min = 0
-        pbProgress.Max = m_nQuoteReqCount
-        pbProgress.Value = m_nQuoteReqDone
-        lblProcess.Caption = "Subscribe to quotes for new positions..."
-        lblProcess.Visible = True
-        lblProcess.Refresh
-        
-        For Each aReq In aNewReqsAll
-            If m_bShutDown Or Not m_bSubscribingNow Then Exit For
-            If Not g_PerformanceLog Is Nothing Then _
-              g_PerformanceLog.LogMmInfo enLogEnhDebug, "Non-group Subscribe (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-            
-            PriceProvider.SubscribeQuote aReq.GetQuoteUpdateParam
-            DoEvents
-        Next
-    End If
-    
-    If Not g_PerformanceLog Is Nothing Then _
-       g_PerformanceLog.LogMmInfo enLogEnhDebug, "SubscribeToNewPositions Exit", m_frmOwner.GetCaption
-    
-    Exit Sub
-EH:
-    If Not g_PerformanceLog Is Nothing Then _
-       g_PerformanceLog.LogMmInfo enLogFaults, "SubscribeToNewPositions On Error", m_frmOwner.GetCaption
-    
-    m_bSubscribingNow = False
-    If Not m_bShutDown Then LogEvent EVENT_ERROR, "Risks: Fail to subscribe to quotes for new positions." & Err.Description
-    On Error Resume Next
-    AdjustState
-    AdjustCaption
-    
-    For Each aReq In aNewReqsAll
-        If m_bShutDown Then Exit For
-        aParams(1) = aReq.GetQuoteUpdateParam
-        PriceProvider.UnSubscribeQuote aParams
-    Next
-End Sub
-
-Private Sub RequestToNewPositions(ByRef aNewReqsAll As EtsMmRisksLib.MmRvReqColl)
-    On Error GoTo EH
-    If m_bShutDown Then Exit Sub
-    Dim aReq As EtsMmRisksLib.MmRvReqAtom
-    
-    If Not g_PerformanceLog Is Nothing Then _
-       g_PerformanceLog.LogMmInfo enLogEnhDebug, "SubscribeToNewPositions Enter", m_frmOwner.GetCaption
-       
-    If aNewReqsAll.Count > 0 Then
-        m_bLastQuoteReqNow = True
-       
-       If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "New Positions Count: " & CStr(aNewReqsAll.Count), m_frmOwner.GetCaption
-        
-        m_nQuoteReqCount = m_nQuoteReqCount + aNewReqsAll.Count
-        
-        lblStatus.Visible = False
-        imgStop.Visible = True
-        imgStopDis.Visible = False
-        pbProgress.Visible = True
-        pbProgress.Min = 0
-        pbProgress.Max = m_nQuoteReqCount
-        pbProgress.Value = m_nQuoteReqDone
-        lblProcess.Caption = "Request Last Quotes for new positions..."
-        lblProcess.Visible = True
-        lblProcess.Refresh
-        
-        For Each aReq In aNewReqsAll
-            If m_bShutDown Or Not m_bLastQuoteReqNow Then Exit For
-            If Not g_PerformanceLog Is Nothing Then _
-              g_PerformanceLog.LogMmInfo enLogEnhDebug, "RequestToNewPositions (Symbol: " & aReq.GetQuoteUpdateParam.Symbol & ", Exchange: " & aReq.GetQuoteUpdateParam.Exchange & ", Type: " & aReq.GetQuoteUpdateParam.Type & ")", m_frmOwner.GetCaption
-            
-            PriceProvider.RequestLastQuote aReq.GetQuoteUpdateParam
-            DoEvents
-        Next
-    End If
-    
-    If Not g_PerformanceLog Is Nothing Then _
-       g_PerformanceLog.LogMmInfo enLogEnhDebug, "RequestToNewPositions Exit", m_frmOwner.GetCaption
-    
-    Exit Sub
-EH:
-    If Not g_PerformanceLog Is Nothing Then _
-       g_PerformanceLog.LogMmInfo enLogFaults, "RequestToNewPositions On Error", m_frmOwner.GetCaption
-    
-    m_bSubscribingNow = False
-    If Not m_bShutDown Then LogEvent EVENT_ERROR, "Risks: Fail to subscribe to quotes for new positions." & Err.Description
-    On Error Resume Next
-    AdjustState
-    AdjustCaption
-    
-    For Each aReq In aNewReqsAll
-        If m_bShutDown Then Exit For
-        aParams(1) = aReq.GetQuoteUpdateParam
-        PriceProvider.UnSubscribeQuote aParams
-    Next
-End Sub
-
-Private Sub DeleteTrade(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
-    On Error GoTo EH
     If m_bShutDown = True Then
         Exit Sub
     End If
+    
     If aTrd Is Nothing Then
         Exit Sub
     End If
+    
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom
     Dim sKey$, nRow&, nUndRow&
     Dim bRatesUpdated As Boolean: bRatesUpdated = False
@@ -6585,70 +3754,6 @@ EH:
     m_bInProc = False
     LogEvent EVENT_ERROR, "Risks: Fail to delete trade. " & Err.Description
     AdjustState
-'    Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom
-'    Dim sKey$, nRow&, nUndRow&
-'    Dim bRatesUpdated As Boolean: bRatesUpdated = False
-'
-'    If Not m_Aux.CheckTradeFilter(aTrd) Then Exit Sub
-'
-'    Set aUnd = m_Aux.Und(aTrd.UndID)
-'    If aUnd Is Nothing Then Exit Sub
-'
-'    Set aPos = aUnd.Pos(aTrd.ContractID)
-'    If aPos Is Nothing Then
-'        Set aUnd = Nothing
-'        Exit Sub
-'    End If
-'
-'    m_bInProc = True
-'    AdjustState
-'
-'    m_AuxClc.RemoveOldTradeFromPosition aUnd, aPos, aTrd
-'
-'    If aPos.ContractType <> enCtOption Then
-'        bRatesUpdated = m_AuxClc.UnderlyingAdjustRates(aUnd, False)
-'    End If
-'
-'    With fgPos
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'
-'        sKey = CStr(aUnd.ID) & "_" & CStr(aUnd.ID)
-'        nUndRow = .FindRow(sKey, 1, RPC_KEY, , True)
-'        sKey = CStr(aUnd.ID) & "_" & CStr(aUnd.ID) & "_" & CStr(aPos.ID)
-'        nRow = .FindRow(sKey, 1, RPC_KEY, , True)
-'
-'        Debug.Assert nUndRow > 0 And nRow > 0
-'
-'        If bRatesUpdated Then
-'            m_AuxClc.UnderlyingCalc aUnd, True, False
-'            'm_AuxClc.UnderlyingsCalc False, False
-'            m_AuxOut.PositionsUpdate nUndRow, False
-'        Else
-'            'm_AuxClc.UnderlyingsCalc False, False
-'            m_AuxOut.PositionUpdate nRow, False
-'        End If
-'
-'        m_AuxOut.UnderlyingUpdate nUndRow, False
-'
-'        If aUnd.HasSynthetic Then m_AuxOut.SyntheticUnderlyingGreeksUpdate aUnd, True
-'        If aPos.IsSynthetic Then m_AuxOut.SyntheticPositionGreeksUpdate aUnd.ID, aPos, True
-'
-'        m_AuxOut.TotalsUpdate
-'
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-'    End With
-'
-'    Set aPos = Nothing
-'    Set aUnd = Nothing
-'
-'    m_bInProc = False
-'    AdjustState
-'
-'    Exit Sub
-'EH:
-'    m_bInProc = False
-'    LogEvent EVENT_ERROR, "Risks: Fail to delete trade. " & Err.Description
-'    AdjustState
 End Sub
     
 Private Sub tmrUndCalc_Timer()
@@ -6658,13 +3763,17 @@ Private Sub tmrUndCalc_Timer()
         
     tmrUndCalc.Enabled = False
 
-    If m_bLastQuoteReqNow Or m_bSubscribingNow Or m_bDataLoad Or m_bTmrUndCalcNow Then
+    If m_bDataLoad Or m_bTmrUndCalcNow Then
+    
             m_bIsNewTrades = False
             tmrUndCalc.Enabled = False
+            
             If Not g_PerformanceLog Is Nothing Then _
                 g_PerformanceLog.LogMmInfo enLogDebug, "UndCalc_Timer Terminate.", m_frmOwner.GetCaption
             Exit Sub
-    ElseIf m_bInProc Or m_bInRealTimeCalc Then
+            
+    ElseIf m_bInProc Then
+    
             m_bIsNewTrades = False
             tmrUndCalc.Enabled = False
             
@@ -6672,44 +3781,58 @@ Private Sub tmrUndCalc_Timer()
                 m_bTradeActionrefreshPositions = False
                 RefreshPositions
             End If
+            
             If Not g_PerformanceLog Is Nothing Then _
                 g_PerformanceLog.LogMmInfo enLogDebug, "UndCalc_Timer Terminate.", m_frmOwner.GetCaption
             Exit Sub
     End If
     
     If m_bIsNewTrades Then
+    
         m_bIsNewTrades = False
         tmrUndCalc.Enabled = True
+        
         If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogDebug, "UndCalc_Timer Exit. Has new trades", m_frmOwner.GetCaption
         Exit Sub
+        
     End If
 
     m_bInProc = True
     m_bTmrUndCalcNow = True
     
     If m_Aux.RealTime Then
+    
         tmrRealTime.Enabled = True
+        
         If m_bTradeActionrefreshPositions Then
             m_bTradeActionrefreshPositions = False
             RefreshPositions
         Else
             fgPos.Refresh
         End If
-    Else
-        m_AuxClc.UnderlyingsCalc True, False
-        If m_bTradeActionrefreshPositions Then
-            m_bTradeActionrefreshPositions = False
-            RefreshPositions
-        Else
-            fgPos.Refresh
-        End If
-        m_AuxOut.TotalsUpdate
+        
+'    Else
+'
+'        m_AuxClc.UnderlyingsCalc True, False
+'
+'        If m_bTradeActionrefreshPositions Then
+'            m_bTradeActionrefreshPositions = False
+'            RefreshPositions
+'        Else
+'            fgPos.Refresh
+'        End If
+'
+'        m_AuxOut.TotalsUpdate
+        
     End If
+    
     m_bInProc = False
     m_bTmrUndCalcNow = False
+    
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "UndCalc_Timer Exit.", m_frmOwner.GetCaption
+        
 End Sub
 
 Private Sub TradeChannel_AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
@@ -6754,6 +3877,7 @@ End Sub
 
 Private Sub TradeChannel_DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
     On Error GoTo Exception
+    
         If (m_bShutDown) Then Exit Sub
         Dim bChange As Boolean
         Dim aUnd As EtsMmRisksLib.MmRvUndAtom
@@ -6808,6 +3932,7 @@ End Sub
 
 Public Sub ManualPriceUpdate(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
 On Error Resume Next
+
 Dim aData As MSGSTRUCTLib.ManualPriceUpdate
     Set aData = New MSGSTRUCTLib.ManualPriceUpdate
     
@@ -7004,7 +4129,7 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     If Not m_bIsInitialized Then Exit Sub
-    Dim aPos As EtsMmRisksLib.MmRvPosAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aPos As EtsMmRisksLib.MmRvPosAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, aTrd As EtsGeneralLib.MmTradeInfoAtom
     
     Set aUnd = m_Aux.Und(aPrcData.UndID)
     If Not aUnd Is Nothing Then
@@ -7029,13 +4154,12 @@ Private Sub TradeChannel_PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
         End If
         
         m_AuxClc.UnderlyingsCalc False, False
-        'm_AuxClc.UnderlyingsCalcWtdVega
         m_AuxOut.UnderlyingsUpdate False
         RefreshPositions
    End If
 End Sub
 
-Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     If Not m_bIsInitialized Then Exit Sub
@@ -7046,13 +4170,11 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
         tmrUndCalc.Enabled = True
     End If
     
-    If m_bLastQuoteReqNow Or m_bDataLoad Then
+    If m_bDataLoad Then
         
         Debug.Assert Not ((TradeQueue.Add(aNewTrdInfo, aOldTrdInfo, enAction)) Is Nothing)
         Exit Sub
     End If
-    
-    'If m_bShutDown Or m_bLastQuoteReqNow Or m_bSubscribingNow Then Exit Sub
     
     Select Case enAction
         Case enTaTradeNew
@@ -7069,26 +4191,15 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
             Debug.Assert Not aOldTrdInfo Is Nothing
             DeleteTrade aOldTrdInfo
     End Select
-    
-'    m_AuxClc.UnderlyingsCalc True, True, False, False
-'    'm_AuxClc.UnderlyingsCalcWtdVega
-'    RefreshPositions
-'    m_AuxOut.TotalsUpdate
+
 End Sub
 
-Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, aTrdTo As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
-     If m_bShutDown Then Exit Sub
-     If Not m_bIsInitialized Then Exit Sub
     
-    If m_bLastQuoteReqNow Then
-        Debug.Assert (TradeQueue.Add(aTrdFrom, Null, enTaTradeNew)) Is Nothing
-        Debug.Assert (TradeQueue.Add(aTrdTo, Null, enTaTradeNew)) Is Nothing
-        Exit Sub
-    End If
+    If m_bShutDown Then Exit Sub
+    If Not m_bIsInitialized Then Exit Sub
     
-    'If m_bShutDown Or m_bLastQuoteReqNow Or m_bSubscribingNow Then Exit Sub
-
     Debug.Assert Not aTrdFrom Is Nothing
     Debug.Assert Not aTrdTo Is Nothing
     
@@ -7099,9 +4210,7 @@ End Sub
 Private Sub UserControl_Hide()
     On Error Resume Next
     m_Aux.RealTime = False
-    m_bSubscribingNow = False
     m_bDataLoad = False
-    m_bLastQuoteReqNow = False
 End Sub
 
 Private Sub UserControl_Resize()
@@ -7126,7 +4235,7 @@ Private Sub UserControl_Resize()
             .ScrollBars = flexScrollBarNone
         End If
         
-        .Height = .RowHeight(0) + (.Rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
+        .Height = .RowHeight(0) + (.rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
         If .ScrollBars = flexScrollBarHorizontal Then
             .Height = .Height + ScaleY(GetSystemMetrics(SM_CYHSCROLL), vbPixels, vbTwips)
         End If
@@ -7147,7 +4256,7 @@ Private Sub UserControl_Resize()
             .ScrollBars = flexScrollBarNone
         End If
         
-        .Height = .RowHeight(0) + (.Rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
+        .Height = .RowHeight(0) + (.rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
         If .ScrollBars = flexScrollBarHorizontal Then
             .Height = .Height + ScaleY(GetSystemMetrics(SM_CYHSCROLL), vbPixels, vbTwips)
         End If
@@ -7169,12 +4278,12 @@ End Sub
 
 Public Sub Term()
     On Error Resume Next
+    
     If gCmn Is Nothing Then Exit Sub
+        
     m_bShutDown = True
-    m_AuxClc.Term
     
     m_bDataLoad = False
-    m_bLastQuoteReqNow = False
     m_bInProc = False
     
     Set frmWtdVega = Nothing
@@ -7185,57 +4294,43 @@ Public Sub Term()
     
     Set gePos = Nothing
     
-    If Not PriceProvider Is Nothing Then
-        lblStatus.Visible = True
-        pbProgress.Visible = False
-        lblProcess.Visible = False
-        imgStop.Visible = False
-        imgStopDis.Visible = False
-        lblStatus.Caption = "Price provider connection closing..."
-        lblStatus.Refresh
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider Connection closing", m_frmOwner.GetCaption
+    lblStatus.Visible = True
+    pbProgress.Visible = False
+    lblProcess.Visible = False
+    imgStop.Visible = False
+    imgStopDis.Visible = False
         
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider Cancel Last Quote", m_frmOwner.GetCaption
-
-        PriceProvider.CancelLastQuote
-        
-        If Not g_PerformanceLog Is Nothing Then _
-            g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider Unsubscribe Quote", m_frmOwner.GetCaption
-        
-        If m_bSubscribingNow Or m_Aux.RealTime Then
-            PriceProvider.UnSubscribeQuote
+    If m_Aux.RealTime Then
+        If g_RvRTQuantity > 0 Then
+            g_RvRTQuantity = g_RvRTQuantity - 1
         End If
-
-        If Not g_PerformanceLog Is Nothing Then _
-              g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider Disconnect", m_frmOwner.GetCaption
-        
-        PriceProvider.Disconnect
-        
-        If Not g_PerformanceLog Is Nothing Then _
-              g_PerformanceLog.LogMmInfo enLogEnhDebug, "Set PriceProvider To Nothing", m_frmOwner.GetCaption
-        
-        Set PriceProvider = Nothing
-        
-        If Not g_PerformanceLog Is Nothing Then _
-               g_PerformanceLog.LogMmInfo enLogEnhDebug, "PriceProvider Connection Closed", m_frmOwner.GetCaption
-    
     End If
-    Set m_BatchPriceProvider = Nothing
+    
+    m_Aux.RealTime = False
     
     ClearViewAndData
     
+    Set fgFlt.Font = Nothing
+    Set fgPos.Font = Nothing
+    Set fgTot.Font = Nothing
+    
     m_Aux.Term
+    m_AuxOut.Term
+    m_AuxClc.Term
     
-    m_Aux.Grp = Nothing
-    m_Aux.Und = Nothing
-    m_Aux.Idx = Nothing
-    
-    m_Aux.RealTime = False
-    m_bSubscribingNow = False
+    Set m_gdFlt = Nothing
+    Set m_gdTot = Nothing
+    Set m_gdPos = Nothing
     
     Set m_RiskView = Nothing
+        
+    Set m_AuxOut = Nothing
+    Set m_Aux = Nothing
+    Set m_AuxClc = Nothing
+    
+    Set VolaSource = Nothing
+    
+    Erase m_AggCols
     
     Set pbProgress = Nothing
     Set lblProcess = Nothing
@@ -7253,12 +4348,13 @@ End Sub
 
 Private Sub UpdateMenu()
     On Error Resume Next
-    mnuCtxRealTime.Enabled = m_Aux.Grp.ID <> 0 And Not m_bInProc _
-                                And Not m_bLastQuoteReqNow And Not m_bSubscribingNow
+    
+    mnuCtxRealTime.Enabled = m_Aux.Grp.ID <> 0 And Not m_bInProc
     mnuCtxRealTime.Checked = m_Aux.RealTime
+    
     mnuCtxRefresh.Enabled = mnuCtxRealTime.Enabled And Not m_Aux.RealTime
     mnuCtxRefreshPrices.Enabled = mnuCtxRefresh.Enabled
-    mnuCtxWtdVega.Enabled = Not m_bInProc And Not frmWtdVega.IsOpened And Not m_bLastQuoteReqNow And Not m_bSubscribingNow
+    mnuCtxWtdVega.Enabled = Not m_bInProc And Not frmWtdVega.IsOpened
     
     fgFlt.ColHidden(RFC_SIM_DATE) = m_Aux.RealTime
 End Sub
@@ -7267,6 +4363,7 @@ Public Property Get TotalShownUndPositions() As Integer
     On Error Resume Next
     TotalShownUndPositions = m_nUndPositions
 End Property
+
 Public Property Get TotalShownOptPositions() As Integer
     On Error Resume Next
     TotalShownOptPositions = m_nOptPositions
@@ -7284,12 +4381,22 @@ End Sub
 
 Public Function GetCaption() As String
     On Error Resume Next
+        
     Dim sCaption$
+    
+    If (m_Aux Is Nothing) Then
+        GetCaption = ""
+        Exit Function
+    End If
     
     sCaption = ""
     If m_Aux.Grp.ID <> 0 Then sCaption = sCaption & m_Aux.Grp.Name & " - "
     If m_Aux.RealTime Then _
         sCaption = sCaption & IIf(m_Aux.RealTimeConnected, "[Real Time] - ", "[Real Time (Disconnected)] - ")
+    
+    If (SimulationUsed And (Not m_Aux.RealTime)) Then
+        sCaption = sCaption & "[Simulation] - "
+    End If
     
     sCaption = sCaption & "Risks"
     
@@ -7309,10 +4416,6 @@ Public Property Get InProc() As Boolean
     InProc = m_bInProc
 End Property
 
-Public Property Get LastQuoteReqNow() As Boolean
-    LastQuoteReqNow = m_bLastQuoteReqNow
-End Property
-
 Public Property Get RealTime() As Boolean
     RealTime = m_Aux.RealTime
 End Property
@@ -7321,14 +4424,7 @@ Public Property Get RealTimeConnected() As Boolean
     RealTimeConnected = m_Aux.RealTime And m_Aux.RealTimeConnected
 End Property
 
-Public Property Get SubscribingNow() As Boolean
-    SubscribingNow = m_bSubscribingNow
-End Property
-
 Public Sub CustomizeFltGridLayout()
-'    On Error Resume Next
-'    If m_bShutDown Or frmLayout Is Nothing Then Exit Sub
-'    frmLayout.Execute GT_RISKS_FILTER, RFC_GROUP, RFC_LAST_COLUMN, m_gdFlt, m_frmOwner
     On Error Resume Next
     If m_bShutDown Or frmLayout Is Nothing Then Exit Sub
     frmLayout.Execute GT_RISKS_FILTER, RFC_SYMBOL, RFC_LAST_COLUMN, m_gdFlt, m_frmOwner
@@ -7337,13 +4433,13 @@ End Sub
 Public Sub CustomizeTotGridLayout()
     On Error Resume Next
     If m_bShutDown Or frmLayout Is Nothing Then Exit Sub
-    frmLayout.Execute GT_RISKS_TOTALS, RTC_PNL_MTM, RTC_LAST_COLUMN, m_gdTot, m_frmOwner
+    frmLayout.Execute GT_RISKS_TOTALS, RTC_PNL_MTM, g_RTC_LAST_COLUMN, m_gdTot, m_frmOwner
 End Sub
 
 Public Sub CustomizePosGridLayout()
     On Error Resume Next
     If m_bShutDown Or frmLayout Is Nothing Then Exit Sub
-    frmLayout.Execute GT_RISKS_POSITIONS, RPC_SYMBOL, RPC_LAST_COLUMN, m_gdPos, m_frmOwner
+    frmLayout.Execute GT_RISKS_POSITIONS, RPC_SYMBOL, g_RPC_LAST_COLUMN, m_gdPos, m_frmOwner
 End Sub
 
 Private Function SavePriceClose(ByVal ContractType As Long, ByVal ContractID As Long, ByVal ClosePrice As Double, ByVal TheoPrice As Double) As Boolean
@@ -7428,6 +4524,8 @@ Public Sub OpenFromFile(aStorage As clsSettingsStorage, ByVal sKey As String, _
     m_gdTot.ReadFromStorage "RiskTotGrid" & sKey, aStorage
     m_gdPos.ReadFromStorage "RiskPosGrid" & sKey, aStorage
     
+    m_Aux.FilterUpdateAll
+    
     tmrShow.Enabled = bRefreshData 'True
     Exit Sub
 EH:
@@ -7437,8 +4535,8 @@ End Sub
 
 Public Sub RefreshView()
     On Error Resume Next
-    If m_bShutDown Or Not m_Aux.RealTime Or m_bSubscribingNow Or m_BatchPriceProvider Is Nothing Then Exit Sub
-    If m_BatchPriceProvider.IsQuotesUpdated Or m_bVolaUpdated Then
+    If m_bShutDown Or Not m_Aux.RealTime Then Exit Sub
+    If m_bVolaUpdated Then
        If Not g_PerformanceLog Is Nothing Then _
             g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshView: Initiate Realtime Refresh", m_frmOwner.GetCaption
             
@@ -7455,56 +4553,9 @@ Private Sub StoreRecentFilters(Optional ByVal bStoreHidden As Boolean = True)
     Dim aRowData As EtsMmRisksLib.MmRvRowData
     
     m_nOpenedExpiry = 0
-    m_OpenedUnd.Clear
-    'm_OpenedStrategy.Clear
+
+    m_nOpenedExpiry = m_Aux.Filter(RFC_EXPIRY)
     
-    
-    'If m_Aux.Filter(RFC_VALUE) <> 0 Then
-        m_nOpenedExpiry = m_Aux.Filter(RFC_EXPIRY)
-        
-        With fgPos
-            nRow = .GetNodeRow(1, flexNTFirstSibling)
-            While nRow > 0
-                If .IsCollapsed(nRow) <> flexOutlineCollapsed And IIf(bStoreHidden, True, Not .RowHidden(nRow)) Then
-                    Set aRowData = m_RiskView.PosRowData(nRow) '.RowData(nRow)
-                    Set aUnd = aRowData.Und
-                    If Not aUnd Is Nothing Then
-                        If m_OpenedUnd(CStr(aUnd.ID)) Is Nothing Then m_OpenedUnd.Add CStr(aUnd.ID)
-                        Set aUnd = Nothing
-                    End If
-                End If
-                
-                nRow = .GetNodeRow(nRow, flexNTNextSibling)
-                Set aRowData = Nothing
-            Wend
-        End With
-    'End If
-'    Dim nRow&, aUnd As EtsMmRisksLib.MmRvUndAtom
-'    Dim aRowData As clsRvRowData
-'
-'    m_nOpenedExpiry = 0
-'    m_OpenedUnd.Clear
-'
-'    If m_Aux.Filter(RFC_VALUE) <> 0 Then
-'        m_nOpenedExpiry = m_Aux.Filter(RFC_EXPIRY)
-'
-'        With fgPos
-'            nRow = .GetNodeRow(1, flexNTFirstSibling)
-'            While nRow > 0
-'                If .IsCollapsed(nRow) <> flexOutlineCollapsed And IIf(bStoreHidden, True, Not .RowHidden(nRow)) Then
-'                    Set aRowData = .RowData(nRow)
-'                    Set aUnd = aRowData.Und
-'                    If Not aUnd Is Nothing Then
-'                        If m_OpenedUnd(CStr(aUnd.ID)) Is Nothing Then m_OpenedUnd.Add CStr(aUnd.ID)
-'                        Set aUnd = Nothing
-'                    End If
-'                End If
-'
-'                nRow = .GetNodeRow(nRow, flexNTNextSibling)
-'                Set aRowData = Nothing
-'            Wend
-'        End With
-'    End If
 End Sub
 
 Public Sub Refresh()
@@ -7513,10 +4564,10 @@ Public Sub Refresh()
     StoreRecentFilters False
     tmrShow.Enabled = True
 End Sub
+
 Public Sub RefreshPrices()
     On Error Resume Next
     If m_bShutDown Or m_Aux.RealTime Then Exit Sub
-    RequestLastQuotes
 End Sub
 
 Public Function Group() As EtsMmRisksLib.MmRvGrpAtom
@@ -7531,25 +4582,52 @@ End Property
 
 Private Sub VolaSource_VolatilityChanged(ByVal Symbol As String)
     On Error Resume Next
-    If Not g_Params.UseTheoVolatility Or m_bShutDown Then Exit Sub
-    Dim aGUnd As EtsGeneralLib.UndAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, nRow&, sKey$
+'    If Not g_Params.UseTheoVolatility Or m_bShutDown Then Exit Sub
+'    Dim aGUnd As EtsGeneralLib.UndAtom, aUnd As EtsMmRisksLib.MmRvUndAtom, nRow&, sKey$
+'
+'    With fgPos
+'        Set aGUnd = g_Underlying.BySortKey(Symbol)
+'        If Not aGUnd Is Nothing Then
+'            Set aUnd = m_Aux.Und(aGUnd.ID)
+'            Set aGUnd = Nothing
+'
+'            If Not aUnd Is Nothing Then
+'                If m_Aux.RealTime Then
+'                    aUnd.VolaUpdated = True
+'                    aUnd.CalcGreeks = True
+'                    aUnd.CalcTotals = True
+'                    m_bVolaUpdated = True
+'                    tmrRealTime.Enabled = True
+'                Else
+'                    CalculateRiskViewUnderlying aUnd
+'                    RefreshPositions
+'                    m_AuxOut.TotalsUpdate
+'                End If
+'                Set aUnd = Nothing
+'            End If
+'        End If
+'    End With
+End Sub
+
+Public Sub CalculateRiskViewUnderlying(ByRef Und As EtsMmRisksLib.MmRvUndAtom)
+On Error GoTo Exception
+    Dim sSymbol As String
     
-    With fgPos
-        Set aGUnd = g_Underlying.BySortKey(Symbol)
-        If Not aGUnd Is Nothing Then
-            Set aUnd = m_Aux.Und(aGUnd.ID)
-            Set aGUnd = Nothing
-            
-            If Not aUnd Is Nothing Then
-                If m_Aux.RealTime Then
-                    aUnd.VolaUpdated = True
-                    m_bVolaUpdated = True
-                    If ProcessRealTime Then tmrRealTime.Enabled = True
-                End If
-                Set aUnd = Nothing
-            End If
-        End If
-    End With
+    If (Not Und Is Nothing) Then
+        sSymbol = Und.Symbol
+        'Check for new trades
+        CheckTradeQueue
+        'Set calculation date to actual
+        m_AuxClc.CalcDate = GetNewYorkTime
+        'Update and recalc greeks by current underlying
+        m_AuxClc.UnderlyingCalc Und, True, True
+        'Update totals
+        m_AuxClc.UnderlyingsCalc False, False, False, True
+    End If
+    
+Exit Sub
+Exception:
+    Debug.Print "Error in CalculateRiskView: " & sSymbol
 End Sub
 
 Public Sub InternalVolatilityChanged(ByVal sSymbol As String)
@@ -7581,6 +4659,7 @@ Public Function CurUnderlyingID() As Long
             End If
         End If
     End If
+    
 End Function
 
 Public Sub ShowNextUnd()
@@ -7649,37 +4728,9 @@ Public Sub ShowAllUnd(ByVal bShow As Boolean)
         m_RiskView.SetAllRowsCollapsed
         fgPos.Outline 0
     End If
-    'With fgPos
-    
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).LockRedraw
-'
-'        m_nCurUnd = 0
-'        If m_Aux.Und.Count > 0 Then
-'            m_bCurUndChanging = True
-'            nRow = .GetNodeRow(1, flexNTFirstSibling)
-'            While nRow > 0
-'                If Not .RowHidden(nRow) Then
-'                    .IsCollapsed(nRow) = IIf(bShow, flexOutlineExpanded, flexOutlineCollapsed)
-'                End If
-'                nRow = .GetNodeRow(nRow, flexNTNextSibling)
-'            Wend
-'            m_bCurUndChanging = False
-'        End If
-'
-'        m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
-    'End With
 End Sub
 
 Public Sub NewUnderlyingAdded(ByVal nNewUndID As Long)
-'    On Error Resume Next
-'    If m_bShutDown Then Exit Sub
-'    Dim aUnd As EtsGeneralLib.UndAtom
-'    If m_Aux.Filter(RFC_GROUP) = TYPE_UNDERLYING Then
-'        Set aUnd = g_Underlying(nNewUndID)
-'        If Not aUnd Is Nothing Then
-'            If aUnd.IsTraderContract Then m_Aux.FilterUpdateValue False
-'        End If
-'    End If
     On Error Resume Next
     If m_bShutDown Then Exit Sub
     Dim aUnd As EtsGeneralLib.UndAtom
@@ -7693,7 +4744,6 @@ End Sub
 
 Public Sub NewUnderlyingGroupAdded(ByVal nNewUndGroupID As Long)
     On Error Resume Next
-    'If Not m_bShutDown And m_Aux.Filter(RFC_GROUP) = TYPE_GROUP Then m_Aux.FilterUpdateValue False
      If Not m_bShutDown Then m_Aux.FilterUpdateValue False, RFC_GROUPS
 End Sub
 
@@ -7721,7 +4771,7 @@ Private Sub HandleGridDblClick(ByVal bTradeNewAvailable As Boolean)
                     mnuCtxOrderNewOption_Click
                     
                 Case IsShiftPressed
-                    mnuCtxTntCardNew_Click
+                    'mnuCtxTntCardNew_Click
                 
                 Case Else
                     mnuCtxOrderNewStock_Click
@@ -7738,7 +4788,6 @@ End Sub
 
 Public Sub MakeDataSnapshot(ByVal sFileName$)
     On Error Resume Next
-'    m_Aux.MakeDataSnapshot sFileName, m_frmOwner
 End Sub
 
 Public Sub CallOtcOptionCalcRV()
@@ -7765,6 +4814,7 @@ Public Sub CallOtcOptionCalcRV()
     Dim dDivAmount As Double
     
     Dim dRate As Double
+    Dim dHTBRate As Double: dHTBRate = BAD_DOUBLE_VALUE
     
     Dim dVola As Double
     
@@ -7838,7 +4888,6 @@ Public Sub CallOtcOptionCalcRV()
                     If Not aUnd.Dividend.CustomDivs Is Nothing Then
                         lCDStockID = aUnd.ID
                         lCDCount = 0
-                        'lCDCount = aUnd.Dividend.CustomDivs.Count !!!
                     End If
                End If
             
@@ -7852,6 +4901,7 @@ Public Sub CallOtcOptionCalcRV()
                 dAsk = aPos.Quote.price.Ask
                 dtExpiryOV = aPos.ExpiryOV
                 dRate = aPos.Rate
+                dHTBRate = aPos.HTBRate
                 dVola = aPos.Quote.Vola
                 Set aPos = Nothing
             Else
@@ -7867,6 +4917,7 @@ Public Sub CallOtcOptionCalcRV()
                             dAsk = aPos.Quote.price.Ask
                             dtExpiryOV = aPos.ExpiryOV
                             dRate = aPos.Rate
+                            dHTBRate = aPos.HTBRate
                             dVola = aPos.Quote.Vola
                             Exit For
                         End If
@@ -7882,12 +4933,6 @@ Public Sub CallOtcOptionCalcRV()
         End If
         
     ElseIf m_enMenuGrid = GT_RISKS_FILTER Then
-'        If m_Aux.Filter(RFC_GROUP) = TYPE_UNDERLYING And m_nMenuGridRow >= 0 And m_nMenuGridCol < m_nMenuGridCols - 1 Then
-'            nUndID = m_Aux.Filter(RFC_VALUE)
-'            nID = nUndID
-'            bBuy = (g_Params.RiskOtherColBuy <> 0)
-'
-'        End If
         If m_Aux.Filter(RFC_SYMBOL) <> 0 And m_nMenuGridRow >= 0 And m_nMenuGridCol < m_nMenuGridCols - 1 Then
             nUndID = m_Aux.Filter(RFC_SYMBOL)
             nID = nUndID
@@ -7924,7 +4969,7 @@ Public Sub CallOtcOptionCalcRV()
     """" & CStr(dtExpiryOV) & """" & " " & _
     CStr(lContractType) & " " & CStr(dYield) & " " & CStr(lDivType) & " " & _
     CStr(dDivAmount) & " " & CStr(dDivDate) & " " & CStr(dDivFreq) & " " & _
-    CStr(lCDStockID) & " " & CStr(lCDCount) & " " & CStr(dRate) & " " & CStr(dVola) & " " & CStr(lCalcModel)
+    CStr(lCDStockID) & " " & CStr(lCDCount) & " " & CStr(dRate) & " " & CStr(dVola) & " " & CStr(lCalcModel) & " " & CStr(dHTBRate)
 
     If ShellExecute(0&, "Open", sPath, sParams, "", SW_SHOWNORMAL) <= 32 Then
          gCmn.MyMsgBox Me, "Fail to open OTC OptionCalc at '" & sPath & "'.", vbCritical
@@ -7939,22 +4984,23 @@ End Sub
 
 Public Function GetStockInfo() As String
     On Error Resume Next
-    Dim sStock As String
-    sStock = m_RiskView.PosRowData(m_nMenuGridRow).Und.Symbol
-    GetStockInfo = IIf(sStock, "Stock symbol = """ & sStock & """. ", "")
+    GetStockInfo = ""
+'    Dim sStock As String
+'    sStock = m_RiskView.PosRowData(m_nMenuGridRow).Und.Symbol
+'    GetStockInfo = IIf(sStock, "Stock symbol = """ & sStock & """. ", "")
 End Function
 
 Public Function GetOptionInfo() As String
     On Error Resume Next
-    Dim sOption As String
-    sOption = m_RiskView.PosRowData(m_nMenuGridRow).Pos.Symbol
-    GetOptionInfo = GetStockInfo & IIf(sOption, "Option symbol = """ & sOption & """. ", "")
+    GetOptionInfo = ""
+'    Dim sOption As String
+'    sOption = m_RiskView.PosRowData(m_nMenuGridRow).Pos.Symbol
+'    GetOptionInfo = GetStockInfo & IIf(sOption, "Option symbol = """ & sOption & """. ", "")
 End Function
 
 Private Sub RecalculateGreeck()
     m_AuxClc.UnderlyingsCalc True, True
     m_AuxOut.UnderlyingsUpdate False
-    'm_AuxClc.UnderlyingsCalcWtdVega
     m_AuxOut.TotalsUpdate
     RefreshPositions
 End Sub
@@ -7968,6 +5014,9 @@ On Error GoTo ErrEx
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim dActive As Double
     
+    Dim code_line As Long
+    
+    code_line = 0
     m_bTradeActionrefreshPositions = False
     If m_bShutDown Then Exit Sub
     
@@ -7980,6 +5029,7 @@ On Error GoTo ErrEx
         Exit Sub
     End If
     
+    code_line = code_line + 1
     m_bIsPosRefresh = True
     
     dToleranceValue# = g_Params.UndPriceToleranceValue
@@ -7989,8 +5039,18 @@ On Error GoTo ErrEx
     fgPos.FlexDataSource = Nothing
     m_RiskView.PosColumnsOrder = m_Aux.gdPos.IdxCopy
     
+    code_line = code_line + 1
+    
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions m_RiskView.PosColumnsOrder complete", m_frmOwner.GetCaption
+    
+    fgPos.Subtotal flexSTNone
+    
+    code_line = code_line + 1
+    
+    fgPos.Clear
+    
+    code_line = code_line + 1
     
     m_Aux.FormatPosGrid
     
@@ -7999,43 +5059,52 @@ On Error GoTo ErrEx
     
     m_Aux.FormatPosColumns
     
+    code_line = code_line + 1
+    
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions m_Aux.FormatPosColumns complete", m_frmOwner.GetCaption
+        
+    code_line = code_line + 1
     
     m_Aux.RiskView.Refresh RPC_SYMBOL, m_Aux.Filter(RFC_EXPIRY), m_AggCols, dToleranceValue, enRoundingRule
+    
+    code_line = code_line + 1
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions m_Aux.RiskView.Refresh complete", m_frmOwner.GetCaption
     
-    fgPos.Subtotal flexSTClear
-    
     fgPos.FlexDataSource = m_Aux.RiskView
+    
+    code_line = code_line + 1
     
     m_nOptPositions = m_RiskView.OptionPositions
     m_nUndPositions = m_RiskView.UndPositions
-        
-    For i = 1 To fgPos.Rows - 1
+    
+    code_line = code_line + 1
+    
+    For i = 1 To fgPos.rows - 1
         Set aRowData = m_RiskView.PosRowData(i)
         fgPos.IsSubtotal(i) = aRowData.IsAggregation
+        
         If aRowData.IsAggregation Or aRowData.Pos Is Nothing Then
             fgPos.Cell(flexcpFontBold, i, 1, i, fgPos.Cols - 1) = True
         Else
             fgPos.Cell(flexcpFontBold, i, 1, i, fgPos.Cols - 1) = False
         End If
-        
+
         dActive = 0
         ' set outlining level and draw bad price marks
         If Not aRowData Is Nothing Then
             fgPos.RowOutlineLevel(i) = aRowData.OutlineLevel
             If Not aRowData.IsAggregation And Not aRowData.Pos Is Nothing Or Not aRowData.SynthGreeks Is Nothing Then
                 nAggRow = fgPos.GetNodeRow(i, flexNTParent)
-                                
-                If fgPos.IsCollapsed(nAggRow) <> flexOutlineCollapsed And Not fgPos.RowHidden(nAggRow) Then
+
+                If fgPos.IsCollapsed(nAggRow) = flexOutlineExpanded And Not fgPos.RowHidden(nAggRow) Then
                     fgPos.RowHidden(i) = False
                 Else
                     fgPos.RowHidden(i) = True
                 End If
-                                
+
                 If Not aRowData.Pos Is Nothing Then
                     If Not aRowData.Pos.Quote Is Nothing Then
                         If aRowData.Pos.Quote.ReplacePriceStatus = enRpsAsk Or aRowData.Pos.Quote.ReplacePriceStatus = enRpsBoth Then
@@ -8046,9 +5115,9 @@ On Error GoTo ErrEx
                             nCol = fgPos.ColIndex(RPC_BID)
                             If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
                         End If
-                        
+
                         If aRowData.Pos.Quote.price.IsUseManualActive Then
-                        
+
                             If (aRowData.Pos.ContractType = enCtFuture) Then
                                 dActive = g_Main.ContractAll(aRowData.Pos.ID).Fut.manualActivePrice
                             ElseIf (aRowData.Pos.ContractType = enCtIndex Or aRowData.Pos.ContractType = enCtStock) Then
@@ -8058,12 +5127,12 @@ On Error GoTo ErrEx
                             Else
                                 dActive = aRowData.Pos.Quote.price.Active
                             End If
-                            
+
                             nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
                             If nCol <> -1 And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
-                            
+
                         End If
-                                               
+
                     End If
                 Else
                     If (Not aRowData.SynthGreeks Is Nothing) Then
@@ -8079,7 +5148,7 @@ On Error GoTo ErrEx
 
             Else ' Is Aggregation
                 nAggRow = fgPos.GetNodeRow(i, flexNTParent)
-                                
+
                 If Not aRowData.Fut Is Nothing Then
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
                         dActive = g_Main.ContractAll(aRowData.Fut.ID).Fut.manualActivePrice
@@ -8091,26 +5160,26 @@ On Error GoTo ErrEx
                         nCol = fgPos.ColIndex(RPC_ACTIVEPRC)
                         If nCol <> -1 And (nAggRow = -1 Or nAggRow = 1) And aRowData.Und.price.IsUseManualActive And dActive > 0 Then fgPos.Cell(flexcpPicture, i, nCol) = imgInSpread.Picture
                 End If
-                                                  
+
                 If nAggRow <> -1 Then
                     fgPos.IsCollapsed(i) = IIf(m_RiskView.IsRowExpanded(i) = True, flexOutlineExpanded, flexOutlineCollapsed)
                     fgPos.RowHidden(i) = (fgPos.IsCollapsed(nAggRow) = flexOutlineCollapsed Or fgPos.RowHidden(nAggRow))
                 Else
-                    fgPos.IsCollapsed(i) = IIf(m_RiskView.IsRowExpanded(i) = True, flexOutlineExpanded, flexOutlineCollapsed)
+                    fgPos.IsCollapsed(i) = IIf(m_RiskView.IsRowExpanded(i), flexOutlineExpanded, flexOutlineCollapsed)
                     fgPos.RowHidden(i) = False
                 End If
-                
+
                 enP = aRowData.GetAggregationPriceReplaceStatus
                 If Not aRowData.OutlineLevel = USD_ID Then
                     If enP = enRpsAsk Or enP = enRpsBoth Then
                         nCol = fgPos.ColIndex(RPC_ASK)
                         If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
-                      
+
                     End If
                     If enP = enRpsBid Or enP = enRpsBoth Then
                         nCol = fgPos.ColIndex(RPC_BID)
                       If nCol <> -1 Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
-                      
+
                     End If
                 Else
                     If Not aRowData.Und Is Nothing Then
@@ -8124,49 +5193,22 @@ On Error GoTo ErrEx
                         End If
                     End If
                 End If
-'                    If Not aRowData.Und Is Nothing Then
-'                        If enP = enRpsAsk Or enP = enRpsBoth Then
-'                            nCol = fgPos.ColIndex(RPC_ASK)
-'                            If nCol <> -1 And Not (aRowData.OutlineLevel = USD_ID And aRowData.Und.ContractType <> enCtFutUnd) Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
-'                        End If
-'                        If enP = enRpsBid Or enP = enRpsBoth Then
-'                            nCol = fgPos.ColIndex(RPC_BID)
-'                            If nCol <> -1 And Not (aRowData.OutlineLevel = USD_ID And aRowData.Und.ContractType <> enCtFutUnd) Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
-'                        End If
-'                    End If
-'                End If
-'                Else
-'                    If aRowData.OutlineLevel = 1 Then
-'                        If Not aRowData.Und Is Nothing Then
-'                            If aRowData.Und.ReplacePriceStatus = enRpsAsk Or aRowData.Und.ReplacePriceStatus = enRpsBoth Then
-'                                nCol = fgPos.ColIndex(RPC_ASK)
-'                                If nCol <> -1 And aRowData.Und.ContractType <> enCtFutUnd Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
-'                            End If
-'                            If aRowData.Und.ReplacePriceStatus = enRpsBid Or aRowData.Und.ReplacePriceStatus = enRpsBoth Then
-'                                nCol = fgPos.ColIndex(RPC_BID)
-'                                If nCol <> -1 And aRowData.Und.ContractType <> enCtFutUnd Then fgPos.Cell(flexcpPicture, i, nCol) = imgBadPrice.Picture
-'                            End If
-'                        End If
-'                    Else
-'
-'                    End If
-'                End If
             End If
-            
-            
+
+
             'Begin Coloring
             If (aRowData.OutlineLevel = 0 And aRowData.IsAggregation) Then
                 Set aUnd = aRowData.Und
-            
+
                 If Not aUnd Is Nothing Then
                     Dim iClr&, nIdxClr&, nColClr&
                     iClr = 0
                     nIdxClr = m_Aux.gdPos.Idx(0)
                     While nIdxClr >= 0 And iClr <= RPC_LAST_COLUMN
                         nColClr = iClr + 1
-            
+
                         With fgPos
-            
+
                         Select Case aUnd.ContractType
                             Case enCtIndex, enCtStock, enCtOption, enCtFuture, enCtFutOption, enCtFutRoot  ' all except enCtFutUnd
                             Select Case nIdxClr
@@ -8186,7 +5228,7 @@ On Error GoTo ErrEx
                                 Case RPC_NET_DELTA_USD
                                     .Cell(flexcpForeColor, i, nColClr) = IIf(aUnd.BadDeltaEq, m_Aux.gdPos.Col(RPC_NET_DELTA_USD).ForeColorAlt1, _
                                                                                         m_Aux.gdPos.Col(RPC_NET_DELTA_USD).ForeColor)
-                                                                                        
+
                                 Case RPC_OPT_DELTA
                                     .Cell(flexcpForeColor, i, nColClr) = IIf(aUnd.BadOptDelta, m_Aux.gdPos.Col(RPC_OPT_DELTA).ForeColorAlt1, _
                                                                                         m_Aux.gdPos.Col(RPC_OPT_DELTA).ForeColor)
@@ -8230,7 +5272,7 @@ On Error GoTo ErrEx
                                     .Cell(flexcpForeColor, i, nColClr) = IIf(aUnd.BadBetaWtdDeltaEq, m_Aux.gdPos.Col(RPC_BETA_WTD_DELTA_USD).ForeColorAlt1, _
                                                                                         m_Aux.gdPos.Col(RPC_BETA_WTD_DELTA_USD).ForeColor)
                             End Select
-                        
+
                             Case enCtFutUnd
                             Select Case nIdxClr
                                 Case RPC_PNL_MTM
@@ -8270,32 +5312,34 @@ On Error GoTo ErrEx
                                     .Cell(flexcpForeColor, i, nColClr) = IIf(aUnd.BadBetaWtdDeltaEq, m_Aux.gdPos.Col(RPC_BETA_WTD_DELTA_USD).ForeColorAlt1, _
                                                                                         m_Aux.gdPos.Col(RPC_BETA_WTD_DELTA_USD).ForeColor)
                             End Select
-                        
+
                         End Select
-                
+
                         End With
-                
+
                         iClr = iClr + 1
                         nIdxClr = m_Aux.gdPos.Idx(iClr)
                     Wend
                 End If
             End If
             'End Coloring
-            
+
         End If
         If m_bShutDown Then Exit Sub
     Next
-    'fgPos.Outline 0
+    
     m_Aux.GridLock(GT_RISKS_POSITIONS).UnlockRedraw
     m_bIsPosRefresh = False
     If Not g_PerformanceLog Is Nothing Then _
-        g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions update complete", m_frmOwner.GetCaption
+        g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions grid formating complete", m_frmOwner.GetCaption
     
-    fgPos.Refresh
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogEnhDebug, "RefreshPositions grid values update complete", m_frmOwner.GetCaption
+        
     SetLastRowSelected
     Exit Sub
 ErrEx:
-    Debug.Print "Error"
+    MsgBox "RefreshPositions failed with exception " & Err.Number & " : " & Err.Description & "Line: " & code_line
 End Sub
 
 
@@ -8326,15 +5370,6 @@ Public Sub ActiveFuturesChange(ByVal iUndID As Long, ByVal iActiveFutID As Long)
                 If aFutReq Is Nothing Then
                     ' Reload index
                     IndexLoad
-                    
-                    If m_Aux.Und.Count > 0 Then
-                        If m_Aux.RealTime Then
-                            SubscribeToIndex
-                        Else
-                            RequestIndexLastQuote
-                        End If
-                    End If
-                    DoEvents
                 Else
                      Set m_RiskView.Idx.ActiveFuture = aFutReq.Fut
                      bFoundIDX = True
@@ -8346,15 +5381,6 @@ Public Sub ActiveFuturesChange(ByVal iUndID As Long, ByVal iActiveFutID As Long)
             Set aFutReq = m_AuxClc.QuoteReqsAll(CStr(enCtFuture) & "_" & g_UnderlyingAll(iUndID).ActiveFuture.Symbol)
             If aFutReq Is Nothing Then
                 IndexLoad
-                
-                If m_Aux.Und.Count > 0 Then
-                    If m_Aux.RealTime Then
-                        SubscribeToIndex
-                    Else
-                        RequestIndexLastQuote
-                    End If
-                End If
-                DoEvents
             Else
                  Set m_RiskView.Idx.ActiveFuture = aFutReq.Fut
                  bFoundIDX = True
@@ -8379,20 +5405,6 @@ Public Sub ActiveFuturesChange(ByVal iUndID As Long, ByVal iActiveFutID As Long)
                 Dim aNewReqsAll As New EtsMmRisksLib.MmRvReqColl
                 bFound = False
                 m_RiskView.AddNewActiveFutures aUnd, aNewReqsAll
-                ' add new futures
-                 If Not aNewReqsAll Is Nothing Then
-                     If aNewReqsAll.Count > 0 Then
-                         If m_Aux.RealTime Then
-                             If Not g_PerformanceLog Is Nothing Then _
-                                    g_PerformanceLog.LogMmInfo enLogEnhDebug, "SubscribeToNewPositions Call", m_frmOwner.GetCaption
-                             SubscribeToNewPositions aNewReqsAll
-                         Else
-                             If Not g_PerformanceLog Is Nothing Then _
-                                    g_PerformanceLog.LogMmInfo enLogEnhDebug, "Set Refresh Hint Call", m_frmOwner.GetCaption
-                             RequestToNewPositions aNewReqsAll
-                         End If
-                     End If
-                 End If
             End If
          End If
     End If
@@ -8673,13 +5685,107 @@ Public Sub ImmediateRefresh()
     m_bFirstTime = False
 End Sub
 
-Public Function ExportToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
-                             ByVal bShowFilter As Boolean, ByVal bShowPositions As Boolean) As Boolean
+Public Function ExportToHTML(ByVal sFileName As String, _
+                             ByVal sFilePath As String, _
+                             ByVal bShowFilter As Boolean, _
+                             ByVal bShowPositions As Boolean) As Boolean
+                             '------------------------------------------'
     On Error Resume Next
     Screen.MousePointer = vbHourglass
-    ExportToHTML = g_ScreenExport.SaveToHTML(sFileName, sFilePath, fgPos, _
-                                            IIf(bShowFilter, fgTot, Nothing), IIf(bShowFilter, fgFlt, Nothing), bShowPositions)
+    ExportToHTML = g_ScreenExport.SaveToHTML(sFileName, _
+                                            sFilePath, _
+                                            fgPos, _
+                                            IIf(bShowFilter, fgTot, Nothing), _
+                                            IIf(bShowFilter, fgFlt, Nothing), _
+                                            bShowPositions)
     Screen.MousePointer = vbNormal
 End Function
 
+Public Function ExportToCSV(ByVal sFileName As String, _
+                            ByVal sFilePath As String, _
+                            ByVal bShowFilter As Boolean, _
+                            ByVal bShowPositions As Boolean) As Boolean
+                            '------------------------------------------'
+On Error Resume Next
 
+
+    Screen.MousePointer = vbHourglass
+    ExportToCSV = g_ScreenExport.SaveToCSV(sFileName, _
+                                            sFilePath, _
+                                            fgPos, _
+                                            IIf(bShowFilter, fgTot, Nothing), _
+                                            IIf(bShowFilter, fgFlt, Nothing), _
+                                            bShowPositions)
+    Screen.MousePointer = vbNormal
+
+End Function
+
+Public Sub ShowSimulationScenario()
+    On Error GoTo error_handler
+    '-------------------------'
+        
+        Set simulation_scenario = frmMarketSimulationScenario.Execute(simulation_scenario)
+            
+    Exit Sub
+'-------------'
+error_handler:
+    Debug.Print "Error while Show Simulation Scenario. Description: " & _
+                Err.Description
+End Sub
+
+
+Public Sub UseSimulation(ByVal use_simulation As Boolean)
+    On Error Resume Next
+    '-------------------'
+    
+    If (Not m_Aux Is Nothing) Then
+        If (Not m_Aux.RiskView Is Nothing) Then
+            
+            If (simulation_scenario Is Nothing) Then
+                ShowSimulationScenario
+            End If
+            
+            Set m_Aux.RiskView.SimulationScenario = IIf(use_simulation, simulation_scenario, Nothing)
+            
+            AdjustCaption
+            
+        End If
+    End If
+    
+End Sub
+
+Private Function SimulationUsed() As Boolean
+    On Error Resume Next
+    '-------------------'
+
+    If (Not m_Aux Is Nothing) Then
+        If (Not m_Aux.RiskView Is Nothing) Then
+            SimulationUsed = IIf(m_Aux.RiskView.SimulationScenario Is Nothing, False, True)
+            Exit Function
+        End If
+    End If
+    
+    SimulationUsed = False
+End Function
+
+Private Sub UpdateRecalculationTimeStemp()
+    On Error Resume Next
+    '-------------------'
+    
+    If (Not m_Aux Is Nothing) Then
+        recalculation_time_stemp = Time
+    End If
+    
+End Sub
+
+Public Function getRecalculationTimeStemp() As Date
+    On Error Resume Next
+    '-------------------'
+    If (Not m_Aux Is Nothing) Then
+        getRecalculationTimeStemp = recalculation_time_stemp
+        Exit Function
+    End If
+   
+    getRecalculationTimeStemp = 0
+    
+End Function

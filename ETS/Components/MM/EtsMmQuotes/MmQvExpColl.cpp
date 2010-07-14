@@ -13,6 +13,16 @@ IMmQvExpAtomPtr CMmQvExpColl::GetItem(DATE Key)
 	return spReturn;
 }
 
+IMmQvExpAtomPtr CMmQvExpColl::GetExpiry(DATE dtExpiration)
+{
+	IMmQvExpAtomPtr spReturn;
+	CollType::iterator itFind = m_coll.find(dtExpiration);
+	if(itFind != m_coll.end())
+		spReturn = itFind->second;
+
+	return spReturn;
+}
+
 IMmQvExpAtomPtr CMmQvExpColl::AddNew(DATE Key, CComObject<CMmQvExpAtom>** pAtom)
 {
 	IMmQvExpAtomPtr spRet;
@@ -69,13 +79,4 @@ STDMETHODIMP CMmQvExpColl::Add(DATE Key, IMmQvExpAtom* Value, IMmQvExpAtom** pRe
 
 
 
-IMmQvExpAtomPtr CMmQvExpColl::GetExpiry(DATE dtExpiration)
-{
-	IMmQvExpAtomPtr spReturn;
-	CollType::iterator itFind = m_coll.find(dtExpiration);
-	if(itFind != m_coll.end())
-		spReturn = itFind->second;
-
-	return spReturn;
-}
 

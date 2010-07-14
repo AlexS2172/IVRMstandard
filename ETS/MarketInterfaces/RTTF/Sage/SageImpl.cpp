@@ -19,13 +19,23 @@ DWORD CSage::Start()
 	USES_CONVERSION;
 	
 	//CEgRegKey key;	
-	TCHAR pModName [1024] = { 0 };	
+	TCHAR pModName [1024] = { 0 };
 	
     //detecting the module version
 	::GetModuleFileName( NULL, pModName, sizeof(pModName) );
 	
 	CModuleVersion ver;
-	ver.GetModuleVersionInfo(pModName);		
+	ver.GetModuleVersionInfo(pModName);
+
+	std::string sMsg("Fail to Setup user groups.");
+	UserGroups clParams;
+	m_nGroupsCount = GetCommandLineParams(clParams);
+	if (m_SageConnector.SetGroups(clParams) == E_FAIL)
+	{
+		CTracer::TraceError(E_FAIL, sMsg.c_str());
+		return E_FAIL;
+	}
+
 	
 	TCHAR pVer[100] = { 0 };
 	ver.GetValue(_T("ProductVersion"), pVer);
@@ -84,16 +94,20 @@ DWORD CSage::Stop()
     }
 
 	CTracer::Trace(_T("Server stopped."));
-		
-	CTracer::Trace(_T("************************************"));
-    CTracer::Trace(_T("Results of the last session:"));	
 	
-	CTracer::Trace(_T("Received:      \t%lu"), m_SageConnector.m_Publisher.m_dwReceived);
-	CTracer::Trace(_T("DB stored:     \t%lu"), m_SageConnector.m_Publisher.m_dwDBStored);
-	CTracer::Trace(_T("DB deleted:    \t%lu"), m_SageConnector.m_Publisher.m_dwDBDeleted);
-	CTracer::Trace(_T("Published:     \t%lu"), m_SageConnector.m_Publisher.m_dwPublished);
-	CTracer::Trace(_T("Not published: \t%lu"), m_SageConnector.m_Publisher.m_dwReceived - 
-		m_SageConnector.m_Publisher.m_dwPublished );
+	for (int i = 0; i < m_nGroupsCount; i++)
+	{
+		CTracer::Trace(_T("************************************"));
+		CTracer::Trace(_T("Results of the last session:"));	
+		CTracer::Trace(_T("UserGroup:\t%s"), (LPCTSTR)m_SageConnector.m_Publisher[i].m_bsUserGroup);
+		CTracer::Trace(_T("DB:	\t%s"), (LPCTSTR)m_SageConnector.m_Publisher[i].m_bsConnStringLabel);
+		CTracer::Trace(_T("Received:      \t%lu"), m_SageConnector.m_Publisher[i].m_dwReceived);
+		CTracer::Trace(_T("DB stored:     \t%lu"), m_SageConnector.m_Publisher[i].m_dwDBStored);
+		CTracer::Trace(_T("DB deleted:    \t%lu"), m_SageConnector.m_Publisher[i].m_dwDBDeleted);
+		CTracer::Trace(_T("Published:     \t%lu"), m_SageConnector.m_Publisher[i].m_dwPublished);
+		CTracer::Trace(_T("Not published: \t%lu"), m_SageConnector.m_Publisher[i].m_dwReceived - 
+													m_SageConnector.m_Publisher[i].m_dwPublished );
+	}
 
 	return dwRes;
 }

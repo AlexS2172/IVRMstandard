@@ -40,6 +40,7 @@ IDR_ACTIVEFUTURESCHANGE REGISTRY                "ActiveFuturesChange.rgs"
 IDR_FLEXOPTION          REGISTRY                "FlexOption.rgs"
 IDR_UNDERLYINGUPDATE    REGISTRY                "UnderlyingUpdate.rgs"
 IDR_MANUALPRICEUPDATE   REGISTRY                "ManualPriceUpdate.rgs"
+IDR_SETTINGSUPDATE      REGISTRY                "SettingsUpdate.rgs"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

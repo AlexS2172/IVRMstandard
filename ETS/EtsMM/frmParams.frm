@@ -1649,7 +1649,7 @@ Begin VB.Form frmParams
             Height          =   1035
             Left            =   4110
             TabIndex        =   93
-            Top             =   2040
+            Top             =   2160
             Width           =   3885
             Begin MSForms.OptionButton optCalcModelOptimized 
                Height          =   375
@@ -1657,13 +1657,14 @@ Begin VB.Form frmParams
                TabIndex        =   12
                Top             =   240
                Width           =   1125
-               VariousPropertyBits=   746588179
+               VariousPropertyBits=   746588177
                ForeColor       =   -2147483630
                DisplayStyle    =   5
                Size            =   "1984;661"
                Value           =   "0"
                Caption         =   "Optimized"
                GroupName       =   "Calc5"
+               FontEffects     =   1073750016
                FontHeight      =   165
                FontCharSet     =   204
                FontPitchAndFamily=   2
@@ -1674,13 +1675,14 @@ Begin VB.Form frmParams
                TabIndex        =   11
                Top             =   240
                Width           =   1035
-               VariousPropertyBits=   746588179
+               VariousPropertyBits=   746588177
                ForeColor       =   -2147483630
                DisplayStyle    =   5
                Size            =   "1826;661"
                Value           =   "1"
                Caption         =   "Standard"
                GroupName       =   "Calc5"
+               FontEffects     =   1073750016
                FontHeight      =   165
                FontCharSet     =   204
                FontPitchAndFamily=   2
@@ -1691,13 +1693,14 @@ Begin VB.Form frmParams
                TabIndex        =   13
                Top             =   600
                Width           =   1035
-               VariousPropertyBits=   746588179
+               VariousPropertyBits=   746588177
                ForeColor       =   -2147483630
                DisplayStyle    =   5
                Size            =   "1826;661"
                Value           =   "0"
                Caption         =   "VSK Log"
                GroupName       =   "Calc5"
+               FontEffects     =   1073750016
                FontHeight      =   165
                FontCharSet     =   204
                FontPitchAndFamily=   2
@@ -1705,7 +1708,7 @@ Begin VB.Form frmParams
          End
          Begin VB.Frame fraCalcVola 
             Caption         =   " Volatility "
-            Height          =   1815
+            Height          =   1935
             Left            =   4110
             TabIndex        =   88
             Top             =   120
@@ -1752,14 +1755,13 @@ Begin VB.Form frmParams
                TabIndex        =   8
                Top             =   600
                Width           =   2505
-               VariousPropertyBits=   746588177
+               VariousPropertyBits=   746588179
                ForeColor       =   -2147483630
                DisplayStyle    =   5
                Size            =   "4419;661"
                Value           =   "0"
                Caption         =   "Use Market Volatility"
                GroupName       =   "Calc4"
-               FontEffects     =   1073750016
                FontHeight      =   165
                FontCharSet     =   204
                FontPitchAndFamily=   2
@@ -1770,14 +1772,13 @@ Begin VB.Form frmParams
                TabIndex        =   7
                Top             =   240
                Width           =   2325
-               VariousPropertyBits=   746588177
+               VariousPropertyBits=   746588179
                ForeColor       =   -2147483630
                DisplayStyle    =   5
                Size            =   "4101;661"
                Value           =   "1"
                Caption         =   "Use Theo Surface"
                GroupName       =   "Calc4"
-               FontEffects     =   1073750016
                FontHeight      =   165
                FontCharSet     =   204
                FontPitchAndFamily=   2
@@ -1833,6 +1834,22 @@ Begin VB.Form frmParams
                FontPitchAndFamily=   2
             End
          End
+         Begin MSForms.CheckBox chkCalcUseTimePrecision 
+            Height          =   255
+            Left            =   4110
+            TabIndex        =   159
+            Top             =   3360
+            Width           =   3855
+            BackColor       =   -2147483633
+            ForeColor       =   -2147483630
+            DisplayStyle    =   4
+            Size            =   "6800;450"
+            Value           =   "1"
+            Caption         =   "Use Time Precision"
+            FontHeight      =   165
+            FontCharSet     =   204
+            FontPitchAndFamily=   2
+         End
       End
    End
    Begin VB.CommandButton btnOK 
@@ -1864,6 +1881,8 @@ Option Explicit
 Private m_CalcSleepFreq As Long
 Private m_CalcSleepAmt As Long
 Private m_bDirty As Boolean
+Private m_bToleranceDirty As Boolean
+Private m_bRoundingRuleDirty As Boolean
 Private m_bPriceProfileDirty As Boolean
 
 Private m_frmOwner As Form
@@ -1930,6 +1949,11 @@ Private Sub cboAdvCalcDefExchOpt_Click()
 End Sub
 
 Private Sub cboAdvCalcDefExchUnd_Click()
+    On Error Resume Next
+    m_bDirty = True
+End Sub
+
+Private Sub chkCalcUseTimePrecision_Click()
     On Error Resume Next
     m_bDirty = True
 End Sub
@@ -2060,6 +2084,7 @@ Private Sub LoadData()
     chkCalcUseTheoNoBid.Enabled = optCalcUseMarketVola.Value
     chkCalcUseTheoBadMarketVola.Value = IIf(g_Params.UseTheoBadMarketVola, 1, 0)
     chkCalcUseTheoBadMarketVola.Enabled = optCalcUseMarketVola.Value
+    chkCalcUseTimePrecision.Value = IIf(g_Params.UseTTE, 1, 0)
     
     LogParameter "CalcUseTheoVola", optCalcUseTheoVola.Value, True
     LogParameter "CalcUseMarketVola", optCalcUseMarketVola.Value, True
@@ -2298,7 +2323,6 @@ Private Sub LoadData()
     LogParameter "CheckExpiredOptions", IIf(chkCheckForExp.Value <> 0, "Yes", "No"), True
     LogParameter "EADaysToExpiry", txtExpDays.Text, True
 
-'    chkCrdUseTnt.Value = IIf(g_TntProcessor.UseTntMessaging, 1, 0)
     vsTabs.TabVisible(5) = False
     
     LoadPriceProfiles
@@ -2316,6 +2340,8 @@ Private Sub SaveData()
     g_Params.UseTheoBadMarketVola = (chkCalcUseTheoBadMarketVola.Value <> 0)
     g_Params.NetExposureAUM = CDbl(entAUM.Text)
     g_Params.ShowMessageUnableToEdit = IIf(chkRTEditMsg.Value = vbChecked, True, False)
+    g_Params.UseTTE = IIf(chkCalcUseTimePrecision.Value = True, True, False)
+    g_Main.CalculationParametrs.UseTimePrecision = g_Params.UseTTE
     
     If (Not g_Main Is Nothing) Then
         g_Main.UseTheoCloseForPNL = IIf(chkUseTheoCloseForPNL.Value = vbChecked, True, False)
@@ -2509,9 +2535,9 @@ Private Sub SaveData()
     
     LogParameter "CheckExpiredOptions", IIf(g_Params.SOQ_CheckExpiredOptions <> 0, "Yes", "No"), False
     LogParameter "EADaysToExpiry", CStr(g_Params.SOQ_EADaysToDivDays), False
-
     
-'    g_TntProcessor.UseTntMessaging = (chkCrdUseTnt.Value <> 0)
+    frmMain.UpdateSettings
+    
 End Sub
 
 Private Sub CopyPriceProfile(ByRef aSrc As EtsGeneralLib.EtsPriceProfileAtom, _
@@ -2605,7 +2631,10 @@ Private Sub SavePriceProfiles()
         End If
     Next
     
-    If bFireChange Then g_Params.FirePriceProfilesChange
+    If (bFireChange) Then
+        g_Params.FirePriceProfilesChange
+    End If
+    
 End Sub
 
 Private Function SavePriceProfileToDB(ByRef aPrProf As EtsGeneralLib.EtsPriceProfileAtom) As Boolean
@@ -2802,6 +2831,17 @@ Private Sub btnOk_Click()
     Screen.MousePointer = vbHourglass
     If m_bDirty Then SaveData
     If m_bPriceProfileDirty Then SavePriceProfiles
+    
+    If (m_bDirty) Then
+        Dim aXMLLoader As ETSXMLParamsLib.XMLLoader
+        Set aXMLLoader = New ETSXMLParamsLib.XMLLoader
+        If (Not aXMLLoader Is Nothing) Then
+            g_Params.SaveSettings
+            aXMLLoader.Save CurrentUserXMLFilePath$, g_aUserXMLParams
+        End If
+    End If
+    
+    PubChanges
     
     Screen.MousePointer = vbDefault
     
@@ -3450,23 +3490,27 @@ Private Sub txtCalcUndTolerance_Change()
     If dValue >= 0# And dValue <= 100# And m_dUndPriceToleranceValue <> dValue Then
         m_dUndPriceToleranceValue = dValue
         m_bDirty = True
-    txtCalcUndTolerance.Text = CStr(m_dUndPriceToleranceValue)
+        m_bToleranceDirty = True
+        txtCalcUndTolerance.Text = CStr(m_dUndPriceToleranceValue)
     End If
 End Sub
 
 Private Sub optCalcPriceRoundNone_Click()
     On Error Resume Next
     m_bDirty = True
+    m_bRoundingRuleDirty = True
 End Sub
 
 Private Sub optCalcPriceRoundUp_Click()
     On Error Resume Next
     m_bDirty = True
+    m_bRoundingRuleDirty = True
 End Sub
 
 Private Sub optCalcPriceRoundDown_Click()
     On Error Resume Next
     m_bDirty = True
+    m_bRoundingRuleDirty = True
 End Sub
 
 Private Sub LogParameter(sName As String, sValue As String, bLoad As Boolean)
@@ -3476,4 +3520,35 @@ Private Sub LogParameter(sName As String, sValue As String, bLoad As Boolean)
                                                     & """" & sName & """ = """ & sValue & """", m_frmOwner.Caption
 End Sub
 
+Private Sub PubChanges()
+On Error GoTo Exception
 
+    Dim aData As MSGSTRUCTLib.UnderlyingUpdate
+    Set aData = New MSGSTRUCTLib.UnderlyingUpdate
+    
+    aData.UpdStatus = enUndNoChanges
+    
+    If (m_bDirty) Then
+        aData.UpdStatus = aData.UpdStatus Or enGlobalParamsUpdate
+    End If
+    
+    If (m_bRoundingRuleDirty) Then
+        aData.UpdStatus = aData.UpdStatus Or enPriceRoundRuleUpdate
+    End If
+    
+    If (m_bToleranceDirty) Then
+        aData.UpdStatus = aData.UpdStatus Or enToleranceRangeUpdate
+    End If
+    
+    If (m_bPriceProfileDirty) Then
+        aData.UpdStatus = aData.UpdStatus Or enPriceProfileUpdate
+    End If
+    
+    If (aData.UpdStatus <> enUndNoChanges) Then
+        g_TradeChannel.PubUnderlyingUpdate aData
+    End If
+    
+Exit Sub
+Exception:
+    gCmn.ErrorMsgBox m_frmOwner, "Unable To Pub Changes. Please, restart application."
+End Sub

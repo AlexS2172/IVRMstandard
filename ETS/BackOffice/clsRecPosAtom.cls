@@ -48,4 +48,5 @@ Public bFix As Boolean
 Public bFixPrice As Boolean
 
 Public ImportSymbol As String
+Public RootSymbol As String
 

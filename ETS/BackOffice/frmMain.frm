@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "Comdlg32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
 Begin VB.MDIForm frmMain 
    Appearance      =   0  'Flat
@@ -127,12 +127,12 @@ Begin VB.MDIForm frmMain
          BeginProperty Panel2 {8E3867AB-8586-11D1-B16A-00C0F0283628} 
             Style           =   6
             Alignment       =   1
-            TextSave        =   "11/16/2006"
+            TextSave        =   "2/12/2009"
          EndProperty
          BeginProperty Panel3 {8E3867AB-8586-11D1-B16A-00C0F0283628} 
             Style           =   5
             Alignment       =   1
-            TextSave        =   "9:10 PM"
+            TextSave        =   "6:03 PM"
          EndProperty
       EndProperty
    End
@@ -226,7 +226,10 @@ Begin VB.MDIForm frmMain
          Caption         =   "-"
       End
       Begin VB.Menu mnuEtsMM 
-         Caption         =   "IV Riks Manager ..."
+         Caption         =   "IV Risk Manager ..."
+      End
+      Begin VB.Menu mnuEtsMMCv 
+         Caption         =   "Custom Variables Extention ..."
       End
       Begin VB.Menu mnuVolaManager 
          Caption         =   "Volatility Manager ..."
@@ -375,7 +378,11 @@ Private Sub MDIForm_Load()
     DeleteOldOrders
     DeleteOldCards
     g_Params.SetIcon WND_MAIN, Me.hWnd, True
-    mnuEtsMM.Caption = g_Params.AppIVRmTitle
+    mnuEtsMM.Caption = g_Params.AppIvRmTitle
+    
+    mnuEtsMMCv.Enabled = g_Params.IsCVEnabled
+    mnuEtsMMCv.Visible = g_Params.IsCVEnabled
+    
     Set picTopBanner.Picture = g_Params.TopBanner()
     Exit Sub
 Herr:
@@ -421,6 +428,11 @@ End Sub
 Private Sub mnuEtsMM_Click()
     On Error Resume Next
     RunEtsMM
+End Sub
+
+Private Sub mnuEtsMMCv_Click()
+    On Error Resume Next
+    RunEtsMMCv
 End Sub
 
 Private Sub mnuFileExit_Click()
@@ -588,7 +600,16 @@ Public Sub RunEtsMM()
     Dim sPath$
     sPath = App.Path & "\EtsMm.exe"
     If Shell(sPath, vbNormalFocus) = 0 Then
-        gCmn.MyMsgBox "Fail to run " & AppIVRmTitle() & " application. ('" & sPath & "')", vbCritical
+        gCmn.MyMsgBox "Fail to run " & AppIvRmTitle() & " application. ('" & sPath & "')", vbCritical
+    End If
+End Sub
+
+Public Sub RunEtsMMCv()
+    On Error Resume Next
+    Dim sPath$
+    sPath = App.Path & "\EtsMmCv.exe"
+    If Shell(sPath, vbNormalFocus) = 0 Then
+        gCmn.MyMsgBox "Fail to run " & AppIvRmTitle() & " application. ('" & sPath & "')", vbCritical
     End If
 End Sub
 

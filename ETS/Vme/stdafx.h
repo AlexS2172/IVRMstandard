@@ -59,6 +59,29 @@ extern CExeModule _Module;
 #include "..\..\EgarCommonLibrary\Include\EgLib\EgLibComError.h"
 using namespace EgLib;
 
+inline void EgarExceptionReporting(_bstr_t bsDescription)
+{
+	ShellExecuteW(
+		0, 
+		L"open", 
+		L"EgSendMail.exe", 
+		_bstr_t("-DS=\"") + bsDescription + _bstr_t("\n[Module: VME.exe] \""),
+		NULL, 0);
+};
+
+#define REPORT_ERR_TO_MAIL(__Err)						\
+	_bstr_t bsException = _bstr_t(__Err.Description()) + \
+	_bstr_t("\nFile: ") + _bstr_t(__FILE__) +			\
+	_bstr_t("\nFuncdname: ") + _bstr_t(__FUNCDNAME__) + \
+	_bstr_t("\nLine: ") + _bstr_t(__LINE__);			\
+	EgarExceptionReporting(bsException);
+
+#define REPORT_UNHANDLED_EXCEPTION						\
+	_bstr_t bsException = _bstr_t("\nFile: ") + _bstr_t(__FILE__) +			\
+	_bstr_t("\nFuncdname: ") + _bstr_t(__FUNCDNAME__) + \
+	_bstr_t("\nLine: ") + _bstr_t(__LINE__);			\
+	EgarExceptionReporting(bsException);
+
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 

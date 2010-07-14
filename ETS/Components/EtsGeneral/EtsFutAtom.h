@@ -4,76 +4,21 @@
 #pragma once
 
 #include "resource.h"       // main symbols
-#include "EtsGeneral.h"
-#include "EtsPriceProfileAtom.h"
-
-_COM_SMARTPTR_TYPEDEF(IEtsFutAtom, IID_IEtsFutAtom);
-
-struct __EtsFutAtom
-{
-	LONG					m_nID;
-	CComBSTR				m_bstrSymbol;
-	CComBSTR				m_bstrContractName;
-	LONG					m_nFutRootID;
-	IEtsPriceProfileAtomPtr	m_spUndPriceProfile;
-	IEtsPriceProfileAtomPtr	m_spOptPriceProfile;
-	DATE					m_dtMaturityDate;
-	VARIANT_BOOL			m_bIsAmerican;
-	VARIANT_BOOL			m_bIsActive;
-	DOUBLE					m_dPriceClose;
-	DOUBLE					m_dPriceTheoClose;
-	VARIANT_BOOL			m_bHaveOptions;
-
-	VARIANT_BOOL			m_bShowInFutureContractEq;
-	DOUBLE					m_dTickSize;
-	DOUBLE					m_dTickValue;
-	DOUBLE					m_dPriceQuotationUnit;
-	DOUBLE					m_dQuoteFormat;
-	double					m_dK;
-	double					m_dKEq;
-    VARIANT_BOOL            m_bMultOptDltEq;
-	DOUBLE					m_dBasis;
-	VARIANT_BOOL			m_bUseInCalc;
-	DOUBLE					m_dActiveFutureRatio;
-	DOUBLE					m_dManualActivePrice;
-
-	__EtsFutAtom()
-		: m_nID(0L)
-		, m_nFutRootID(0L)
-		, m_dtMaturityDate(0.)
-		, m_dPriceClose(0.)
-		, m_bHaveOptions(VARIANT_FALSE)
-		, m_bIsAmerican(VARIANT_FALSE)
-		, m_bIsActive(VARIANT_FALSE)
-		, m_bShowInFutureContractEq(VARIANT_FALSE)
-	    , m_dTickSize(BAD_DOUBLE_VALUE)
-		, m_dTickValue(BAD_DOUBLE_VALUE)
-		, m_dPriceQuotationUnit(BAD_DOUBLE_VALUE)
-		, m_dQuoteFormat(BAD_DOUBLE_VALUE)
-		, m_dBasis(0)
-		, m_bUseInCalc( VARIANT_FALSE )
-		,m_dActiveFutureRatio(BAD_DOUBLE_VALUE)
-		,m_dK(1.)
-		,m_dKEq(1.)
-		,m_bMultOptDltEq(VARIANT_FALSE)
-		,m_dManualActivePrice(0)
-		,m_dPriceTheoClose(BAD_DOUBLE_VALUE)
-	{
-	}
-};
+#include "FutureContract.h"
+#include "ContractColl.h"
 
 // CEtsFutAtom
-
 class ATL_NO_VTABLE CEtsFutAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsFutAtom, &CLSID_EtsFutAtom>,
 	public ISupportErrorInfoImpl<&IID_IEtsFutAtom>,
 	public IDispatchImpl<IEtsFutAtom, &IID_IEtsFutAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
-	public __EtsFutAtom
+	public CFutureContract
 {
 public:
 	CEtsFutAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSFUTATOM)
@@ -81,36 +26,76 @@ DECLARE_REGISTRY_RESOURCEID(IDR_ETSFUTATOM)
 
 BEGIN_COM_MAP(CEtsFutAtom)
 	COM_INTERFACE_ENTRY(IEtsFutAtom)
+	COM_INTERFACE_ENTRY(IContract)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		try
+		{
+			CComObject<CContractColl>* pContractColl; 
+			_CHK(CComObject<CContractColl>::CreateInstance(&pContractColl),  _T("Fail to create ContractColl object."));
+			m_spDerivativeContracts.Attach(pContractColl, TRUE);
+		}
+		catch(const _com_error& e)
+		{
+			return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsFutAtom, e.Error());
+		}
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
-		m_spUndPriceProfile = NULL;
-		m_spOptPriceProfile = NULL;
+		CFutureContract::Clear();
+		m_pUnkMarshaler.Release();
 	}
 
+	CComPtr<IUnknown> m_pUnkMarshaler;
 public:
+	//IContract
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, ID, m_nID)
 	IMPLEMENT_BSTR_PROPERTY(Symbol, m_bstrSymbol)
 	IMPLEMENT_BSTR_PROPERTY(ContractName, m_bstrContractName)
+	IMPLEMENT_BSTR_PROPERTY(ImportID, m_bstrImportID)
+	IMPLEMENT_SIMPLE_PROPERTY(EtsContractTypeEnum, ContractType, m_enType)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualPrice, m_dManualPrice)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ClosePrice, m_dClosePrice)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, TheoClosePrice, m_dTheoClosePrice)
+	
+	STDMETHOD(Calculate)(/*[in]*/	ICalculationSettings* Settings,
+						/*[in]*/	IMarketSimulationScenario* SimulationScenario,
+						/*[out, retval]*/ struct IRisks* RetVal);
+
+	STDMETHOD(GetRisks)(/*[out, retval]*/ struct IRisks* RetVal);
+	STDMETHOD(GetQuotes)(/*[out, retval]*/ struct QuoteUpdateInfo* RetVal);
+	STDMETHOD(FitToMarketVolatility)(DOUBLE Value);
+	
+	STDMETHOD(putref_Asset)(IAsset* NewVal);
+	STDMETHOD(get_Asset)(IAsset** pVal);
+
+	STDMETHOD(putref_BaseContract)(IContract* NewVal);
+	STDMETHOD(get_BaseContract)(IContract** pVal);
+
+	IMPLEMENT_OBJECT_PROPERTY(IContractColl*,	DerivativeContracts,	m_spDerivativeContracts)
+
+	STDMETHOD(GetPricingUnit)(/*out*/DOUBLE* Value);
+	STDMETHOD(GetContractSizeInAsset)(/*out*/DOUBLE* Value);
+
+	//IEtsFutAtom
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, FutRootID, m_nFutRootID)
 	IMPLEMENT_OBJECT_PROPERTY(IEtsPriceProfileAtom*, UndPriceProfile, m_spUndPriceProfile)
 	IMPLEMENT_OBJECT_PROPERTY(IEtsPriceProfileAtom*, OptPriceProfile, m_spOptPriceProfile)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, MaturityDate, m_dtMaturityDate)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsAmerican, m_bIsAmerican)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, IsActive, m_bIsActive)
-	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceClose, m_dPriceClose)
-	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceTheoClose, m_dPriceTheoClose)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, HaveOptions, m_bHaveOptions)
 
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL,	ShowInFutureContractEq, m_bShowInFutureContractEq)
@@ -124,7 +109,11 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, K, m_dK)
     IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, KEq, m_dKEq)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, MultOptDltEq, m_bMultOptDltEq)
-	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualActivePrice, m_dManualActivePrice)
+
+	//IvRm compatibility  [to remove]
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, ManualActivePrice, m_dManualPrice)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceClose, m_dClosePrice)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceTheoClose, m_dTheoClosePrice)
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(EtsFutAtom), CEtsFutAtom)

@@ -5,10 +5,6 @@
 	Name="EtsMmStockHedge"
 	ProjectGUID="{F435C244-FFB0-437A-A6A8-A28DC15EB1BB}"
 	RootNamespace="EtsMmStockHedge"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>

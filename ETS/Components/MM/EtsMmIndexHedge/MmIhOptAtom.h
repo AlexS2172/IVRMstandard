@@ -19,6 +19,7 @@ struct __MmIhOptAtom
 	DOUBLE						m_dVola;
 	DOUBLE						m_dRate;
 	LONG						m_nQty;
+	DOUBLE						m_dHTBRate;
 
 	DOUBLE						m_dPriceBid;
 	DOUBLE						m_dPriceAsk;
@@ -30,7 +31,7 @@ struct __MmIhOptAtom
 		: m_nID(0L), m_dtExpiry(0.), m_enOptType(enOtPut), m_dStrike(BAD_DOUBLE_VALUE),
 		m_dVola(BAD_DOUBLE_VALUE), m_dRate(BAD_DOUBLE_VALUE), m_nQty(BAD_LONG_VALUE),
 		m_dPriceBid(BAD_DOUBLE_VALUE), m_dPriceAsk(BAD_DOUBLE_VALUE),
-		m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE), m_dtExpiryOV(0.),
+		m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE), m_dHTBRate(BAD_DOUBLE_VALUE),m_dtExpiryOV(0.),
 		m_dtTradingClose(0.)
 	{
 	}
@@ -79,6 +80,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Vola, m_dVola)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, Qty, m_nQty)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, HTBRate, m_dHTBRate)
 
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceBid, m_dPriceBid)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceAsk, m_dPriceAsk)

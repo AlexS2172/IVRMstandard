@@ -31,6 +31,18 @@ struct __UnderlyingUpdateData
 		FIELD_ENTRY(m_nDivType)
 		FIELD_ENTRY(m_dYield)
 
+		FIELD_ENTRY(m_dSkew)
+		FIELD_ENTRY(m_dKurt)
+		FIELD_ENTRY(m_bIsActive)
+		FIELD_ENTRY(m_bIsHTB)
+		FIELD_ENTRY(m_bAllowLending)
+		FIELD_ENTRY(m_dSOQ)
+		FIELD_ENTRY(m_bIsHedgeSymbol)
+		FIELD_ENTRY(m_nStkProfileID)
+		FIELD_ENTRY(m_nOptProfileID)
+		FIELD_ENTRY(m_nPrimaryExchange)
+		FIELD_ENTRY(m_nRegion)
+
 		FIELD_ENTRY(m_enUpdStatus)
 	END_PACKING
 
@@ -47,6 +59,18 @@ struct __UnderlyingUpdateData
 	LongF			m_nDivType;
 	DoubleF			m_dYield;
 
+	DoubleF			m_dSkew;
+	DoubleF			m_dKurt;
+	BoolF			m_bIsActive;
+	BoolF			m_bIsHTB;
+	BoolF			m_bAllowLending;
+	DoubleF			m_dSOQ;
+	BoolF			m_bIsHedgeSymbol;
+	LongF			m_nStkProfileID;
+	LongF			m_nOptProfileID;
+	LongF			m_nPrimaryExchange;
+	LongF			m_nRegion;
+	
 
 	TStaticField<UNDERLYING_UPDATE_STATUS>		m_enUpdStatus;
 };
@@ -111,6 +135,18 @@ public:
 	IMPLEMENT_DOUBLE_PROP	(DivFreqCust,			m_dDivFreqCust)
 	IMPLEMENT_DOUBLE_PROP	(Yield,					m_dYield)
 	IMPLEMENT_LONG_PROP		(DivType,				m_nDivType)
+
+	IMPLEMENT_DOUBLE_PROP	(Skew,					m_dSkew)
+	IMPLEMENT_DOUBLE_PROP	(Kurt,					m_dKurt)
+	IMPLEMENT_BOOL_PROP		(IsActive,				m_bIsActive)
+	IMPLEMENT_BOOL_PROP		(IsHTB,					m_bIsHTB)
+	IMPLEMENT_BOOL_PROP		(AllowLending,			m_bAllowLending)
+	IMPLEMENT_BOOL_PROP		(IsHedgeSymbol,			m_bIsHedgeSymbol)
+	IMPLEMENT_DOUBLE_PROP	(SOQ,					m_dSOQ)
+	IMPLEMENT_LONG_PROP		(StkProfile,			m_nStkProfileID)
+	IMPLEMENT_LONG_PROP		(OptProfile,			m_nOptProfileID)
+	IMPLEMENT_LONG_PROP		(PrimaryExchange,		m_nPrimaryExchange)
+	IMPLEMENT_LONG_PROP		(Region,				m_nRegion)
 
 	
 	IMPLEMENT_SIMPLE_PROP(UNDERLYING_UPDATE_STATUS, UpdStatus, m_enUpdStatus)

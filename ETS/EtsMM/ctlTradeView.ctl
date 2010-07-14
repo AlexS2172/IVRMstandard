@@ -305,8 +305,8 @@ Private WithEvents frmLayout As frmGridLayout
 Attribute frmLayout.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
 
 Private m_gdFlt As New clsGridDef
 Private m_gdTrd As New clsGridDef
@@ -328,6 +328,7 @@ Private m_bKeyDown(GT_TRADES_FILTER To GT_TRADES_LIST) As Boolean
 Private m_GridLock(GT_TRADES_FILTER To GT_TRADES_LIST) As New clsGridLock
 Private m_nTrades As Long
 Private m_AuxTradeView As EtsMmGeneralLib.MmTradeView
+Attribute m_AuxTradeView.VB_VarHelpID = -1
 
 
 Public m_frmOwner As Form
@@ -355,8 +356,11 @@ Public Function Init() As Boolean
     m_bKeyDown(GT_TRADES_FILTER) = False
     m_bKeyDown(GT_TRADES_LIST) = False
     m_nTrades = 0
-    Set m_AuxTradeView = g_TradeChannel.TradeChannel.OpenTradeView
-    'Set m_AuxTradeView.EtsMain = g_Main
+    
+    'Set m_AuxTradeView = g_TradeChannel.TradeChannel.OpenTradeView
+    Set m_AuxTradeView = New EtsMmGeneralLib.MmTradeView
+    Set m_AuxTradeView.EtsMain = g_Main
+    Set m_AuxTradeView.TradeChannel = g_TradeChannel.TradeChannel
     
     m_GridLock(GT_TRADES_FILTER).Init fgFlt
     m_GridLock(GT_TRADES_LIST).Init fgTrd
@@ -575,7 +579,7 @@ End Sub
 
 Private Sub TradesShow(ByVal bReload As Boolean)
     On Error Resume Next
-    Dim i&, nCount&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nRow&, nOldRow&, nOldCol&
+    Dim i&, nCount&, aTrd As EtsGeneralLib.MmTradeInfoAtom, nRow&, nOldRow&, nOldCol&
     
     m_bInProc = True
     RaiseEvent OnStateChange
@@ -745,7 +749,7 @@ End Sub
 'Private Sub TradeUpdate(ByVal nRow As Long)
 '    On Error Resume Next
 '    Dim nCol&
-'    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, sValue$
+'    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, sValue$
 '
 '    With fgTrd
 '        m_GridLock(GT_TRADES_LIST).LockRedraw
@@ -899,7 +903,7 @@ End Sub
 '                    Or m_AuxTradeView.TradeViewFilter(TFC_STRATEGY) <> 0)
 'End Function
 '
-'Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+'Private Function CheckTradeFilter(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom) As Boolean
 '    On Error Resume Next
 '    Dim bMatched As Boolean, nValue&
 '
@@ -961,7 +965,7 @@ Private Sub CheckSelectedRows()
     
     If fgTrd.Rows < 1 Then Exit Sub
     
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     m_AuxTradeView.ClearSelected
     
     For i = 0 To fgTrd.SelectedRows - 1
@@ -1464,7 +1468,7 @@ End Sub
 Private Sub ShowPopup()
     On Error Resume Next
     If m_nMenuGridCol < 0 Or m_nMenuGridRow < 0 Then Exit Sub
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
 
     'mnuCtxTradeNew          "New Trade..."
     'mnuCtxTradeEdit         "Edit Trade..."
@@ -1776,7 +1780,7 @@ End Property
 Private Sub mnuCtxTradeDelete_Click()
     On Error GoTo EH
     If m_bInProc Then Exit Sub
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aTrdToDel As New EtsMmGeneralLib.MmTradeInfoColl
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, aTrdToDel As New EtsGeneralLib.MmTradeInfoColl
     Dim bCanDelete As Boolean, i&, nRow&
     
     Screen.MousePointer = vbHourglass
@@ -1870,7 +1874,7 @@ End Sub
 
 Private Sub mnuCtxTradeEdit_Click()
     If m_bInProc Then Exit Sub
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim nVisibleSelectedRows&, nFirstVisibleSelectedRow&, nRow&, i&
     
     On Error Resume Next
@@ -1911,7 +1915,7 @@ Private Sub mnuCtxTradeExercise_Click()
     On Error Resume Next
     If m_bInProc Then Exit Sub
     
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aRoot As EtsGeneralLib.SynthRootAtom, aTrdExec As clsTradeExecAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, aRoot As EtsGeneralLib.SynthRootAtom, aTrdExec As clsTradeExecAtom
     Dim collTrades As New clsTradeExecColl, frmExecTrades As frmExerciseTrades
     
     If fgTrd.SelectedRows = 1 And m_enMenuGrid = GT_TRADES_LIST Then
@@ -1957,7 +1961,7 @@ Private Sub mnuCtxTradeExpiry_Click()
     On Error Resume Next
     If m_bInProc Then Exit Sub
     
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aTrdExec As clsTradeExecAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, aTrdExec As clsTradeExecAtom
     Dim collTrades As New clsTradeExecColl, frmExecTrades As frmExerciseTrades
     
     If fgTrd.SelectedRows = 1 And m_enMenuGrid = GT_TRADES_LIST Then
@@ -2054,7 +2058,7 @@ End Sub
 Private Sub mnuCtxTradeNew_Click()
     On Error GoTo EH
     If m_bInProc Then Exit Sub
-    Dim nUndID&, nID&, bBuy As Boolean, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim nUndID&, nID&, bBuy As Boolean, aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim nVisibleSelectedRows&, nFirstVisibleSelectedRow&, nRow&, i&
     
     m_bInProc = True
@@ -2110,7 +2114,7 @@ End Sub
 Private Sub mnuCtxPositionTransfer_Click()
     On Error Resume Next
     If m_bInProc Then Exit Sub
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim nVisibleSelectedRows&, nFirstVisibleSelectedRow&, nRow&, i&
     
     m_bInProc = True
@@ -2172,7 +2176,7 @@ Private Sub FillDataForOrderFromCurrentSelection(ByVal bIsStock As Boolean, _
                                         ByRef aOpt As EtsGeneralLib.EtsOptAtom, _
                                         ByRef bBuy As Boolean, ByRef dPrice#, ByRef nQty&)
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nRow&
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, nRow&
     
     bBuy = True
     dPrice = 0#
@@ -2294,7 +2298,7 @@ Private Sub tmrShow_Timer()
     TradesShow True
 End Sub
 
-'Private Sub AddTrade(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub AddTrade(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim nRow&
 '
@@ -2322,7 +2326,7 @@ End Sub
 '    End With
 'End Sub
 
-'Private Sub UpdateTrade(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub UpdateTrade(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim nRow&
 '
@@ -2369,7 +2373,7 @@ End Sub
 '    End With
 'End Sub
 '
-'Private Sub DeleteTrade(aTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom)
+'Private Sub DeleteTrade(aTrdInfo As EtsGeneralLib.MmTradeInfoAtom)
 '    On Error Resume Next
 '    Dim nRow&
 '
@@ -2391,7 +2395,7 @@ End Sub
 '    End With
 'End Sub
 
-Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
     If m_bInProc Then Exit Sub
     
@@ -2413,7 +2417,7 @@ Private Sub TradeChannel_TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoA
     RefreshView
 End Sub
 
-Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub TradeChannel_PositionTransfer(aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, aTrdTo As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If m_bShutDown Then Exit Sub
 
@@ -2467,7 +2471,7 @@ Public Sub RefreshView()
    m_nTrades = aDataSource.GetRecordCount
    
    'For correct view of selectrd lines
-   Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+   Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
    '
         For i = 1 To (m_nTrades)
    
@@ -2497,6 +2501,9 @@ Public Sub Term()
     Set lblProcess = Nothing
     Set lblStatus = Nothing
     Set geTrd = Nothing
+    
+    Set m_AuxTradeView.EtsMain = Nothing
+    Set m_AuxTradeView.TradeChannel = Nothing
     
     Set frmLayout = Nothing
     Set TradeChannel = Nothing
@@ -2601,7 +2608,7 @@ End Sub
 
 Public Function CurUnderlyingID() As Long
     On Error Resume Next
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     
     CurUnderlyingID = 0
     With fgTrd

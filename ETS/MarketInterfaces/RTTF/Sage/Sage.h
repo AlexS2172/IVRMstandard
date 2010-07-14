@@ -14,7 +14,8 @@ public:
 public:
 	static HANDLE	m_hStopApplication;
 	CSageConnector	m_SageConnector;
-
+	long			m_nGroupsCount;
+	
 private:	
 	static BOOL WINAPI HandlerRoutine(DWORD dwCtrlType);
 };

@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "Comdlg32.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmTradeView 
    Caption         =   "Trades"
    ClientHeight    =   8175
@@ -65,8 +65,8 @@ Begin VB.Form frmTradeView
       TabIndex        =   0
       Top             =   0
       Width           =   6735
-      _ExtentX        =   11668
-      _ExtentY        =   5741
+      _extentx        =   11668
+      _extenty        =   5741
    End
    Begin MSComctlLib.StatusBar sbStatus 
       Align           =   2  'Align Bottom
@@ -179,6 +179,12 @@ Begin VB.Form frmTradeView
          Caption         =   "T&wo Indices Hedge..."
          Enabled         =   0   'False
          Visible         =   0   'False
+      End
+      Begin VB.Menu mnuSepBR1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuFileBatchReporting 
+         Caption         =   "Batch Reporting ..."
       End
       Begin VB.Menu mnuSeparator2 
          Caption         =   "-"
@@ -634,6 +640,11 @@ End Sub
 
 Private Sub aParams_ActiveRealTimeChange()
     On Error Resume Next
+End Sub
+
+Private Sub mnuFileBatchReporting_Click()
+    On Error Resume Next
+    g_frmProjections.ShowData
 End Sub
 
 Private Sub mnuFileClose_Click()

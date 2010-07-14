@@ -85,6 +85,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_Strike(long index, double *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -103,6 +104,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_Status(double Strike, EVolaItemStatus 
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -121,6 +123,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_Volatility(double Strike, double *pVal
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -137,6 +140,7 @@ STDMETHODIMP CStrikeSkewVolatilities::put_Volatility(double Strike, double newVa
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -156,6 +160,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_IsATM(double Strike, VARIANT_BOOL *pVa
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -174,6 +179,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_IsBasePoint(double Strike, VARIANT_BOO
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -190,6 +196,7 @@ STDMETHODIMP CStrikeSkewVolatilities::put_IsBasePoint(double Strike, VARIANT_BOO
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -209,6 +216,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_BasePointsCount(long *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 
@@ -228,6 +236,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_BasePointsInterpolation(VARIANT_BOOL *
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 	}
 
@@ -243,6 +252,7 @@ STDMETHODIMP CStrikeSkewVolatilities::put_BasePointsInterpolation(VARIANT_BOOL n
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 	}
 
@@ -260,6 +270,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_UpdateMark(long *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -303,6 +314,7 @@ STDMETHODIMP CStrikeSkewVolatilities::Reload()
 		}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -371,6 +383,7 @@ STDMETHODIMP CStrikeSkewVolatilities::Save()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -387,6 +400,7 @@ STDMETHODIMP CStrikeSkewVolatilities::Add(double Strike, double Volatility, VARI
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -403,6 +417,7 @@ STDMETHODIMP CStrikeSkewVolatilities::Remove(double Strike)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -419,6 +434,7 @@ STDMETHODIMP CStrikeSkewVolatilities::RemoveAll()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -435,6 +451,7 @@ STDMETHODIMP CStrikeSkewVolatilities::ProportionalShift(double Strike, double Vo
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -505,6 +522,7 @@ STDMETHODIMP CStrikeSkewVolatilities::get_DualQuadraticParams(IDualQuadraticData
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -575,6 +593,7 @@ STDMETHODIMP CStrikeSkewVolatilities::putref_DualQuadraticParams(IDualQuadraticD
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVMStrikeSkewVolatilities, e.Error() );
 		return CComErrorWrapper::SetError(e, L"StrikeSkewVolatilities", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}

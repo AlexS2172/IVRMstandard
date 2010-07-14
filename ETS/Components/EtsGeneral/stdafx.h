@@ -38,6 +38,7 @@
 #include "resource.h"
 #include <atlbase.h>
 #include <atlcom.h>
+#include <atlutil.h>
 
 using namespace ATL;
 
@@ -47,8 +48,10 @@ using namespace ATL;
 #include <EgLib/egLibSync.h>
 #include <EgLib/egLibThread.h>
 #include <EgLib/egLibMisc.h>
+#include <EgLib/EgLibStrategy.h>
 #include <EgLib/egLibReg.h>
 #include <EgLib/egLibDB.h>
+#include <EgLib/EgLibTrace.h>
 using namespace EgLib;
 
 #include <EgLib\EgLibComError.h>
@@ -57,12 +60,77 @@ using namespace EgLib;
 #include <EtsDate.h>
 #include <Boost/shared_array.hpp>
 #include <Boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
-#import "MsgStruct.tlb"			no_namespace named_guids
-#import "VADBLayout.tlb"		no_namespace named_guids
-#import "VolatilitySources.tlb"	no_namespace named_guids
+#include "threadpool.h"
+#include "GenegalSettings.h"
+
+#include <Record.h>
+#import "..\..\..\MarketDataAdapters\tlb\PriceProviders.tlb" rename("SettlementTypeEnum", "PpSettlementTypeEnum") no_namespace named_guids
+#import "..\..\..\MarketDataAdapters\DataFeedProviders\Release\DataFeedProviders.tlb" no_namespace named_guids
+
+#include <OptionCalc\OptionCalc.h>
+#include <MarketCommon.h>
+#include "IvRmException.h"
+#include <hash_map>
+
+using namespace IvRmCore;
+
+#import "..\..\tlb\MsgStruct.tlb"			no_namespace named_guids
+#import "..\..\tlb\VADBLayout.tlb"		no_namespace named_guids
+#import "..\..\tlb\VolatilitySources.tlb"	no_namespace named_guids
 
 inline double round(double dblValue) 
 {
 	return floor(dblValue + .5);
 }
+
+//-------------------------------------------------------------------------------------------------------------//
+#define TRACE_COM_ERROR(__error)																			\
+	EgLib::CEgLibTraceManager::Trace(LogError,																\
+	__FUNCTION__,															\
+	_TEXT("ComError: %s[%d] FileName: %s Line: %d"),						\
+	(LPCSTR)__error.Description(), __error.Error(), __FILE__, __LINE__)		\
+
+#define TRACE_WARNING(__format, __description)																	\
+	EgLib::CEgLibTraceManager::Trace(LogWarning,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_INFO(__format, __description)																	\
+	EgLib::CEgLibTraceManager::Trace(LogInfo,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_DEBUG(__format, __description)																\
+	EgLib::CEgLibTraceManager::Trace(LogDebug,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_SYSTEM(__format, __description)																\
+	EgLib::CEgLibTraceManager::Trace(LogSystem,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_ERROR(__format, __description) 																\
+	EgLib::CEgLibTraceManager::Trace(LogError,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_UNKNOWN_ERROR() 																				\
+	EgLib::CEgLibTraceManager::Trace(LogError,																\
+	__FUNCTION__,																			\
+	_TEXT("Unknown error! %s[%d] WinError: [%d]"),											\
+	__FILE__, __LINE__, ::GetLastError())														\
+
+#define TRACE_COM_ERROR_EX(__error, __info, __description)												\
+	EgLib::CEgLibTraceManager::Trace(LogError,															\
+	__FUNCTION__,																						\
+	__info _TEXT("ComError: %s[%d] FileName: %s Line: %d"),												\
+	__description,(LPCSTR)__error.Description(), __error.Error(), __FILE__, __LINE__)					\
+//-------------------------------------------------------------------------------------------------------------//

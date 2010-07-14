@@ -90,15 +90,15 @@ Public MaxRTOptCount As Long
     'enFitToImpCurveOTM
 'End Enum
 
-Public QuoteFitToImpCurveType As EtsMmRisksLib.MmRvFitToImpCurveTypeEnum 'FitToImpCurveTypeEnum
+'Public QuoteFitToImpCurveType As EtsMmRisksLib.MmRvFitToImpCurveTypeEnum 'FitToImpCurveTypeEnum
 Public QuoteReqTypeAlwaysNonGroup As Boolean
 
-Public RiskBidColBuy As Byte
-Public RiskOtherColBuy As Byte
-Public RiskDirectlyToRealtime As Boolean
-Public RiskReqTypeAlwaysNonGroup As Boolean
-Public RiskMIVCalcType As EtsMmRisksLib.MmRvFitToImpCurveTypeEnum
-Public RiskFitToImpFlatNoBid As Boolean
+'Public RiskBidColBuy As Byte
+'Public RiskOtherColBuy As Byte
+'Public RiskDirectlyToRealtime As Boolean
+'Public RiskReqTypeAlwaysNonGroup As Boolean
+'Public RiskMIVCalcType As EtsMmRisksLib.MmRvFitToImpCurveTypeEnum
+'Public RiskFitToImpFlatNoBid As Boolean
 
 Public MatrixExerciseOptions As Boolean
 Public MatrixCalcModel As EtsGeneralLib.EtsCalcModelTypeEnum
@@ -176,6 +176,7 @@ Public IndexHedgeLotSize&
 Public IndexHedgeMaxSize&
 
 Public CurrentUserPrivateFolder$
+Public UseTTE As Boolean
 
 Public Property Get CalcModel() As EtsGeneralLib.EtsCalcModelTypeEnum
     CalcModel = m_CalcModel
@@ -292,8 +293,8 @@ Public Sub LoadSettings()
     
     CalcDefUndExchID = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcDefUndExchID", 0)
     CalcDefOptExchID = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcDefOptExchID", 0)
-        
-        
+    UseTTE = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTTE", 0) <> 0)
+    g_Main.CalculationParametrs.UseTimePrecision = UseTTE
         
     UseCalcSleep = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseCalcSleep", 1) <> 0)
     CalcSleepFreq = 10 'g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcSleepFreq", 10)
@@ -360,21 +361,21 @@ Public Sub LoadSettings()
     m_QuoteOptExpirySeparation = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteOptExpirySeparation", 1) <> 0)
     
     QuoteFitToImpFlatNoBid = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteFitToImpFlatNoBid", 1) <> 0)
-    QuoteFitToImpCurveType = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteFitToImpCurveType", enFitToImpCurveOTM)
+    'QuoteFitToImpCurveType = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteFitToImpCurveType", enFitToImpCurveOTM)
     'QuoteDirectlyToRealtime = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteDirectlyToRealtime", 0) <> 0)
-    If QuoteFitToImpCurveType <> enFitToImpCurveCalls _
-        And QuoteFitToImpCurveType <> enFitToImpCurvePuts _
-        And QuoteFitToImpCurveType <> enFitToImpCurveOTM Then
-        QuoteFitToImpCurveType = enFitToImpCurveOTM
-    End If
+'    If QuoteFitToImpCurveType <> enFitToImpCurveCalls _
+'        And QuoteFitToImpCurveType <> enFitToImpCurvePuts _
+'        And QuoteFitToImpCurveType <> enFitToImpCurveOTM Then
+'        QuoteFitToImpCurveType = enFitToImpCurveOTM
+'    End If
     
     
     QuoteReqTypeAlwaysNonGroup = False '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteReqTypeAlwaysNonGroup", 0) <> 0)
     
-    RiskBidColBuy = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskBidColBuy", 0) <> 0, 1, 0)
-    RiskOtherColBuy = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskOtherColBuy", 0) <> 0, 1, 0)
-    RiskDirectlyToRealtime = False '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskDirectlyToRealtime", 0) <> 0)
-    RiskReqTypeAlwaysNonGroup = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskReqTypeAlwaysNonGroup", 1) <> 0)
+'    RiskBidColBuy = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskBidColBuy", 0) <> 0, 1, 0)
+'    RiskOtherColBuy = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskOtherColBuy", 0) <> 0, 1, 0)
+'    RiskDirectlyToRealtime = False '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskDirectlyToRealtime", 0) <> 0)
+'    RiskReqTypeAlwaysNonGroup = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "RiskReqTypeAlwaysNonGroup", 1) <> 0)
     
     MatrixExerciseOptions = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixExerciseOptions", 0) <> 0)
     MatrixCalcModel = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixCalcModel", enCmBinomialOpt)
@@ -515,8 +516,8 @@ Public Sub LoadSettings()
         g_MaxRTQuantity = 4
     End If
         
-    RiskMIVCalcType = QuoteFitToImpCurveType
-    RiskFitToImpFlatNoBid = QuoteFitToImpFlatNoBid
+'    RiskMIVCalcType = QuoteFitToImpCurveType
+'    RiskFitToImpFlatNoBid = QuoteFitToImpFlatNoBid
     
     Exit Sub
 EH:
@@ -525,86 +526,86 @@ End Sub
 
 Public Sub SaveSettings()
     On Error Resume Next
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcModel", m_CalcModel
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "PnLCalcType", PnLCalcType
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcDefUndExchID", CalcDefUndExchID
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcDefOptExchID", CalcDefOptExchID
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ActiveRealTime", IIf(m_ActiveRealTime, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcIvInRuntime", IIf(CalcIvInRuntime, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ShowEventLog", IIf(ShowEventLog, 1, 0)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseCalcSleep", IIf(UseCalcSleep, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcSleepFreq", CalcSleepFreq
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcSleepAmt", CalcSleepAmt
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EAOptWithPosition", EAOptWithPosition
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EAUpcomingDivs", EAUpcomingDivs
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EADaysToDiv", EADaysToDiv
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CheckExpiredOptions", CheckExpiredOptions
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EADaysToDivDays", EADaysToDivDays
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "HedgeUseExtPosition", HedgeUseExtPosition
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MainWinAlwaysOnTop", IIf(MainWinAlwaysOnTop, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ShowWindowsInTaskbar", IIf(ShowWindowsInTaskbar, 1, 0)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteBidColBuy", QuoteBidColBuy
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteOtherColBuy", QuoteOtherColBuy
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteDirectlyToRealtime", IIf(QuoteDirectlyToRealtime, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteUndExchAll", IIf(QuoteUndExchAll, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteOptExchAll", IIf(QuoteOptExchAll, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteDefUndExchID", QuoteDefUndExchID
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteDefOptExchID", QuoteDefOptExchID
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteOptExpirySeparation", m_QuoteOptExpirySeparation
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteFitToImpFlatNoBid", IIf(QuoteFitToImpFlatNoBid, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteFitToImpCurveType", QuoteFitToImpCurveType
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteReqTypeAlwaysNonGroup", IIf(QuoteReqTypeAlwaysNonGroup, 1, 0)
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskBidColBuy", RiskBidColBuy
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskOtherColBuy", RiskOtherColBuy
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskDirectlyToRealtime", IIf(RiskDirectlyToRealtime, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskReqTypeAlwaysNonGroup", IIf(RiskReqTypeAlwaysNonGroup, 1, 0)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixExerciseOptions", IIf(MatrixExerciseOptions, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixCalcModel", MatrixCalcModel
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixReqTypeAlwaysNonGroup", IIf(MatrixReqTypeAlwaysNonGroup, 1, 0)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoVolatility", IIf(UseTheoVolatility, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoNoBid", IIf(UseTheoNoBid, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoBadMarketVola", IIf(UseTheoBadMarketVola, 1, 0)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseDefTrader", IIf(UseDefTrader, 1, 0)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "DefTraderID", DefTraderID
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "DefTradeType", DefTradeType
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefStkQtyIncrement", OrdDefStkQtyIncrement
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefOptQtyIncrement", OrdDefOptQtyIncrement
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefStkPrcIncrement", CLng(OrdDefStkPrcIncrement * 100#)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefOptPrcIncrementCheap", CLng(OrdDefOptPrcIncrementCheap * 100#)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefOptPrcIncrementExpensive", CLng(OrdDefOptPrcIncrementExpensive * 100#)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CrdDefQtyIncrement", CrdDefQtyIncrement
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CrdDefPrcIncrementCheap", CLng(CrdDefPrcIncrementCheap * 100#)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CrdDefPrcIncrementExpensive", CLng(CrdDefPrcIncrementExpensive * 100#)
-    
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MarkedTradesRuleOn", IIf(MarkedTradesRuleOn, 1, 0)
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "StockHedgeSlice", Int(StockHedgeSlice * 100)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "StockHedgeLotSize", StockHedgeLotSize
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "StockHedgeMaxSize", StockHedgeMaxSize
-
-    g_aUserXMLParams.SetStringValue APP_XML_KEY & "Settings", "StockHedgeExportPath", StockHedgeExportPath
-
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "IndexHedgeSlice", Int(IndexHedgeSlice * 100)
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "IndexHedgeLotSize", IndexHedgeLotSize
-    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "IndexHedgeMaxSize", IndexHedgeMaxSize
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcModel", m_CalcModel
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "PnLCalcType", PnLCalcType
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcDefUndExchID", CalcDefUndExchID
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcDefOptExchID", CalcDefOptExchID
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ActiveRealTime", IIf(m_ActiveRealTime, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcIvInRuntime", IIf(CalcIvInRuntime, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ShowEventLog", IIf(ShowEventLog, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseCalcSleep", IIf(UseCalcSleep, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcSleepFreq", CalcSleepFreq
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcSleepAmt", CalcSleepAmt
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EAOptWithPosition", EAOptWithPosition
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EAUpcomingDivs", EAUpcomingDivs
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EADaysToDiv", EADaysToDiv
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CheckExpiredOptions", CheckExpiredOptions
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "EADaysToDivDays", EADaysToDivDays
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "HedgeUseExtPosition", HedgeUseExtPosition
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MainWinAlwaysOnTop", IIf(MainWinAlwaysOnTop, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ShowWindowsInTaskbar", IIf(ShowWindowsInTaskbar, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteBidColBuy", QuoteBidColBuy
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteOtherColBuy", QuoteOtherColBuy
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteDirectlyToRealtime", IIf(QuoteDirectlyToRealtime, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteUndExchAll", IIf(QuoteUndExchAll, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteOptExchAll", IIf(QuoteOptExchAll, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteDefUndExchID", QuoteDefUndExchID
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteDefOptExchID", QuoteDefOptExchID
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteOptExpirySeparation", m_QuoteOptExpirySeparation
+'
+''    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteFitToImpFlatNoBid", IIf(QuoteFitToImpFlatNoBid, 1, 0)
+''    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteFitToImpCurveType", QuoteFitToImpCurveType
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "QuoteReqTypeAlwaysNonGroup", IIf(QuoteReqTypeAlwaysNonGroup, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskBidColBuy", RiskBidColBuy
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskOtherColBuy", RiskOtherColBuy
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskDirectlyToRealtime", IIf(RiskDirectlyToRealtime, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "RiskReqTypeAlwaysNonGroup", IIf(RiskReqTypeAlwaysNonGroup, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixExerciseOptions", IIf(MatrixExerciseOptions, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixCalcModel", MatrixCalcModel
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MatrixReqTypeAlwaysNonGroup", IIf(MatrixReqTypeAlwaysNonGroup, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoVolatility", IIf(UseTheoVolatility, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoNoBid", IIf(UseTheoNoBid, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTheoBadMarketVola", IIf(UseTheoBadMarketVola, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseDefTrader", IIf(UseDefTrader, 1, 0)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "DefTraderID", DefTraderID
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "DefTradeType", DefTradeType
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefStkQtyIncrement", OrdDefStkQtyIncrement
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefOptQtyIncrement", OrdDefOptQtyIncrement
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefStkPrcIncrement", CLng(OrdDefStkPrcIncrement * 100#)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefOptPrcIncrementCheap", CLng(OrdDefOptPrcIncrementCheap * 100#)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "OrdDefOptPrcIncrementExpensive", CLng(OrdDefOptPrcIncrementExpensive * 100#)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CrdDefQtyIncrement", CrdDefQtyIncrement
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CrdDefPrcIncrementCheap", CLng(CrdDefPrcIncrementCheap * 100#)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CrdDefPrcIncrementExpensive", CLng(CrdDefPrcIncrementExpensive * 100#)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "MarkedTradesRuleOn", IIf(MarkedTradesRuleOn, 1, 0)
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "StockHedgeSlice", Int(StockHedgeSlice * 100)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "StockHedgeLotSize", StockHedgeLotSize
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "StockHedgeMaxSize", StockHedgeMaxSize
+'
+'    g_aUserXMLParams.SetStringValue APP_XML_KEY & "Settings", "StockHedgeExportPath", StockHedgeExportPath
+'
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "IndexHedgeSlice", Int(IndexHedgeSlice * 100)
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "IndexHedgeLotSize", IndexHedgeLotSize
+'    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "IndexHedgeMaxSize", IndexHedgeMaxSize
 End Sub
 
 Public Function IsMultiScreenSupported() As Boolean
@@ -1115,145 +1116,145 @@ End Property
 
 Public Sub MakeAllParamsDescription(ByRef sDesc$)
     On Error Resume Next
-    sDesc = ""
-
-    ' Connections Params
-    sDesc = sDesc & "Connections Params" & vbCrLf & String$(70, "-") & vbCrLf
-    sDesc = sDesc & "Price Provider: "
-    Dim aProviders As PRICEPROVIDERSLib.Providers, aProvider As IProviderData
-    Set aProviders = New PRICEPROVIDERSLib.Providers
-    aProviders.Initialize
-    aProviders.GetProvider m_nPriceProviderType, aProvider
-    If Not aProvider Is Nothing Then
-        sDesc = sDesc & aProvider.Description & vbCrLf
-        Set aProvider = Nothing
-    Else
-        sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
-    End If
-    Set aProviders = Nothing
-
-    
-    sDesc = sDesc & "Volatility Provider: "
-    Dim aVolaSources As VolatilitySourcesLib.VolatilitySources, sName$, sFileName$, sVersion$, sProgID$
-    Set aVolaSources = New VolatilitySourcesLib.VolatilitySources
-    Err.Clear
-    aVolaSources.GetVolatilitySourceInfoByID m_nVolatilitySourceType, sName$, sFileName$, sVersion$, sProgID$
-    If Err.Number = 0 Then
-        sDesc = sDesc & sName & vbCrLf
-    Else
-        sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
-    End If
-    Set aVolaSources = Nothing
-    
-    ' Calculation Params
-    sDesc = sDesc & vbCrLf & "Calculation Params" & vbCrLf & String$(70, "-") & vbCrLf
-    sDesc = sDesc & "P&L Calculation Type: " & IIf(PnLCalcType = PNLCT_LTD, "LTD", "Daily") & vbCrLf
-    sDesc = sDesc & "Underlying Price Tolerance, %: " & m_dUndPriceToleranceValue * 100 & vbCrLf
-    sDesc = sDesc & "Price Rounding: " & IIf(m_enPriceRoundingRule = enPrrRoundNone, "None", IIf(m_enPriceRoundingRule = enPrrRoundDown, "Down", "Up")) & vbCrLf
-    sDesc = sDesc & "Use Market Volatility: " & IIf(UseTheoVolatility, "No", "Yes") & vbCrLf
-    sDesc = sDesc & "Use Theo Volatility if No Bid: " & IIf(UseTheoNoBid, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Use Theo Volatility if Bad Market Vola: " & IIf(UseTheoNoBid, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Calculation Model: " & CalcModelName(m_CalcModel) & vbCrLf
-    
-    ' Quotes Params
-    sDesc = sDesc & vbCrLf & "Quotes View Params" & vbCrLf & String$(70, "-") & vbCrLf
-    sDesc = sDesc & "Bid/Ask Column Click: " & IIf(QuoteBidColBuy <> 0, "Buy/Sell Trade", "Sell/Buy Trade") & vbCrLf
-    sDesc = sDesc & "Other Column Click: " & IIf(QuoteOtherColBuy <> 0, "Buy Trade", "Sell Trade") & vbCrLf
-    sDesc = sDesc & "Use Colors for Expiries Separation: " & IIf(m_QuoteOptExpirySeparation, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Directly to Realtime Mode: " & IIf(QuoteDirectlyToRealtime, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Market Data Request Type: " & IIf(QuoteReqTypeAlwaysNonGroup, "Always Non-group", "Depends on Price Provider") & vbCrLf
-    
-    Dim aExch As EtsGeneralLib.ExchAtom
-    sDesc = sDesc & "Initial Underlying Visible Exchange: "
-    If QuoteUndExchAll Then
-        sDesc = sDesc & "<All>" & vbCrLf
-    Else
-        Set aExch = g_Exch(QuoteDefUndExchID)
-        If Not aExch Then
-            sDesc = sDesc & aExch.Name & vbCrLf
-            Set aExch = Nothing
-        Else
-            sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
-        End If
-    End If
-    sDesc = sDesc & "Initial Options Visible Exchange: "
-    If QuoteOptExchAll Then
-        sDesc = sDesc & "<All>" & vbCrLf
-    Else
-        Set aExch = g_Exch(QuoteDefOptExchID)
-        If Not aExch Then
-            sDesc = sDesc & aExch.Name & vbCrLf
-            Set aExch = Nothing
-        Else
-            sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
-        End If
-    End If
-    sDesc = sDesc & "Fit to Implied - Use Flat Vola if No Bid: " & IIf(QuoteFitToImpFlatNoBid, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Fit to Implied - Curve Type: " & IIf(QuoteFitToImpCurveType = enFitToImpCurveCalls, "Calls", IIf(QuoteFitToImpCurveType = enFitToImpCurvePuts, "Puts", "OTM")) & vbCrLf
-    
-    ' Risks Params
-    sDesc = sDesc & vbCrLf & "Risks View Params" & vbCrLf & String$(70, "-") & vbCrLf
-    sDesc = sDesc & "Bid/Ask Column Click: " & IIf(RiskBidColBuy <> 0, "Buy/Sell Trade", "Sell/Buy Trade") & vbCrLf
-    sDesc = sDesc & "Other Column Click: " & IIf(RiskOtherColBuy <> 0, "Buy Trade", "Sell Trade") & vbCrLf
-    sDesc = sDesc & "Directly to Realtime Mode: " & IIf(RiskDirectlyToRealtime, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Market Data Request Type: " & IIf(RiskReqTypeAlwaysNonGroup, "Always Non-group", "Depends on Price Provider") & vbCrLf
-    
-    ' Risk Matrix Params
-    sDesc = sDesc & vbCrLf & "Risk Matrix View Params" & vbCrLf & String$(70, "-") & vbCrLf
-    sDesc = sDesc & "Time Scenario: " & IIf(MatrixExerciseOptions, "Exercise Options", "Ignore Options With Expiration Passed") & vbCrLf
-    sDesc = sDesc & "Market Data Request Type: " & IIf(MatrixReqTypeAlwaysNonGroup, "Always Non-group", "Depends on Price Provider") & vbCrLf
-    sDesc = sDesc & "Calculation Model: " & CalcModelName(MatrixCalcModel) & vbCrLf
-    
-    ' Advanced Params
-    sDesc = sDesc & vbCrLf & "Advanced Params" & vbCrLf & String$(70, "-") & vbCrLf
-    sDesc = sDesc & "Active Window Realtime: " & IIf(m_ActiveRealTime, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Use Calculation Delay: " & IIf(UseCalcSleep, "Yes", "No") & vbCrLf
-    sDesc = sDesc & "Calculation Delay Frequency, steps: " & CalcSleepFreq & vbCrLf
-    sDesc = sDesc & "Calculation Delay Time, ms: " & CalcSleepAmt & vbCrLf
-    sDesc = sDesc & "Time Zone Bias: " & m_nTimeZoneBias & vbCrLf
-    sDesc = sDesc & "Current Trader: "
-    Dim aTrader As EtsGeneralLib.EtsMmEntityAtom
-    If g_CurTraderID <> 0 Then
-        Set aTrader = g_Trader(CStr(g_CurTraderID))
-        If Not aTrader Is Nothing Then
-            sDesc = sDesc & aTrader.Name & vbCrLf
-            Set aTrader = Nothing
-        Else
-            sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
-        End If
-    Else
-        sDesc = sDesc & "<All Traders>" & vbCrLf
-    End If
-
-
-    ' Price Profiles
-    sDesc = sDesc & vbCrLf & "Price Profiles" & vbCrLf & String$(70, "-") & vbCrLf
-    Dim aPrProf As EtsGeneralLib.EtsPriceProfileAtom
-    
-    For Each aPrProf In g_PriceProfile
-        sDesc = sDesc & "Name: " & aPrProf.Name & vbCrLf
-        sDesc = sDesc & "Description: " & aPrProf.Description & vbCrLf
-        If aPrProf.IsOptionProfile Then
-            sDesc = sDesc & "Type: Option" & vbCrLf
-            sDesc = sDesc & "Use Bid/Ask for Long/Short Positions for P&L: " & IIf(aPrProf.UseMidMarketForPnL, "No", "Yes") & vbCrLf
-            sDesc = sDesc & "If No Bid or Ask then: " & IIf(aPrProf.BadOptSinglePriceRule = enObsprReplaceWithLast, "Replace missing Bid or Ask with Last", _
-                                                        IIf(aPrProf.BadOptSinglePriceRule = enObsprReplaceWithOpposite, "Replace missing Bid/Ask with Ask/Bid", _
-                                                        IIf(aPrProf.BadOptSinglePriceRule = enObsprReplaceWithZero, "Replace missing Bid/Ask with Zero", _
-                                                        "Replace missing Bid/Ask with last Theo"))) & vbCrLf
-            sDesc = sDesc & "If No Bid and Ask then: " & IIf(aPrProf.BadOptBothPriceRule = enObbprUseLast, "Use Last", "Use last Theo") & vbCrLf
-        Else
-            sDesc = sDesc & "Type: Stock" & vbCrLf
-            If aPrProf.AlwaysUseLast Then
-                sDesc = sDesc & "Always Use Last: Yes" & vbCrLf
-            Else
-                sDesc = sDesc & "Always Use Last: No" & vbCrLf
-                sDesc = sDesc & "Use Bid/Ask for Long/Short Positions for P&L: " & IIf(aPrProf.UseMidMarketForPnL, "No", "Yes") & vbCrLf
-                sDesc = sDesc & "Use Last Price instead Bid and Ask if Bid or Ask is not within Tolerance range (or no Bid or Ask): " & _
-                                IIf(aPrProf.BadUndPriceRule = enUbprCheckTolerance, "Yes", "No") & vbCrLf
-            End If
-        End If
-        sDesc = sDesc & vbCrLf
-    Next
+'    sDesc = ""
+'
+'    ' Connections Params
+'    sDesc = sDesc & "Connections Params" & vbCrLf & String$(70, "-") & vbCrLf
+'    sDesc = sDesc & "Price Provider: "
+'    Dim aProviders As PRICEPROVIDERSLib.Providers, aProvider As IProviderData
+'    Set aProviders = New PRICEPROVIDERSLib.Providers
+'    aProviders.Initialize
+'    aProviders.GetProvider m_nPriceProviderType, aProvider
+'    If Not aProvider Is Nothing Then
+'        sDesc = sDesc & aProvider.Description & vbCrLf
+'        Set aProvider = Nothing
+'    Else
+'        sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
+'    End If
+'    Set aProviders = Nothing
+'
+'
+'    sDesc = sDesc & "Volatility Provider: "
+'    Dim aVolaSources As VolatilitySourcesLib.VolatilitySources, sName$, sFileName$, sVersion$, sProgID$
+'    Set aVolaSources = New VolatilitySourcesLib.VolatilitySources
+'    Err.Clear
+'    aVolaSources.GetVolatilitySourceInfoByID m_nVolatilitySourceType, sName$, sFileName$, sVersion$, sProgID$
+'    If Err.Number = 0 Then
+'        sDesc = sDesc & sName & vbCrLf
+'    Else
+'        sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
+'    End If
+'    Set aVolaSources = Nothing
+'
+'    ' Calculation Params
+'    sDesc = sDesc & vbCrLf & "Calculation Params" & vbCrLf & String$(70, "-") & vbCrLf
+'    sDesc = sDesc & "P&L Calculation Type: " & IIf(PnLCalcType = PNLCT_LTD, "LTD", "Daily") & vbCrLf
+'    sDesc = sDesc & "Underlying Price Tolerance, %: " & m_dUndPriceToleranceValue * 100 & vbCrLf
+'    sDesc = sDesc & "Price Rounding: " & IIf(m_enPriceRoundingRule = enPrrRoundNone, "None", IIf(m_enPriceRoundingRule = enPrrRoundDown, "Down", "Up")) & vbCrLf
+'    sDesc = sDesc & "Use Market Volatility: " & IIf(UseTheoVolatility, "No", "Yes") & vbCrLf
+'    sDesc = sDesc & "Use Theo Volatility if No Bid: " & IIf(UseTheoNoBid, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Use Theo Volatility if Bad Market Vola: " & IIf(UseTheoNoBid, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Calculation Model: " & CalcModelName(m_CalcModel) & vbCrLf
+'
+'    ' Quotes Params
+'    sDesc = sDesc & vbCrLf & "Quotes View Params" & vbCrLf & String$(70, "-") & vbCrLf
+'    sDesc = sDesc & "Bid/Ask Column Click: " & IIf(QuoteBidColBuy <> 0, "Buy/Sell Trade", "Sell/Buy Trade") & vbCrLf
+'    sDesc = sDesc & "Other Column Click: " & IIf(QuoteOtherColBuy <> 0, "Buy Trade", "Sell Trade") & vbCrLf
+'    sDesc = sDesc & "Use Colors for Expiries Separation: " & IIf(m_QuoteOptExpirySeparation, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Directly to Realtime Mode: " & IIf(QuoteDirectlyToRealtime, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Market Data Request Type: " & IIf(QuoteReqTypeAlwaysNonGroup, "Always Non-group", "Depends on Price Provider") & vbCrLf
+'
+'    Dim aExch As EtsGeneralLib.ExchAtom
+'    sDesc = sDesc & "Initial Underlying Visible Exchange: "
+'    If QuoteUndExchAll Then
+'        sDesc = sDesc & "<All>" & vbCrLf
+'    Else
+'        Set aExch = g_Exch(QuoteDefUndExchID)
+'        If Not aExch Then
+'            sDesc = sDesc & aExch.Name & vbCrLf
+'            Set aExch = Nothing
+'        Else
+'            sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
+'        End If
+'    End If
+'    sDesc = sDesc & "Initial Options Visible Exchange: "
+'    If QuoteOptExchAll Then
+'        sDesc = sDesc & "<All>" & vbCrLf
+'    Else
+'        Set aExch = g_Exch(QuoteDefOptExchID)
+'        If Not aExch Then
+'            sDesc = sDesc & aExch.Name & vbCrLf
+'            Set aExch = Nothing
+'        Else
+'            sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
+'        End If
+'    End If
+'    sDesc = sDesc & "Fit to Implied - Use Flat Vola if No Bid: " & IIf(QuoteFitToImpFlatNoBid, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Fit to Implied - Curve Type: " & IIf(QuoteFitToImpCurveType = enFitToImpCurveCalls, "Calls", IIf(QuoteFitToImpCurveType = enFitToImpCurvePuts, "Puts", "OTM")) & vbCrLf
+'
+'    ' Risks Params
+'    sDesc = sDesc & vbCrLf & "Risks View Params" & vbCrLf & String$(70, "-") & vbCrLf
+'    sDesc = sDesc & "Bid/Ask Column Click: " & IIf(RiskBidColBuy <> 0, "Buy/Sell Trade", "Sell/Buy Trade") & vbCrLf
+'    sDesc = sDesc & "Other Column Click: " & IIf(RiskOtherColBuy <> 0, "Buy Trade", "Sell Trade") & vbCrLf
+'    sDesc = sDesc & "Directly to Realtime Mode: " & IIf(RiskDirectlyToRealtime, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Market Data Request Type: " & IIf(RiskReqTypeAlwaysNonGroup, "Always Non-group", "Depends on Price Provider") & vbCrLf
+'
+'    ' Risk Matrix Params
+'    sDesc = sDesc & vbCrLf & "Risk Matrix View Params" & vbCrLf & String$(70, "-") & vbCrLf
+'    sDesc = sDesc & "Time Scenario: " & IIf(MatrixExerciseOptions, "Exercise Options", "Ignore Options With Expiration Passed") & vbCrLf
+'    sDesc = sDesc & "Market Data Request Type: " & IIf(MatrixReqTypeAlwaysNonGroup, "Always Non-group", "Depends on Price Provider") & vbCrLf
+'    sDesc = sDesc & "Calculation Model: " & CalcModelName(MatrixCalcModel) & vbCrLf
+'
+'    ' Advanced Params
+'    sDesc = sDesc & vbCrLf & "Advanced Params" & vbCrLf & String$(70, "-") & vbCrLf
+'    sDesc = sDesc & "Active Window Realtime: " & IIf(m_ActiveRealTime, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Use Calculation Delay: " & IIf(UseCalcSleep, "Yes", "No") & vbCrLf
+'    sDesc = sDesc & "Calculation Delay Frequency, steps: " & CalcSleepFreq & vbCrLf
+'    sDesc = sDesc & "Calculation Delay Time, ms: " & CalcSleepAmt & vbCrLf
+'    sDesc = sDesc & "Time Zone Bias: " & m_nTimeZoneBias & vbCrLf
+'    sDesc = sDesc & "Current Trader: "
+'    Dim aTrader As EtsGeneralLib.EtsMmEntityAtom
+'    If g_CurTraderID <> 0 Then
+'        Set aTrader = g_Trader(CStr(g_CurTraderID))
+'        If Not aTrader Is Nothing Then
+'            sDesc = sDesc & aTrader.Name & vbCrLf
+'            Set aTrader = Nothing
+'        Else
+'            sDesc = sDesc & "<fail to retrieve info>" & vbCrLf
+'        End If
+'    Else
+'        sDesc = sDesc & "<All Traders>" & vbCrLf
+'    End If
+'
+'
+'    ' Price Profiles
+'    sDesc = sDesc & vbCrLf & "Price Profiles" & vbCrLf & String$(70, "-") & vbCrLf
+'    Dim aPrProf As EtsGeneralLib.EtsPriceProfileAtom
+'
+'    For Each aPrProf In g_PriceProfile
+'        sDesc = sDesc & "Name: " & aPrProf.Name & vbCrLf
+'        sDesc = sDesc & "Description: " & aPrProf.Description & vbCrLf
+'        If aPrProf.IsOptionProfile Then
+'            sDesc = sDesc & "Type: Option" & vbCrLf
+'            sDesc = sDesc & "Use Bid/Ask for Long/Short Positions for P&L: " & IIf(aPrProf.UseMidMarketForPnL, "No", "Yes") & vbCrLf
+'            sDesc = sDesc & "If No Bid or Ask then: " & IIf(aPrProf.BadOptSinglePriceRule = enObsprReplaceWithLast, "Replace missing Bid or Ask with Last", _
+'                                                        IIf(aPrProf.BadOptSinglePriceRule = enObsprReplaceWithOpposite, "Replace missing Bid/Ask with Ask/Bid", _
+'                                                        IIf(aPrProf.BadOptSinglePriceRule = enObsprReplaceWithZero, "Replace missing Bid/Ask with Zero", _
+'                                                        "Replace missing Bid/Ask with last Theo"))) & vbCrLf
+'            sDesc = sDesc & "If No Bid and Ask then: " & IIf(aPrProf.BadOptBothPriceRule = enObbprUseLast, "Use Last", "Use last Theo") & vbCrLf
+'        Else
+'            sDesc = sDesc & "Type: Stock" & vbCrLf
+'            If aPrProf.AlwaysUseLast Then
+'                sDesc = sDesc & "Always Use Last: Yes" & vbCrLf
+'            Else
+'                sDesc = sDesc & "Always Use Last: No" & vbCrLf
+'                sDesc = sDesc & "Use Bid/Ask for Long/Short Positions for P&L: " & IIf(aPrProf.UseMidMarketForPnL, "No", "Yes") & vbCrLf
+'                sDesc = sDesc & "Use Last Price instead Bid and Ask if Bid or Ask is not within Tolerance range (or no Bid or Ask): " & _
+'                                IIf(aPrProf.BadUndPriceRule = enUbprCheckTolerance, "Yes", "No") & vbCrLf
+'            End If
+'        End If
+'        sDesc = sDesc & vbCrLf
+'    Next
 End Sub
 
 Private Sub LoadCurrentUserPrivateFolderPath()
@@ -1282,6 +1283,7 @@ Private Sub LoadCurrentUserPrivateFolderPath()
         Set aFSO = Nothing
     End If
 End Sub
+
 
 
 

@@ -15,10 +15,14 @@ Option Explicit
 
 Public Enum SheduleStatusEnum
     SS_COMMON = 0
-    
     SS_NEW
     SS_UPDATED
     SS_DELETED
+End Enum
+
+Public Enum BRReportFormat
+    BRF_CSV = 0
+    BRF_HTML
 End Enum
 
 Public Status As SheduleStatusEnum
@@ -37,7 +41,8 @@ Public LastRun As Date
 Public ResultFile As String
 Public ResultFilePath As String
 Public UseDefaultLayout As Boolean
-
+Public FileNameHeader As String
+Public ReportFormat As BRReportFormat
 
 Public Function Init() As Boolean
     On Error Resume Next
@@ -68,6 +73,8 @@ Private Sub Class_Initialize()
     ResultFile = ""
     ResultFilePath = g_Params.CurrentUserPrivateFolder
     UseDefaultLayout = True
+    FileNameHeader = ""
+    ReportFormat = BRF_CSV
 End Sub
 
 Private Sub Class_Terminate()

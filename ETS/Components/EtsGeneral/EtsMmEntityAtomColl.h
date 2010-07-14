@@ -15,7 +15,7 @@ typedef ICollectionOnSTLMapOfInterfacePtrImpl<IEtsMmEntityAtomCollDispImpl, BSTR
 
 
 class ATL_NO_VTABLE CEtsMmEntityAtomColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsMmEntityAtomColl, &CLSID_EtsMmEntityAtomColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsMmEntityAtomColl>,
 	public IEtsMmEntityAtomCollImpl
@@ -23,6 +23,7 @@ class ATL_NO_VTABLE CEtsMmEntityAtomColl :
 public:
 	CEtsMmEntityAtomColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSMMENTITYATOMCOLL)
@@ -32,20 +33,26 @@ BEGIN_COM_MAP(CEtsMmEntityAtomColl)
 	COM_INTERFACE_ENTRY(IEtsMmEntityAtomColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 // ISupportsErrorInfo
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

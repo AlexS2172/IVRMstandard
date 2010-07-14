@@ -4,11 +4,12 @@
 #include "resource.h"       // main symbols
 
 #include "EtsMmGeneral.h"
-#include "MmTradeChannel.h"
+//#include "MmTradeChannel.h"
 #include "_IMmTradeViewEvents_CP.h"
 
 
 // CMmTradeView
+
 typedef std::set<long> SelectionSet;
 class CTradeViewSort
 {
@@ -26,7 +27,7 @@ public:
 };
 
 class ATL_NO_VTABLE CMmTradeView : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmTradeView, &CLSID_MmTradeView>,
 	public ISupportErrorInfoImpl<&IID_IMmTradeView>,
 	public IConnectionPointContainerImpl<CMmTradeView>,
@@ -36,13 +37,13 @@ class ATL_NO_VTABLE CMmTradeView :
 {
 public:
 	CMmTradeView()
-		:m_pTradeChannel(NULL)
+		:m_spTradeChannel(NULL)
 		,m_enSortField(TLC_DATE)
 		,m_enSortType(enSortDescending)
 		,m_lVisibleColumns(0L)
 	{
-		//ZeroMemory(m_TradeViewFilters, sizeof(m_TradeViewFilters));
 		ZeroMemory(m_ColumnsEncoding, sizeof(m_ColumnsEncoding));
+		m_pUnkMarshaler = NULL;
 	}
 
 	DECLARE_REGISTRY_RESOURCEID(IDR_MMTRADEVIEW)
@@ -50,11 +51,12 @@ public:
 
 	BEGIN_COM_MAP(CMmTradeView)
 		COM_INTERFACE_ENTRY(IMmTradeView)
-		COM_INTERFACE_ENTRY(VSFLEX::IVSFlexDataSource)
-		COM_INTERFACE_ENTRY2(IDispatch, IMmTradeView)
 		COM_INTERFACE_ENTRY(IDispatch)
 		COM_INTERFACE_ENTRY(ISupportErrorInfo)
 		COM_INTERFACE_ENTRY(IConnectionPointContainer)
+		COM_INTERFACE_ENTRY(VSFLEX::IVSFlexDataSource)
+		COM_INTERFACE_ENTRY2(IDispatch, IMmTradeView)
+		COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 	END_COM_MAP()
 
 	BEGIN_CONNECTION_POINT_MAP(CMmTradeView)
@@ -63,6 +65,7 @@ public:
 	// ISupportsErrorInfo
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
@@ -73,15 +76,19 @@ public:
 		catch (_com_error& e) {
 			return Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), IID_IMmTradeView, e.Error());
 		}
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 
 	void FinalRelease() 
 	{
 		m_spFilterData = NULL;
+		m_pUnkMarshaler.Release();
 	}
 
 public:
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 	STDMETHOD(raw_GetFieldCount) (/*[out,retval]*/ long * pFields );
 	STDMETHOD(raw_GetRecordCount)(/*[out,retval]*/ long * pRecords );
@@ -96,12 +103,21 @@ public:
 	IMPLEMENT_OBJECTREADONLY_PROPERTY( IEtsFilterData*, FilterData, m_spFilterData);
 	STDMETHOD(put_TradeViewColumnsOrder)(SAFEARRAY** colOrder);
 	STDMETHOD(Sort)(TradesListColumnEnum enField, EtsSortingEnum enSort);
+	IMPLEMENT_OBJECT_PROPERTY(IEtsMain*, EtsMain, m_spEtsMain)
+	IMPLEMENT_OBJECT_PROPERTY(IMmTradeChannel*, TradeChannel, m_spTradeChannel)
 
 	STDMETHOD(Refresh)()
 	{
-		m_vecShow.clear();
-		m_pTradeChannel->FilterData(/*m_TradeViewFilters*/m_spFilterData, m_vecShow);
-		PerformSorting();
+		try
+		{
+			m_vecShow.clear();
+			FilterData(m_spFilterData, m_vecShow);
+			PerformSorting();
+		}
+		catch (_com_error& err)
+		{
+			return Error((PTCHAR)CComErrorWrapper::ErrorDescription(err), IID_IMmTradeView, err.Error());
+		}
 		return S_OK;
 	}
 
@@ -129,19 +145,19 @@ public:
 	}
 
 	STDMETHOD(get_RowData)(LONG lRow, IMmTradeInfoAtom** ppVal);
-	
 
 private:
-	CMmTradeChannel*	m_pTradeChannel;
-	//long			m_TradeViewFilters[TFC_COLUMN_COUNT];
-	long			m_ColumnsEncoding[TLC_COLUMN_COUNT];
-	CTradeInfoViewData	m_vecShow;
-	SelectionSet		m_SelSet;
+	IMmTradeChannelPtr		m_spTradeChannel;
+	long					m_ColumnsEncoding[TLC_COLUMN_COUNT];
+	CTradeInfoViewData		m_vecShow;
+	SelectionSet			m_SelSet;
 
 	TradesListColumnEnum	m_enSortField;
 	EtsSortingEnum			m_enSortType;
 	long					m_lVisibleColumns;
 	IEtsFilterDataPtr		m_spFilterData;
+	IEtsMainPtr				m_spEtsMain;
+
 private:
 	void PerformSorting()
 	{
@@ -152,7 +168,8 @@ private:
 		}
 	}
 public:
-	void SetTradeChannel(CMmTradeChannel* pChannel){m_pTradeChannel = pChannel;}
+	void SetTradeChannel(IMmTradeChannelPtr spDataSource){ m_spTradeChannel = spDataSource;}
+	void FilterData(IEtsFilterDataPtr spFilter, CTradeInfoViewData& refTrades);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmTradeView), CMmTradeView)

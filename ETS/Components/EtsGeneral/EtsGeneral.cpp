@@ -4,6 +4,9 @@
 #include "resource.h"
 #include "EtsGeneral.h"
 
+CCalculationSettingsPtr CCalculationSettingsSingleton::m_spSettings = CCalculationSettingsPtr();
+_bstr_t	CGenegalSettings::m_DBConnectionString = _bstr_t("");
+
 class CEtsGeneralModule : public CAtlDllModuleT< CEtsGeneralModule >
 {
 public :

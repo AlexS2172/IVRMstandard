@@ -56,9 +56,8 @@ int main(int argc, char* argv[])
 	_Module.Init(NULL, (HINSTANCE )GetCurrentProcess());
 
     {
-    	CSage	theApp;	
-		CTracer::SetPublisher(&theApp.m_SageConnector.m_Publisher);
-
+    	CSage	theApp;
+		
 	    dwRes = theApp.Start();
 	    if (dwRes)
 	    {
@@ -66,6 +65,7 @@ int main(int argc, char* argv[])
 	    }
 	    else
 	    {
+			CTracer::SetPublisher(theApp.m_SageConnector.m_Publisher);
 		    dwRes = theApp.Run();
 		    if (dwRes)
 		    {

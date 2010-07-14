@@ -27,6 +27,19 @@ struct __MmRvQuoteAtom
 
 	// theo info
 	DOUBLE						m_dPriceTheo;
+	DOUBLE						m_dPriceTheoBid;
+	DOUBLE						m_dPriceTheoAsk;
+
+	DOUBLE						m_dIntrinsicValue;
+
+	DOUBLE						m_dContractPrice;
+	DOUBLE						m_dContractPriceBid;
+	DOUBLE						m_dContractPriceAsk;
+
+	DOUBLE						m_dBaseContractPrice;
+	DOUBLE						m_dBaseContractPriceBid;
+	DOUBLE						m_dBaseContractPriceAsk;
+
 	DOUBLE						m_dDelta;
 	DOUBLE						m_dGamma;
 	DOUBLE						m_dVega;
@@ -42,7 +55,6 @@ struct __MmRvQuoteAtom
 	DOUBLE						m_dImpliedVola ;
 	DOUBLE						m_dMIV;
 	DOUBLE						m_dVolaCalcPrice ;
-	//VARIANT_BOOL				m_bManual ;
 	VARIANT_BOOL				m_bIsVolaCalculatedWell ;
 
 
@@ -56,7 +68,6 @@ struct __MmRvQuoteAtom
 
 
 	__MmRvQuoteAtom() :
-		//m_bManual(VARIANT_FALSE),
 		m_bIsVolaCalculatedWell(VARIANT_TRUE),
 		m_nLotSize(0L),
 		m_pSuPrice(NULL),
@@ -68,8 +79,6 @@ struct __MmRvQuoteAtom
 		m_bDirty(VARIANT_FALSE),
 		m_dNetChange(BAD_DOUBLE_VALUE),
 		m_enReplacePriceStatus(enRpsNone)
-		//,m_bVolatilityEnginrCalculation(VARIANT_FALSE)
-
 	{
 		ClearValues();
 	}
@@ -87,15 +96,23 @@ struct __MmRvQuoteAtom
 		m_dVegaDelta = BAD_DOUBLE_VALUE;
 		m_dVegaGamma = BAD_DOUBLE_VALUE;
 
+		m_dPriceTheoBid = BAD_DOUBLE_VALUE;
+		m_dPriceTheoAsk = BAD_DOUBLE_VALUE;
+		m_dContractPrice = BAD_DOUBLE_VALUE;
+		m_dContractPriceBid = BAD_DOUBLE_VALUE;
+		m_dContractPriceAsk = BAD_DOUBLE_VALUE;
+		m_dBaseContractPrice = BAD_DOUBLE_VALUE;
+		m_dBaseContractPriceBid = BAD_DOUBLE_VALUE;
+		m_dBaseContractPriceAsk = BAD_DOUBLE_VALUE;
+		m_dIntrinsicValue = BAD_DOUBLE_VALUE;
+
 		m_bDirty = VARIANT_FALSE;
 
 	}
 
 };
 
-
 // CRvMmQuoteAtom
-
 class ATL_NO_VTABLE CRvMmQuoteAtom :
 	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CRvMmQuoteAtom, &CLSID_RvMmQuoteAtom>,
@@ -172,7 +189,6 @@ public:
 	IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, Vola,			m_dVola)
 	IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, ImpliedVola, m_dImpliedVola)
 	IMPLEMENT_SIMPLE_WITHCHECK_PROPERTY(DOUBLE, MIV, m_dMIV)
-	//IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL,VolatilityEnginrCalculation, m_bVolatilityEnginrCalculation)
 
 	// price info
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmRvPrice*,	SuPrice, m_spSuPrice);
@@ -194,7 +210,6 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, VegaGamma, m_dVegaGamma)
 	IMPLEMENT_SIMPLE_PROPERTY(EtsReplacePriceStatusEnum, ReplacePriceStatus, m_enReplacePriceStatus)
 
-	//IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL , IsVolaManual, m_bManual)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL , IsVolaCalculatedWell,m_bIsVolaCalculatedWell)
 	IMPLEMENT_BSTRT_PROPERTY(VolaCalculatedParametrs, m_bsVolaCalculatedParametrs)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, CalcPrice, m_dVolaCalcPrice)

@@ -184,6 +184,7 @@ Private m_sUnderlyingComboList As String ' current trader stocks/indices
 Private m_sStockComboList$ ' all stocks
 Private m_sBasketIndexComboList$ ' all basket indices
 Private m_VSCalcEnabled As Boolean
+Private m_CVEnabled As Boolean
 Private m_dNetExposureAUM As Double
 
 Private m_sUnderlyingWithFuturesComboListAll As String ' all stocks/indices/futures
@@ -250,12 +251,47 @@ Private m_BatchReportingShedules As Collection
 Public BR_Email As String
 Public BR_SendEmail As Boolean
 Public BR_FilterDisplay As Boolean
+Public BR_IncludeTime As Boolean
+Public BR_IncludeDate As Boolean
+Public BR_IncludeFilters As Boolean
 
 Public ExecuteBatchReporting As Boolean
 Public AllReportsAvalable As Boolean
+Public UseTTE As Boolean
+Private m_hedgeSymbol As String
+Private m_realtimeCalculateCV As Boolean
+Private m_calculateCVCount As Long
+
+Public GroupSpecificRatioFile As String
+Public StockShiftFile As String
+Public CurveInterpolationType As Long
+Public CurveExtrapolationType As Long
+
+Public Property Get RealtimeCalculateCV() As Boolean
+On Error Resume Next
+    RealtimeCalculateCV = m_realtimeCalculateCV
+End Property
+
+Public Property Let RealtimeCalculateCV(Flag As Boolean)
+On Error Resume Next
+    m_realtimeCalculateCV = Flag
+End Property
+
+Public Property Get CalculateCVCount() As Long
+On Error Resume Next
+    CalculateCVCount = m_calculateCVCount
+End Property
+
+Public Property Let CalculateCVCount(Count As Long)
+On Error Resume Next
+    m_calculateCVCount = Count
+End Property
 
 Public Property Get IsVSCalcEnabled() As Boolean
     IsVSCalcEnabled = m_VSCalcEnabled
+End Property
+Public Property Get IsCVEnabled() As Boolean
+    IsCVEnabled = m_CVEnabled
 End Property
 Public Property Get AppTitle() As String
     AppTitle = m_sAppTitle
@@ -270,6 +306,15 @@ Public Property Get AppCopyright() As String
     AppCopyright = m_sAppCopyright
 End Property
 
+Public Property Get HedgeSymbol() As String
+On Error Resume Next
+    HedgeSymbol = m_hedgeSymbol
+End Property
+
+Public Property Let HedgeSymbol(Symbol As String)
+On Error Resume Next
+    m_hedgeSymbol = Symbol
+End Property
 Public Property Get CalcModel() As EtsGeneralLib.EtsCalcModelTypeEnum
     CalcModel = m_CalcModel
 End Property
@@ -344,6 +389,60 @@ Public Property Let QuoteOptExpirySeparation(NewValue As Boolean)
     RaiseEvent QuoteOptExpirySeparationChange
 End Property
 
+Public Sub ReloadCustomParams()
+On Error GoTo err_exception
+    
+    Dim aXMLLoader As ETSXMLParamsLib.XMLLoader
+    Set aXMLLoader = New ETSXMLParamsLib.XMLLoader
+    
+    Dim aUserXMLParams As ETSXMLParamsLib.XMLParams
+    
+    Set aUserXMLParams = aXMLLoader.Load(CurrentUserXMLFilePath)
+    If Not aUserXMLParams Is Nothing Then
+    
+            'reload fit2impl params settings
+            QuoteFitToImpFlatNoBid = (aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteFitToImpFlatNoBid", 1) <> 0)
+            QuoteFitToImpCurveType = aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "QuoteFitToImpCurveType", enFitToImpCurveOTM)
+            
+            If QuoteFitToImpCurveType <> enFitToImpCurveCalls _
+                And QuoteFitToImpCurveType <> enFitToImpCurvePuts _
+                And QuoteFitToImpCurveType <> enFitToImpCurveOTM Then
+                QuoteFitToImpCurveType = enFitToImpCurveOTM
+            End If
+            
+            'reload PnL Settings
+            UseTheoCloseForPNL = (aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTheoCloseForPNL", 1) <> 0)
+
+            PnLCalcType = aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "PnLCalcType", PNLCT_DAILY)
+            If PnLCalcType < PNLCT_LTD Then
+                PnLCalcType = PNLCT_LTD
+            ElseIf PnLCalcType > PNLCT_DAILY Then
+                PnLCalcType = PNLCT_DAILY
+            End If
+            
+            'Model reload
+            m_CalcModel = aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcModel", enCmBinomialOpt)
+            If m_CalcModel <> enCmBinomial And m_CalcModel <> enCmBinomialOpt And m_CalcModel <> enCmVskLog Then
+                m_CalcModel = enCmBinomialOpt
+            End If
+            
+            'Matrix calc type
+            MatrixExerciseOptions = (aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixExerciseOptions", 0) <> 0)
+            MatrixCalcModel = aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixCalcModel", enCmBinomialOpt)
+            If MatrixCalcModel <> enCmBinomial And MatrixCalcModel <> enCmBinomialOpt And MatrixCalcModel <> enCmVskLog Then
+                MatrixCalcModel = enCmBinomialOpt
+            End If
+            
+            'Calculation Precision Mode
+            UseTTE = aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTTE", 0) <> 0
+            g_Main.CalculationParametrs.UseTimePrecision = UseTTE
+    End If
+    
+Exit Sub
+err_exception:
+    Debug.Print "Error while reloading CustomParams()"
+End Sub
+
 Public Sub LoadSettings()
     On Error GoTo EH
     
@@ -371,6 +470,10 @@ Public Sub LoadSettings()
     LastIVFile = g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup & "\DataLoader", "LastVolaFile", "")
     LastIRFile = g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup & "\DataLoader", "LastIRFile", "")
     LastIWFile = g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup & "\DataLoader", "LastIWFile", "")
+    
+    HedgeSymbol = g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup, "HedgeSymbol", "")
+    RealtimeCalculateCV = IIf(g_aMainXMLParams.GetLongValue(GROUP_XML_KEY & sUserGroup, "RealtimeCalculateCV", 0) = 0, False, True)
+    CalculateCVCount = g_aMainXMLParams.GetLongValue(GROUP_XML_KEY & sUserGroup, "CalculateCVCount", 0)
     
     ExchangeRate = (CDbl(g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\ExchangeRates", CAN_REGION, "1")))
     
@@ -425,8 +528,10 @@ Public Sub LoadSettings()
     CalcDefUndExchID = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcDefUndExchID", 0)
     CalcDefOptExchID = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcDefOptExchID", 0)
     AllReportsAvalable = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "AllReportsAvalable", 0) <> 0
+    UseTTE = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTTE", 0) <> 0
         
     m_VSCalcEnabled = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "VSCalcEnabled", 0) > 0, True, False)
+    m_CVEnabled = IIf(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CVEnabled", 0) > 0, True, False)
     
     UseCalcSleep = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseCalcSleep", 1) <> 0)
     CalcSleepFreq = 10 'g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CalcSleepFreq", 10)
@@ -521,7 +626,7 @@ Public Sub LoadSettings()
     End If
     MatrixReqTypeAlwaysNonGroup = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "MatrixReqTypeAlwaysNonGroup", 0) <> 0)
     
-    UseTheoVolatility = True '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTheoVolatility", 1) <> 0)
+    UseTheoVolatility = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTheoVolatility", 1) <> 0)
     UseTheoNoBid = False '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTheoNoBid", 1) <> 0)
     UseTheoBadMarketVola = False '(g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "UseTheoBadMarketVola", 1) <> 0)
     
@@ -683,10 +788,16 @@ Public Sub LoadSettings()
     End If
     
     g_lMinLogLevel = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\MMLogLevel", sUserGroup, CLng(enLogWarning)))
+    g_lLogLifetime = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\LogLifetime", sUserGroup, 2))
     
     g_MaxRTQuantity = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\MaxQuoteRTNumber", sUserGroup, 4))
     If (g_MaxRTQuantity <= 0) Or (g_MaxRTQuantity > 300) Then
-        g_MaxRTQuantity = 4
+        g_MaxRTQuantity = 1
+    End If
+    
+    g_MaxRvRTQuantity = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\MaxRiskRTNumber", sUserGroup, 4))
+    If (g_MaxRvRTQuantity <= 0) Or (g_MaxRvRTQuantity > 300) Then
+        g_MaxRvRTQuantity = 1
     End If
     
     ScannersLogin = g_aUserXMLParams.GetStringValue(PRODUCT_XML_KEY & "Scanners\Settings", "Login", "")
@@ -704,14 +815,28 @@ Public Sub LoadSettings()
         ScanStrategyWindClass = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Scanners", "ScanStrategyWindClass", "")
         
         
-    BR_FilterDisplay = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\BatchReporting", "FilterDisplay", 0) <> 0)
-    BR_SendEmail = (g_aMainXMLParams.GetLongValue(PRODUCT_XML_KEY & "Asp\BatchReporting", "SendEmail", 0) <> 0)
-    BR_Email = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\BatchReporting", "Email", "")
+    BR_FilterDisplay = (g_aUserXMLParams.GetLongValue(PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "FilterDisplay", 0) <> 0)
+    BR_SendEmail = (g_aUserXMLParams.GetLongValue(PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "SendEmail", 0) <> 0)
+    BR_Email = g_aUserXMLParams.GetStringValue(PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "Email", "")
+    'Show time stemp in file name of generated report
+    BR_IncludeTime = (g_aUserXMLParams.GetLongValue(PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "IncludeTime", 0) <> 0)
+    'Show date stemp in file name of generated report
+    BR_IncludeDate = (g_aUserXMLParams.GetLongValue(PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "IncludeDate", 0) <> 0)
+    'Show used filters in file name of generated report
+    BR_IncludeFilters = (g_aUserXMLParams.GetLongValue(PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "IncludeFilters", 0) <> 0)
     
-    SMTPServer = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\SMTPSettings", "SMTPServer", "")
-    MailAddress = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\SMTPSettings", "SenderAddress", "")
+    'Get group Specific ratio file for risk matrix specific simulation
+    GroupSpecificRatioFile = g_aUserXMLParams.GetStringValue(PRODUCT_XML_KEY & "MarketMaker\RiskMatrix", "GroupSpecificRatioFile", "")
+    
+    SMTPServer = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\Groups\" & sUserGroup & "\SMTPSettings", "SMTPServer", "")
+    MailAddress = g_aMainXMLParams.GetStringValue(PRODUCT_XML_KEY & "Asp\Groups\" & sUserGroup & "\SMTPSettings", "SenderAddress", "")
     
     ExecuteBatchReporting = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "ExecuteBatchReporting", 0) <> 0)
+    
+    StockShiftFile = g_aUserXMLParams.GetStringValue(APP_XML_KEY & "Settings", "StockShiftFile", STR_NA)
+        
+    CurveInterpolationType = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CurveInterpolationType", 1)
+    CurveExtrapolationType = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CurveExtrapolationType", 1)
         
     UserName = CurrentNtUserName
     
@@ -721,6 +846,8 @@ End Sub
 
 Public Sub SaveSettings()
     On Error Resume Next
+    
+    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "UseTTE", IIf(UseTTE, 1, 0)
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CalcModel", m_CalcModel
     
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "PnLCalcType", PnLCalcType
@@ -810,15 +937,25 @@ Public Sub SaveSettings()
     
     'Save USD/CAD Rate
     g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\ExchangeRates", CAN_REGION, CStr(ExchangeRate)
+    g_aMainXMLParams.SetStringValue GROUP_XML_KEY & UserGroup, "HedgeSymbol", HedgeSymbol
     
-    g_aMainXMLParams.SetLongValue PRODUCT_XML_KEY & "Asp\BatchReporting", "FilterDisplay", BR_FilterDisplay
-    g_aMainXMLParams.SetLongValue PRODUCT_XML_KEY & "Asp\BatchReporting", "SendEmail", BR_SendEmail
-    g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\BatchReporting", "Email", BR_Email
+    g_aUserXMLParams.SetLongValue PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "FilterDisplay", BR_FilterDisplay
+    g_aUserXMLParams.SetLongValue PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "SendEmail", BR_SendEmail
+    g_aUserXMLParams.SetStringValue PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "Email", BR_Email
+    g_aUserXMLParams.SetLongValue PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "IncludeDate", BR_IncludeDate
+    g_aUserXMLParams.SetLongValue PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "IncludeTime", BR_IncludeTime
+    g_aUserXMLParams.SetLongValue PRODUCT_XML_KEY & "MarketMaker\BatchReporting", "IncludeFilters", BR_IncludeFilters
     
-    g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\SMTPSettings", "SMTPServer", SMTPServer
-    g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\SMTPSettings", "SenderAddress", MailAddress
+    g_aUserXMLParams.SetStringValue PRODUCT_XML_KEY & "MarketMaker\RiskMatrix", "GroupSpecificRatioFile", GroupSpecificRatioFile
+    g_aUserXMLParams.SetStringValue APP_XML_KEY & "Settings", "StockShiftFile", StockShiftFile
+    
+    'g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\Groups\" & m_sUserGroup & "\SMTPSettings", "SMTPServer", SMTPServer
+    'g_aMainXMLParams.SetStringValue PRODUCT_XML_KEY & "Asp\Groups\" & m_sUserGroup & "\SMTPSettings", "SenderAddress", MailAddress
     
     g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "ExecuteBatchReporting", ExecuteBatchReporting
+    
+    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CurveInterpolationType", CurveInterpolationType
+    g_aUserXMLParams.SetLongValue APP_XML_KEY & "Settings", "CurveExtrapolationType", CurveExtrapolationType
     
 End Sub
 
@@ -1717,7 +1854,7 @@ Public Sub LoadBatchShedule()
         aShedule.Enabled = CBool(ReadByte(rs!tiStatus))
         aShedule.LastRun = CDate(rs!dtLastRun)
         
-        m_BatchReportingShedules.Add aShedule, CStr(aShedule.ID)
+        m_BatchReportingShedules.Add aShedule, Trim(CStr(aShedule.ID))
         Set aShedule = Nothing
     
         rs.MoveNext
@@ -1729,12 +1866,10 @@ Public Sub SaveBatchShedule()
     On Error Resume Next
 
     Dim aShedule As clsBatchReportingShedule
-    Dim rs As ADODB.Recordset
-    Dim dtLastRun As Date
 
     For Each aShedule In m_BatchReportingShedules
         gDBW.usp_BR_Shedule_Save aShedule.ExecTime, aShedule.Enabled, aShedule.ID
-        gDBW.usp_BR_Shedule_Complete aShedule.ID, dtLastRun
+        gDBW.usp_BR_Shedule_Complete aShedule.ID, aShedule.LastRun
     Next
 End Sub
 
@@ -1765,8 +1900,10 @@ Public Sub LoadBatchReports()
         aReport.LastRun = CDate(rs!dtLastRun)
         aReport.ResultFile = ReadStr(rs!vcResultFile)
         aReport.ResultFilePath = ReadStr(rs!vcFilePath)
+        aReport.FileNameHeader = ReadStr(rs!vcFileNameHeader)
+        aReport.ReportFormat = ReadLng(rs!iReportFormat)
         
-        aReport.UseDefaultLayout = CBool(aReport.LayoutFilePath = "Default")
+        aReport.UseDefaultLayout = CBool(aReport.LayoutFilePath = "DefaultRiskView")
         
         aReport.Init
         
@@ -1797,7 +1934,9 @@ Public Sub SaveBatchReports()
                                         aReport.IsPosExpanded, _
                                         aReport.ResultFilePath, _
                                         aReport.LastRun, _
-                                        aReport.ResultFile
+                                        aReport.ResultFile, _
+                                        aReport.FileNameHeader, _
+                                        aReport.ReportFormat
                 aReport.Status = SS_COMMON
             Case SS_UPDATED
                 gDBW.usp_BR_Report_Save aReport.UserName, _
@@ -1811,6 +1950,8 @@ Public Sub SaveBatchReports()
                                         aReport.ResultFilePath, _
                                         aReport.LastRun, _
                                         aReport.ResultFile, _
+                                        aReport.FileNameHeader, _
+                                        aReport.ReportFormat, _
                                         aReport.ID
                 aReport.Status = SS_COMMON
             Case SS_DELETED

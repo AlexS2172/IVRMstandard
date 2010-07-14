@@ -31,7 +31,8 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 									   bool                       bCalcDelta,
 									   DATE						  dtCalcDate,
 									   CVolasMapPtr				  spVolaCache,
-									   VARIANT_BOOL ManualEdit)
+									   VARIANT_BOOL ManualEdit,
+									   ICalculationParametrs* pParams)
 {
 	HRESULT hr = S_OK;
 	try
@@ -42,7 +43,11 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 		LONG nRetCount = 0;
 
 		
-		DOUBLE	dYTE	=	(pOpt->m_dtExpiryOV - dtCalcDate) / 365.;
+		DOUBLE	dYTE		= 0.;	
+		DOUBLE	dtExpiryOV	= pOpt->m_dtExpiryOV;
+		DOUBLE	dtCloseTime	= pOpt->m_dtTradingClose;
+		::GetCalculationParams(dtCalcDate, dtExpiryOV, dtCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtCalcDate, &dtExpiryOV, &dtCloseTime, &dYTE);
+
 
 		if(!IsBadValue(nQtyInShares))
 			nGreekMask |= GT_THEOPRICE | GT_DELTA | GT_GAMMA | GT_VEGA | GT_THETA | GT_RHO;
@@ -115,6 +120,8 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 						else
 							dRate = pExp->m_dRate;
 
+						DOUBLE dHTBRate = pExp->m_dHTBRate;
+
 						DOUBLE dStrike = 0., dVolaForCalcs = 0.;
 						EtsOptionTypeEnum enOptType = enOtPut;
 
@@ -137,7 +144,7 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 										if(spVolaCache==NULL || 
 											!spVolaCache->GetVola(undQuote.m_dPrice, dOptPrice, dIV))
 										{
-											dIV = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, undQuote.m_dPrice, dOptPrice, dStrike, 
+											dIV = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, undQuote.m_dPrice, dOptPrice, dStrike, 
 												dYTE, enOptType, nIsAmerican, lDivCount,
 												pAmmounts, pDates, 100L, dSkew, dKurt, nModel, &nFlag);
 
@@ -183,7 +190,7 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 									if(spVolaCache==NULL || 
 										!spVolaCache->GetVola(undQuote.m_dPrice, dOptPrice, dIV))
 									{
-										dIV = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, undQuote.m_dPrice, dOptPrice, dStrike, 
+										dIV = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, undQuote.m_dPrice, dOptPrice, dStrike, 
 											dYTE, enOptType, nIsAmerican, lDivCount,
 											pAmmounts, pDates, 100L, dSkew, dKurt, nModel, &nFlag);
 
@@ -209,7 +216,7 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 
 						if(aGreeks.nMask != GT_NOTHING && (VARIANT_TRUE == bUseTheoVolatility && nExchID == 0L || VARIANT_FALSE == bUseTheoVolatility))
 						{
-							nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, undQuote.m_dPrice, dStrike, dVolaForCalcs, dYTE,
+							nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, undQuote.m_dPrice, dStrike, dVolaForCalcs, dYTE,
 								enOptType, nIsAmerican, lDivCount, pAmmounts, pDates, 100L, dSkew, dKurt, nModel, &aGreeks);
 						}
 
@@ -234,7 +241,7 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 										if(spVolaCache==NULL || 
 											!spVolaCache->GetVola(undQuote.m_dPrice, dTheoPrice, dIV))
 										{
-											dIV = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, undQuote.m_dPrice, dTheoPrice, dStrike,
+											dIV = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, undQuote.m_dPrice, dTheoPrice, dStrike,
 												dYTE, enOptType, nIsAmerican, lDivCount, pAmmounts, pDates, 100L,
 												dSkew, dKurt, nModel, &nFlag);
 
@@ -275,7 +282,7 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 									if(spVolaCache==NULL || 
 										!spVolaCache->GetVola(undQuote.m_dBid, dOptBid, dIVBid))
 									{
-										dIVBid = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, undQuote.m_dBid, dOptBid, dStrike, 
+										dIVBid = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, undQuote.m_dBid, dOptBid, dStrike, 
 											dYTE, enOptType, nIsAmerican,
 											lDivCount, pAmmounts, pDates, 100L,
 											dSkew, dKurt, nModel, &nFlag);
@@ -317,7 +324,7 @@ HRESULT CMmQvUndAtom::rawCalcOptionGreeks(
 									if(spVolaCache==NULL || 
 										!spVolaCache->GetVola(undQuote.m_dAsk, dOptAsk, dIVAsk))
 									{
-										dIVAsk = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, undQuote.m_dAsk, dOptAsk, dStrike, 
+										dIVAsk = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, undQuote.m_dAsk, dOptAsk, dStrike, 
 											dYTE, enOptType, nIsAmerican,
 											lDivCount, pAmmounts, pDates, 100L,
 											dSkew, dKurt, nModel, &nFlag);
@@ -563,7 +570,8 @@ STDMETHODIMP CMmQvUndAtom::CalcOptionGreeks(IMmQvOptAtom* aOpt,
 											EtsPriceRoundingRuleEnum enPriceRoundingRule,
 											VARIANT_BOOL bUseCustomRates, 
 											DOUBLE dtCalcDate,
-											VARIANT_BOOL ManualEdit	)
+											VARIANT_BOOL ManualEdit,
+											ICalculationParametrs* pParams)
 {
 	if(aOpt == NULL || aQuote == NULL || aExp == NULL || aOptRoot == NULL)
 		return Error(L"Invalid objects passed.", IID_IMmQvUndAtom, E_INVALIDARG);
@@ -579,12 +587,13 @@ STDMETHODIMP CMmQvUndAtom::CalcOptionGreeks(IMmQvOptAtom* aOpt,
 
 		DOUBLE	dtExpiryOV		=	pExp->m_dtExpiryOV;
 		DOUBLE	dtTradingClose	=	pExp->m_dtTradingClose;
-		//DOUBLE	dtNYDT;
-		//::GetNYDateTimeAsDATE(&dtNYDT);
-		//DOUBLE	dtNow			=	dtNYDT;//(DOUBLE)vt_date::GetCurrentDate();
 		DOUBLE	dtCalcNow		=	dtCalcDate;
-		DOUBLE	dYTE			=	(dtExpiryOV - dtCalcNow) / 365.0;
+		DOUBLE	dYTE			;
+
+		::GetCalculationParams(dtCalcNow, dtExpiryOV, dtTradingClose, pParams->UseTimePrecision != VARIANT_FALSE, &dtCalcNow, &dtExpiryOV, &dtTradingClose, &dYTE);
+
 		bool	bCalcDelta		=	(dYTE <= 0.);
+
 
 		long   nDivCount = 0L;
 		double dYield    = 0.;
@@ -655,57 +664,6 @@ STDMETHODIMP CMmQvUndAtom::CalcOptionGreeks(IMmQvOptAtom* aOpt,
 				}
 				break;	
 			}
-
-
-
-			//if(m_enUndType == enCtStock)
-			//{
-			//	if (m_spDividend != NULL)
-			//	{
-			//		nDivCount = 0;
-			//		m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
-			//		if (nDivCount< 0)
-			//			nDivCount = 0;
-
-			//		if (nDivCount> 0)
-			//		{
-			//			LPSAFEARRAY psaAmounts = NULL;
-			//			LPSAFEARRAY psaDates   = NULL;
-			//			m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
-
-			//			saAmounts.Attach(psaAmounts);
-			//			saDates.Attach(psaDates);
-			//		}
-			//	}
-			//}
-			//else
-			//{
-			//	VARIANT_BOOL bIsBasket = VARIANT_FALSE;
-			//	if(m_spBasketIndex != NULL)
-			//	{
-			//		nDivCount = 0;
-			//		IEtsIndexDivCollPtr spDivColl = NULL;
-			//		m_spBasketIndex->get_BasketDivs(&spDivColl);
-			//		_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
-
-			//		if ( bIsBasket && spDivColl != NULL)
-			//		{
-			//			spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
-			//			if(nDivCount > 0L)
-			//			{
-			//				LPSAFEARRAY psaAmounts = NULL;
-			//				LPSAFEARRAY psaDates   = NULL;
-
-			//				spDivColl->GetDividends(nToday, nExpiry,  nDivCount, &psaAmounts, &psaDates, &nDivCount);
-
-			//				saAmounts.Attach(psaAmounts);
-			//				saDates.Attach(psaDates);
-			//			}
-			//		}
-			//	}
-			//	dYield = bIsBasket? 0.0 : m_dYield;
-			//}
-
 		}
 		else
 		{
@@ -846,7 +804,8 @@ STDMETHODIMP CMmQvUndAtom::CalcOptionGreeks(IMmQvOptAtom* aOpt,
 				bCalcDelta,
 				dtCalcNow,
 				volasCache,
-				ManualEdit);
+				ManualEdit,
+				pParams);
 
 	}
 	catch(const _com_error& e)
@@ -1070,7 +1029,7 @@ STDMETHODIMP CMmQvUndAtom::CalcAllOptions(LONG nCallGreekMask, LONG nPutGreekMas
 										  IMmQvOptRootColl* collSynthRoots, DOUBLE dUndPriceTolerance, 
 										  EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
 										  LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
-										  VARIANT_BOOL bForceRecalc)
+										  VARIANT_BOOL bForceRecalc, ICalculationParametrs* pParams)
 {
 	HRESULT hr = S_OK;
 	//check calculations in progress
@@ -1110,7 +1069,7 @@ STDMETHODIMP CMmQvUndAtom::CalcAllOptions(LONG nCallGreekMask, LONG nPutGreekMas
 				hr = CalcFutUnderlyingOptions(nCallGreekMask, nPutGreekMask, enCallCalcIV, enPutCalcIV, enCalcModel,
 					bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket, bRecalcGreeks, 
 					dUndPriceTolerance, enPriceRoundingRule, bUseCustomRates,
-					nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc);
+					nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc, pParams);
 
 			}break;
 		case enCtIndex:
@@ -1119,19 +1078,19 @@ STDMETHODIMP CMmQvUndAtom::CalcAllOptions(LONG nCallGreekMask, LONG nPutGreekMas
 					hr = CalcFutUnderlyingOptions(nCallGreekMask, nPutGreekMask, enCallCalcIV, enPutCalcIV, enCalcModel,
 					bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket, bRecalcGreeks, 
 					dUndPriceTolerance, enPriceRoundingRule, bUseCustomRates,
-					nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc);
+					nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc, pParams);
 				else
 					hr = CalcEquityOptions( nCallGreekMask, nPutGreekMask, enCallCalcIV,
 					enPutCalcIV, enCalcModel,  bUseTheoVolatility, bUseTheoVolaNoBid, 
 					bUseTheoVolaBadMarket, bRecalcGreeks, collSynthRoots, dUndPriceTolerance, 
-					enPriceRoundingRule, bUseCustomRates, nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc);
+					enPriceRoundingRule, bUseCustomRates, nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc, pParams);
 			}break;
 		case enCtStock:
 			{
 				hr = CalcEquityOptions( nCallGreekMask, nPutGreekMask, enCallCalcIV,
 					enPutCalcIV, enCalcModel,  bUseTheoVolatility, bUseTheoVolaNoBid, 
 					bUseTheoVolaBadMarket, bRecalcGreeks, collSynthRoots, dUndPriceTolerance, 
-					enPriceRoundingRule, bUseCustomRates, nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc);
+					enPriceRoundingRule, bUseCustomRates, nCalcSleepFreq, nCalcSleepAmt, dtCalcDate, ManualEdit, bForceRecalc, pParams);
 
 			}break;
 		}
@@ -1160,7 +1119,7 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 										IMmQvOptRootColl* collSynthRoots, DOUBLE dUndPriceTolerance, 
 										EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
 										LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
-										VARIANT_BOOL bForceRecalc)
+										VARIANT_BOOL bForceRecalc, ICalculationParametrs* pParams)
 {
 
 	HRESULT hr = S_OK;
@@ -1292,15 +1251,9 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 		
 		spUndQuote = NULL;
 
-		//CComObject<CMmQvExpAtom>*;
 		CMmQvExpColl::CollType::iterator itExpCollectionBegin = m_pExp->m_coll.begin();
 		CMmQvExpColl::CollType::iterator itExpCollectionEnd = m_pExp->m_coll.end();
 
-		//_CHK(m_spExp->get__NewEnum(&spUnk), _T("Fail to get expiry collection."));
-		//DATE	dtNYDT;
-		//::GetNYDateTimeAsDATE(&dtNYDT);
-		//DOUBLE dtNow = dtNYDT;//((DATE)vt_date::GetCurrentDate());
-		//DOUBLE dtCalcDate     = dtNow + dDaySift;
 
 		for(CMmQvExpColl::CollType::iterator itExpCollection = itExpCollectionBegin;
 			itExpCollection != itExpCollectionEnd; ++itExpCollection)
@@ -1318,6 +1271,8 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 				DOUBLE dtExpiryOV   = pExpiry->m_dtExpiryOV;
 				DOUBLE dYte			= (dtExpiryOV - dtCalcDate) / 365.;
 				DOUBLE dtCloseTime	= pExpiry->m_dtTradingClose;
+
+				::GetCalculationParams(dtCalcDate, dtExpiryOV, dtCloseTime, pParams->UseTimePrecision != VARIANT_FALSE, &dtCalcDate, &dtExpiryOV, &dtCloseTime, &dYte);
 				bool	bCalcDelta	=	(dYte <= 0.);
 
 				CMmQvStrikeColl::CollType::iterator itStrikeBegin = pExpiry->m_pStrike->m_coll.begin();
@@ -1338,8 +1293,6 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 					CMmQvOptPairColl::EnumCollType::iterator itOptPairEnd   = pStrike->m_pOptPair->m_coll.end();
 
 					DOUBLE dVola = 0.0;
-					_CHK(m_spVolaSrv->get_OptionVola(pExpiry->m_dtExpiryOV, pStrike->m_dStrike, &dVola));
-
 
 					for(CMmQvOptPairColl::EnumCollType::iterator itOptPair = itOptPairBegin; 
 						itOptPair != itOptPairEnd; 
@@ -1368,6 +1321,10 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 						CMmQvOptRootAtom* pOptRoot = pOptRoot = m_pOptRoot->GetOptionRoot(nRootID);
 						if(!pOptRoot)
 							continue;
+
+						DOUBLE dVola = 0.0;
+						LONG lSurfaceID = m_spVolaSrv->GetSurfaceByRoot(pOptRoot->m_nID);
+						_CHK(m_spVolaSrv->get_OptionVola(pExpiry->m_dtExpiryOV, pStrike->m_dStrike, lSurfaceID, &dVola));
 
 
 						VARIANT_BOOL bIsRootSynthetic = pOptRoot->m_bSynthetic;
@@ -1611,7 +1568,8 @@ HRESULT CMmQvUndAtom::CalcEquityOptions(LONG nCallGreekMask, LONG nPutGreekMask,
 											dtCalcDate,
 											ManualEdit, 
 											bUseTheoVolaNoBid,
-											bUseTheoVolaBadMarket)
+											bUseTheoVolaBadMarket,
+											pParams)
 							)
 						{
 							InterlockedIncrement(&m_nCalculations);
@@ -1693,7 +1651,8 @@ HRESULT CMmQvUndAtom::CalcFutUnderlyingOptions(LONG nCallGreekMask, LONG nPutGre
 										VARIANT_BOOL bUseTheoVolaBadMarket, VARIANT_BOOL bRecalcGreeks, 
 										DOUBLE dUndPriceTolerance, 
 										EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-										LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit, VARIANT_BOOL bForceRecalc)
+										LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
+										VARIANT_BOOL bForceRecalc, ICalculationParametrs* pParams)
 {
 	HRESULT hr = S_OK;
 	m_nQty = BAD_LONG_VALUE;
@@ -1737,7 +1696,8 @@ HRESULT CMmQvUndAtom::CalcFutUnderlyingOptions(LONG nCallGreekMask, LONG nPutGre
 												  nCalcSleepFreq, 
 												  nCalcSleepAmt, 
 												  dtCalcDate, 
-												  ManualEdit);
+												  ManualEdit,
+												  pParams);
 					if(IsStopCalc()) break;
 				}
 				if(pFutAtom->m_dNetDelta >BAD_DOUBLE_VALUE)
@@ -1901,7 +1861,8 @@ STDMETHODIMP CMmQvUndAtom::CalcFutureOptionGreeks(IMmQvOptAtom* aOpt, IMmQvQuote
 												  EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility, 
 												  VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket, 
 												  DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
-												  VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit)
+												  VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
+												  ICalculationParametrs* pParams)
 {
 	HRESULT hr = S_OK;
 	try
@@ -1914,7 +1875,7 @@ STDMETHODIMP CMmQvUndAtom::CalcFutureOptionGreeks(IMmQvOptAtom* aOpt, IMmQvQuote
 			if(spFutAtom!=NULL)
 				spFutAtom->CalcOptionGreeks(this, aOpt, aQuote, aExp, nGreekMask, enCalcIV, enCalcModel,
 				bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-				dUndPriceTolerance, enPriceRoundingRule, bUseCustomRates, dtCalcDate, ManualEdit);
+				dUndPriceTolerance, enPriceRoundingRule, bUseCustomRates, dtCalcDate, ManualEdit, pParams);
 		}
 
 
@@ -2074,7 +2035,7 @@ STDMETHODIMP CMmQvUndAtom::SetDirty()
 	return hr;
 }
 
-STDMETHODIMP CMmQvUndAtom::get_AtmVola(IMmQvExpAtom* pExp, DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL ManualEdit, DOUBLE* pVola)
+STDMETHODIMP CMmQvUndAtom::get_AtmVola(IMmQvExpAtom* pExp, DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL ManualEdit, LONG SurfaceID, DOUBLE* pVola)
 {
 	__CHECK_POINTER(pVola);
 	HRESULT hr = S_OK;
@@ -2087,7 +2048,7 @@ STDMETHODIMP CMmQvUndAtom::get_AtmVola(IMmQvExpAtom* pExp, DOUBLE dUndPriceToler
 		{
 			DATE dtExpiryOV;
 			_CHK(pExp->get_ExpiryOV(&dtExpiryOV));
-			*pVola =m_spVolaSrv->GetOptionVola(dtExpiryOV, dSpotPrice);
+			*pVola =m_spVolaSrv->GetOptionVola(dtExpiryOV, dSpotPrice, SurfaceID);
 		}
 	}
 	catch (_com_error& e) 
@@ -2198,7 +2159,8 @@ void CQuotesCalculationAtom::rawCalculate(CMmQvUndAtom*	 pUndAtom)
 								m_bCalcDelta,
 								m_dtCalcDate,
 								volasCache,
-								m_bManualEdit), _T("Fail to calculate option Greeks."));
+								m_bManualEdit,
+								m_spCalculationParametrs), _T("Fail to calculate option Greeks."));
 						}
 						if(nExchID == 0L && !pUndAtom->IsStopCalc())
 						{
@@ -2464,4 +2426,5 @@ void CQuotesCalculationAtom::DoTask()
 		}
 	}
 }
+
 

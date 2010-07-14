@@ -7,7 +7,7 @@
 #include "EtsMmGeneral.h"
 #include "MmOrderExecColl.h"
 #include "MmOrderExecDestAtom.h"
-#include "MmTradeInfoColl.h"
+//#include "MmTradeInfoColl.h"
 
 _COM_SMARTPTR_TYPEDEF(IMmOrderAtom, IID_IMmOrderAtom);
 
@@ -51,7 +51,7 @@ struct __MmOrderAtom
 /////////////////////////////////////////////////////////////////////////////
 //
 class ATL_NO_VTABLE CMmOrderAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmOrderAtom, &CLSID_MmOrderAtom>,
 	public ISupportErrorInfoImpl<&IID_IMmOrderAtom>,
 	public IDispatchImpl<IMmOrderAtom, &IID_IMmOrderAtom, &LIBID_EtsMmGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -81,10 +81,12 @@ END_COM_MAP()
 			CComObject<CMmOrderExecColl>* pObject = NULL;
 			_CHK(CComObject<CMmOrderExecColl>::CreateInstance(&pObject), _T("Fail to create orders executions collection"));
 			m_spExecs.Attach(pObject, TRUE);
+			
+			//CComObject<CMmTradeInfoColl>* pTradeColl = NULL;
+			//_CHK(CComObject<CMmTradeInfoColl>::CreateInstance(&pTradeColl), _T("Fail to create trades collection for order."));
+			//m_spTrades.Attach(pTradeColl, TRUE);
 
-			CComObject<CMmTradeInfoColl>* pTradeColl = NULL;
-			_CHK(CComObject<CMmTradeInfoColl>::CreateInstance(&pTradeColl), _T("Fail to create trades collection for order."));
-			m_spTrades.Attach(pTradeColl, TRUE);
+			m_spTrades = IMmTradeInfoCollPtr(__uuidof(MmTradeInfoColl));
 		}
 		catch(const _com_error& e)
 		{

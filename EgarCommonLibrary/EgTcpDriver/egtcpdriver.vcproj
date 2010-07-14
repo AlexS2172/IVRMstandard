@@ -4,9 +4,6 @@
 	Version="8.00"
 	Name="EgTcpDriver"
 	ProjectGUID="{5576E136-1045-4A66-A95B-EE2E72F96853}"
-	SccProjectName="&quot;$/EgCommon/EgTcpDriver&quot;, KNDAAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	>
 	<Platforms>
 		<Platform

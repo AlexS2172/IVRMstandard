@@ -56,6 +56,7 @@ Public ExchangeRate As Double
 Public SECFees As Double
 Public CustodianDesc As String
 Private m_hResource As Long
+Private m_CVEnabled As Boolean
 
 Public Enum WindowCode
         WND_MAIN
@@ -102,6 +103,7 @@ Public Sub LoadSettings()
     m_nSystemVolatilitySourceType = m_nVolatilitySourceType
     
     DoNotCheckDbVersion = (g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "DoNotCheckDbVersion", 0) <> 0)
+    m_CVEnabled = IIf(g_aUserXMLParams.GetLongValue(APP_MM_XML_KEY & "Settings", "CVEnabled", 0) > 0, True, False)
     
     Dim tzi(0 To 0) As TIME_ZONE_INFORMATION, nResult&
     Erase tzi
@@ -197,6 +199,10 @@ End Sub
 'End Sub
 Public Property Get Commodity() As Boolean
     Commodity = m_bCommodity
+End Property
+
+Public Property Get IsCVEnabled() As Boolean
+    IsCVEnabled = m_CVEnabled
 End Property
 
 Public Property Get DbConnection() As String

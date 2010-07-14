@@ -14,7 +14,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsContractCollDispImpl, IEtsCo
 
 // CEtsContractColl
 class ATL_NO_VTABLE CEtsContractColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsContractColl, &CLSID_EtsContractColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsContractColl>,
 	public IEtsContractCollImpl
@@ -22,6 +22,7 @@ class ATL_NO_VTABLE CEtsContractColl :
 public:
 	CEtsContractColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSCONTRACTCOLL)
@@ -31,19 +32,25 @@ BEGIN_COM_MAP(CEtsContractColl)
 	COM_INTERFACE_ENTRY(IEtsContractColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsContractCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 	IEtsContractAtomPtr AddNew(long lID, _bstr_t bsSymbol, CComObject<CEtsContractAtom>** pObject = NULL);

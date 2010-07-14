@@ -31,6 +31,7 @@ struct __MmGaExpAtom
 	VARIANT_BOOL			m_bHasSynth;
 	IMmGaSynthGreekCollPtr	m_spSynthGreek;
 	DOUBLE					m_dRhoInShares;
+	DOUBLE					m_dHTBRate;
 
 	__MmGaExpAtom()
 		: m_nExpiryMonth(0L), m_dtExpiry(0.), m_dRate(0.),
@@ -40,7 +41,7 @@ struct __MmGaExpAtom
 		m_bBadDeltaInShares(VARIANT_FALSE), m_bBadDeltaEq(VARIANT_FALSE),
 		m_bBadGammaInShares(VARIANT_FALSE), m_bBadGammaEq(VARIANT_FALSE),
 		m_bBadVegaInShares(VARIANT_FALSE), m_bBadTimeValueInShares(VARIANT_FALSE),
-		m_bHasSynth(VARIANT_FALSE),m_dRhoInShares(BAD_DOUBLE_VALUE),
+		m_bHasSynth(VARIANT_FALSE), m_dHTBRate(BAD_DOUBLE_VALUE), m_dRhoInShares(BAD_DOUBLE_VALUE),
 		m_bBadRhoInShares(VARIANT_FALSE)
 	{
 	}
@@ -53,6 +54,8 @@ struct __MmGaExpAtom
 		m_dGammaEq = BAD_DOUBLE_VALUE;
 		m_dVegaInShares = BAD_DOUBLE_VALUE;
 		m_dTimeValueInShares = BAD_DOUBLE_VALUE;
+
+		m_dHTBRate = BAD_DOUBLE_VALUE;
 
 		m_bBadDeltaInShares = VARIANT_FALSE;
 		m_bBadDeltaEq = VARIANT_FALSE;
@@ -115,6 +118,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, ExpiryMonth, m_nExpiryMonth)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, Expiry, m_dtExpiry)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, HTBRate, m_dHTBRate)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmGaPosColl*, Pos, m_spPos)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, DeltaInShares, m_dDeltaInShares)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, DeltaEq, m_dDeltaEq)

@@ -73,7 +73,6 @@ private:
 			,m_Cookie(NULL)
 			,m_bUpdate(false)
 		{}
-
 	}; 
 
 	typedef boost::shared_ptr<_RealtimeQuoteAtom>	_RealtimeQuoteAtomPtr;
@@ -124,6 +123,9 @@ public:
 		memset( &m_MarketOpenTime, 0, sizeof( SYSTEMTIME ) );
 		Enable(); 
 	}
+
+	void ConvertRequest(_QuoteRequestPtr request, std::string& key);
+	void ConvertExchange(_QuoteRequestPtr request, std::string& exchange);
 
 	virtual	~CActivFeedContentGateway(void)
 	{
@@ -207,7 +209,7 @@ private:
 	void	OnStock(CRequest<StockParams>::CRequestPtr& spRequest, HeapMessage &response);
 	void					OnRecordUpdate( Activ::HeapMessage &update );
 	StatusCode	RequestSTK( _QuoteRequestPtr& spRequest, std::string& xch, const std::string& region );
-	StatusCode	RequestOPT( _QuoteRequestPtr& spRequest, std::string& As, std::string& xch, CActivFeedContentGateway::CRequestType enRequestType);
+	StatusCode	RequestOPT( _QuoteRequestPtr& spRequest, CActivFeedContentGateway::CRequestType enRequestType);
 	StatusCode	RequestIDX( _QuoteRequestPtr& spRequest, std::string& As );
 	StatusCode	RequestFUT( _QuoteRequestPtr& spRequest );
 	StatusCode	RequestFOP( _QuoteRequestPtr& spRequest );
@@ -215,7 +217,7 @@ private:
 
 	bool					SubscribeSTK( _RealtimeQuoteAtomPtr& r, std::string& Ae, std::string& regions );
 	bool					SubscribeIDX( _RealtimeQuoteAtomPtr& r, std::string& Idx );
-	bool					SubscribeOPT( _RealtimeQuoteAtomPtr& r, std::string& Opt, std::string& Xch,CActivFeedContentGateway::CRequestType enRequestType);
+	bool					SubscribeOPT( _RealtimeQuoteAtomPtr& r, CActivFeedContentGateway::CRequestType enRequestType);
 	bool					SubscribeFUT( _RealtimeQuoteAtomPtr& r );
 	bool					SubscribeFOP( _RealtimeQuoteAtomPtr& r );
 	bool					SubscribeFX (  _RealtimeQuoteAtomPtr& r);

@@ -5,9 +5,6 @@
 	Name="EgFormat"
 	ProjectGUID="{83A22509-B2DE-4C56-A1EE-57F35FC2E971}"
 	RootNamespace="EgFormat"
-	SccProjectName="SAK"
-	SccLocalPath="..\..\.."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="AtlProj"
 	>
 	<Platforms>

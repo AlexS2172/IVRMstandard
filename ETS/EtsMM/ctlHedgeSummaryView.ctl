@@ -465,12 +465,12 @@ Private WithEvents frmLayout As frmGridLayout
 Attribute frmLayout.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public lblValue As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public lblValue As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Private m_bInProc As Boolean
 Private m_bDataLoad As Boolean
@@ -772,7 +772,7 @@ Private Sub FilterUpdateValue(ByVal bAutosize As Boolean)
     End With
 End Sub
 
-Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Private Function CheckTradeFilter(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error Resume Next
     Dim bMatched As Boolean, nValue&
     
@@ -1593,8 +1593,8 @@ Private Sub DhIvLoader_GotStockStockCorrData4(ByVal StockSymbol1 As String, ByVa
     CorrelationSave aReq1, aReq2, Corr / DHIVCORR_NORM, VCorr / DHIVCORR_NORM
 End Sub
 
-Private Sub DhIvLoader_LogMessage(ByVal message As String)
-    LogEvent EVENT_INFO, message
+Private Sub DhIvLoader_LogMessage(ByVal Message As String)
+    LogEvent EVENT_INFO, Message
 End Sub
 
 Private Sub DhIvLoader_Progress(ByVal ProgressPercent As Long)
@@ -2658,7 +2658,7 @@ Private Function PositionsLoad() As Boolean
     PositionsLoad = False
     If m_bInProc Then Exit Function
     
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom, nType&
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom, nType&
     Dim aUnd As EtsMmHedgeLib.MmHsUndAtom, aStocks As EtsMmHedgeLib.MmHsUndColl
     Dim aOpt As EtsMmHedgeLib.MmHsOptAtom
     Dim aEnt As EtsGeneralLib.EtsMmEntityAtom, sKey$, fIV#, fHV#, fVolOfVol#
@@ -2774,6 +2774,7 @@ Private Function PositionsLoad() As Boolean
                                 aOpt.UndID = aUnd.ID
                                 aOpt.Strike = aTrd.Opt.Strike
                                 aOpt.Symbol = aTrd.Opt.Symbol
+                                aOpt.OptionRootID = aTrd.Opt.RootID
                                 If aTrd.Opt.Flex = 1 Then
                                     aOpt.VegaWeight = g_ExpCalendar.GetVegaWeight(aOpt.ExpiryOV)
                                 Else
@@ -3189,23 +3190,24 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmHedgeLib.MmHsUndAtom, ByVal
     If bForceRateUpdate Or aUnd.UseMidRates <> bUseMidRates Or Not bUseMidRates Then
         aUnd.UseMidRates = bUseMidRates
         Set aOptions = aUnd.Opt
+        
+        Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
+        
         For Each aOpt In aOptions
             If bUseMidRates Then
-                If Not bIsHTB Then
-                    aOpt.Rate = GetNeutralRate(dtNow, aOpt.ExpiryOV)
-                Else
-                    aOpt.Rate = GetNeutralHTBRate(dtNow, aOpt.ExpiryOV)
-                End If
+                aOpt.Rate = GetNeutralRate(dtNow, aOpt.ExpiryOV)
             Else
                 If dPos < 0 Then
-                    If Not bIsHTB Then
-                        aOpt.Rate = GetShortRate(dtNow, aOpt.ExpiryOV)
-                    Else
-                        aOpt.Rate = GetHTBRate(dtNow, aOpt.ExpiryOV)
-                    End If
+                    aOpt.Rate = GetShortRate(dtNow, aOpt.ExpiryOV)
                 Else
                     aOpt.Rate = GetLongRate(dtNow, aOpt.ExpiryOV)
                 End If
+            End If
+            
+            If bIsHTBRatesExist Then
+                aOpt.HTBRate = GetHTBRate(aUnd.ID, dtNow, aOpt.ExpiryOV)
+            Else
+                aOpt.HTBRate = BAD_DOUBLE_VALUE
             End If
         Next
     End If
@@ -3313,7 +3315,8 @@ Private Sub CalcHedge()
                         aColl.Remove aUnd.ID
                     Else
                         aUnd.CalcGreeks GM_DELTA Or GM_VEGA, nModel, bWeighted, g_Params.UseTheoVolatility, _
-                            g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule
+                            g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, _
+                            g_Main.CalculationParametrs
                         If (aUnd.Delta <= BAD_DOUBLE_VALUE) Or (aUnd.Delta = 0) Then
                             LogEvent EVENT_INFO, aUnd.Symbol & ": Has been removed from calculation due to zero Delta"
                             aColl.Remove aUnd.ID
@@ -3345,7 +3348,8 @@ Private Sub CalcHedge()
                         aColl.Remove aUnd.ID
                     Else
                         aUnd.CalcGreeks GM_VEGA Or GM_DELTA, nModel, bWeighted, g_Params.UseTheoVolatility, _
-                            g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule
+                            g_Params.UseTheoNoBid, g_Params.UseTheoBadMarketVola, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule, _
+                            g_Main.CalculationParametrs
                         If (aUnd.Vega <= BAD_DOUBLE_VALUE) Or (aUnd.Vega = 0) Then
                             LogEvent EVENT_INFO, aUnd.Symbol & ": Has been removed from calculation due to zero Vega"
                             aColl.Remove aUnd.ID

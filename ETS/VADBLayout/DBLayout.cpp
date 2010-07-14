@@ -526,3 +526,43 @@ STDMETHODIMP CDBLayout::SaveDualQuadraticProps(BSTR Symbol,long ContractType, DA
 
 	return S_OK;
 }
+//****************************************************************************//
+// return recordeset on VolaSurfaceGroup //
+//****************************************************************************//
+STDMETHODIMP CDBLayout::GetVolaSurfaceGroup(BSTR Symbol, _Recordset **ppRecordset)
+{
+	_ConnectionPtr spConnection;
+	_CommandPtr	   spCommand;
+	_RecordsetPtr  spRecordset;
+
+	try
+	{
+		// Creating objects
+		__CHECK_HRESULT( spConnection.CreateInstance( CLSID_Connection ), _T("Error creating connection instance.") );
+		__CHECK_HRESULT( spCommand.CreateInstance( CLSID_Command ), _T("Error creating command instance.") );
+
+		// Connect
+		spConnection->CursorLocation = adUseClient;
+		spConnection->ConnectionTimeout = 120;
+		spConnection->CommandTimeout = 120;
+		spConnection->Open( m_bsConnectionString, L"", L"", adConnectUnspecified );
+
+		// Create command with parameters
+		spCommand->CommandText = L"usp_SubSurface_Get null, null, null, null, @vcSymbolName = ?";
+		spCommand->Parameters->Append( spCommand->CreateParameter( L"vcSymbolName", adVarChar, adParamInput, 32, Symbol ) );
+		spCommand->CommandTimeout = 120;
+		spCommand->ActiveConnection = spConnection;
+
+		// Execute command
+		_variant_t vtRowsAfected;
+		spRecordset = spCommand->Execute( &vtRowsAfected, &vtMissing, adCmdText );
+
+		*ppRecordset = spRecordset.Detach();
+	}
+	catch( const _com_error& e )
+	{
+		return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVAManagement, e.Error() );
+	}
+
+	return S_OK;
+}

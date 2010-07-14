@@ -4,9 +4,7 @@
 	Version="8.00"
 	Name="PriceProviders"
 	ProjectGUID="{DF565740-36DF-49C9-94D8-5CA7F23C03D0}"
-	SccProjectName="SAK"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
+	RootNamespace="PriceProviders"
 	Keyword="AtlProj"
 	>
 	<Platforms>

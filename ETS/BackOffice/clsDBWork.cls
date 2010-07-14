@@ -2807,8 +2807,8 @@ Public Function usp_BoCustomStrikeSkewPoint_ByUnderlying_Del(ByVal iUnderlyingID
     usp_BoCustomStrikeSkewPoint_ByUnderlying_Del = (0 = Execute(False, "usp_BoCustomStrikeSkewPoint_ByUnderlying_Del", iUnderlyingID))
 End Function
 
-Public Function usp_BoCustomStrikeSkewPoint_Default_Save(ByVal iContractID&, ByVal fStrike#, ByVal dtExpiry As Date, ByVal fVolatility#) As Boolean
-    usp_BoCustomStrikeSkewPoint_Default_Save = (0 = Execute(False, "usp_BoCustomStrikeSkewPoint_Default_Save", iContractID, fStrike, dtExpiry, fVolatility))
+Public Function usp_BoCustomStrikeSkewPoint_Default_Save(ByVal iContractID&, ByVal fStrike#, ByVal dtExpiry As Date, ByVal fVolatility#, Optional vcRootSymbol As Variant = Null) As Boolean
+    usp_BoCustomStrikeSkewPoint_Default_Save = (0 = Execute(False, "usp_BoCustomStrikeSkewPoint_Default_Save", iContractID, fStrike, dtExpiry, fVolatility, vcRootSymbol))
 End Function
 
 Public Function usp_MmCustomDividend_Get(Optional ByVal iUndID As Long = 0) As ADODB.Recordset
@@ -3075,3 +3075,115 @@ End Function
 Public Function usp_BoTradesForExport_Get() As ADODB.Recordset
     Set usp_BoTradesForExport_Get = Execute(True, "usp_BoTradesForExport_Get")
 End Function
+
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+'    proc dbo.usp_SubSurface_Get
+'    @iVolaSurfaceGroupID int = null,
+'    @iBaseInstrumentID int = null,
+'    @iRootID int = null,
+'    @iContractTypeID int  = null
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+Public Function usp_SubSurface_Get( _
+        Optional iVolaSurfaceGroupID As Variant = Null, _
+        Optional iBaseInstrumentID As Variant = Null, _
+        Optional iRootID As Variant = Null, _
+        Optional iContractTypeID As Variant = Null _
+) As ADODB.Recordset
+    Set usp_SubSurface_Get = Execute(True, "usp_SubSurface_Get" _
+        , iVolaSurfaceGroupID _
+        , iBaseInstrumentID _
+        , iRootID _
+        , iContractTypeID _
+        )
+End Function
+
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+'    dbo.usp_SubSurface_Save
+'    @iVolaSurfaceGroupID int = null output,
+'    @iBaseInstrumentID int = null,
+'    @iRootID int = null,
+'    @iVolaSurfaceID varchar(32) = null,
+'    @iContractTypeID int  = null
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+Public Function usp_SubSurface_Save( _
+        Optional iVolaSurfaceGroupID As Variant = Null, _
+        Optional iBaseInstrumentID As Variant = Null, _
+        Optional iRootID As Variant = Null, _
+        Optional iVolaSurfaceID As Variant = Null, _
+        Optional iContractTypeID As Variant = Null _
+) As ADODB.Recordset
+    Set usp_SubSurface_Save = Execute(True, "usp_SubSurface_Save" _
+        , iVolaSurfaceGroupID _
+        , iBaseInstrumentID _
+        , iRootID _
+        , iVolaSurfaceID _
+        , iContractTypeID _
+        )
+End Function
+
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+'    proc dbo.usp_SubSurface_Del
+'    @iVolaSurfaceGroupID int = null,
+'    @iBaseInstrumentID int = null,
+'    @iRootID int = null,
+'    @iContractTypeID int  = null
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+Public Function usp_SubSurface_Del( _
+        Optional iVolaSurfaceGroupID As Variant = Null, _
+        Optional iBaseInstrumentID As Variant = Null, _
+        Optional iRootID As Variant = Null, _
+        Optional iContractTypeID As Variant = Null _
+) As ADODB.Recordset
+    Set usp_SubSurface_Del = Execute(True, "usp_SubSurface_Del" _
+        , iVolaSurfaceGroupID _
+        , iBaseInstrumentID _
+        , iRootID _
+        , iContractTypeID _
+        )
+End Function
+
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+'   usp_SubSurfaceList_Get
+'   @iBaseInstrumentID int = null
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+Public Function usp_SubSurfaceList_Get(Optional iBaseInstrumentID As Variant = Null) As ADODB.Recordset
+    Set usp_SubSurfaceList_Get = Execute(True, "usp_SubSurfaceList_Get", iBaseInstrumentID)
+End Function
+
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+'    Procedure dbo.usp_VolaSurfaceData_Save
+'    @iVolaSurfaceDataID int = null output,
+'    @iContractID int = null,
+'    @fBaseUnderlinePrice float,
+'    @fSmileAccelerator float,
+'    @fInterpolationFactor float = null,
+'    @fStrikeMoneynessHi float = null,
+'    @fStrikeMoneynessLo float = null,
+'    @vcSurfaceName varchar(250) = null,
+'    @bIsPriceOverride bit = null,
+'    @bIsDiscreteAcceleration bit = null,
+'    @bIsDefaultSurface bit = null,
+'    @fATMVolatility float = null
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+Public Function usp_VolaSurfaceData_Save( _
+        Optional iVolaSurfaceDataID As Variant = Null, _
+        Optional iContractID As Variant = Null, _
+        Optional vcSurfaceName As Variant = Null, _
+        Optional bIsDefaultSurface As Variant = Null _
+) As ADODB.Recordset
+    Set usp_VolaSurfaceData_Save = Execute(True, "usp_VolaSurfaceData_Save" _
+        , iVolaSurfaceDataID _
+        , iContractID _
+        , 0# _
+        , 0# _
+        , Null _
+        , Null _
+        , Null _
+        , vcSurfaceName _
+        , Null _
+        , Null _
+        , bIsDefaultSurface _
+        , Null _
+        )
+End Function
+

@@ -24,6 +24,7 @@ protected:
 	HANDLE			m_hCompPort;
 	HANDLE			m_hThread;
 	TCHAR			m_szFileName[_MAX_PATH];
+	WCHAR			m_szFileNameW[_MAX_PATH];
 	CHAR			m_pBuffer[4096];
 	DWORD			m_dwBuffer;
 	OVERLAPPED		m_ovDir;

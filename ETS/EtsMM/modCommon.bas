@@ -28,6 +28,7 @@ Public Enum ManualPriceUpdateEnum
     MPU_UPDATE = 3
 End Enum
 
+
 Public Const DEFAULT_TRADER_HEDGE_STATUS& = EtsMmStockHedgeLib.enMmShGroupStatusAll
 
 Public Const NO_STRATEGY_ID& = -2
@@ -1501,6 +1502,27 @@ Public Function GetNewYorkTime() As Date
     GetNewYorkTime = CDate(dtNY)
 End Function
 
+Public Function GetCalcParams(ByVal dtNow As Date, _
+                                ByVal dtExpiry As Date, _
+                                ByVal dtCloseTime As Date, _
+                                ByVal bUseTime As Boolean, _
+                                ByRef dtDateCalc As Date, _
+                                ByRef dtExpiryCalc As Date, _
+                                ByRef dtCloseTimeCalc As Date, _
+                                ByRef dYte As Double) As Boolean
+On Error Resume Next
+    Dim dDateCalc As Double
+    Dim dExpiryCalc As Double
+    Dim dCloseTimeCalc As Double
+    
+    GetCalcParams = GetCalculationParams(CDbl(dtNow), CDbl(dtExpiry), CDbl(dtCloseTime), _
+                                            bUseTime, dDateCalc, dExpiryCalc, dCloseTimeCalc, dYte)
+    dtDateCalc = CDate(dDateCalc)
+    dtExpiryCalc = CDate(dExpiryCalc)
+    dtCloseTimeCalc = CDate(dCloseTimeCalc)
+    
+End Function
+
 Public Function GmtToLocal(ByVal dtGmtTime As Date) As Date
     On Error Resume Next
     GmtToLocal = DateAdd("n", -g_Params.TimeZoneBias, dtGmtTime)
@@ -1917,11 +1939,11 @@ End Function
 Public Function GetSystemInfoString() As String
 
     Dim sysinfo As SYSTEM_INFO
-    Dim Msg As String
+    Dim msg As String
     On Error Resume Next
     
     GetSystemInfo sysinfo
-    Msg = Msg & "Processor Numbers: " & Str$(sysinfo.dwNumberOfProcessors) & " Architecture:" & Str$(sysinfo.dwOemId.wProcessorArchitecture) & _
+    msg = msg & "Processor Numbers: " & Str$(sysinfo.dwNumberOfProcessors) & " Architecture:" & Str$(sysinfo.dwOemId.wProcessorArchitecture) & _
     " Level:" & Str$(sysinfo.wProcessorLevel) & " Revision:" & Str$(sysinfo.wProcessorRevision) & vbCrLf
     
     ' Get free memory.
@@ -1929,70 +1951,21 @@ Public Function GetSystemInfoString() As String
     Dim memory As Long
     GlobalMemoryStatus memsts
     memory = memsts.dwTotalPhys
-    Msg = Msg & "Total Physical Memory: "
-    Msg = Msg & Format$(memory / &H100000, "###,###") & " MB"
+    msg = msg & "Total Physical Memory: "
+    msg = msg & Format$(memory / &H100000, "###,###") & " MB"
     memory = memsts.dwTotalPageFile
-    Msg = Msg & ", Total Committed Memory: "
-    Msg = Msg & Format$(memory / &H100000, "###,###") & " MB"
+    msg = msg & ", Total Committed Memory: "
+    msg = msg & Format$(memory / &H100000, "###,###") & " MB"
     memory = memsts.dwTotalVirtual
-    Msg = Msg & ", Total Virtual Memory: "
-    Msg = Msg & Format$(memory / &H100000, "###,###") & " MB"
+    msg = msg & ", Total Virtual Memory: "
+    msg = msg & Format$(memory / &H100000, "###,###") & " MB"
 
-    GetSystemInfoString = Msg
+    GetSystemInfoString = msg
 End Function
 
 Public Function MAPI_SendMail(sTo As String, sSubject As String, sMessage As String, sFilePath As String)
     On Error Resume Next
-    
     g_Main.SendMail sTo, g_Params.MailAddress, sSubject, sMessage, g_Params.SMTPServer, sFilePath
-    
-    
-'    Dim Rtn As Long '-- return value For api calls
-'    Dim objMsg As MAPIMessage '-- message object
-'    Dim objRec() As MapiRecip '-- recipient object array
-'    Dim objFile() As MapiFile '-- file object array
-'    Dim hMAPI As Long '-- session handle
-'    ReDim objRec(1)
-'    ReDim objFile(1)
-'    '-- file object *************************************************
-'    ' *************
-'    objFile(0).Reserved = 0
-'    objFile(0).Flags = 0
-'    objFile(0).Position = -1
-'    objFile(0).PathName = sFilePath
-'    objFile(0).FileName = ""
-'    objFile(0).FileType = ""
-'    '-- recipient object ********************************************
-'    ' *************
-'    objRec(0).Reserved = 0
-'    objRec(0).RecipClass = 1
-'    objRec(0).Name = sTo
-'    '-- values not used for recipient
-'    'objRec.Address
-'    'objRec.EIDSize
-'    'objRec.EntryID
-'    '-- message object **********************************************
-'    ' *************
-'    objMsg.Reserved = 0
-'    objMsg.Subject = sSubject
-'    objMsg.RecipCount = 1
-'    objMsg.FileCount = 1
-'    objMsg.NoteText = sMessage
-'    '-- values not used for message
-'    'objMsg.MessageType
-'    'objMsg.DateReceived
-'    'objMsg.ConversationID
-'    'objMsg.Flags
-'    '-- make api calls to send mail *********************************
-'    ' **************
-'    '-- logon to MAPI application
-'    '-- default profile is set in user name parameter of Logon
-'    Rtn = MAPILogon(0, "MS Exchange Settings", "", MAPI_LOGON_UI, 0, hMAPI)
-'    '-- send mail message through MAPI
-'    Rtn = MAPISendMail(hMAPI, 0, objMsg, objRec, objFile, 0, 0)
-'    '-- logoff MAPI application
-'    Rtn = MAPILogoff(hMAPI, 0, 0, 0)
-    Exit Function
 End Function
 
 Public Sub SendMailToSupport(ByVal sSubject$, ByVal sBody$, Optional ByVal sAttachFile$ = "")
@@ -2014,7 +1987,7 @@ Public Sub SendMailToSupport(ByVal sSubject$, ByVal sBody$, Optional ByVal sAtta
     'aRecipient(1).Reserved = 0
     aRecipient(1).RecipClass = MAPI_TO
     aRecipient(1).Name = "ETS Support"
-    aRecipient(1).address = "ETS_Support@egartech.com"
+    aRecipient(1).Address = "ETS_Support@egartech.com"
     'aRecipient(1).EIDSize = 0
     'aRecipient(1).EntryID = ""
     
@@ -2151,7 +2124,7 @@ Public Function PpIsGroupReqType(ByVal enReqType As PRICEPROVIDERSLib.RequestsTy
     PpIsGroupReqType = (enReqType = enGrSTK Or enReqType = enGrIDX)
 End Function
 
-Public Sub CreateAndSaveNewStrategy(ByRef aCombo As ComboBox, ByRef frmOwner As VB.Form)
+Public Sub CreateAndSaveNewStrategy(ByRef aCombo As ComboBox, ByRef frmOwner As vB.Form)
     On Error Resume Next
     Dim nStrategyID&, frmEdit As frmNewStrategy
     Dim sName$, sDesc$, aStrategy As EtsGeneralLib.EtsStrategyAtom
@@ -2353,3 +2326,65 @@ Public Sub MMSleep(ByVal nDuration As Long)
     Wend
 End Sub
 
+Public Function ClipDays(ByVal dtDate As Date) As Date
+    On Error Resume Next
+    ClipDays = TimeSerial(Hour(dtDate), Minute(dtDate), 0)
+End Function
+
+Public Function ClipTime(ByVal dtDate As Date) As Date
+    On Error Resume Next
+    ClipTime = DateSerial(Year(dtDate), Month(dtDate), Day(dtDate))
+End Function
+
+Public Function ClipSeconds(ByVal dtDate As Date) As Date
+    On Error Resume Next
+    ClipSeconds = ClipTime(dtDate) + ClipDays(dtDate)
+End Function
+
+Public Function IsFileExist(filespec As String) As Boolean
+On Error Resume Next
+    Dim fso As Scripting.FileSystemObject
+    Set fso = New Scripting.FileSystemObject
+    
+    If (Not fso Is Nothing) Then
+        IsFileExist = fso.FileExists(filespec)
+    End If
+    
+    Set fso = Nothing
+End Function
+
+Public Function MakeComboListTraders(ByRef Traders As EtsTraderColl) As String
+On Error GoTo error_handler
+'--------------------------'
+    Dim sComboList As String
+    Dim aTrader As EtsGeneralLib.EtsTraderAtom
+
+    For Each aTrader In Traders
+        sComboList = sComboList & "|#" & Trim$(Str$(aTrader.ID)) & ";" & aTrader.Name
+    Next
+    sComboList = "#0;<All>|" & sComboList
+    
+    MakeComboListTraders = sComboList
+    
+Exit Function
+error_handler:
+    Debug.Assert True
+End Function
+
+Public Function MakeComboListStrategys(ByRef Strategys As EtsStrategyColl) As String
+On Error GoTo error_handler
+'--------------------------'
+    Dim sComboList As String
+    Dim aStrategy As EtsStrategyAtom
+    
+    For Each aStrategy In Strategys
+        sComboList = sComboList & "|#" & Trim$(Str$(aStrategy.ID)) & ";" & aStrategy.Name
+    Next
+    sComboList = "#0;<All>|" & sComboList
+    
+    MakeComboListStrategys = sComboList
+    
+Exit Function
+error_handler:
+    Debug.Assert True
+End Function

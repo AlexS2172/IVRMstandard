@@ -288,7 +288,8 @@ namespace OCWrapper
 
 
 		public int OCWCalcGreeksMM(	double	dDomesticRate,
-			double	dForeignRate, 
+			double	dForeignRate,
+            double  dHTBRate,
 			double	dSpotPrice,		
 			double	dStrike,		
 			double	dVolatility, 	
@@ -309,7 +310,7 @@ namespace OCWrapper
 			
 			iRet = CalcGreeksMM2(	dDomesticRate,
 				dForeignRate,
-                (double)-1E+308,
+                dHTBRate,
 				dSpotPrice,		
 				dStrike,		
 				dVolatility, 	
@@ -390,6 +391,7 @@ namespace OCWrapper
 		public double OCWCalcVolatilityMM3(
 			double	dDomesticRate,
 			double	dForeignRate,
+            double  dHTBRate,
 			double	dSpotPrice,
 			double	dOptionPrice,
 			double	dStrike,		
@@ -410,7 +412,7 @@ namespace OCWrapper
 			dRet = CalcVolatilityMM3(
 				dDomesticRate,
 				dForeignRate,
-                (double)-1E+308, 
+                dHTBRate, 
 				dSpotPrice,
 				dOptionPrice,
 				dStrike,		

@@ -334,6 +334,9 @@ Begin VB.UserControl ctlRiskMatrix
       Begin VB.Menu mnuCtxScnDelete 
          Caption         =   "Delete Scenario"
       End
+      Begin VB.Menu mnuCtxScnLoadParams 
+         Caption         =   "Load Specific Params"
+      End
       Begin VB.Menu mnuCtxSeparator4 
          Caption         =   "-"
       End
@@ -400,12 +403,12 @@ Private WithEvents frmWtdVega As frmWtdVegaSettings
 Attribute frmWtdVega.VB_VarHelpID = -1
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public lblValue As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public lblValue As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Private m_bInProc As Boolean
 Private m_bDataLoad As Boolean
@@ -446,33 +449,6 @@ Private m_bFirstTime As Boolean
 
 Private m_bKeyDown(GT_MATRIX_FILTER To GT_MATRIX_VALUES) As Boolean
 Private m_GridLock(GT_MATRIX_FILTER To GT_MATRIX_VALUES) As New clsGridLock
-
-'Private Type MatrixCalcResultType
-'    ShiftX As Double
-'    ShiftY As Double
-'
-'    PnL As Double
-'    Delta As Double
-'    NetDelta As Double
-'    Gamma As Double
-'    GammaPerc As Double
-'    NetGamma As Double
-'    Theta As Double
-'    Vega As Double
-'    Rho As Double
-'    WtdVega As Double
-'
-'    BadPnL As Boolean
-'    BadDelta As Boolean
-'    BadNetDelta As Boolean
-'    BadGamma As Boolean
-'    BadGammaPerc  As Boolean
-'    BadNetGamma As Boolean
-'    BadTheta As Boolean
-'    BadVega As Boolean
-'    BadRho As Boolean
-'    BadWtdVega As Boolean
-'End Type
 
 Private m_Res() As EtsMmRisksLib.MmRvMatrixCalcResultType
 Private m_BasePoint(RMA_HORZ To RMA_VERT) As Long
@@ -546,7 +522,7 @@ Public Function Init() As Boolean
     Set aPT = PriceProvider
     aPT.Type = g_Params.PriceProviderType
     Set aPT = Nothing
-    
+
     PriceProvider.Connect
     
     m_bGroupRequest = False
@@ -699,9 +675,29 @@ Private Sub InitScnData()
         
         .ColComboList(MSC_VOLA_SHIFT) = "#" & CStr(RMVS_COMMON) & ";Common" & _
                                     "|#" & CStr(RMVS_WEIGHTED) & ";Weighted"
+                                    
+        .ColComboList(MSC_SPOT_SHIFT) = "#0;Parallel|#1;Correlated"
+        .TextMatrix(1, MSC_SPOT_SHIFT) = "0"
+        
+        .ColComboList(MSC_CORR_INDEX) = "#0;<None>"
+        .TextMatrix(1, MSC_CORR_INDEX) = "0"
+        
+        .ColComboList(MSC_CALC_MODEL) = "#" & CStr(enCmBinomial) & ";" & g_Params.CalcModelName(enCmBinomial) & _
+                                    "|#" & CStr(enCmBinomialOpt) & ";" & g_Params.CalcModelName(enCmBinomialOpt) & _
+                                    "|#" & CStr(enCmVskLog) & ";" & g_Params.CalcModelName(enCmVskLog)
+        .TextMatrix(1, MSC_CALC_MODEL) = g_Params.MatrixCalcModel
+        
+        .ColComboList(MSC_SPOT_SPECIFIC) = "#0;Common|#1;Specific"
+        .TextMatrix(1, MSC_SPOT_SPECIFIC) = "0"
+        
+        .ColComboList(MSC_VOLA_SPECIFIC) = "#0;Common|#1;Specific"
+        .TextMatrix(1, MSC_VOLA_SPECIFIC) = "0"
         
         m_GridLock(GT_MATRIX_SCENARIO).UnlockRedraw
     End With
+    
+    ScenarioUpdateIndex True
+    
 End Sub
 
 Private Sub ScenarioUpdate(ByVal bName As Boolean)
@@ -725,6 +721,8 @@ Private Sub ScenarioUpdate(ByVal bName As Boolean)
         .TextMatrix(1, MSC_VERT_STEP) = m_Scn.Step(RMA_VERT)
         .TextMatrix(1, MSC_VERT_STEP_HOUR) = m_Scn.Hour(RMA_VERT)
         .TextMatrix(1, MSC_VERT_STEP_MIN) = m_Scn.Minute(RMA_VERT)
+        
+        .TextMatrix(1, MSC_VALUE_CHANGE) = m_Scn.ShowChange
         
         
         If m_Und.Count > 1 Then
@@ -806,12 +804,21 @@ Private Sub ScenarioUpdate(ByVal bName As Boolean)
         
         .TextMatrix(1, MSC_HORZ_UNITS) = m_Scn.Units(RMA_HORZ)
         .TextMatrix(1, MSC_VERT_UNITS) = m_Scn.Units(RMA_VERT)
-        .TextMatrix(1, MSC_VOLA_SHIFT) = m_Scn.VolaShiftType
         
+        .TextMatrix(1, MSC_VOLA_SHIFT) = m_Scn.VolaShiftType
+        .TextMatrix(1, MSC_SPOT_SHIFT) = m_Scn.SpotShiftType
+        
+        .TextMatrix(1, MSC_SPOT_SPECIFIC) = m_Scn.SpotSpecificShiftType
+        .TextMatrix(1, MSC_VOLA_SPECIFIC) = m_Scn.VolaSpecificShiftType
+        
+        .TextMatrix(1, MSC_CALC_MODEL) = m_Scn.CalcModel
+        .TextMatrix(1, MSC_CORR_INDEX) = m_Scn.CorrIndex
         .ColHidden(MSC_VOLA_SHIFT) = Not (m_Scn.Axis(RMA_HORZ) = RMAT_VOLA Or m_Scn.Axis(RMA_VERT) = RMAT_VOLA)
     
         .AutoSize 0, .Cols - 1, , 100
-    
+        
+        ReloadGroupRatio
+        
         m_GridLock(GT_MATRIX_SCENARIO).UnlockRedraw
     End With
 End Sub
@@ -837,7 +844,7 @@ Private Sub InitScnList()
                 sComboList = sComboList & "|#" & Trim$(Str$(aScn.ID)) & ";" & aScn.ScenarioName
             Else
                 nValue = m_Scn.ID
-                sValue = m_Scn.ScenarioName 'Trim$(Str$(aScn.ID))
+                sValue = m_Scn.ScenarioName
                 sComboList = sComboList & "|#" & Trim$(Str$(m_Scn.ID)) & ";" & m_Scn.ScenarioName
             End If
         Next
@@ -864,7 +871,8 @@ Private Sub FilterUpdateAll()
         
         FilterUpdateGreeks
         
-        FilterUpdateIndex True
+        'FilterUpdateIndex True
+        
         FilterUpdateExpiry True
 
         .AutoSize 0, .Cols - 1, , 100
@@ -888,12 +896,10 @@ Private Sub FilterUpdateValue(ByVal bAutosize As Boolean, enColumn As MatrixFilt
         sComboList = ""
         Select Case enColumn
            Case MFC_SYMBOL
-                'sComboList = g_Params.UnderlyingComboList
                 sComboList = g_Params.UnderlyingComboListAllWhtFutUnd
                 
                 Set aUnd = g_Underlying(m_aFilter.Data(MFC_SYMBOL))
                 If Not aUnd Is Nothing Then
-                    'Future Underlyings are not supported yet in RiskMatrix
                     If aUnd.UndType <> enCtFutUnd Then
                         nValue = aUnd.ID
                         sValue = Trim$(Str$(nValue))
@@ -969,23 +975,23 @@ Private Sub FilterUpdateValue(ByVal bAutosize As Boolean, enColumn As MatrixFilt
     End With
 End Sub
 
-Private Sub FilterUpdateIndex(ByVal bAutosize As Boolean)
+Private Sub ScenarioUpdateIndex(ByVal bAutosize As Boolean)
     On Error Resume Next
     Dim sComboList$, sValue$, aIdx As EtsGeneralLib.IndexAtom
     Dim nValue&, nFirstValue&
     
-    With fgFlt
-        m_GridLock(GT_MATRIX_FILTER).LockRedraw
+    With fgScn
+        m_GridLock(GT_MATRIX_SCENARIO).LockRedraw
         
         sValue = "0"
         nValue = 0
         nFirstValue = 0
-        sComboList = ""
+        sComboList = "|#0;<None>"
         For Each aIdx In g_HedgeSymbols
             
             If aIdx.HaveComponentBetas Then
                 sComboList = sComboList & "|#" & Trim$(Str$(aIdx.ID)) & ";" & aIdx.Symbol
-                If aIdx.ID = Filter(MFC_INDEX) Then
+                If aIdx.ID = m_Scn.CorrIndex Then
                     nValue = aIdx.ID
                     sValue = Trim$(Str$(aIdx.ID))
                 End If
@@ -1004,15 +1010,15 @@ Private Sub FilterUpdateIndex(ByVal bAutosize As Boolean)
             sComboList = "#0;<None>"
         End If
         
-        .ColComboList(MFC_INDEX) = sComboList
-        .TextMatrix(1, MFC_INDEX) = sValue
-        m_aFilter.Data(MFC_INDEX) = nValue
+        .ColComboList(MSC_CORR_INDEX) = sComboList
+        .TextMatrix(1, MSC_CORR_INDEX) = nValue
+        m_Scn.CorrIndex = nValue
         
         If bAutosize Then
             .AutoSize 0, .Cols - 1, , 100
         End If
         
-        m_GridLock(GT_MATRIX_FILTER).UnlockRedraw
+        m_GridLock(GT_MATRIX_SCENARIO).UnlockRedraw
     End With
 End Sub
 
@@ -1060,82 +1066,6 @@ Private Function CheckPosFilter(ByRef aPos As EtsMmRisksLib.MmRvPosAtom) As Bool
 
     CheckPosFilter = bMatched
 End Function
-
-'Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
-'    On Error Resume Next
-'    Dim bMatched As Boolean, nValue&
-'
-'    bMatched = False
-'
-'    If Not aTrd Is Nothing Then
-'        ' futures & futures options trades are not supported yet
-'        If aTrd.ContractType = enCtFuture Or aTrd.ContractType = enCtFutOption Then Exit Function
-'
-'        If aTrd.ContractType = enCtOption Then
-'            If aTrd.Opt.Expiry < Date Then Exit Function
-'        End If
-'
-'        nValue = m_aFilter.Data(MFC_VALUE)
-'
-'        If nValue <> 0 Then
-'            Select Case m_aFilter.Data(MFC_GROUP)
-'                Case TYPE_UNDERLYING
-'                    bMatched = (aTrd.UndID = nValue)
-'
-'                Case TYPE_GROUP
-'                    bMatched = Not g_UnderlyingGroup(nValue).Und(aTrd.UndID) Is Nothing
-'
-'                Case TYPE_TRADER_GROUP
-'                    bMatched = Not g_TraderGroup(nValue).Trader(aTrd.Trader.ID) Is Nothing
-'
-'                Case TYPE_TRADER
-'                    bMatched = (aTrd.Trader.ID = nValue)
-'
-'                Case TYPE_STRATEGY
-'                    bMatched = (aTrd.StrategyID = IIf(nValue > 0, nValue, 0))
-'
-'                Case TYPE_ALL
-'                    bMatched = True
-'
-'            End Select
-'
-'            If bMatched Then
-'                nValue = m_aFilter.Data(MFC_TYPE)
-'                bMatched = (nValue = 0)
-'                If Not bMatched Then
-'                    Select Case nValue
-'                        Case 1 ' Today's
-'                            bMatched = (Int(aTrd.TradeDate) = Int(Date) And aTrd.Status <> enTsSimulated)
-'
-'                        Case 2 ' OpenPos
-'                            bMatched = (Int(aTrd.TradeDate) < Int(Date) Or aTrd.IsPosition <> 0)
-'
-'                        Case 3 ' NetPos
-'                            bMatched = (aTrd.Status <> enTsSimulated)
-'
-'                        Case 4 ' Simulated
-'                            bMatched = (aTrd.Status = enTsSimulated)
-'
-'                        Case 5 ' Today's & Sim
-'                            bMatched = (Int(aTrd.TradeDate) = Int(Date) Or aTrd.Status = enTsSimulated)
-'
-'                        Case 6 ' OpenPos & Sim
-'                            bMatched = (Int(aTrd.TradeDate) < Int(Date) Or aTrd.IsPosition <> 0 Or aTrd.Status = enTsSimulated)
-'
-'                        Case 7 ' Manual
-'                            bMatched = (aTrd.Status = enTsManual)
-'
-'                        Case 8 ' Manual & Sim
-'                            bMatched = (aTrd.Status = enTsManual Or aTrd.Status = enTsSimulated)
-'
-'                    End Select
-'                End If
-'            End If
-'        End If
-'    End If
-'
-'    CheckTradeFilter = bMatched
-'End Function
 
 Public Sub InitColumns()
     On Error Resume Next
@@ -1252,22 +1182,11 @@ Private Sub InitFltData()
         .TextMatrix(1, MFC_EXPIRY) = "0"
         m_aFilter.Data(MFC_EXPIRY) = 0
     
-        .ColComboList(MFC_SHIFT) = "#0;Parallel|#1;Correlated"
-        .TextMatrix(1, MFC_SHIFT) = "0"
-        
-        .ColComboList(MFC_INDEX) = "#0;<None>"
-        .TextMatrix(1, MFC_INDEX) = "0"
-        m_aFilter.Data(MFC_INDEX) = 0
         
         .ColComboList(MFC_TRADER_GROUP) = "#0;<None>"
         .TextMatrix(1, MFC_TRADER_GROUP) = "0"
         m_aFilter.Data(MFC_TRADER_GROUP) = 0
     
-        .ColComboList(MFC_MODEL) = "#" & CStr(enCmBinomial) & ";" & g_Params.CalcModelName(enCmBinomial) & _
-                                    "|#" & CStr(enCmBinomialOpt) & ";" & g_Params.CalcModelName(enCmBinomialOpt) & _
-                                    "|#" & CStr(enCmVskLog) & ";" & g_Params.CalcModelName(enCmVskLog)
-        .TextMatrix(1, MFC_MODEL) = g_Params.MatrixCalcModel
-        
         FilterUpdateAll
         For i = MFC_PNL To MFC_LAST_COLUMN
             .TextMatrix(1, i) = 1
@@ -1306,7 +1225,9 @@ Private Sub FormatFltColumns()
     
     With fgFlt
         m_GridLock(GT_MATRIX_FILTER).LockRedraw
-    
+        
+        Set .Font = Nothing
+        
         aFont.Name = m_gdFlt.Font.Name
         aFont.Size = m_gdFlt.Font.Size
         aFont.Bold = m_gdFlt.Font.Bold
@@ -1374,6 +1295,8 @@ Private Sub FormatScnColumns()
     With fgScn
         m_GridLock(GT_MATRIX_SCENARIO).LockRedraw
     
+        Set .Font = Nothing
+        
         aFont.Name = m_gdScn.Font.Name
         aFont.Size = m_gdScn.Font.Size
         aFont.Bold = m_gdScn.Font.Bold
@@ -1518,6 +1441,8 @@ Private Sub FormatValColumns(ByVal bAutosize As Boolean)
     With fgVal
         m_GridLock(GT_MATRIX_VALUES).LockRedraw
     
+        Set .Font = Nothing
+        
         aFont.Name = m_gdVal.Font.Name
         aFont.Size = m_gdVal.Font.Size
         aFont.Bold = m_gdVal.Font.Bold
@@ -1969,7 +1894,7 @@ Private Sub fgFlt_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boo
     On Error Resume Next
     With fgFlt
         Select Case Col
-            Case MFC_SYMBOL To MFC_STRATEGY, MFC_EXPIRY, MFC_SHIFT, MFC_INDEX
+            Case MFC_SYMBOL To MFC_STRATEGY, MFC_EXPIRY
                 .ComboList = .Cell(flexcpData, Row, Col)
         End Select
     End With
@@ -2056,36 +1981,7 @@ Private Sub fgFlt_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     m_aFilter.Data(MFC_EXPIRY) = nValue
                     .AutoSize 0, .Cols - 1, , 100
                     CalcMatrix
-                    
-                Case MFC_SHIFT
-                    m_aFilter.Data(MFC_SHIFT) = nValue
-                    .AutoSize 0, .Cols - 1, , 100
-                    CalcMatrix
-                    
-                Case MFC_INDEX
-                    m_aFilter.Data(MFC_INDEX) = nValue
-                    .AutoSize 0, .Cols - 1, , 100
-                    IndexLoad
-
-                    If m_Und.Count > 0 Then
-                        lblStatus.Visible = False
-                        imgStop.Visible = True
-                        imgStopDis.Visible = False
-                        pbProgress.Visible = True
-                        pbProgress.Min = 0
-                        pbProgress.Value = 0
-                        lblProcess.Caption = "Last quotes request..."
-                        lblProcess.Visible = True
-                        lblProcess.Refresh
-    
-                        RequestLastQuotes True
-                    End If
-                    
-                Case MFC_MODEL
-                    g_Params.MatrixCalcModel = nValue
-                    .AutoSize 0, .Cols - 1, , 100
-                    CalcMatrix
-                    
+                                        
                 Case MFC_PNL To MFC_LAST_COLUMN
                     m_aFilter.Data(Col) = IIf(.Cell(flexcpValue, Row, Col) <> 0, 1, 0)
                     FilterUpdateGreeks
@@ -2129,7 +2025,6 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         Else
                             ScenarioUpdate True
                         End If
-                        
                     Else
                         If Len(sValue) > 0 Then
                             m_Scn.ScenarioName = sValue
@@ -2139,8 +2034,9 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                         Else
                             ScenarioUpdate True
                         End If
-                        
                     End If
+                    
+                    
                     
                 Case MSC_HORZ_AXIS
                     nValue = .ComboData
@@ -2285,7 +2181,53 @@ Private Sub fgScn_AfterEdit(ByVal Row As Long, ByVal Col As Long)
                     SetRefreshHint True
                     ClearValGrid True
                     .AutoSize 0, .Cols - 1, , 100
-            
+                    
+                Case MSC_VALUE_CHANGE
+                    m_Scn.ShowChange = IIf(.Cell(flexcpValue, Row, Col) <> 0, True, False)
+                    SetRefreshHint True
+                    ClearValGrid True
+                    .AutoSize 0, .Cols - 1, , 100
+                
+                Case MSC_SPOT_SHIFT
+                    m_Scn.SpotShiftType = nValue
+                    .AutoSize 0, .Cols - 1, , 100
+                    CalcMatrix
+                    
+                Case MSC_CORR_INDEX
+                    m_Scn.CorrIndex = nValue
+                    .AutoSize 0, .Cols - 1, , 100
+                    IndexLoad
+
+                    If m_Und.Count > 0 Then
+                        lblStatus.Visible = False
+                        imgStop.Visible = True
+                        imgStopDis.Visible = False
+                        pbProgress.Visible = True
+                        pbProgress.Min = 0
+                        pbProgress.Value = 0
+                        lblProcess.Caption = "Last quotes request..."
+                        lblProcess.Visible = True
+                        lblProcess.Refresh
+    
+                        RequestLastQuotes True
+                    End If
+                    
+                Case MSC_CALC_MODEL
+                    g_Params.MatrixCalcModel = nValue
+                    m_Scn.CalcModel = nValue
+                    .AutoSize 0, .Cols - 1, , 100
+                    CalcMatrix
+                
+                Case MSC_SPOT_SPECIFIC
+                    m_Scn.SpotSpecificShiftType = nValue
+                    .AutoSize 0, .Cols - 1, , 100
+                    CalcMatrix
+                
+                Case MSC_VOLA_SPECIFIC
+                    m_Scn.VolaSpecificShiftType = nValue
+                    .AutoSize 0, .Cols - 1, , 100
+                    CalcMatrix
+                    
             End Select
         End If
     End With
@@ -2295,7 +2237,7 @@ Private Sub fgScn_BeforeEdit(ByVal Row As Long, ByVal Col As Long, Cancel As Boo
     On Error Resume Next
     With fgScn
         Select Case Col
-            Case MSC_NAME
+            Case MSC_CALC_MODEL To MSC_SPOT_SPECIFIC, MSC_NAME
                 .ComboList = .Cell(flexcpData, Row, Col)
                 .EditMaxLength = 30
                 
@@ -2513,6 +2455,14 @@ Private Sub mnuCtxOrderNewStock_Click()
     OrderNew True
 End Sub
 
+Private Sub mnuCtxScnLoadParams_Click()
+On Error GoTo exception_handler
+    LoadGroupSpecificRatio
+Exit Sub
+exception_handler:
+MsgBox "Exception occured on Loading Scenrio Params (" & Err.Description & " : " & CStr(Err.Number) & ")"
+End Sub
+
 Private Sub mnuCtxTntCardNew_Click()
 '    On Error Resume Next
 '    If m_bInProc Then Exit Sub
@@ -2653,9 +2603,8 @@ Private Function PositionsLoad() As Boolean
     
     If m_bInProc Then Exit Function
         
-    Dim i&, nCount&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim i&, nCount&, aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, aPos As EtsMmRisksLib.MmRvPosAtom, aExp As EtsGeneralLib.EtsMmEntityAtom
-    Dim collExp As New EtsGeneralLib.EtsMmEntityAtomColl, arrExp() As Long
     
     m_Grp.GroupType = TYPE_ALL
 
@@ -2724,31 +2673,13 @@ Private Function PositionsLoad() As Boolean
     Set m_View.EtsMain = g_Main
     Set m_View.VolaSource = VolaSource
     m_View.PositionsLoad mmTradesColl
-    
-    nCount = collExp.Count
-    If nCount > 0 Then
-        ReDim arrExp(1 To nCount)
-        
-        i = 1
-        For Each aExp In collExp
-            arrExp(i) = aExp.ID
-            i = i + 1
-        Next
-        
-        If nCount > 1 Then SortArray arrExp, 1, nCount
-        
-        For i = 1 To nCount
-            m_Exp.Add CStr(arrExp(i)), collExp(CStr(arrExp(i)))
-        Next
-    End If
-    
+       
     UnderlyingsAdjustRates
     PositionsLoad = m_bDataLoad
 Ex:
     On Error Resume Next
     m_bInProc = False
     m_bDataLoad = False
-    Erase arrExp
     AdjustState
     Exit Function
 EH:
@@ -2764,7 +2695,6 @@ Private Sub InitResults()
     Dim dToleranceValue#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim dtDate As Date
     Dim dtNow As Date: dtNow = GetNewYorkTime
-    'Dim aUnd As EtsGeneralLib.UndAtom
     
     dToleranceValue# = g_Params.UndPriceToleranceValue
     enRoundingRule = g_Params.PriceRoundingRule
@@ -2920,10 +2850,17 @@ Private Sub InitResults()
 End Sub
 
 Private Sub CalcMatrix()
-    On Error Resume Next
+
+On Error GoTo error_exception
+
     Dim aUnd As EtsMmRisksLib.MmRvUndAtom, bCorrelatedShift As Boolean, nModel As EtsGeneralLib.EtsCalcModelTypeEnum
     Dim nLastX&, nLastY&, nX&, nY&, nUndCount&, i&, nRow&, nMask&, nBadForeColor&, nForeColor&
     Dim aPos As EtsMmRisksLib.MmRvPosAtom
+    
+    Dim nX0 As Long
+    Dim nY0 As Long
+    Dim dValue As Double
+    Dim bStatus As Boolean
     
     nUndCount = m_Und.Count
     If m_bInProc Or m_bRecalc Then Exit Sub
@@ -2964,7 +2901,7 @@ Private Sub CalcMatrix()
     If m_aFilter.Data(MFC_VEGA) <> 0 Or m_aFilter.Data(MFC_WTD_VEGA) <> 0 Then nMask = nMask Or GM_VEGA
     If m_aFilter.Data(MFC_RHO) <> 0 Then nMask = nMask Or GM_RHO
     
-    bCorrelatedShift = (m_aFilter.Data(MFC_SHIFT) = 1)
+    bCorrelatedShift = (m_Scn.SpotShiftType = RMSS_CORRELATED)
     If bCorrelatedShift Then
         For Each aUnd In m_Und
             If Not aUnd.HasSynthetic Then
@@ -3027,10 +2964,13 @@ ExitFor:
     nModel = g_Params.MatrixCalcModel
     
     For Each aUnd In m_Und
-        CalcPosition aUnd, nLastX, nLastY, nMask, bCorrelatedShift, nModel
+        CalcPosition aUnd, nLastX, nLastY, nMask, bCorrelatedShift, m_Scn.CalcModel
         DoEvents
         If Not m_bRecalc Then Exit For
     Next
+        
+    nX0 = m_BasePoint(RMA_HORZ) - 1
+    nY0 = m_BasePoint(RMA_VERT) - 1
     
     With fgVal
         m_GridLock(GT_MATRIX_VALUES).LockRedraw
@@ -3052,45 +2992,51 @@ ExitFor:
                         If m_aFilter.Data(MFC_PNL + i) <> 0 Then
                             Select Case MFC_PNL + i
                                 Case MFC_PNL
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).PnL > BAD_DOUBLE_VALUE, m_Res(nX, nY).PnL, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadPnL, nBadForeColor, nForeColor)
-
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).PnL, m_Res(nX, nY).PnL, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadPnL, m_Res(nX, nY).BadPnL, m_Scn.ShowChange)
+                                    
                                 Case MFC_DELTA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Delta > BAD_DOUBLE_VALUE, m_Res(nX, nY).Delta, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadDelta, nBadForeColor, nForeColor)
-
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).Delta, m_Res(nX, nY).Delta, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadDelta, m_Res(nX, nY).BadDelta, m_Scn.ShowChange)
+                                    
                                 Case MFC_NET_DELTA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).NetDelta > BAD_DOUBLE_VALUE, m_Res(nX, nY).NetDelta, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadNetDelta, nBadForeColor, nForeColor)
-
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).NetDelta, m_Res(nX, nY).NetDelta, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadNetDelta, m_Res(nX, nY).BadNetDelta, m_Scn.ShowChange)
+                                    
                                 Case MFC_GAMMA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Gamma > BAD_DOUBLE_VALUE, m_Res(nX, nY).Gamma, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadGamma, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).Gamma, m_Res(nX, nY).Gamma, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadGamma, m_Res(nX, nY).BadGamma, m_Scn.ShowChange)
 
                                 Case MFC_GAMMA_PERC
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).GammaPerc > BAD_DOUBLE_VALUE, m_Res(nX, nY).GammaPerc, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadGammaPerc, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).GammaPerc, m_Res(nX, nY).GammaPerc, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadGammaPerc, m_Res(nX, nY).BadGammaPerc, m_Scn.ShowChange)
 
                                 Case MFC_NET_GAMMA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).NetGamma > BAD_DOUBLE_VALUE, m_Res(nX, nY).NetGamma, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadNetGamma, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).NetGamma, m_Res(nX, nY).NetGamma, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadNetGamma, m_Res(nX, nY).BadNetGamma, m_Scn.ShowChange)
 
                                 Case MFC_THETA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Theta > BAD_DOUBLE_VALUE, m_Res(nX, nY).Theta, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadTheta, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).Theta, m_Res(nX, nY).Theta, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadTheta, m_Res(nX, nY).BadTheta, m_Scn.ShowChange)
 
                                 Case MFC_VEGA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Vega > BAD_DOUBLE_VALUE, m_Res(nX, nY).Vega, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadVega, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).Vega, m_Res(nX, nY).Vega, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadVega, m_Res(nX, nY).BadVega, m_Scn.ShowChange)
 
                                 Case MFC_RHO
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).Rho > BAD_DOUBLE_VALUE, m_Res(nX, nY).Rho, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadRho, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).Rho, m_Res(nX, nY).Rho, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadRho, m_Res(nX, nY).BadRho, m_Scn.ShowChange)
 
                                 Case MFC_WTD_VEGA
-                                    .TextMatrix(nRow, nX + 2) = IIf(m_Res(nX, nY).WtdVega > BAD_DOUBLE_VALUE, m_Res(nX, nY).WtdVega, STR_NA)
-                                    .Cell(flexcpForeColor, nRow, nX + 2) = IIf(m_Res(nX, nY).BadWtdVega, nBadForeColor, nForeColor)
+                                    dValue = GetMatrixValue(m_Res(nX0, nY0).WtdVega, m_Res(nX, nY).WtdVega, m_Scn.ShowChange)
+                                    bStatus = GetMatrixValueStatus(m_Res(nX0, nY0).BadWtdVega, m_Res(nX, nY).BadWtdVega, m_Scn.ShowChange)
+
                             End Select
+                            
+                            'Update View
+                            .TextMatrix(nRow, nX + 2) = IIf(dValue > BAD_DOUBLE_VALUE, dValue, STR_NA)
+                            .Cell(flexcpForeColor, nRow, nX + 2) = IIf(bStatus, nBadForeColor, nForeColor)
+                            
                             nRow = nRow + 1
                         End If
                     Next
@@ -3105,7 +3051,7 @@ ExitFor:
         m_GridLock(GT_MATRIX_VALUES).UnlockRedraw
     End With
     
-    If Not bCorrelatedShift And (m_aFilter.Data(MFC_SHIFT) = 1) Then
+    If Not bCorrelatedShift And (m_Scn.SpotShiftType = RMSS_CORRELATED) Then
         lblStatus.Caption = "Some stocks do not correlate with current index. Parallel shift used."
     Else
         lblStatus.Caption = ""
@@ -3131,7 +3077,49 @@ ExitFor:
     
     RaiseEvent OnScreenRefresh(m_Res, Axis, m_aFilter)
     Erase Axis
+    
+    Exit Sub
+error_exception:
+    MsgBox "Exception on CalcMatrix: " & Err.Description
 End Sub
+
+Private Function GetMatrixValue(ByVal vC As Double, ByVal vB As Double, ByVal bDelta As Boolean) As Double
+On Error Resume Next
+
+    Dim dRetValue As Double
+    dRetValue = BAD_DOUBLE_VALUE
+    
+    If (bDelta = True) Then
+        If (vC > BAD_DOUBLE_VALUE And vB > BAD_DOUBLE_VALUE) Then
+            dRetValue = vB - vC
+        End If
+    Else
+        If (vB > BAD_DOUBLE_VALUE) Then
+            dRetValue = vB
+        End If
+    End If
+    
+    GetMatrixValue = dRetValue
+End Function
+
+Private Function GetMatrixValueStatus(ByVal vC As Boolean, ByVal vB As Boolean, ByVal bDelta As Boolean) As Boolean
+On Error Resume Next
+
+    Dim dRetValue As Boolean
+    dRetValue = False
+    
+    If (bDelta = True) Then
+        If (vC = True Or vB = True) Then
+            dRetValue = True
+        End If
+    Else
+        If (vB = True) Then
+            dRetValue = True
+        End If
+    End If
+    
+    GetMatrixValueStatus = dRetValue
+End Function
 
 Private Sub UnderlyingsAdjustRates()
     On Error Resume Next
@@ -3146,8 +3134,8 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     On Error Resume Next
     Dim aPos As EtsMmRisksLib.MmRvPosAtom, bUseMidRates As Boolean, cPosThreshold@, dPos#
     If aUnd Is Nothing Then Exit Sub
-    Dim dtNow As Date
-    dtNow = GetNewYorkTime
+
+    Dim dtToday As Date: dtToday = GetNewYorkTime
     
     dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
     
@@ -3159,23 +3147,21 @@ Private Sub UnderlyingAdjustRates(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom)
     End If
 
     aUnd.UseMidRates = bUseMidRates
+    Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
     
     For Each aPos In aUnd.Pos
         If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
             If bUseMidRates Then
-                If Not aUnd.IsHTB Then
-                    aPos.Rate = GetNeutralRate(dtNow, aPos.ExpiryOV)
-                Else
-                    aPos.Rate = GetNeutralHTBRate(dtNow, aPos.ExpiryOV)
-                End If
+                aPos.Rate = GetNeutralRate(dtToday, aPos.ExpiryOV)
             Else
-                If Not aUnd.IsHTB Then
-                    aPos.Rate = IIf(dPos < 0, GetShortRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
-                Else
-                    aPos.Rate = IIf(dPos < 0, GetHTBRate(dtNow, aPos.ExpiryOV), GetLongRate(dtNow, aPos.ExpiryOV))
-                End If
+                aPos.Rate = IIf(dPos < 0, GetShortRate(dtToday, aPos.ExpiryOV), GetLongRate(dtToday, aPos.ExpiryOV))
             End If
-
+            
+            If bIsHTBRatesExist Then
+                aPos.HTBRate = GetHTBRate(aUnd.ID, dtToday, aPos.ExpiryOV)
+            Else
+                aPos.HTBRate = BAD_DOUBLE_VALUE
+            End If
         End If
     Next
 End Sub
@@ -3183,35 +3169,31 @@ End Sub
 Private Sub ShiftSpot(ByVal dBeta#, ByVal enUnits As RmUnitTypeEnum, _
                     ByVal dShift#, ByVal bCorrelatedShift As Boolean, _
                     ByRef dUndSpot#, ByRef dUndBid#, ByRef dUndAsk#, _
-                    ByVal dUndDriverPrice#, ByVal dWeight#)
+                    ByVal dUndDriverPrice#, ByVal dWeight#, ByVal dGroupRatio#)
     On Error Resume Next
     Dim dBetaFactor#
     Dim dShiftDelta#
     
+    
+    If (m_Scn.SpotSpecificShiftType = RMSSS_GROUP_SPECIFIC) Then
+        dShift = dShift * dGroupRatio
+    End If
+    
     If enUnits = RMUT_PERC Then
         If Not bCorrelatedShift Or dBeta = 0# Or dBeta = 1# Or IsBadDouble(dBeta) Then
-            dShiftDelta = dUndDriverPrice * dShift * dWeight
-            dUndSpot = dUndSpot + dShiftDelta
-            If dUndBid > 0# Then dUndBid = dUndBid + dShiftDelta
-            If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
+            dShiftDelta = dUndDriverPrice * dWeight * dShift
         Else
             dBetaFactor = (1 + dShift)
             
             If dBetaFactor > 0# Then
-                dShiftDelta = dUndDriverPrice * (Exp(Log(dBetaFactor) * dBeta) - 1#) * dWeight
+                dShiftDelta = dUndDriverPrice * dWeight * (Exp(Log(dBetaFactor) * dBeta) - 1#)
             Else
                 dShiftDelta = 0#
             End If
-            
-            dUndSpot = dUndSpot + dShiftDelta
-            If dUndBid > 0# Then dUndBid = dUndBid + dShiftDelta
-            If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
         End If
     Else
         If (Not bCorrelatedShift) Then
-            dUndSpot = dUndSpot + dShift
-            If dUndBid > 0# Then dUndBid = dUndBid + dShift
-            If dUndAsk > 0# Then dUndAsk = dUndAsk + dShift
+            dShiftDelta = dShift
         Else
             Dim enReplaceStatus As EtsReplacePriceStatusEnum
             Dim bFutPriceReplaced As Boolean
@@ -3227,21 +3209,36 @@ Private Sub ShiftSpot(ByVal dBeta#, ByVal enUnits As RmUnitTypeEnum, _
             If (dIdxPrice > 0#) Then
                 dBetaFactor = 1# + (dShift / dIdxPrice)
                 If dBetaFactor > 0# Then
-                    dShiftDelta = dUndDriverPrice * (Exp(Log(dBetaFactor) * dBeta) - 1#) * dWeight
+                    dShiftDelta = (dUndDriverPrice * dWeight) * (Exp(Log(dBetaFactor) * dBeta) - 1#)
                 Else
                     dShiftDelta = 0#
                 End If
-                dUndSpot = dUndSpot + dShiftDelta
-                If dUndBid > 0# Then dUndBid = dUndBid + dShiftDelta
-                If dUndAsk > 0# Then dUndAsk = dUndAsk + dShiftDelta
             Else
                 'If not idxPrice use Abs shift
-                dUndSpot = dUndSpot + dShift
-                If dUndBid > 0# Then dUndBid = dUndBid + dShift
-                If dUndAsk > 0# Then dUndAsk = dUndAsk + dShift
+                dShiftDelta = dShift
             End If
         End If
     End If
+       
+    
+    If (dUndSpot + dShiftDelta > 0#) Then
+        dUndSpot = dUndSpot + dShiftDelta
+    Else
+        dUndSpot = 0#
+    End If
+    
+    If (dUndBid + dShiftDelta > 0#) Then
+        dUndBid = dUndBid + dShiftDelta
+    Else
+        dUndBid = 0#
+    End If
+    
+    If (dUndAsk + dShiftDelta > 0#) Then
+        dUndAsk = dUndAsk + dShiftDelta
+    Else
+        dUndAsk = 0#
+    End If
+        
 End Sub
 
 Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
@@ -3253,7 +3250,8 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
                           ByRef dUndAsk#, _
                           ByVal dDriverPrice#, _
                           ByVal dMainBetta#, _
-                          ByVal dGroupCompWeight#)
+                          ByVal dGroupCompWeight#, _
+                          ByVal dGroupRatio#)
                           
     On Error Resume Next
     
@@ -3286,7 +3284,9 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
             dDriverPrice = aUnd.UndPriceProfile.GetUndPriceMid(dUndCompBid, dUndCompAsk, dCompUndSpot, g_Params.UndPriceToleranceValue, g_Params.PriceRoundingRule)
         End If
             
-        ShiftSpot dMainBetta, enUnits, dShift, bCorrelatedShift, dCompUndSpot, dUndCompBid, dUndCompAsk, dDriverPrice, dGroupCompWeight
+        ShiftSpot dMainBetta, enUnits, dShift, _
+                    bCorrelatedShift, dCompUndSpot, dUndCompBid, _
+                    dUndCompAsk, dDriverPrice, dGroupCompWeight, dGroupRatio
         
         If Not bBadSpotValue And dCompUndSpot > 0# Then
             dUndSpot = dUndSpot + dCompUndSpot * sRootComp.Weight
@@ -3319,41 +3319,36 @@ Private Sub ShiftSyntSpot(ByRef aSynthAtom As SynthRootAtom, _
 End Sub
 
 
-Private Sub ShiftVola(ByRef aRes As EtsMmRisksLib.MmRvMatrixCalcResultType, ByVal dVegaWeight#, ByRef dVola#)
-    On Error Resume Next
+Private Sub ShiftVola(ByRef aRes As EtsMmRisksLib.MmRvMatrixCalcResultType, _
+                        ByVal dVegaWeight#, ByRef dVola#, ByVal dGroupRatio#)
+On Error Resume Next
+    Dim dShift As Double
+    Dim enShiftUnit As RmUnitTypeEnum
     
-    If m_Scn.Axis(RMA_HORZ) = RMAT_VOLA Then
-        If m_Scn.Units(RMA_HORZ) = RMUT_PERC Then
-            If m_Scn.VolaShiftType = RMVS_WEIGHTED And dVegaWeight > 0# Then
-                dVola = dVola + dVola * aRes.ShiftX * dVegaWeight
-            Else
-                dVola = dVola * (1 + aRes.ShiftX)
-            End If
-        Else
-            If m_Scn.VolaShiftType = RMVS_WEIGHTED And dVegaWeight > 0# Then
-                dVola = dVola + aRes.ShiftX * dVegaWeight
-            Else
-                dVola = dVola + aRes.ShiftX
-            End If
-        End If
-        
-    ElseIf m_Scn.Axis(RMA_VERT) = RMAT_VOLA Then
-        If m_Scn.Units(RMA_VERT) = RMUT_PERC Then
-            If m_Scn.VolaShiftType = RMVS_WEIGHTED And dVegaWeight > 0# Then
-                dVola = dVola + dVola * aRes.ShiftY * dVegaWeight
-            Else
-                dVola = dVola * (1 + aRes.ShiftY)
-            End If
-        Else
-            If m_Scn.VolaShiftType = RMVS_WEIGHTED And dVegaWeight > 0# Then
-                dVola = dVola + aRes.ShiftY * dVegaWeight
-            Else
-                dVola = dVola + aRes.ShiftY
-            End If
-        End If
+    If (m_Scn.Axis(RMA_HORZ) = RMAT_VOLA) Then
+        dShift = aRes.ShiftX
+        enShiftUnit = m_Scn.Units(RMA_HORZ)
+    ElseIf (m_Scn.Axis(RMA_VERT) = RMAT_VOLA) Then
+        dShift = aRes.ShiftY
+        enShiftUnit = m_Scn.Units(RMA_VERT)
+    End If
+    
+    If (m_Scn.VolaShiftType = RMVS_WEIGHTED And dVegaWeight > 0#) Then
+        dShift = dShift * dVegaWeight
+    End If
+    
+    If (m_Scn.VolaSpecificShiftType = RMVSS_GROUP_SPECIFIC) Then
+        dShift = dShift * dGroupRatio
+    End If
+    
+    If (enShiftUnit = RMUT_ABS) Then
+        dVola = dVola + dShift
+    ElseIf (enShiftUnit = RMUT_PERC) Then
+        dVola = dVola * (1# + dShift)
     End If
     
     If dVola <= 0# Then dVola = 0.001
+    
 End Sub
 
 Private Sub SetResultsBadStatus(ByRef aRes As EtsMmRisksLib.MmRvMatrixCalcResultType)
@@ -3602,6 +3597,13 @@ Private Sub CalcTheoPnLCommonExerc(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, _
     On Error Resume Next
     Dim bBadPnl As Boolean, dTmp#, dPnlTheo#
     
+    Dim dCoeff#
+    
+    dCoeff = 1#
+    If (Not m_Und(aPos.UndID).HeadComponent Is Nothing) Then
+        dCoeff = m_Und(aPos.UndID).Coeff
+    End If
+    
     bBadPnl = False
     dPnlTheo = BAD_DOUBLE_VALUE
     
@@ -3621,11 +3623,11 @@ Private Sub CalcTheoPnLCommonExerc(ByRef aPos As EtsMmRisksLib.MmRvPosAtom, _
         dTmp = IIf(aPos.OptType = enOtCall, 1, -1)
         If aPos.QtyLTDBuy > BAD_LONG_VALUE Then
             aRes.Delta = aRes.Delta + aPos.QtyLTDBuy * dTmp * dUndSpot
-            aRes.NetDelta = aRes.NetDelta + aPos.QtyLTDBuy * dTmp
+            aRes.NetDelta = aRes.NetDelta + aPos.QtyLTDBuy * dTmp * dCoeff
         End If
         If aPos.QtyLTDSell > BAD_LONG_VALUE Then
             aRes.Delta = aRes.Delta + aPos.QtyLTDSell * dTmp * dUndSpot
-            aRes.NetDelta = aRes.NetDelta + aPos.QtyLTDSell * dTmp
+            aRes.NetDelta = aRes.NetDelta + aPos.QtyLTDSell * dTmp * dCoeff
         End If
     Else ' OTM options
         dPnlTheo = CalcTheoPnLCommonExercOtm(aPos)
@@ -4032,13 +4034,19 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Dim dDivDte() As Double, dDivAmts() As Double
     Dim nFlag&
     Dim bIsBasket As Boolean
+    Dim lSurfaceID As Long
     
-    Dim dYTE As Double
+    Dim dYte As Double
     
     Dim dtNow As Date
+    Dim dtExpiryOV As Date
+    Dim dtTradingClose As Date
+    
+    Dim dGrVola As Double
+    dGrVola = GetGroupRatio(aUnd, enGrVola, Filter.Data(MFC_GROUPS))
+    
     dtNow = dtToday
-    dYTE = CDbl(aPos.ExpiryOV - dtNow) / 365#
-   
+    GetCalcParams dtNow, aPos.ExpiryOV, aPos.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
     
     nDivCount = 0
     ReDim dDivDte(0 To 0)
@@ -4057,9 +4065,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
     Select Case enDivType
             Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
                 If Not aDiv Is Nothing Then
-                    aDiv.GetDividendCount2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount
+                    aDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                     If nDivCount > 0 Then
-                        aDiv.GetDividends2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                        aDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                     End If
                     Set aDiv = Nothing
                 End If
@@ -4069,9 +4077,9 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                     Set aBasketDiv = aUnd.BasketIndex.BasketDivs
                     bIsBasket = aUnd.BasketIndex.IsBasket
                     If Not aBasketDiv Is Nothing Then
-                        aBasketDiv.GetDividendCount2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount
+                        aBasketDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                         If nDivCount > 0 Then
-                                aBasketDiv.GetDividends2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                                aBasketDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                         End If
                     End If
                     Set aBasketDiv = Nothing
@@ -4080,55 +4088,59 @@ Private Function CalcGreeksCommon(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef
                 dYield = aUnd.Yield
     End Select
         
+        
+'   incorrect computation's in case of implied volatility usage
+    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(aPos.OptionRootID)
     dVola = 0#
-    If g_Params.UseTheoVolatility Then
-        dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-    Else
-        If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > DBL_EPSILON Then
-            
-            dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
-            If (aPos.Quote.price.IsUseManualActive) Then
-                dOptSpot = aPos.Quote.price.Active
-            End If
-            
-            If dOptSpot > 0# Then
-                nFlag = VF_OK
-                If aPos.ContractType = enCtOption Then
-                dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, dOptSpot, aPos.Strike, dYTE, _
-                                    aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
-                                    100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
-                ElseIf aPos.ContractType = enCtFutOption Then
-                    dVola = CalcFutureOptionVolatility(aPos.Rate, dFutSpot, dOptSpot, aPos.Strike, dYTE, _
-                                        aPos.OptType, nIsAmerican, 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
-                End If
-                
-                If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-                End If
-            ElseIf g_Params.UseTheoBadMarketVola Then
-                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-            End If
-        Else
-            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-        End If
-    End If
+
+'    If g_Params.UseTheoVolatility Then
+        dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'    Else
+'        If Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > DBL_EPSILON Then
+'
+'            dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+'            If (aPos.Quote.price.IsUseManualActive) Then
+'                dOptSpot = aPos.Quote.price.Active
+'            End If
+'
+'            If dOptSpot > 0# Then
+'                nFlag = VF_OK
+'                If aPos.ContractType = enCtOption Then
+'                dVola = CalcVolatilityMM3(aPos.Rate, dYield, aPos.HTBRate, dUndSpot, dOptSpot, aPos.Strike, dYte, _
+'                                    aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), _
+'                                    100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
+'                ElseIf aPos.ContractType = enCtFutOption Then
+'                    dVola = CalcFutureOptionVolatility(aPos.Rate, dFutSpot, dOptSpot, aPos.Strike, dYte, _
+'                                        aPos.OptType, nIsAmerican, 100, aUnd.Skew, aUnd.Kurt, nModel, nFlag)
+'                End If
+'
+'                If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
+'                    dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'                End If
+'            ElseIf g_Params.UseTheoBadMarketVola Then
+'                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'            End If
+'        Else
+'            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'        End If
+'    End If
     
     If dVola > 0# Then
-        ShiftVola aRes, aPos.VegaWeight, dVola
+        ShiftVola aRes, aPos.VegaWeight, dVola, dGrVola
         
         Dim RetCount As Long
         RetCount = 0
         If aPos.ContractType = enCtOption Then
-            RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dUndSpot, aPos.Strike, dVola, dYTE, _
+            RetCount = CalcGreeksMM2(aPos.Rate, dYield, aPos.HTBRate, dUndSpot, aPos.Strike, dVola, dYte, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
         ElseIf aPos.ContractType = enCtFutOption Then
             nIsAmericanFut = IIf(aPos.Fut.IsAmerican, 1, 0)
             Debug.Assert (dFutSpot >= 0)
             If aUnd.ContractType = enCtFutUnd Then
-                RetCount = CalcFutureOptionGreeks2(aPos.Rate, dFutSpot, False, aPos.Strike, dVola, dYTE, _
+                RetCount = CalcFutureOptionGreeks2(aPos.Rate, dFutSpot, False, aPos.Strike, dVola, dYte, _
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, aGreeks)
             Else
-                RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutSpot, True, aPos.Strike, dVola, dYTE, _
+                RetCount = CalcFutureOptionGreeks3(aPos.Rate, aUnd.Yield, dFutSpot, True, aPos.Strike, dVola, dYte, _
                             aPos.OptType, nIsAmericanFut, 100, aUnd.Skew, aUnd.Kurt, nModel, nDivCount, _
                             dDivAmts(0), dDivDte(0), aGreeks)
             End If
@@ -4151,7 +4163,8 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     Dim nDivCount&, RetCount&, nBaskDivCount&, dYield#, dVola#, dOptSpot#, nIsAmerican&
     Dim dDivDte() As Double, dDivAmts() As Double, aBaskDivs() As REGULAR_DIVIDENDS
     Dim nFlag&
-    Dim dYTE As Double
+    Dim dYte As Double
+    Dim lSurfaceID As Long
     
     nDivCount = 0
     ReDim dDivDte(0 To 0)
@@ -4161,16 +4174,22 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
     CalcGreeksSynth = False
     
     Dim dtNow As Date
+    Dim dtExpiryOV As Date
+    Dim dtTradingClose As Date
+    
+    Dim dGrVola As Double
+    dGrVola = GetGroupRatio(aUnd, enGrVola, Filter.Data(MFC_GROUPS))
+    
     dtNow = dtToday
-    dYTE = CDbl(aPos.ExpiryOV - dtNow) / 365#
+    GetCalcParams dtNow, aPos.ExpiryOV, aPos.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
     
     If aSynthRoot.Basket Then
             Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
             Set aBasketDiv = aSynthRoot.BasketDivs
             If Not aBasketDiv Is Nothing Then
-                aBasketDiv.GetDividendCount2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount
+                aBasketDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nBaskDivCount
                 If nBaskDivCount > 0 Then _
-                        aBasketDiv.GetDividends2 dtNow, aPos.ExpiryOV, aPos.TradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+                        aBasketDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
             End If
             Set aBasketDiv = Nothing
         Erase aBaskDivs
@@ -4180,30 +4199,31 @@ Private Function CalcGreeksSynth(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByRef 
         nDivCount = 0
     End If
     
-    
+    lSurfaceID = aUnd.VolaSrv.GetSurfaceByRoot(aPos.OptionRootID)
     dVola = 0#
-    If Not g_Params.UseTheoVolatility And (Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > 0#) Then
-        Debug.Assert (Not aUnd.OptPriceProfile Is Nothing)
-        dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
-    
-        If dOptSpot > 0# Then
-            nFlag = VF_OK
-            dVola = CalcVolatilityMM3(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpotBase, dOptSpot, aPos.Strike, dYTE, _
-                aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
-            If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
-                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-            End If
-        ElseIf g_Params.UseTheoBadMarketVola Then
-            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-        End If
-    Else
-        dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike)
-    End If
+'   If Not g_Params.UseTheoVolatility And (Not g_Params.UseTheoNoBid Or g_Params.UseTheoNoBid And aPos.Quote.price.Bid > 0#) Then
+'
+'        Debug.Assert (Not aUnd.OptPriceProfile Is Nothing)
+'        dOptSpot = aUnd.OptPriceProfile.GetOptPriceMid(aPos.Quote.price.Bid, aPos.Quote.price.Ask, aPos.Quote.price.Last, g_Params.PriceRoundingRule, g_Params.UseTheoVolatility, 0#)
+'
+'        If dOptSpot > 0# Then
+'            nFlag = VF_OK
+'            dVola = CalcVolatilityMM3(aPos.Rate, dYield, aPos.HTBRate, dSynthUndSpotBase, dOptSpot, aPos.Strike, dYte, _
+'                aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, nFlag)
+'            If g_Params.UseTheoBadMarketVola And nFlag <> VF_OK Then
+'                dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'            End If
+'        ElseIf g_Params.UseTheoBadMarketVola Then
+'            dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'        End If
+'    Else
+        dVola = aUnd.VolaSrv.OptionVola(aPos.ExpiryOV, aPos.Strike, lSurfaceID)
+'    End If
     
     If dVola > 0# Then
-        ShiftVola aRes, aPos.VegaWeight, dVola
+        ShiftVola aRes, aPos.VegaWeight, dVola, dGrVola
         
-        RetCount = CalcGreeksMM2(aPos.Rate, dYield, BAD_DOUBLE_VALUE, dSynthUndSpot, aPos.Strike, dVola, dYTE, _
+        RetCount = CalcGreeksMM2(aPos.Rate, dYield, aPos.HTBRate, dSynthUndSpot, aPos.Strike, dVola, dYte, _
                             aPos.OptType, nIsAmerican, nDivCount, dDivAmts(0), dDivDte(0), 100, aSynthRoot.Skew, aSynthRoot.Kurt, nModel, aGreeks)
         
         If RetCount <> 0 Then
@@ -4219,7 +4239,7 @@ End Function
 Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, ByVal dDriverPrice#, ByVal dWeight#, ByVal bCorrelatedShift As Boolean, _
                         ByRef dUndSpot#, ByRef dUndBid#, ByRef dUndAsk#, _
                         ByRef dFutSpot#, ByRef dFutBid#, ByRef dFutAsk#, _
-                        ByRef dtToday As Date)
+                        ByRef dtToday As Date, ByVal dGroupRatio#)
     
             Dim dtNow As Date
             dtNow = GetNewYorkTime
@@ -4228,10 +4248,10 @@ Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, By
             Select Case m_Scn.Axis(RMA_HORZ)
                 Case RMAT_SPOT
                     If dUndSpot > 0# Then
-                        ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dDriverPrice, dWeight
+                        ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dDriverPrice, dWeight, dGroupRatio
                     End If
                     If dFutSpot > 0# Then
-                        ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight
+                        ShiftSpot dBeta, m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight, dGroupRatio
                     End If
                 Case RMAT_TIME
                     dtToday = dtNow + m_Res(nX, nY).ShiftX
@@ -4240,10 +4260,10 @@ Private Sub GetShifts(ByVal nX As Integer, ByVal nY As Integer, ByVal dBeta#, By
             Select Case m_Scn.Axis(RMA_VERT)
                 Case RMAT_SPOT
                     If dUndSpot > 0# Then
-                        ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dDriverPrice, dWeight
+                        ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dDriverPrice, dWeight, dGroupRatio
                     End If
                     If dFutSpot > 0# Then
-                        ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight
+                        ShiftSpot dBeta, m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, bCorrelatedShift, dFutSpot, dFutBid, dFutAsk, dDriverPrice, dWeight, dGroupRatio
                     End If
                 Case RMAT_TIME
                     dtToday = dtNow + m_Res(nX, nY).ShiftY
@@ -4353,6 +4373,60 @@ Exception:
     Debug.Print "Error while trying to GetFutureBasePrice"
 End Sub
 
+Private Function GetGroupRatio(ByRef aAsset As EtsMmRisksLib.MmRvUndAtom, _
+                                ByVal Idx As GroupRatioEnum, _
+                                ByVal SectorID As Long) As Double
+On Error GoTo error_exception
+    ' in this case we will find maximum ratio for currect asset
+    GetGroupRatio = BAD_DOUBLE_VALUE
+    
+    Dim itrGroup As EtsUndGroupAtom
+    Dim dblRatio As Double
+    Dim bFound As Boolean
+    
+    bFound = False
+    dblRatio = 0#
+    If (Not aAsset Is Nothing) Then
+        For Each itrGroup In g_Main.UnderlyingGroup
+            If (Not itrGroup.Und Is Nothing) Then
+            
+                If (SectorID <> 0) Then
+                    If (itrGroup.ID <> SectorID) Then GoTo SkipSector
+                End If
+                
+                If (Not itrGroup.Und.Item(aAsset.ID) Is Nothing) Then
+                    If (Abs(itrGroup.Ratio(Idx)) > Abs(dblRatio)) Then
+                        dblRatio = itrGroup.Ratio(Idx)
+                        bFound = True
+                    End If
+                End If
+                
+SkipSector:
+            End If
+        Next
+    End If
+    
+    If ((Not bFound) And SectorID <> 0) Then
+        If (Not aAsset Is Nothing) Then
+            For Each itrGroup In g_Main.UnderlyingGroup
+                If (Not itrGroup.Und.Item(aAsset.ID) Is Nothing) Then
+                    If (Abs(itrGroup.Ratio(Idx)) > Abs(dblRatio)) Then
+                        dblRatio = itrGroup.Ratio(Idx)
+                        bFound = True
+                    End If
+                End If
+            Next
+        End If
+    End If
+    
+    GetGroupRatio = IIf(bFound, dblRatio, 1)
+    
+    Exit Function
+error_exception:
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogInformation, "GetGroupRatio: " & aAsset.Symbol, m_frmOwner.GetCaption
+End Function
+
 Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX As Long, ByVal nLastY As Long, ByVal nGreeksMask As Long, _
                         ByVal bCorrelatedShift As Boolean, ByVal nModel As EtsGeneralLib.EtsCalcModelTypeEnum)
     On Error Resume Next
@@ -4366,6 +4440,7 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
     Dim bFutPriceReplaced As Boolean
     Dim dUndBidSave#, dUndAskSave#, dUndSave#, dDriverPrice#, dGroupCompWeight#, dMainBetta#
     Dim dFutSpot#, dFutBid#, dFutAsk#, dCoeff#
+    Dim dGrVola As Double, dGrSpot As Double
     
 
     nSynthOptRootID = BAD_LONG_VALUE
@@ -4377,7 +4452,9 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
     End If
     'Next Calc all greeks
     '-------------------------------------------------------------------------------------------------------------------'
-    
+        dGrSpot = GetGroupRatio(aUnd, enGrSpot, Filter.Data(MFC_GROUPS))
+        dGrVola = GetGroupRatio(aUnd, enGrVola, Filter.Data(MFC_GROUPS))
+        
         dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
 
         dtToday = Date
@@ -4402,7 +4479,8 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                         End If
                         
                         dUndSpot = dUndSpotBase: dUndBid = dUndBidBase: dUndAsk = dUndAskBase
-                        GetShifts nX, nY, dMainBetta, dDriverPrice, dGroupCompWeight, bCorrelatedShift, dUndSpot, dUndBid, dUndAsk, dFutSpot, dFutBid, dFutAsk, dtToday
+                        GetShifts nX, nY, dMainBetta, dDriverPrice, dGroupCompWeight, bCorrelatedShift, _
+                                dUndSpot, dUndBid, dUndAsk, dFutSpot, dFutBid, dFutAsk, dtToday, dGrSpot
                         
                         If aPos.ContractType = enCtOption Or aPos.ContractType = enCtFutOption Then
                             
@@ -4464,12 +4542,14 @@ Private Sub CalcPosition(ByRef aUnd As EtsMmRisksLib.MmRvUndAtom, ByVal nLastX A
                                         If m_Scn.Axis(RMA_HORZ) = RMAT_SPOT Then
                                             dSynthUndSpot = dSynthUndSpotBase: dSynthUndBid = dSynthUndBidBase: dSynthUndAsk = dSynthUndAskBase
                                             ShiftSyntSpot aUnd.SynthRoots(aPos.OptionRootID), m_Scn.Units(RMA_HORZ), m_Res(nX, nY).ShiftX, _
-                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk, dDriverPrice, dMainBetta, dGroupCompWeight
+                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk, dDriverPrice, dMainBetta, dGroupCompWeight, _
+                                                        dGrSpot
 
                                         ElseIf m_Scn.Axis(RMA_VERT) = RMAT_SPOT Then
                                             dSynthUndSpot = dSynthUndSpotBase: dSynthUndBid = dSynthUndBidBase: dSynthUndAsk = dSynthUndAskBase
                                             ShiftSyntSpot aUnd.SynthRoots(aPos.OptionRootID), m_Scn.Units(RMA_VERT), m_Res(nX, nY).ShiftY, _
-                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk, dDriverPrice, dMainBetta, dGroupCompWeight
+                                                        bCorrelatedShift, dSynthUndSpot, dSynthUndBid, dSynthUndAsk, dDriverPrice, dMainBetta, dGroupCompWeight, _
+                                                        dGrSpot
                                         End If
 
                                         If dSynthUndSpot <= 0# Then
@@ -4613,7 +4693,7 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
                 RaiseEvent OnRefreshComplete
             End If
         Else
-            Debug.Assert False
+            'Debug.Assert False
         End If
     
     Else
@@ -4749,7 +4829,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
         If m_bGroupRequest Then
             m_GroupPriceProvider.CancelGroup
         End If
-        
+
         CalcMatrix
         
         pbProgress.Visible = False
@@ -4814,7 +4894,6 @@ Private Sub RequestLastQuotes(ByVal bIndexOnly As Boolean)
                     For Each aReq In m_QuoteRequests
                         If Not m_bLastQuoteReqNow Then Exit For
                         PriceProvider.RequestLastQuote aReq.GetQuoteUpdateParam
-                        DoEvents
                     Next
                 Else
                     If Not aIdxReq Is Nothing Then
@@ -4882,7 +4961,7 @@ Private Sub RequestLastQuotes(ByVal bIndexOnly As Boolean)
     Else
         If Not m_bShutDown Then gCmn.MyMsgBox m_frmOwner, "You are in offline mode now.", vbExclamation
     End If
-    
+
     Exit Sub
 EH:
     m_bLastQuoteReqNow = False
@@ -4947,22 +5026,13 @@ Private Function IndexLoad() As Boolean
                 If Not PriceProvider Is Nothing Then
                     PriceProvider.CancelLastQuote aReq.GetQuoteUpdateParam
                     If Not aReqActiveFuture Is Nothing Then PriceProvider.CancelLastQuote aReqActiveFuture.GetQuoteUpdateParam
-'                    If m_Aux.RealTime Then
-'                        PriceProvider.UnSubscribeQuote aReq.GetQuoteUpdateParam
-'                        If Not aReqActiveFuture Is Nothing Then PriceProvider.UnSubscribeQuote aReqActiveFuture.GetQuoteUpdateParam
-'                    End If
-                    'If m_bGroupRequest Then
-                    '    m_GroupPriceProvider.CancelGroup
-                    'End If
                 End If
                 Set aReq = Nothing
                 
                 m_QuoteRequests.Remove sKey
-                'm_AuxClc.UndCount = m_AuxClc.UndCount - 1
                 
                 If Not aReqActiveFuture Is Nothing Then
                     m_QuoteRequests.Remove sKeyActiveFuture
-                    'm_AuxClc.FutCount = m_AuxClc.FutCount - 1
                 End If
                 
                 Set aReqActiveFuture = Nothing
@@ -4973,12 +5043,12 @@ Private Function IndexLoad() As Boolean
         m_Idx.Clear
     End If
     
-    If m_aFilter.Data(MFC_INDEX) <> 0 Then
-        nKey = m_aFilter.Data(MFC_INDEX)
+    If m_Scn.CorrIndex <> 0 Then
+        nKey = m_Scn.CorrIndex
         Set aGIdx = g_HedgeSymbols(nKey)
         Debug.Assert Not aGIdx Is Nothing
         If Not aGIdx Is Nothing Then
-            m_Idx.ID = m_aFilter.Data(MFC_INDEX)
+            m_Idx.ID = m_Scn.CorrIndex
             m_Idx.Symbol = aGIdx.Symbol
             m_Idx.ContractType = enCtIndex
             
@@ -5037,10 +5107,6 @@ Private Function IndexLoad() As Boolean
                                 Set aReq = m_QuoteRequests(sKey)
                                 If Not aReq Is Nothing Then
                                     Set m_Idx.ActiveFuture = aReq.Fut
-                                    'm_Idx.ActiveFuture.PriceBid = aReq.Und.PriceBid
-                                    'm_Idx.ActiveFuture.PriceAsk = aReq.Und.PriceAsk
-                                    'm_Idx.ActiveFuture.PriceLast = aReq.Und.PriceLast
-                                    'm_Idx.ActiveFuture.NetChange = aReq.Und.NetChange
                                 Else
                                     Set m_Idx.ActiveFuture = New EtsMmRisksLib.MmRvFutAtom
                                     ' fill up active future info for newly selected index
@@ -5072,7 +5138,6 @@ Private Function IndexLoad() As Boolean
                                     If aReq Is Nothing Then
                                         Set aReq = m_QuoteRequests.Add(sKey)
                                         Set aReq.Fut = m_Idx.ActiveFuture
-                                        'm_AuxClc.FutCount = m_AuxClc.FutCount + 1
                                     End If
                                 End If
                             End If
@@ -5085,8 +5150,8 @@ Private Function IndexLoad() As Boolean
             Set aGIdx = Nothing
             Set aReq = Nothing
         Else
-            m_aFilter.Data(MFC_INDEX) = 0
-            FilterUpdateIndex True
+            m_Scn.CorrIndex = 0
+            ScenarioUpdateIndex True
         End If
     End If
     
@@ -5106,10 +5171,6 @@ Private Sub UserControl_Resize()
     If gCmn Is Nothing Then Exit Sub
         
     With fgFlt
-'        .Top = 0
-'        .Left = 0
-'        .Height = .RowHeight(0) + (.Rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
-'        .Width = ScaleWidth
         
         Dim nGridColWidth&, i&
         
@@ -5177,6 +5238,32 @@ Public Sub Term()
     End If
     Set m_GroupPriceProvider = Nothing
     
+    m_Grp.Clear
+    m_Und.Clear
+    m_Exp.Clear
+    m_QuoteRequests.Clear
+    
+    Set m_QuoteRequests = Nothing
+    Set m_Idx = Nothing
+    Set m_Grp = Nothing
+    Set m_Und = Nothing
+    Set m_Exp = Nothing
+    Set m_Scn = Nothing
+
+    Set m_View = Nothing
+    Set m_aFilter = Nothing
+    
+    Set fgFlt.Font = Nothing
+    Set fgScn.Font = Nothing
+    Set fgVal.Font = Nothing
+    
+    Set m_gdFlt = Nothing
+    Set m_gdScn = Nothing
+    Set m_gdVal = Nothing
+    
+    Erase m_GridLock
+    Erase m_Res
+    
     Set pbProgress = Nothing
     Set lblProcess = Nothing
     Set lblStatus = Nothing
@@ -5229,7 +5316,6 @@ Public Sub ScenarioNew()
     On Error Resume Next
     ScenarioSave False, True
     
-    'm_Scn.Clear
     m_Scn.ID = 0
     m_Scn.ScenarioName = "Untitled"
     m_Scn.Description = ""
@@ -5251,7 +5337,9 @@ Public Function ScenarioSave(ByVal bUpdateGrid As Boolean, ByVal bShowError As B
                                     .Points(RMA_HORZ), .Step(RMA_HORZ), .Units(RMA_HORZ), .Axis(RMA_HORZ), _
                                     .Points(RMA_VERT), .Step(RMA_VERT), .Units(RMA_VERT), .Axis(RMA_VERT), .VolaShiftType, _
                                     IIf(.Axis(RMA_HORZ) = RMAT_TIME, .Hour(RMA_HORZ), .Hour(RMA_VERT)), _
-                                    IIf(.Axis(RMA_HORZ) = RMAT_TIME, .Minute(RMA_HORZ), .Minute(RMA_VERT)))
+                                    IIf(.Axis(RMA_HORZ) = RMAT_TIME, .Minute(RMA_HORZ), .Minute(RMA_VERT)), CLng(.ShowChange), _
+                                    .VolaSpecificShiftType, .SpotShiftType, .SpotSpecificShiftType, .CalcModel, _
+                                    .CorrIndex, .SpecificParams)
                                     
             If .ID = 0 Then .ID = nID
             .Dirty = False
@@ -5259,9 +5347,6 @@ Public Function ScenarioSave(ByVal bUpdateGrid As Boolean, ByVal bShowError As B
             LoadScenariosFromDB
             
             Set aScn = g_RmScenario(CStr(m_Scn.ID))
-'            If aScn Is Nothing Then
-'                Set aScn = g_RmScenario.Add(CStr(m_Scn.ID))
-'            End If
             
             m_Scn.CopyTo aScn
             
@@ -5397,15 +5482,94 @@ Public Sub ImmediateRefresh()
     m_bFirstTime = False
 End Sub
 
-Public Function ExportToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
+Public Function ExportToHTML(ByVal sFileName As String, _
+                             ByVal sFilePath As String, _
                              ByVal bShowFilter As Boolean) As Boolean
+                            '-----------------------------------------'
     On Error Resume Next
     Screen.MousePointer = vbHourglass
-    ExportToHTML = g_ScreenExport.SaveToHTML(sFileName, sFilePath, fgVal, _
-                                            IIf(bShowFilter, fgScn, Nothing), IIf(bShowFilter, fgFlt, Nothing))
+    ExportToHTML = g_ScreenExport.SaveToHTML(sFileName, _
+                                             sFilePath, _
+                                             fgVal, _
+                                             IIf(bShowFilter, fgScn, Nothing), _
+                                             IIf(bShowFilter, fgFlt, Nothing))
     Screen.MousePointer = vbNormal
 End Function
 
+Public Function ExportToCSV(ByVal sFileName As String, _
+                            ByVal sFilePath As String, _
+                            ByVal bShowFilter As Boolean) As Boolean
+                            '----------------------------------------'
+On Error Resume Next
 
+    Screen.MousePointer = vbHourglass
+    ExportToCSV = g_ScreenExport.SaveToCSV(sFileName, _
+                                            sFilePath, _
+                                            fgVal, _
+                                            IIf(bShowFilter, fgScn, Nothing), _
+                                            IIf(bShowFilter, fgFlt, Nothing))
+    Screen.MousePointer = vbNormal
+End Function
 
+Public Sub LoadGroupSpecificRatio()
+On Error GoTo exception_handler
+
+    Dim sFileName As String
+    
+    If (Not g_Main Is Nothing) Then
+        If (Not g_Main.UnderlyingGroup Is Nothing) Then
+            
+            sFileName = m_frmOwner.GroupSpecificRatioFileDialog
+            If (Len(Trim(sFileName)) > 0) Then
+                If (IsFileExist(sFileName)) Then
+                    
+                    If (Not m_Scn Is Nothing) Then
+                        m_Scn.SpecificParams = sFileName
+                        ReloadGroupRatio
+                    End If
+                    
+                Else
+                    MsgBox "File: " & sFileName & " not exist."
+                End If
+            End If
+            
+        End If
+    End If
+    
+Exit Sub
+exception_handler:
+    gCmn.ErrorHandler "Fail to Load Group Specific Ratio. (" & Err.Description & ":" & CStr(Err.Number) & ")"
+End Sub
+
+Private Sub ReloadGroupRatio()
+On Error GoTo exception_handler
+
+    Dim sFileName As String
+    
+    If (Not g_Main Is Nothing) Then
+        If (Not g_Main.UnderlyingGroup Is Nothing) Then
+            If (Not m_Scn Is Nothing) Then
+                sFileName = m_Scn.SpecificParams
+                If (Len(Trim(sFileName)) > 0) Then
+                    If (IsFileExist(sFileName)) Then
+                        g_Main.UnderlyingGroup.LoadProperty sFileName
+                        g_Params.GroupSpecificRatioFile = sFileName
+                    End If
+                Else
+                    sFileName = g_Params.GroupSpecificRatioFile
+                    If (Len(Trim(sFileName)) > 0) Then
+                        If (IsFileExist(sFileName)) Then
+                            g_Main.UnderlyingGroup.LoadProperty sFileName
+                            g_Params.GroupSpecificRatioFile = sFileName
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    End If
+    
+Exit Sub
+exception_handler:
+    MsgBox "ReloadGroupRatio failed Error: (" & Err.Description & ":" & CStr(Err.Number) & ")"
+End Sub
 

@@ -139,6 +139,8 @@ public:
 	STDMETHOD(Reload)()									CSOURCE_IMPLEMENT0(Reload);
 	STDMETHOD(get_SymbolVolatility)(BSTR Symbol,SYMBOL_TYPE SymbolType, IVSSymbolVolatility * * pVal)
 														CSOURCE_IMPLEMENT3(get_SymbolVolatility,Symbol,SymbolType,pVal)
+	STDMETHOD(get_SimulatedSymbolVol)(BSTR Symbol,SYMBOL_TYPE SymbolType, IVSSymbolVolatility * * pVal)
+														CSOURCE_IMPLEMENT3(get_SimulatedSymbolVol,Symbol,SymbolType,pVal)
 	/////////////////////////////////////////////////////////////////////
 
 	STDMETHOD(UnregisterPublisher)()CSOURCE_IMPLEMENT0(UnregisterPublisher);

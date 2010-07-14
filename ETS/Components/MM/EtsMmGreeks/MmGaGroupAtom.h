@@ -148,7 +148,8 @@ public:
 	STDMETHOD(CalcUnderlying)(IMmGaUndAtom* aUnd, EtsCalcModelTypeEnum enCalcModel,
 								VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
 								VARIANT_BOOL bUseTheoVolaBadMarket, DOUBLE dUndPriceTolerance, 
-								EtsPriceRoundingRuleEnum enPriceRoundingRule);
+								EtsPriceRoundingRuleEnum enPriceRoundingRule,
+								ICalculationParametrs* pParams);
 
 	STDMETHOD(CalcTotals)();
 };

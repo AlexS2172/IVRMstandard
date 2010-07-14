@@ -14,7 +14,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsTraderCollDispImpl, IEtsTrad
 
 // CEtsTraderColl
 class ATL_NO_VTABLE CEtsTraderColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsTraderColl, &CLSID_EtsTraderColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsTraderColl>,
 	public IEtsTraderCollImpl
@@ -22,6 +22,7 @@ class ATL_NO_VTABLE CEtsTraderColl :
 public:
 	CEtsTraderColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSTRADERCOLL)
@@ -31,19 +32,25 @@ BEGIN_COM_MAP(CEtsTraderColl)
 	COM_INTERFACE_ENTRY(IEtsTraderColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsTraderCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 	IEtsTraderAtomPtr AddNew(long lKey, const _bstr_t& bsName, CComObject<CEtsTraderAtom>** pAtom = NULL);

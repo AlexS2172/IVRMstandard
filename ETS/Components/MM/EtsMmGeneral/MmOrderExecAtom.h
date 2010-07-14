@@ -31,7 +31,7 @@ struct __MmOrderExecAtom
 /////////////////////////////////////////////////////////////////////////////
 //
 class ATL_NO_VTABLE CMmOrderExecAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmOrderExecAtom, &CLSID_MmOrderExecAtom>,
 	public ISupportErrorInfoImpl<&IID_IMmOrderExecAtom>,
 	public IDispatchImpl<IMmOrderExecAtom, &IID_IMmOrderExecAtom, &LIBID_EtsMmGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,

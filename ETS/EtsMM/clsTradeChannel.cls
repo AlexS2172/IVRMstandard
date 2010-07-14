@@ -15,24 +15,30 @@ Attribute VB_Ext_KEY = "SavedWithClassBuilder6" ,"Yes"
 Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 Option Explicit
 
-Public Event TradeAction(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
-Public Event PositionTransfer(aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom)
+Public Event TradeAction(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Public Event PositionTransfer(aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, aTrdTo As EtsGeneralLib.MmTradeInfoAtom)
 Public Event PriceUpdate(aPrcData As MSGSTRUCTLib.PriceUpdate)
 Public Event AssetUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
 Public Event ManualPriceUpdate(Data As MSGSTRUCTLib.ManualPriceUpdate)
+Public Event PriceProfileUpdate()
+Public Event GlobalParamsUpdate()
+Public Event RoundingRuleUpdate()
+Public Event ToleranceRangeUpdate()
+Public Event HTBRatesUpdate(Data As MSGSTRUCTLib.UnderlyingUpdate)
+Public Event UnderlyingUpdate(Data As MSGSTRUCTLib.UnderlyingUpdate)
 Public Event DividendTypeUpdate(aUndData As MSGSTRUCTLib.UnderlyingUpdate)
 
 Private WithEvents MmwMsgManager As MMWLib.MsgManager
 Attribute MmwMsgManager.VB_VarHelpID = -1
 
-Private m_Trd As EtsMmGeneralLib.MmTradeInfoColl            ' general collection of trades
-Private m_TrdForMatch As EtsMmGeneralLib.MmTradeMatchColl   ' collection of trade referencies collections for matching
-Private m_TrdByUndMan As EtsMmGeneralLib.MmTradeByUndColl      ' collection of manual trade referencies collections by "UnderlyingID_TraderID" key
-Private m_TrdByUnd As EtsMmGeneralLib.MmTradeByUndColl       ' collection of trade referencies collections by "UnderlyingID" key
-Private m_TrdByTraderAndContract As EtsMmGeneralLib.MmTradeByUndColl       ' collection of trade referencies collections by "TraderID_ContractID" key
-Private m_TrdByFut As EtsMmGeneralLib.MmTradeByUndColl       ' collection of trade referencies collections by "FutureID" key
+Private m_Trd As EtsGeneralLib.MmTradeInfoColl            ' general collection of trades
+Private m_TrdForMatch As EtsGeneralLib.MmTradeMatchColl   ' collection of trade referencies collections for matching
+Private m_TrdByUndMan As EtsGeneralLib.MmTradeByUndColl      ' collection of manual trade referencies collections by "UnderlyingID_TraderID" key
+Private m_TrdByUnd As EtsGeneralLib.MmTradeByUndColl       ' collection of trade referencies collections by "UnderlyingID" key
+Private m_TrdByTraderAndContract As EtsGeneralLib.MmTradeByUndColl       ' collection of trade referencies collections by "TraderID_ContractID" key
+Private m_TrdByFut As EtsGeneralLib.MmTradeByUndColl       ' collection of trade referencies collections by "FutureID" key
 
-Private WithEvents m_TradeChannel As EtsMmGeneralLib.MmTradeChannel
+Private WithEvents m_TradeChannel As EtsGeneralLib.MmTradeChannel
 Attribute m_TradeChannel.VB_VarHelpID = -1
 Public Enum TradeActionEnum
     enTaTradeNew = 1
@@ -49,18 +55,18 @@ Private m_bIsTradesLoaded As Boolean
 Private m_bIsTradesClone As Boolean
 
 Private m_bManualTradeAction As Boolean
-Private WithEvents m_tmrTradeUpdate As VB.Timer
+Private WithEvents m_tmrTradeUpdate As vB.Timer
 Attribute m_tmrTradeUpdate.VB_VarHelpID = -1
-Private m_TradeUpdateBuffer As EtsMmGeneralLib.MmTradeUpdateColl
+Private m_TradeUpdateBuffer As EtsGeneralLib.MmTradeUpdateColl
 
 Private Sub Class_Initialize()
     On Error Resume Next
     m_bCanProcessTradeMessages = False
     m_bCanProcessPriceMessages = False
-    Set m_TradeChannel = New EtsMmGeneralLib.MmTradeChannel
+    Set m_TradeChannel = New EtsGeneralLib.MmTradeChannel
    
     Set m_tmrTradeUpdate = frmMain.tmrTradeUpdate
-    Set m_TradeUpdateBuffer = New EtsMmGeneralLib.MmTradeUpdateColl
+    Set m_TradeUpdateBuffer = New EtsGeneralLib.MmTradeUpdateColl
     
     m_bIsTradesClone = False
     m_bIsTradesLoaded = False
@@ -94,7 +100,7 @@ End Sub
 Public Sub LoadTrades(Optional ByRef Progress As frmSplash = Nothing)
     On Error GoTo EH
     Dim rs As ADODB.Recordset, bShowProgress As Boolean, nTotal&, nDone&
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aUnd As EtsGeneralLib.UndAtom
     Dim enContractType As EtsGeneralLib.EtsContractTypeEnum
     Dim aTrader As EtsGeneralLib.EtsTraderAtom
@@ -137,7 +143,7 @@ Public Sub LoadTrades(Optional ByRef Progress As frmSplash = Nothing)
 '            Set aUnd = g_Underlying(ReadLng(rs!iUnderlyingContractID))
 '            Set aTrader = g_Trader(ReadLng(rs!iTraderID))
 '            If Not aUnd Is Nothing And Not aTrader Is Nothing Then
-'                Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+'                Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
 '                Set aTrd.Und = aUnd
 '
 '                aTrd.TradeID = ReadLng(rs!iTradeID)
@@ -312,12 +318,12 @@ Private Sub Class_Terminate()
     Set m_TradeUpdateBuffer = Nothing
 End Sub
 
-Public Property Get Trades() As EtsMmGeneralLib.MmTradeInfoColl
+Public Property Get Trades() As EtsGeneralLib.MmTradeInfoColl
     On Error Resume Next
     Set Trades = m_Trd
 End Property
 
-Public Property Get TradeChannel() As EtsMmGeneralLib.MmTradeChannel
+Public Property Get TradeChannel() As EtsGeneralLib.MmTradeChannel
     On Error Resume Next
     Set TradeChannel = m_TradeChannel
 End Property
@@ -377,10 +383,12 @@ Public Sub PriceCloseForPub(ByVal ContractType As Long, ByVal ContractID As Long
 
 End Sub
 
-Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSGSTRUCTLib.TradeUpdate)
+Private Sub CopyTradeForPub(aSrc As EtsGeneralLib.MmTradeInfoAtom, aDst As MSGSTRUCTLib.TradeUpdate)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "CopyTradeForPub Enter", "TradeChannel"
+    
+    Set aDst.Contract = g_Main.GetContract(aSrc.ContractID)
     
     aDst.SeqNum = aSrc.SeqNum
     aDst.TradeID = aSrc.TradeID
@@ -463,7 +471,7 @@ Private Sub CopyTradeForPub(aSrc As EtsMmGeneralLib.MmTradeInfoAtom, aDst As MSG
 
 End Sub
 
-Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "CopyTradeFromSub Enter", "TradeChannel"
@@ -478,6 +486,8 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
     Set aTrader = g_Trader(aSrc.TraderID)
     If Not aUnd Is Nothing And Not aTrader Is Nothing Then
         Set aDst.Und = aUnd
+        
+        Set aDst.Contract = g_Main.GetContract(aSrc.SymbolID)
         
         aDst.SeqNum = aSrc.SeqNum
         aDst.TradeID = aSrc.TradeID
@@ -500,6 +510,7 @@ Public Function CopyTradeFromSub(aSrc As MSGSTRUCTLib.TradeUpdate, aDst As EtsMm
         
         enContractType = SymbolTypeToContractType(aSrc.SymbolType)
         
+
         Select Case enContractType
             Case enCtOption
                 Set aDst.OptRoot = aDst.Und.Roots(aSrc.OptionRootID)
@@ -669,15 +680,15 @@ EH:
 
 End Function
 
-Public Function NewTrade(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Public Function NewTrade(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error GoTo EH
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "NewTrade Enter", "TradeChannel"
     
     Dim aPubManager As MMWLib.IPubManager
     Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
-    Dim aNewTrd As New EtsMmGeneralLib.MmTradeInfoAtom, nNewTradeID&, dtNewTradeDate As Date
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoAtom, sKey$
+    Dim aNewTrd As New EtsGeneralLib.MmTradeInfoAtom, nNewTradeID&, dtNewTradeDate As Date
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoAtom, sKey$
     Dim aUnd As EtsGeneralLib.UndAtom, aTrader As EtsGeneralLib.EtsTraderAtom
     Dim sImportID$
     
@@ -756,15 +767,15 @@ EH:
 
 End Function
 
-Public Function DeleteTrade(aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Public Function DeleteTrade(aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error GoTo EH
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "NewTrade Exit DeleteTrade Enter", "TradeChannel"
     
     Dim aPubManager As MMWLib.IPubManager
     Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
-    Dim aOldTrd As New EtsMmGeneralLib.MmTradeInfoAtom
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoAtom, sKey$
+    Dim aOldTrd As New EtsGeneralLib.MmTradeInfoAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoAtom, sKey$
     
     DeleteTrade = False
     Screen.MousePointer = vbHourglass
@@ -829,7 +840,7 @@ EH:
         g_PerformanceLog.LogMmInfo enLogUserAction, "NewTrade Exit DeleteTrade Exit with errors", "TradeChannel"
 
 End Function
-Public Sub UpdateTradeIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Public Sub UpdateTradeIV(aTrd As EtsGeneralLib.MmTradeInfoAtom)
 On Error GoTo EH
     Screen.MousePointer = vbHourglass
     If Not g_PerformanceLog Is Nothing Then _
@@ -846,15 +857,15 @@ EH:
 
 End Sub
 
-Public Function UpdateTrade(aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Public Function UpdateTrade(aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom, aOldTrdInfo As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error GoTo EH
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "UpdateTrade Enter", "TradeChannel"
     
     Dim aPubManager As MMWLib.IPubManager
     Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
-    Dim aNewTrd As New EtsMmGeneralLib.MmTradeInfoAtom, aOldTrd As New EtsMmGeneralLib.MmTradeInfoAtom, nNewTradeID&, dtNewTradeDate As Date
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoAtom, sKey$, sImportID$
+    Dim aNewTrd As New EtsGeneralLib.MmTradeInfoAtom, aOldTrd As New EtsGeneralLib.MmTradeInfoAtom, nNewTradeID&, dtNewTradeDate As Date
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoAtom, sKey$, sImportID$
     
     
     Screen.MousePointer = vbHourglass
@@ -951,8 +962,8 @@ EH:
 
 End Function
 
-Public Function TransferPosition(ByRef aTrdFrom As EtsMmGeneralLib.MmTradeInfoAtom, _
-                                ByRef aTrdTo As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Public Function TransferPosition(ByRef aTrdFrom As EtsGeneralLib.MmTradeInfoAtom, _
+                                ByRef aTrdTo As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error GoTo EH
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Transfer position Enter", "TradeChannel"
@@ -961,7 +972,7 @@ Public Function TransferPosition(ByRef aTrdFrom As EtsMmGeneralLib.MmTradeInfoAt
     Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
     Dim nSeqNumFrom&, nTradeIDFrom&, dtTradeDateFrom As Date
     Dim nSeqNumTo&, nTradeIDTo&, dtTradeDateTo As Date
-    Dim aTrdFromCopy As New EtsMmGeneralLib.MmTradeInfoAtom, aTrdToCopy As New EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdFromCopy As New EtsGeneralLib.MmTradeInfoAtom, aTrdToCopy As New EtsGeneralLib.MmTradeInfoAtom
     
     If aTrdFrom Is Nothing Or aTrdTo Is Nothing Then
         Debug.Assert False
@@ -1051,7 +1062,7 @@ End Function
 
 Private Sub m_tmrTradeUpdate_Timer()
     On Error Resume Next
-    Dim aTempBuffer As EtsMmGeneralLib.MmTradeUpdateColl
+    Dim aTempBuffer As EtsGeneralLib.MmTradeUpdateColl
 
     If m_TradeUpdateBuffer.Count = 0 Then Exit Sub
 
@@ -1162,20 +1173,23 @@ Private Sub MmwMsgManager_OnBroadcastMessage(ByVal Data As MSGSTRUCTLib.IBroadca
         g_PerformanceLog.LogMmInfo enLogUserAction, "MmwMsgManager_OnBroadcastMessage Exit : " & Data.Description, "TradeChannel"
     
 End Sub
-Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Public Sub CalcTradedIV(aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     Dim nDivCount&, RetCount&
     Dim dDivDte() As Double, aBaskDivs() As REGULAR_DIVIDENDS, nBaskDivCount&
     Dim dDivAmts() As Double, aIdx As EtsGeneralLib.IndexAtom
-    Dim dRate#, aUnd As EtsGeneralLib.UndAtom, dYield#
+    Dim dRate#, dHTBRate#, aUnd As EtsGeneralLib.UndAtom, dYield#
     Dim aSynthRoot As EtsGeneralLib.SynthRootAtom
     Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
     Dim aBasketDivs As EtsGeneralLib.EtsIndexDivColl
     Dim enDivType As EtsGeneralLib.EtsDivTypeEnum
     Dim nFlag As Long
-    Dim dtNow As Date, dYTE As Double
+    Dim dtNow As Date, dYte As Double
         
     dtNow = GetNewYorkTime
+    Dim dtExpiryOV As Date
+    Dim dtTradingClose As Date
+    
     dYield = 0#
     
     If aTrd.ContractType = enCtOption Then
@@ -1195,14 +1209,21 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     enDivType = aDiv.DivType
                 End If
                 
-                dYTE = (aTrd.Opt.ExpiryOV - dtNow) / 365#
+                dRate = GetNeutralRate(dtNow, aTrd.Opt.ExpiryOV)
+                If IsHTBRatesExist(aTrd.UndID, False) Then
+                    dHTBRate = GetHTBRate(aTrd.UndID, dtNow, aTrd.Opt.ExpiryOV)
+                Else
+                    dHTBRate = BAD_DOUBLE_VALUE
+                End If
+                
+                GetCalcParams dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
                 
                 Select Case enDivType
                         Case enDivMarket, enDivCustomPeriodical, enDivCustomStream
                             If Not aDiv Is Nothing Then
-                                aDiv.GetDividendCount2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount
+                                aDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                                 If nDivCount > 0 Then
-                                    aDiv.GetDividends2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                                    aDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                                 End If
                                 Set aDiv = Nothing
                             End If
@@ -1210,9 +1231,9 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                             If Not aUnd.BasketIndex Is Nothing Then
                                 Set aBasketDivs = aUnd.BasketIndex.BasketDivs
                                 If Not aBasketDivs Is Nothing Then
-                                    aBasketDivs.GetDividendCount2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount
+                                    aBasketDivs.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nDivCount
                                     If nDivCount > 0 Then
-                                            aBasketDivs.GetDividends2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
+                                            aBasketDivs.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nDivCount, dDivAmts, dDivDte, nDivCount
                                     End If
                                 End If
                                 Set aBasketDivs = Nothing
@@ -1220,14 +1241,8 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                         Case enDivIndexYield
                             dYield = aUnd.Yield
                 End Select
-                               
-                If Not aTrd.Und.IsHTB Then
-                    dRate = GetNeutralRate(Date, aTrd.Opt.Expiry)
-                Else
-                    dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
-                End If
                 
-                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, BAD_DOUBLE_VALUE, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, dYTE, _
+                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, dHTBRate, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, dYte, _
                                         aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
                 
                 Erase dDivDte
@@ -1244,16 +1259,25 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
             Else ' synthetic underlyings
                 
                 Set aSynthRoot = aTrd.Und.SyntheticRoots(aTrd.OptRoot.ID)
-    
+                
+                dRate = GetNeutralRate(dtNow, aTrd.Opt.ExpiryOV)
+                If IsHTBRatesExist(aTrd.UndID, False) Then
+                    dHTBRate = GetHTBRate(aTrd.UndID, dtNow, aTrd.Opt.ExpiryOV)
+                Else
+                    dHTBRate = BAD_DOUBLE_VALUE
+                End If
+                
+                GetCalcParams dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
+                
                 If aSynthRoot.Basket Then
                 
                     Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
                     Set aBasketDiv = aSynthRoot.BasketDivs
                     
                     If Not aBasketDiv Is Nothing Then
-                        aBasketDiv.GetDividendCount2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nBaskDivCount
+                        aBasketDiv.GetDividendCount2 dtNow, dtExpiryOV, dtTradingClose, nBaskDivCount
                         If nBaskDivCount > 0 Then _
-                            aBasketDiv.GetDividends2 dtNow, aTrd.Opt.ExpiryOV, aTrd.Opt.TradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
+                            aBasketDiv.GetDividends2 dtNow, dtExpiryOV, dtTradingClose, nBaskDivCount, dDivAmts, dDivDte, nDivCount
                     End If
                     Set aBasketDiv = Nothing
                 
@@ -1264,13 +1288,7 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
                     dYield = aSynthRoot.Yield
                 End If
                 
-                If Not aTrd.Und.IsHTB Then
-                    dRate = GetNeutralRate(Date, aTrd.Opt.Expiry)
-                Else
-                    dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
-                End If
-                
-                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, dYTE, _
+                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, dHTBRate, aTrd.SpotReference, aTrd.price, aTrd.Opt.Strike, dYte, _
                                         aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
                 
                 Erase dDivDte
@@ -1293,14 +1311,16 @@ Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
             ReDim dDivDte(0 To 0)
             ReDim dDivAmts(0 To 0)
             
-            If Not aTrd.Und.IsHTB Then
-                dRate = GetNeutralRate(Date, aTrd.FutOpt.Expiry)
+            dRate = GetNeutralRate(dtNow, aTrd.FutOpt.ExpiryOV)
+            If IsHTBRatesExist(aTrd.UndID, False) Then
+                dHTBRate = GetHTBRate(aTrd.UndID, dtNow, aTrd.FutOpt.ExpiryOV)
             Else
-                dRate = GetNeutralHTBRate(Date, aTrd.FutOpt.Expiry)
+                dHTBRate = BAD_DOUBLE_VALUE
             End If
             
-            dYTE = (aTrd.FutOpt.ExpiryOV - dtNow) / 365#
-            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, BAD_DOUBLE_VALUE, aTrd.SpotReference, aTrd.price, aTrd.FutOpt.Strike, dYTE, _
+            GetCalcParams dtNow, aTrd.FutOpt.ExpiryOV, aTrd.FutOpt.TradingClose, g_Main.CalculationParametrs.UseTimePrecision, dtNow, dtExpiryOV, dtTradingClose, dYte
+            
+            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, dHTBRate, aTrd.SpotReference, aTrd.price, aTrd.FutOpt.Strike, dYte, _
                                     aTrd.FutOpt.OptType, 1, nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
             
             Erase dDivDte
@@ -1388,8 +1408,8 @@ End Sub
 
 Private Sub MmwMsgManager_OnPriceUpdate(ByVal Data As MSGSTRUCTLib.IPriceUpdate)
     On Error Resume Next
-    Dim aUnd As EtsGeneralLib.UndAtom, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
-    Dim aTrdColl As EtsMmGeneralLib.MmTradeInfoColl
+    Dim aUnd As EtsGeneralLib.UndAtom, aTrd As EtsGeneralLib.MmTradeInfoAtom
+    Dim aTrdColl As EtsGeneralLib.MmTradeInfoColl
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "MmwMsgManager_OnPriceUpdate Enter ", "TradeChannel"
@@ -1471,7 +1491,7 @@ Private Sub MmwMsgManager_OnTradeUpdate(ByVal Data As MSGSTRUCTLib.ITradeUpdate)
 '    DoTradeUpdate Data
     
     
-'    Dim nSeqNum&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aAction As TRADE_ACTION
+'    Dim nSeqNum&, aTrd As EtsGeneralLib.MmTradeInfoAtom, aAction As TRADE_ACTION
 '    Dim tmpTradedIV As Double
 '
 '    aAction = Data.Action
@@ -1512,7 +1532,7 @@ Private Sub MmwMsgManager_OnTradeUpdate(ByVal Data As MSGSTRUCTLib.ITradeUpdate)
 '                                If IsValidSymbolType(Data.SymbolType) Then
 '                                    AdjustTraderContractAndStrategy Data.TraderID, Data.UndSymbolID, Data.StrategyID
 '
-'                                    Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+'                                    Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
 '                                    If CopyTradeFromSub(Data, aTrd) Then
 '                                        If Data.MsState <> enTmssNoChanges Then
 '                                            AddEvent EVENT_WARNING, "Underlying '" & aTrd.Und.Symbol & _
@@ -1610,7 +1630,7 @@ Private Sub DoTradeUpdate(ByRef Data As MSGSTRUCTLib.ITradeUpdate)
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogDebug, "DoTradeUpdate Enter: " & Data.SeqNum, "TradeChannel"
     
-    Dim nSeqNum&, aTrd As EtsMmGeneralLib.MmTradeInfoAtom, aAction As TRADE_ACTION
+    Dim nSeqNum&, aTrd As EtsGeneralLib.MmTradeInfoAtom, aAction As TRADE_ACTION
     Dim tmpTradedIV As Double
     
     aAction = Data.Action
@@ -1661,7 +1681,7 @@ Private Sub DoTradeUpdate(ByRef Data As MSGSTRUCTLib.ITradeUpdate)
                                 If IsValidSymbolType(Data.SymbolType) Then
                                     AdjustTraderContractAndStrategy Data.TraderID, Data.UndSymbolID, Data.strategyID
                                     
-                                    Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                                    Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
                                     If CopyTradeFromSub(Data, aTrd) Then
                                         If Data.MsState <> enTmssNoChanges Then
                                             AddEvent EVENT_WARNING, "Underlying '" & aTrd.Und.Symbol & _
@@ -1758,14 +1778,18 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
     Dim Position  As Long
     
     If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogWarning, "Loading missed trades", "TradeChannel"
+    
+    If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Load missed trades Enter", "TradeChannel"
     
     Position = 1
     Dim rs As ADODB.Recordset
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim nSeqNum&, enAction As TradeActionEnum, nTraderID&, aTrader As EtsGeneralLib.EtsTraderAtom
     Dim aUnd As EtsGeneralLib.UndAtom, enContractType As EtsGeneralLib.EtsContractTypeEnum
     Dim sKey$, aSynthRootComp As EtsGeneralLib.SynthRootCompAtom, nStrategyID&
+    Dim sTradeInfo As String
 
     If nMinSeqNum > nMaxSeqNum Then Exit Sub
     Position = 2
@@ -1811,7 +1835,7 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                             AdjustTraderContractAndStrategy aTrader.ID, aUnd.ID, nStrategyID
                             Position = 16
                             
-                            Set aTrd = New EtsMmGeneralLib.MmTradeInfoAtom
+                            Set aTrd = New EtsGeneralLib.MmTradeInfoAtom
                             Position = 17
                             Set aTrd.Und = aUnd
                             Position = 18
@@ -1868,6 +1892,9 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                                         aTrd.Opt.OptType = ReadByte(rs!tiIsCall)
                                         Position = 40
                                         aTrd.Opt.Expiry = ReadDate(rs!dtExpiry)
+                                        aTrd.Opt.ExpiryOV = ReadDate(rs!dtExpiryOV)
+                                        aTrd.Opt.TradingClose = ClipDays(ReadDate(rs!dtTradingClose))
+                                        
                                         Position = 41
                                         aTrd.Opt.Strike = Round(ReadDbl(rs!fStrike), STRIKE_DECIMALS_COUNT)
                                         Position = 42
@@ -1931,6 +1958,8 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                                     aTrd.FutOpt.OptType = ReadByte(rs!tiIsCall)
                                     Position = 68
                                     aTrd.FutOpt.Expiry = ReadDate(rs!dtExpiry)
+                                    aTrd.FutOpt.ExpiryOV = ReadDate(rs!dtExpiryOV)
+                                    aTrd.FutOpt.TradingClose = ClipDays(ReadDate(rs!dtTradingClose))
                                     Position = 69
                                     aTrd.FutOpt.Strike = Round(ReadDbl(rs!fStrike), STRIKE_DECIMALS_COUNT)
                                     Position = 70
@@ -1958,6 +1987,8 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                             
                             m_Trd.Add aTrd.TradeID, aTrd.TradeDate, aTrd
                             Position = 77
+                            
+                            Set aTrd.Contract = g_Main.GetContract(aTrd.ContractID)
                             
                             AddTradeToTradesByUnd aTrd
                             Position = 78
@@ -2043,6 +2074,15 @@ Private Sub LoadMissedTrades(ByVal nMinSeqNum As Long, ByVal nMaxSeqNum As Long)
                 End If
             End If
                 
+            
+            If (Not aTrd Is Nothing) Then
+                If (Not aTrd.Contract Is Nothing) Then
+                    sTradeInfo = " TradeID: " & CStr(aTrd.TradeID) & " Symbol: " & aTrd.Contract.Symbol
+                    If Not g_PerformanceLog Is Nothing Then _
+                        g_PerformanceLog.LogMmInfo enLogWarning, "Loaded missed " & sTradeInfo, "TradeChannel"
+                End If
+            End If
+                
             Set aTrd = Nothing
         End If
         Position = 104
@@ -2089,7 +2129,7 @@ Private Sub FindAllActualTradesMatch()
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "FindAllActualTradesMatch Enter", "TradeChannel"
     
-    Dim aTrdActual As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdActual As EtsGeneralLib.MmTradeInfoAtom
     
     For Each aTrdActual In m_Trd
         If aTrdActual.Status = enTsRealtime Then
@@ -2102,13 +2142,13 @@ Private Sub FindAllActualTradesMatch()
 
 End Sub
 
-Private Sub FindActualTradeMatch(ByRef aTrdActual As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub FindActualTradeMatch(ByRef aTrdActual As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "FindActualTradeMatch Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$, aTrdCheck As EtsMmGeneralLib.MmTradeInfoAtom
-    Dim aTrdForMatch As EtsMmGeneralLib.MmTradeMatchAtom, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$, aTrdCheck As EtsGeneralLib.MmTradeInfoAtom
+    Dim aTrdForMatch As EtsGeneralLib.MmTradeMatchAtom, aTrd As EtsGeneralLib.MmTradeInfoAtom
     
     If aTrdActual.Status = enTsRealtime Then
         sKey = CStr(aTrdActual.UndID) & "_" & CStr(aTrdActual.Trader.ID)
@@ -2124,7 +2164,7 @@ Private Sub FindActualTradeMatch(ByRef aTrdActual As EtsMmGeneralLib.MmTradeInfo
                     If aTrdForMatch Is Nothing Then
                         Set aTrdForMatch = m_TrdForMatch(aTrdActual.TradeID)
                         If aTrdForMatch Is Nothing Then
-                            Set aTrdForMatch = New EtsMmGeneralLib.MmTradeMatchAtom
+                            Set aTrdForMatch = New EtsGeneralLib.MmTradeMatchAtom
                             m_TrdForMatch.Add aTrdActual.TradeID, aTrdActual.TradeDate, aTrdForMatch
                             Set aTrdForMatch.TrdActual = aTrdActual
                             aTrdForMatch.Updated = True
@@ -2148,12 +2188,12 @@ Private Sub FindActualTradeMatch(ByRef aTrdActual As EtsMmGeneralLib.MmTradeInfo
 
 End Sub
 
-Private Sub RemoveManualTradeFromMatch(ByRef aTrdManual As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub RemoveManualTradeFromMatch(ByRef aTrdManual As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RemoveManualTradeFromMatch Enter", "TradeChannel"
     
-    Dim sKey$, aTrdForMatch As EtsMmGeneralLib.MmTradeMatchAtom
+    Dim sKey$, aTrdForMatch As EtsGeneralLib.MmTradeMatchAtom
         
     If aTrdManual.Status = enTsManual Then
         For Each aTrdForMatch In m_TrdForMatch
@@ -2188,9 +2228,9 @@ Public Sub ProccessTradesMatch(ByRef aTrdForMatch As MmTradeMatchAtom)
     
     Dim aPubManager As MMWLib.IPubManager
     Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
-    Dim aTrdForMatchCheck As EtsMmGeneralLib.MmTradeMatchAtom
-    Dim aOldManualTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom, aOldActualTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoAtom, sKey$, aNewActualTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdForMatchCheck As EtsGeneralLib.MmTradeMatchAtom
+    Dim aOldManualTrdInfo As New EtsGeneralLib.MmTradeInfoAtom, aOldActualTrdInfo As New EtsGeneralLib.MmTradeInfoAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoAtom, sKey$, aNewActualTrdInfo As New EtsGeneralLib.MmTradeInfoAtom
     Dim nOldManualSeqNum&, nOldManualTradeID&, nLastSeqNum&, nOldActualSeqNum&
     Dim nNewActualSeqNum&, nNewActualTradeID&, dtNewActualTradeDate As Date
 
@@ -2327,7 +2367,7 @@ Public Sub MakeTradesListForExec(ByRef collTrades As clsTradeExecColl, ByVal nUn
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "MakeTradesListForExec Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aTrdExec As clsTradeExecAtom
     
     If nUnderlyingID <> 0 Then
@@ -2369,8 +2409,8 @@ Public Sub ProcessCommonTradeExec(ByRef aTrdExec As clsTradeExecAtom, ByVal aPri
 
         Dim aPubManager As MMWLib.IPubManager
         Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
-        Dim aNewOptTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom
-        Dim aNewUndTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom, nLastSeqNum&
+        Dim aNewOptTrdInfo As New EtsGeneralLib.MmTradeInfoAtom
+        Dim aNewUndTrdInfo As New EtsGeneralLib.MmTradeInfoAtom, nLastSeqNum&
         Dim nNewOptTradeSeqNum&, nNewOptTradeID&, dtNewOptTradeDate As Date
         Dim nNewUndTradeSeqNum&, nNewUndTradeID&, dtNewUndTradeDate As Date
     
@@ -2531,8 +2571,8 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
        
         Dim aPubManager As MMWLib.IPubManager
         Dim aTrdUpdate As New MSGSTRUCTLib.TradeUpdate
-        Dim aNewOptTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom
-        Dim aNewUndTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom, nLastSeqNum&
+        Dim aNewOptTrdInfo As New EtsGeneralLib.MmTradeInfoAtom
+        Dim aNewUndTrdInfo As New EtsGeneralLib.MmTradeInfoAtom, nLastSeqNum&
         Dim nNewOptTradeSeqNum&, nNewOptTradeID&, dtNewOptTradeDate As Date
         Dim nNewUndTradeSeqNum&, nNewUndTradeID&, dtNewUndTradeDate As Date
         Dim aSyntRoot As SynthRootAtom
@@ -2614,7 +2654,7 @@ Public Sub ProcessSynteticTradeExec(ByRef aTrdExec As clsTradeExecAtom, aPriceOf
         If Not aSyntRoot Is Nothing Then
            For Each aSyntRootCompAtom In aSyntRoot.SynthRootComponents
             If aSyntRootCompAtom.Weight > 0# Then
-                Dim aUndTrdInfo As New EtsMmGeneralLib.MmTradeInfoAtom
+                Dim aUndTrdInfo As New EtsGeneralLib.MmTradeInfoAtom
                 Dim nUndTradeSeqNum&, nUndTradeID&, dtUndTradeDate As Date
                 
                 Set aUndTrdInfo.Und = g_UnderlyingAll(aSyntRootCompAtom.UndID)
@@ -2703,8 +2743,8 @@ Public Sub ProcessTradeExec(ByRef aTrdExec As clsTradeExecAtom, ByVal bExercise 
 End Sub
 
 
-Private Sub RaiseTradeAction(aNewTrd As EtsMmGeneralLib.MmTradeInfoAtom, _
-                            aOldTrd As EtsMmGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
+Private Sub RaiseTradeAction(aNewTrd As EtsGeneralLib.MmTradeInfoAtom, _
+                            aOldTrd As EtsGeneralLib.MmTradeInfoAtom, enAction As TradeActionEnum)
     On Error Resume Next
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -2746,19 +2786,19 @@ Private Sub RaiseTradeAction(aNewTrd As EtsMmGeneralLib.MmTradeInfoAtom, _
 
 End Sub
 
-Private Sub AddTradeToTradesByUnd(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddTradeToTradesByUnd(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "AddTradeToTradesByUnd Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     If aTrd.FutID = 0 Then
         sKey = CStr(aTrd.UndID)
         
         Set aTrdByUnd = m_TrdByUnd(sKey)
         If aTrdByUnd Is Nothing Then
-            Set aTrdByUnd = New EtsMmGeneralLib.MmTradeInfoColl
+            Set aTrdByUnd = New EtsGeneralLib.MmTradeInfoColl
             m_TrdByUnd.Add sKey, aTrdByUnd
         End If
         If Not aTrdByUnd(aTrd.TradeID) Is Nothing Then aTrdByUnd.Remove aTrd.TradeID
@@ -2771,12 +2811,12 @@ Private Sub AddTradeToTradesByUnd(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
 
 End Sub
 
-Private Sub RemoveTradeFromTradesByUnd(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub RemoveTradeFromTradesByUnd(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RemoveTradeFromTradesByUnd Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     If aTrd.FutID = 0 Then
         sKey = CStr(aTrd.UndID)
@@ -2793,19 +2833,19 @@ Private Sub RemoveTradeFromTradesByUnd(ByRef aTrd As EtsMmGeneralLib.MmTradeInfo
 
 End Sub
 
-Private Sub AddManualTradeToTradesByUndMan(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddManualTradeToTradesByUndMan(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "AddManualTradeToTradesByUndMan Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     If aTrd.Status = enTsManual Then
         sKey = CStr(aTrd.UndID) & "_" & CStr(aTrd.Trader.ID)
         Set aTrdByUnd = m_TrdByUndMan(sKey)
         If aTrdByUnd Is Nothing Then
-            Set aTrdByUnd = New EtsMmGeneralLib.MmTradeInfoColl
+            Set aTrdByUnd = New EtsGeneralLib.MmTradeInfoColl
             m_TrdByUndMan.Add sKey, aTrdByUnd
         End If
         If Not aTrdByUnd(aTrd.TradeID) Is Nothing Then aTrdByUnd.Remove aTrd.TradeID
@@ -2818,12 +2858,12 @@ Private Sub AddManualTradeToTradesByUndMan(ByRef aTrd As EtsMmGeneralLib.MmTrade
 
 End Sub
 
-Private Sub RemoveManualTradeFromTradesByUndMan(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub RemoveManualTradeFromTradesByUndMan(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RemoveManualTradeFromTradesByUndMan Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     If aTrd.Status = enTsManual Then
         sKey = CStr(aTrd.UndID) & "_" & CStr(aTrd.Trader.ID)
@@ -2840,17 +2880,17 @@ Private Sub RemoveManualTradeFromTradesByUndMan(ByRef aTrd As EtsMmGeneralLib.Mm
 
 End Sub
 
-Private Sub AddTradeToTradesByTraderAndContract(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddTradeToTradesByTraderAndContract(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "AddTradeToTradesByTraderAndContract Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     sKey = CStr(aTrd.Trader.ID) & "_" & CStr(aTrd.ContractID)
     Set aTrdByUnd = m_TrdByTraderAndContract(sKey)
     If aTrdByUnd Is Nothing Then
-        Set aTrdByUnd = New EtsMmGeneralLib.MmTradeInfoColl
+        Set aTrdByUnd = New EtsGeneralLib.MmTradeInfoColl
         m_TrdByTraderAndContract.Add sKey, aTrdByUnd
     End If
     If Not aTrdByUnd(aTrd.TradeID) Is Nothing Then aTrdByUnd.Remove aTrd.TradeID
@@ -2862,12 +2902,12 @@ Private Sub AddTradeToTradesByTraderAndContract(ByRef aTrd As EtsMmGeneralLib.Mm
 
 End Sub
 
-Private Sub RemoveTradeFromTradesByTraderAndContract(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub RemoveTradeFromTradesByTraderAndContract(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RemoveTradeFromTradesByTraderAndContract Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     sKey = CStr(aTrd.Trader.ID) & "_" & CStr(aTrd.ContractID)
     Set aTrdByUnd = m_TrdByTraderAndContract(sKey)
@@ -2882,18 +2922,18 @@ Private Sub RemoveTradeFromTradesByTraderAndContract(ByRef aTrd As EtsMmGeneralL
 
 End Sub
 
-Private Sub AddTradeToTradesByFut(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub AddTradeToTradesByFut(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RemoveTradeFromTradesByTraderAndContract Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     If aTrd.FutID <> 0 Then
         sKey = CStr(aTrd.FutID)
         Set aTrdByUnd = m_TrdByFut(sKey)
         If aTrdByUnd Is Nothing Then
-            Set aTrdByUnd = New EtsMmGeneralLib.MmTradeInfoColl
+            Set aTrdByUnd = New EtsGeneralLib.MmTradeInfoColl
             m_TrdByFut.Add sKey, aTrdByUnd
         End If
         If Not aTrdByUnd(aTrd.TradeID) Is Nothing Then aTrdByUnd.Remove aTrd.TradeID
@@ -2906,13 +2946,13 @@ Private Sub AddTradeToTradesByFut(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
 
 End Sub
 
-Private Sub RemoveTradeFromTradesByFut(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
+Private Sub RemoveTradeFromTradesByFut(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom)
     On Error Resume Next
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "RemoveTradeFromTradesByFut Enter", "TradeChannel"
     
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, sKey$
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, sKey$
     
     If aTrd.FutID <> 0 Then
         sKey = CStr(aTrd.FutID)
@@ -3081,156 +3121,6 @@ Public Sub AddEvent(ByVal enType As EventTypeEnum, ByVal sMessage As String)
     LogEvent enType, "Trades Processor: " & sMessage
 End Sub
 
-'Public Sub CalcTradedIV(aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
-'    On Error Resume Next
-'    Dim nDivCount&, RetCount&
-'    Dim dDivDte() As Double, aBaskDivs() As REGULAR_DIVIDENDS, nBaskDivCount&
-'    Dim dDivAmts() As Double, aIdx As EtsGeneralLib.IndexAtom
-'    Dim dRate#, aUnd As EtsGeneralLib.UndAtom, dYield#
-'    Dim aSynthRoot As EtsGeneralLib.SynthRootAtom
-'    Dim aDiv As EtsGeneralLib.EtsIndexDivAtom
-'    Dim aBasketDivs As EtsGeneralLib.EtsIndexDivColl
-'    Dim nFlag As Long
-'
-'    dYield = 0#
-'
-'    If aTrd.ContractType = enCtOption Then
-'        aTrd.TradedIV = 0#
-'        If aTrd.SpotReference > 0 And aTrd.Price > 0 Then
-'            nDivCount = 0
-'            ReDim dDivDte(0 To 0)
-'            ReDim dDivAmts(0 To 0)
-'
-'            If Not aTrd.Und.HaveSyntheticRoots Or m_NewTrd.Und.SyntheticRoots Is Nothing Or aTrd.Und.SyntheticRoots(aTrd.OptRoot.ID) Is Nothing Then
-'
-'                If aTrd.Und.UndType = enCtStock Then
-'                    Set aUnd = aTrd.Und
-'                    Set aDiv = aUnd.Dividend
-'                    If Not aDiv Is Nothing Then
-'                        aDiv.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
-'                        If nDivCount > 0 Then
-'                           aDiv.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
-'                        End If
-'                End If
-'                Else
-'                    Set aIdx = g_Index(aTrd.UndID)
-'                    If Not aIdx Is Nothing Then
-'                        If aIdx.IsBasket Then
-'                            Set aBasketDivs = aIdx.BasketDivs
-'                            If Not aBasketDivs Is Nothing Then
-'                                aBasketDivs.GetDividendCount Date, aTrd.Opt.Expiry, nDivCount
-'                                If nDivCount > 0 Then
-'                                    aBasketDivs.GetDividends Date, aTrd.Opt.Expiry, nDivCount, dDivAmts, dDivDte, RetCount
-'                                End If
-'                            End If
-'                            Erase aBaskDivs
-'                        End If
-'                        Set aIdx = Nothing
-'                    End If
-'
-'                    If Not aIdx.IsBasket And nDivCount <= 0 Then
-'                        nDivCount = 0
-'                        dYield = aTrd.Und.Yield
-'                    End If
-'                End If
-'
-'                dRate = GetRates(aTrd.UndID, aTrd.Opt.Expiry)
-''                If Not aTrd.Und.IsHTB Then
-''                    dRate = GetNeutralRate(Date, aTrd.Opt.Expiry)
-''                Else
-''                    dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
-''                End If
-'
-'                aTrd.TradedIV = CalcVolatilityMM3(dRate, aTrd.Und.Yield, aTrd.SpotReference, aTrd.Price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
-'                                        aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
-'
-'                Erase dDivDte
-'                Erase dDivAmts
-'
-'                Err.Clear
-'                aTrd.TradedIV = aTrd.TradedIV + 0
-'                If Err.Number <> 0 Then
-'                    aTrd.TradedIV = 0#
-'                ElseIf aTrd.TradedIV < 0 Then
-'                    aTrd.TradedIV = 0#
-'                End If
-'
-'            Else ' synthetic underlyings
-'
-'                Set aSynthRoot = aTrd.Und.SyntheticRoots(aTrd.OptRoot.ID)
-'
-'                If aSynthRoot.Basket Then
-'
-'                    Dim aBasketDiv As EtsGeneralLib.EtsIndexDivColl
-'                    Set aBasketDiv = aSynthRoot.BasketDivs
-'
-'                    If Not aBasketDiv Is Nothing Then
-'                        aBasketDiv.GetDividendCount Date, aTrd.Opt.Expiry, nBaskDivCount
-'                        If nBaskDivCount > 0 Then _
-'                            aBasketDiv.GetDividends Date, aTrd.Opt.Expiry, nBaskDivCount, dDivAmts, dDivDte, nDivCount
-'                    End If
-'                    Set aBasketDiv = Nothing
-'
-'                    Erase aBaskDivs
-'                End If
-'
-'                If nDivCount <= 0 Then
-'                    dYield = aSynthRoot.Yield
-'                End If
-'
-'                If Not aTrd.Und.IsHTB Then
-'                    dRate = GetNeutralRate(Date, aTrd.Opt.Expiry)
-'                Else
-'                    dRate = GetNeutralHTBRate(Date, aTrd.Opt.Expiry)
-'                End If
-'
-'                aTrd.TradedIV = CalcVolatilityMM3(dRate, dYield, aTrd.SpotReference, aTrd.Price, aTrd.Opt.Strike, aTrd.Opt.Expiry - Date, _
-'                                        aTrd.Opt.OptType, IIf(aTrd.Und.IsAmerican, 1, 0), nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
-'
-'                Erase dDivDte
-'                Erase dDivAmts
-'
-'                Err.Clear
-'                aTrd.TradedIV = aTrd.TradedIV + 0
-'                If Err.Number <> 0 Then
-'                    aTrd.TradedIV = 0#
-'                ElseIf aTrd.TradedIV < 0 Then
-'                    aTrd.TradedIV = 0#
-'                End If
-'            End If
-'        End If
-'
-'    ElseIf aTrd.ContractType = enCtFutOption Then
-'        aTrd.TradedIV = 0#
-'        If aTrd.SpotReference > 0 And aTrd.Price > 0 Then
-'            nDivCount = 0
-'            ReDim dDivDte(0 To 0)
-'            ReDim dDivAmts(0 To 0)
-'
-'            If Not aTrd.Und.IsHTB Then
-'                dRate = GetNeutralRate(Date, aTrd.FutOpt.Expiry)
-'            Else
-'                dRate = GetNeutralHTBRate(Date, aTrd.FutOpt.Expiry)
-'            End If
-'
-'            aTrd.TradedIV = CalcVolatilityMM3(dRate, dRate, aTrd.SpotReference, aTrd.Price, aTrd.FutOpt.Strike, aTrd.FutOpt.Expiry - Date, _
-'                                    aTrd.FutOpt.OptType, 1, nDivCount, dDivAmts(0), dDivDte(0), 100, 0#, 0#, IIf(g_Params.CalcModel = enCmBinomial, enCmBinomial, enCmBinomialOpt), nFlag)
-'
-'            Erase dDivDte
-'            Erase dDivAmts
-'
-'            Err.Clear
-'            aTrd.TradedIV = aTrd.TradedIV + 0
-'            If Err.Number <> 0 Then
-'                aTrd.TradedIV = 0#
-'            ElseIf aTrd.TradedIV < 0 Then
-'                aTrd.TradedIV = 0#
-'            End If
-'        End If
-'    End If
-'End Sub
-'
-'
 Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderlyingUpdate)
     On Error Resume Next
     Dim aUnd As EtsGeneralLib.UndAtom
@@ -3238,8 +3128,10 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
     
     If Data Is Nothing Then Exit Sub
     
+    If (Data.UpdStatus = enUndNoChanges) Then Exit Sub
+    
     bIsUpdated = CBool(Data.UpdStatus And enUndAggregationUpdate)
-    If bIsUpdated Then
+    If (bIsUpdated) Then
         Set aUnd = g_UnderlyingAll(Data.UndID)
         If Not aUnd Is Nothing Then
             aUnd.Coeff = Data.Coeff
@@ -3249,9 +3141,8 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
         End If
     End If
     
-    
     bIsUpdated = CBool(Data.UpdStatus And enUndDividendUpdate)
-    If bIsUpdated Then
+    If (bIsUpdated) Then
         Set aUnd = g_UnderlyingAll(Data.UndID)
         If Not aUnd Is Nothing Then
         
@@ -3286,8 +3177,121 @@ Private Sub MmwMsgManager_OnUnderlyingUpdate(ByVal Data As MSGSTRUCTLib.IUnderly
     
     
     bIsUpdated = CBool(Data.UpdStatus And enUndAllTheoCloseUpdate)
-    If bIsUpdated Then
+    If (bIsUpdated) Then
         m_TradeChannel.UpdatePriceInfo g_CurTraderID, g_Main
+    End If
+    
+    bIsUpdated = CBool(Data.UpdStatus And enGlobalParamsUpdate)
+    If (bIsUpdated) Then
+        Debug.Print "Params Updated"
+        If (Not g_Params Is Nothing) Then
+            g_Params.ReloadCustomParams
+            RaiseEvent GlobalParamsUpdate
+        End If
+    End If
+    
+    bIsUpdated = CBool(Data.UpdStatus And enPriceRoundRuleUpdate)
+    If (bIsUpdated) Then
+        If (Not g_Params Is Nothing) Then
+            g_Params.LoadPriceRoundingRule
+            RaiseEvent RoundingRuleUpdate
+        End If
+    End If
+    
+    bIsUpdated = CBool(Data.UpdStatus And enToleranceRangeUpdate)
+    If (bIsUpdated) Then
+        If (Not g_Params Is Nothing) Then
+            g_Params.LoadUndPriceToleranceValue
+            RaiseEvent ToleranceRangeUpdate
+        End If
+    End If
+    
+    bIsUpdated = CBool(Data.UpdStatus And enPriceProfileUpdate)
+    If (bIsUpdated) Then
+        Debug.Print "Price Profile Updated"
+        If (Not g_Main Is Nothing) Then
+            g_Main.LoadPriceProfile
+            g_Params.FirePriceProfilesChange
+            RaiseEvent PriceProfileUpdate
+        End If
+    End If
+    
+    bIsUpdated = CBool(Data.UpdStatus And enUndSettingsUpdate)
+    If (bIsUpdated) Then
+        Debug.Print "Underlying Settings Updated"
+        Set aUnd = g_UnderlyingAll(Data.UndID)
+        
+        If Not aUnd Is Nothing Then
+            
+            If (aUnd.IsActive <> Data.IsActive) Then
+                aUnd.IsActive = Data.IsActive
+            End If
+            
+            If (aUnd.IsHedgeSymbol <> Data.IsHedgeSymbol) Then
+                aUnd.IsHedgeSymbol = Data.IsHedgeSymbol
+            End If
+            
+            If (aUnd.IsHTB <> Data.IsHTB) Then
+                aUnd.IsHTB = Data.IsHTB
+            End If
+            
+            If (aUnd.Kurt <> Data.Kurt) Then
+                aUnd.Kurt = Data.Kurt
+            End If
+            
+            Dim OptProfile As EtsGeneralLib.EtsPriceProfileAtom
+            If (Not aUnd.OptPriceProfile Is Nothing) Then
+                Set OptProfile = aUnd.OptPriceProfile
+                If (OptProfile.ID <> Data.OptProfile) Then
+                    If (Not g_Main.PriceProfile(Data.OptProfile) Is Nothing) Then
+                        Set aUnd.OptPriceProfile = g_Main.PriceProfile(Data.OptProfile)
+                    End If
+                End If
+            End If
+            
+            'Not realized now
+            If (aUnd.PrimaryExchangeID <> Data.PrimaryExchange) Then
+                'aUnd.PrimaryExchangeID = Data.PrimaryExchange
+            End If
+            
+            If (aUnd.IsAmerican <> CBool(Data.Region)) Then
+                aUnd.IsAmerican = CBool(Data.Region)
+            End If
+            
+            If (aUnd.Skew <> Data.Skew) Then
+                aUnd.Skew = Data.Skew
+            End If
+            
+            If (aUnd.SOQ <> Data.SOQ) Then
+                aUnd.SOQ = Data.SOQ
+            End If
+            
+            Dim StkProfile As EtsGeneralLib.EtsPriceProfileAtom
+            If (Not aUnd.UndPriceProfile Is Nothing) Then
+                Set StkProfile = aUnd.UndPriceProfile
+                If (StkProfile.ID <> Data.StkProfile) Then
+                    If (Not g_Main.PriceProfile(Data.StkProfile) Is Nothing) Then
+                        Set aUnd.UndPriceProfile = g_Main.PriceProfile(Data.StkProfile)
+                    End If
+                End If
+            End If
+            
+            If (aUnd.IsAllowLending <> Data.AllowLending) Then
+                aUnd.IsAllowLending = Data.AllowLending
+            End If
+            
+        End If
+        
+        RaiseEvent UnderlyingUpdate(Data)
+    End If
+    
+    bIsUpdated = CBool(Data.UpdStatus And enHTBRatesUpdated)
+    If (bIsUpdated) Then
+        Debug.Print "HTBRates updated"
+        If (Data.UndID > 0) Then
+            ReloadRates Data.UndID
+            RaiseEvent HTBRatesUpdate(Data)
+        End If
     End If
     
 End Sub
@@ -3336,3 +3340,6 @@ Private Function LoadCustomDivs(ByRef aUnd As EtsGeneralLib.UndAtom) As Boolean
     Set frmCustDivs = Nothing
     
 End Function
+
+
+

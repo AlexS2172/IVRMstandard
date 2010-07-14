@@ -17,7 +17,10 @@ library EtsMmGreeksLib
 {
 	importlib("stdole32.tlb");
 	importlib("stdole2.tlb");
-	importlib("EtsGeneral.tlb");
+
+	importlib("..\..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb");
+	importlib("..\..\..\tlb\VolatilitySources.tlb");
+	importlib("..\..\tlb\EtsGeneral.tlb");
 
 	/////////////////////////////////////////////////////////////////////////////
 	//
@@ -115,6 +118,8 @@ library EtsMmGreeksLib
 		ETSGENERAL_PROPPUTREF_DEF(23,	IMmGaSynthGreekColl*,		SynthGreek)
 		ETSGENERAL_PROP_DEF(24,			DOUBLE,						RhoInShares)
 		ETSGENERAL_PROP_DEF(25,			DOUBLE,						Rho)
+		ETSGENERAL_PROP_DEF(26,			DATE,						ExpiryOV)
+		ETSGENERAL_PROP_DEF(27,			DATE,						TradingClose)
 
 		[id(34), helpstring("method ClearValues")]
 		HRESULT ClearValues();
@@ -167,6 +172,7 @@ library EtsMmGreeksLib
 		ETSGENERAL_PROPPUTREF_DEF(18,	IMmGaSynthGreekColl*,		SynthGreek)
 		ETSGENERAL_PROP_DEF(19,			DOUBLE,						RhoInShares)
 		ETSGENERAL_PROP_DEF(20,			VARIANT_BOOL,				BadRhoInShares)
+		ETSGENERAL_PROP_DEF(21,			DOUBLE,						HTBRate)
 
 		[id(39), helpstring("method ClearValues")]
 		HRESULT ClearValues();
@@ -249,7 +255,8 @@ library EtsMmGreeksLib
 		HRESULT CalcPositions([in] IMmGaUndColl* collUnd, [in] enum EtsCalcModelTypeEnum enCalcModel,
 								[in] VARIANT_BOOL bUseTheoVolatility, [in] VARIANT_BOOL bUseTheoVolaNoBid, 
 								[in] VARIANT_BOOL bUseTheoVolaBadMarket, [in] DOUBLE dUndPriceTolerance, 
-								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule );
+								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+								[in] ICalculationParametrs* pParams);
 	};
 
 	[
@@ -355,7 +362,8 @@ library EtsMmGreeksLib
 		HRESULT CalcUnderlying([in] IMmGaUndAtom* aUnd, [in] enum EtsCalcModelTypeEnum enCalcModel,
 								[in] VARIANT_BOOL bUseTheoVolatility, [in] VARIANT_BOOL bUseTheoVolaNoBid, 
 								[in] VARIANT_BOOL bUseTheoVolaBadMarket, [in] DOUBLE dUndPriceTolerance, 
-								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule );
+								[in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+								[in] ICalculationParametrs* pParams);
 
 		[id(40), helpstring("method CalcTotals")]
 		HRESULT CalcTotals();

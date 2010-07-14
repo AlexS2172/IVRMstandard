@@ -830,6 +830,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         Set rs = Nothing
     End If
     
+    
     If (enType And ET_TRADER_GROUP) = ET_TRADER_GROUP Then
         sStep = "trader groups data."
         If Not lblProgress Is Nothing Then lblProgress.Caption = "Loading trader groups data...": lblProgress.Refresh
@@ -1048,6 +1049,7 @@ Public Sub LoadEntities(Optional ByVal enType As EntityTypeEnum = ET_ALL, Option
         Wend
         Set rs = Nothing
         
+       
 '        sStep = "synthetic roots index betas."
 '        If Not lblProgress Is Nothing Then lblProgress.Caption = "Loading synthetic roots index betas...": lblProgress.Refresh
 '        Set rs = gDBW.usp_MmSyntheticIndexBeta_Get

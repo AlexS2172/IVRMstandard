@@ -5,9 +5,6 @@
 	Name="OptionPriceModels"
 	ProjectGUID="{6C229602-124D-4FAA-B36C-7FC5FF1948D0}"
 	RootNamespace="OptionPriceModels"
-	SccProjectName="&quot;$/EgCommon/OptionPriceModels&quot;, GYDAAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	>
 	<Platforms>
 		<Platform

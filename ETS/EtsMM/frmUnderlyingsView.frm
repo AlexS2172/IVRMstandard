@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "Comdlg32.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmUnderlyingsView 
    Caption         =   "Underlyings"
    ClientHeight    =   6735
@@ -19,8 +19,8 @@ Begin VB.Form frmUnderlyingsView
       TabIndex        =   0
       Top             =   0
       Width           =   6735
-      _ExtentX        =   11880
-      _ExtentY        =   6165
+      _extentx        =   11880
+      _extenty        =   6165
    End
    Begin VB.PictureBox picBottom 
       Appearance      =   0  'Flat
@@ -238,6 +238,10 @@ Begin VB.Form frmUnderlyingsView
    End
    Begin VB.Menu mnuTools 
       Caption         =   "&Tools"
+      Begin VB.Menu mnuOptionsAddNewSymbol 
+         Caption         =   "&Add New Symbol..."
+         Shortcut        =   ^N
+      End
       Begin VB.Menu mnuOptionsParameters 
          Caption         =   "&Parameters..."
          Shortcut        =   ^P
@@ -697,6 +701,11 @@ End Sub
 Private Sub mnuFileIndex2Hedge_Click()
     On Error Resume Next
 '    frmMain.ShowIndex2Hedge TYPE_UNDERLYING, ctlView.CurUnderlyingID
+End Sub
+
+Private Sub mnuOptionsAddNewSymbol_Click()
+On Error Resume Next
+    ctlView.AddNewSymbol
 End Sub
 
 Private Sub mnuOptionsParameters_Click()

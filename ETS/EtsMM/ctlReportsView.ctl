@@ -445,11 +445,11 @@ Attribute frmLayout.VB_VarHelpID = -1
 
 
 Public pbProgress As MSComctlLib.ProgressBar
-Public lblProcess As VB.Label
-Public lblStatus As VB.Label
-Public WithEvents imgStop As VB.Image
+Public lblProcess As vB.Label
+Public lblStatus As vB.Label
+Public WithEvents imgStop As vB.Image
 Attribute imgStop.VB_VarHelpID = -1
-Public imgStopDis As VB.Image
+Public imgStopDis As vB.Image
 
 Private m_gdFlt As New clsGridDef
 Private m_gdRes As New clsGridDef
@@ -807,7 +807,7 @@ Private Function CheckUndFilter(aUnd As EtsGeneralLib.UndAtom) As Boolean
     End If
 End Function
 
-Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
+Private Function CheckTradeFilter(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom) As Boolean
     On Error Resume Next
     Dim bMatched As Boolean, nValue&
     
@@ -906,7 +906,7 @@ Private Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom)
     End If
 End Function
 
-Private Function GetUnderlyingKey(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As String
+Private Function GetUnderlyingKey(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom) As String
 
     GetUnderlyingKey = CStr(aTrd.Und.ID)
     'If m_nFilter(PFC_REPORT) <> REPORT_CLOSE_TO_SPOT Then
@@ -941,7 +941,7 @@ Private Function GetUnderlyingKeyByStrategy(ByVal UnderlyingID, ByRef strategyID
     'GetUnderlyingKey = GetUnderlyingKey + CStr(aTrd.tradeID)
 End Function
 
-Private Function AddTrade2Report(aTrd As EtsMmGeneralLib.MmTradeInfoAtom, bTradeFake As Boolean) As Boolean
+Private Function AddTrade2Report(aTrd As EtsGeneralLib.MmTradeInfoAtom, bTradeFake As Boolean) As Boolean
     Dim aUnd As EtsMmReportsLib.MmRpUndAtom, aOpt As EtsMmReportsLib.MmRpOptAtom
     Dim aOptRoot As EtsMmReportsLib.MmRpOptRootAtom
     Dim nKey&, sKey$, aGUnd As EtsGeneralLib.UndAtom
@@ -1364,7 +1364,7 @@ Private Function PositionsLoad() As Boolean
     PositionsLoad = False
     If m_bInProc Then Exit Function
     
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim aUnd As EtsMmReportsLib.MmRpUndAtom, aOpt As EtsMmReportsLib.MmRpOptAtom
     Dim aOptRoot As EtsMmReportsLib.MmRpOptRootAtom
     Dim nKey&, sKey$, nCount&, aGUnd As EtsGeneralLib.UndAtom
@@ -1696,7 +1696,7 @@ Private Function OptionsLoad() As Boolean
                             End If
                         dtExpiry = ReadDate(rsOpt!dtExpiry)
                         dtExpiryOV = ReadDate(rsOpt!dtExpiryOV)
-                        dtTradingClose = ReadDate(rsOpt!dtTradingClose)
+                        dtTradingClose = ClipDays(ReadDate(rsOpt!dtTradingClose))
                         nRootID = ReadLng(rsOpt!iOptionRootID)
                         dStrike = ReadDbl(rsOpt!fStrike)
                         If aPosWithEarlyExercise.Opt(nRootID, dStrike, dtExpiry) Is Nothing Then
@@ -1848,7 +1848,7 @@ End Sub
 Private Sub InitGrids()
     On Error Resume Next
     With fgFlt
-        .Rows = 2
+        .rows = 2
         .Cols = PFC_COLUMN_COUNT
         
         .AllowBigSelection = False
@@ -1876,7 +1876,7 @@ Private Sub InitGrids()
     End With
     
     With fgRes
-        .Rows = 0
+        .rows = 0
         .Cols = 0
         
         .AllowBigSelection = False
@@ -1957,7 +1957,7 @@ Private Sub FormatFltColumns()
         Set .Font = aFont
         
         nCols = .Cols - 1
-        nRows = .Rows - 1
+        nRows = .rows - 1
         For i = PFC_REPORT To PFC_LAST_COLUMN
             .Cell(flexcpBackColor, 1, i, nRows, i) = IIf(m_gdFlt.Col(i).BackColor <> 0, m_gdFlt.Col(i).BackColor, RGB(1, 1, 1))
             .Cell(flexcpForeColor, 1, i, nRows, i) = IIf(m_gdFlt.Col(i).ForeColor <> 0, m_gdFlt.Col(i).ForeColor, RGB(1, 1, 1))
@@ -1992,7 +1992,7 @@ Private Sub FormatResGrid()
     With fgRes
         m_GridLock(GT_REPORTS_RESULTS).LockRedraw
     
-        .Rows = 0
+        .rows = 0
         .Cols = 0
         
         m_GridLock(GT_REPORTS_RESULTS).UnlockRedraw
@@ -2080,7 +2080,7 @@ Private Sub UpdateResGrid()
             nFixedRows = 1
         
             .Cols = nFixedCols + 12
-            .Rows = nFixedRows
+            .rows = nFixedRows
         
             .FixedRows = nFixedRows
             .FixedCols = 0
@@ -2162,7 +2162,7 @@ Private Sub UpdateResGrid()
             
             .ColSort(0) = flexSortGenericAscending
             .ColSort(1) = flexSortGenericAscending
-            .Select 1, 0, .Rows - 1, 1
+            .Select 1, 0, .rows - 1, 1
             .Sort = flexSortUseColSort
                 
             .MergeCells = flexMergeRestrictColumns
@@ -2173,12 +2173,12 @@ Private Sub UpdateResGrid()
                 .Subtotal flexSTSum, 0, i, , , , True, "%s", , True
             Next
                 
-            For i = nFixedRows To .Rows - 1
+            For i = nFixedRows To .rows - 1
                 If .IsSubtotal(i) Then .TextMatrix(i, 1) = "Total"
             Next
                 
-            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-            .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+            .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
             .AutoSize 0, .Cols - 1, False, 100
                 
             With vsPrinter
@@ -2189,7 +2189,7 @@ Private Sub UpdateResGrid()
             nFixedRows = 1
             
             .Cols = nFixedCols + 14
-            .Rows = nFixedRows
+            .rows = nFixedRows
                 
             .FixedRows = nFixedRows
             .FixedCols = 0
@@ -2254,11 +2254,11 @@ Private Sub UpdateResGrid()
             Next
                
             .ColSort(0) = flexSortGenericAscending
-            .Select 1, 0, .Rows - 1
+            .Select 1, 0, .rows - 1
             .Sort = flexSortUseColSort
                 
-            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-            .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+            .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
             .AutoSize 0, .Cols - 1, False, 100
                 
             With vsPrinter
@@ -2286,7 +2286,7 @@ Private Sub UpdateResGrid()
                 nFixedRows = 1
             
                 .Cols = nFixedCols + 4 + 4
-                .Rows = nFixedRows
+                .rows = nFixedRows
                 
                 .FixedRows = nFixedRows
                 .FixedCols = 0
@@ -2376,11 +2376,11 @@ Private Sub UpdateResGrid()
                                 
                 .ColSort(0) = flexSortGenericAscending
                 .ColSort(2) = flexSortGenericAscending
-                .Select 1, 0, .Rows - 1, 2
+                .Select 1, 0, .rows - 1, 2
                 .Sort = flexSortUseColSort
                 
-                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-                .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+                .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
                 .AutoSize 0, .Cols - 1, False, 100
                 
                 vsPrinter.RenderControl = fgRes.hWnd
@@ -2416,7 +2416,7 @@ NEXT_POSITION_WITH_EARLY_EXERCISE:
                 nFixedCols = 3
                 
                 .Cols = nFixedCols + aColl.Count
-                .Rows = nFixedRows
+                .rows = nFixedRows
                 
                 .FixedRows = nFixedRows
                 .FixedCols = 0
@@ -2470,11 +2470,11 @@ NEXT_POSITION_WITH_EARLY_EXERCISE:
                 .ColSort(0) = flexSortGenericAscending
                 .ColSort(1) = flexSortGenericAscending
                 .ColSort(2) = flexSortGenericAscending
-                .Select 1, 0, .Rows - 1, 2
+                .Select 1, 0, .rows - 1, 2
                 .Sort = flexSortUseColSort
                 
-                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-                .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+                .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
                 .AutoSize 0, .Cols - 1, False, 200
                 
                 With vsPrinter
@@ -2535,7 +2535,7 @@ NEXT_MATRIX_BY_STOCK:
 
                 ' + 5 cols
                 .Cols = nFixedCols + aColl.Count + 5
-                .Rows = nFixedRows
+                .rows = nFixedRows
 
                 .FixedRows = nFixedRows
                 .FixedCols = 0
@@ -2645,7 +2645,7 @@ NEXT_MATRIX_BY_STOCK:
                 
                 .ColSort(0) = flexSortGenericAscending
                 .ColSort(1) = flexSortGenericAscending
-                .Select 1, 0, .Rows - 1, 1
+                .Select 1, 0, .rows - 1, 1
                 .Sort = flexSortUseColSort
 
                 ' Net bottom row
@@ -2653,11 +2653,11 @@ NEXT_MATRIX_BY_STOCK:
                 For i = nFixedCols To .Cols - 1
                     .Subtotal flexSTSum, -1, i, , , , True, " ", , True
                 Next
-                .TextMatrix(.Rows - 1, 1) = "Net"
+                .TextMatrix(.rows - 1, 1) = "Net"
                
                 ' Delta, Gamma, Vega, Theta bottom rows
                 .AddItem ""
-                nRow = .Rows - 1
+                nRow = .rows - 1
                 nCol = nFixedCols
                 dVal = 0
                 .TextMatrix(nRow, 1) = "Delta"
@@ -2670,7 +2670,7 @@ NEXT_MATRIX_BY_STOCK:
                 .TextMatrix(nRow, nCol) = dVal
                 
                 .AddItem ""
-                nRow = .Rows - 1
+                nRow = .rows - 1
                 nCol = nFixedCols
                 dVal = 0
                 .TextMatrix(nRow, 1) = "Gma$1"
@@ -2683,7 +2683,7 @@ NEXT_MATRIX_BY_STOCK:
                 .TextMatrix(nRow, nCol) = dVal
                 
                 .AddItem ""
-                nRow = .Rows - 1
+                nRow = .rows - 1
                 nCol = nFixedCols
                 dVal = 0
                 .TextMatrix(nRow, 1) = "Vega"
@@ -2696,7 +2696,7 @@ NEXT_MATRIX_BY_STOCK:
                 .TextMatrix(nRow, nCol) = dVal
                 
                 .AddItem ""
-                nRow = .Rows - 1
+                nRow = .rows - 1
                 nCol = nFixedCols
                 dVal = 0
                 .TextMatrix(nRow, 1) = "Theta"
@@ -2708,10 +2708,10 @@ NEXT_MATRIX_BY_STOCK:
                 Next
                 .TextMatrix(nRow, nCol) = dVal
                 
-                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-                .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
-                .Cell(flexcpFontBold, nFixedRows, nFixedCols + aColl.Count, .Rows - 1, .Cols - 1) = True
-                .Cell(flexcpFontBold, .Rows - 5, 0, .Rows - 1, .Cols - 1) = True
+                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+                .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
+                .Cell(flexcpFontBold, nFixedRows, nFixedCols + aColl.Count, .rows - 1, .Cols - 1) = True
+                .Cell(flexcpFontBold, .rows - 5, 0, .rows - 1, .Cols - 1) = True
                 .AutoSize 0, .Cols - 1, False, 200
                 
                 vsPrinter.RenderControl = fgRes.hWnd
@@ -2728,7 +2728,7 @@ NEXT_SYNTHETIC:
             nFixedRows = 1
             
             .Cols = nFixedCols + 12
-            .Rows = nFixedRows
+            .rows = nFixedRows
                 
             .FixedRows = nFixedRows
             .FixedCols = 0
@@ -2789,11 +2789,11 @@ NEXT_SYNTHETIC:
             Next
                
             .ColSort(0) = flexSortGenericAscending
-            .Select 1, 0, .Rows - 1, 0
+            .Select 1, 0, .rows - 1, 0
             .Sort = flexSortUseColSort
                 
-            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-            .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+            .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
             .AutoSize 0, .Cols - 1, False, 200
                 
             With vsPrinter
@@ -2804,7 +2804,7 @@ NEXT_SYNTHETIC:
             nFixedRows = 1
             
             .Cols = nFixedCols + 11
-            .Rows = nFixedRows
+            .rows = nFixedRows
                 
             .FixedRows = nFixedRows
             .FixedCols = 0
@@ -2861,7 +2861,7 @@ NEXT_SYNTHETIC:
                 .ColHidden(1) = True
                 .ColHidden(2) = Not aRiskMatrixAtom.ID <> -1
                 
-                .Rows = nFixedRows
+                .rows = nFixedRows
                 .ColFormat(0) = "%"
                 
                 i = 1
@@ -2887,11 +2887,11 @@ NEXT_SYNTHETIC:
                 Next
             
                 .ColSort(12) = flexSortGenericAscending
-                .Select 1, 12, .Rows - 1, 12
+                .Select 1, 12, .rows - 1, 12
                 .Sort = flexSortUseColSort
             
-                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-                .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+                .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+                .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
                 .AutoSize 0, .Cols - 1, False, 50
                 
                 With vsPrinter
@@ -2904,7 +2904,7 @@ NEXT_SYNTHETIC:
 ' STD Risk Matrix
                 .ColHidden(1) = False
                 
-                .Rows = nFixedRows
+                .rows = nFixedRows
                 .ColFormat(0) = "###"
                 
                 i = 1
@@ -2929,13 +2929,13 @@ NEXT_SYNTHETIC:
                     End If
                 Next
             
-                If .Rows > 1 Then
+                If .rows > 1 Then
                     .ColSort(0) = flexSortGenericAscending
-                    .Select 1, 12, .Rows - 1, 12
+                    .Select 1, 12, .rows - 1, 12
                     .Sort = flexSortUseColSort
             
-                    .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-                    .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+                    .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+                    .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
                     .AutoSize 0, .Cols - 1, False, 50
                 
                     With vsPrinter
@@ -2960,7 +2960,7 @@ REPORT_RISK_MATRIX_NEXT:
             dDiff = CDbl(fgFlt.TextMatrix(1, PFC_MAX_STRIKE_DISTANCE))
             
             .Cols = nFixedCols
-            .Rows = nFixedRows
+            .rows = nFixedRows
                 
             .FixedRows = nFixedRows
             .FixedCols = 0
@@ -3090,7 +3090,7 @@ REPORT_CLOSE_TO_SPOT:
             nFixedRows = 1
             
             .Cols = nFixedCols + 3
-            .Rows = nFixedRows
+            .rows = nFixedRows
                 
             .FixedRows = nFixedRows
             .FixedCols = 0
@@ -3145,11 +3145,11 @@ REPORT_CLOSE_TO_SPOT:
             
             .ColSort(0) = flexSortGenericAscending
             .ColSort(1) = flexSortGenericAscending
-            .Select 1, 0, .Rows - 1, 1
+            .Select 1, 0, .rows - 1, 1
             .Sort = flexSortUseColSort
                 
-            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .Rows - 1, .Cols - 1) = RGB(255, 255, 255)
-            .Cell(flexcpForeColor, 0, 0, .Rows - 1, .Cols - 1) = RGB(1, 1, 1)
+            .Cell(flexcpBackColor, .FixedRows, .FixedCols, .rows - 1, .Cols - 1) = RGB(255, 255, 255)
+            .Cell(flexcpForeColor, 0, 0, .rows - 1, .Cols - 1) = RGB(1, 1, 1)
             .AutoSize 0, .Cols - 1, False, 50
                 
             With vsPrinter
@@ -3331,7 +3331,7 @@ Private Sub fgFlt_DblClick()
         m_nMenuGridCol = .MouseCol
         m_nMenuGridRow = .MouseRow
         m_nMenuGridCols = .Cols
-        m_nMenuGridRows = .Rows
+        m_nMenuGridRows = .rows
         
         HandleGridDblClick
     End With
@@ -3353,7 +3353,7 @@ Private Sub fgFlt_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -3418,7 +3418,7 @@ Private Sub fgFlt_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As
             m_nMenuGridCol = .MouseCol
             m_nMenuGridRow = .MouseRow
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
             ShowPopup
         End With
     End If
@@ -3663,7 +3663,7 @@ Private Sub UserControl_Resize()
     With fgFlt
         .Top = 0
         .Left = 0
-        .Height = .RowHeight(0) + (.Rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
+        .Height = .RowHeight(0) + (.rows - 1) * .RowHeight(1) + ScaleY(.GridLineWidth * 2, vbPixels, vbTwips)
         .Width = ScaleWidth
         .Refresh
     End With
@@ -4266,6 +4266,7 @@ End Sub
 Private Sub CalcReport()
     Dim aUnd As EtsMmReportsLib.MmRpUndAtom, nID&
     Dim RateValues() As Double, RateDates() As Double
+    Dim HTBRates() As Double, HTBDates() As Double
     Dim dTolerance#, enRoundingRule As EtsGeneralLib.EtsPriceRoundingRuleEnum
     Dim bUseTheoVolatility As Boolean, bUseTheoNoBid As Boolean, bUseTheoBadMarketVola As Boolean
     Dim aGreeksSummary As EtsMmReportsLib.MmRpGreeksSummaryAtom, aGreeksSummaryColl As EtsMmReportsLib.MmRpGreeksSummaryColl
@@ -4295,10 +4296,10 @@ Private Sub CalcReport()
     Case REPORT_POSITION_GREEK_BY_MONTH
         For Each aUnd In m_Und
             If Not CheckPos(aUnd) Then GoTo NEXT_REPORT_POSITION_GREEK_BY_MONTH
-            GetRates aUnd, RateValues, RateDates
+            GetRates aUnd, RateValues, RateDates, HTBRates, HTBDates
                 Set aGreeksByMonthColl = aUnd.CalcGreeksByMonth(g_Params.CalcModel, _
-                    RateValues, RateDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
-                    m_Und, dTolerance, enRoundingRule)
+                RateValues, RateDates, HTBRates, HTBDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
+                    m_Und, dTolerance, enRoundingRule, g_Main.CalculationParametrs)
             If aGreeksByMonthColl Is Nothing Then GoTo NEXT_REPORT_POSITION_GREEK_BY_MONTH
             For Each aGreeksByMonth In aGreeksByMonthColl
                 nID = m_GreeksByMonth.Count
@@ -4320,10 +4321,10 @@ NEXT_REPORT_POSITION_GREEK_BY_MONTH:
     Case REPORT_POSITION_GREEK_SUMMARY
         For Each aUnd In m_Und
             If Not CheckPos(aUnd) Then GoTo NEXT_REPORT_POSITION_GREEK_SUMMARY
-            GetRates aUnd, RateValues, RateDates
+            GetRates aUnd, RateValues, RateDates, HTBRates, HTBDates
                 Set aGreeksSummaryColl = aUnd.CalcGreeksSummary(g_Params.CalcModel, _
-                    RateValues, RateDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
-                    m_Und, dTolerance, enRoundingRule)
+                RateValues, RateDates, HTBRates, HTBDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
+                    m_Und, dTolerance, enRoundingRule, g_Main.CalculationParametrs)
             If aGreeksSummaryColl Is Nothing Then GoTo NEXT_REPORT_POSITION_GREEK_SUMMARY
             For Each aGreeksSummary In aGreeksSummaryColl
                 nID = m_GreeksSummary.Count
@@ -4343,11 +4344,11 @@ NEXT_REPORT_POSITION_GREEK_SUMMARY:
     Case REPORT_POSITION_WITH_EARLY_EXERCISE
         For Each aUnd In m_Und
             If Not aUnd.Visible Then GoTo NEXT_REPORT_POSITION_WITH_EARLY_EXERCISE
-            GetRates aUnd, RateValues, RateDates
+            GetRates aUnd, RateValues, RateDates, HTBRates, HTBDates
                 aUnd.CalcPosWithEarlyExercise g_Params.CalcModel, _
-                    RateValues, RateDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
+                RateValues, RateDates, HTBRates, HTBDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
                     m_Und, dTolerance, enRoundingRule, m_PosWithEarlyExercise(aUnd.ID), _
-                    g_Params.EAOptWithPosition, g_Params.EAUpcomingDivs, g_Params.EADaysToDiv
+                    g_Params.EAOptWithPosition, g_Params.EAUpcomingDivs, g_Params.EADaysToDiv, g_Main.CalculationParametrs
                 
 NEXT_REPORT_POSITION_WITH_EARLY_EXERCISE:
             IncProgress pbProgress
@@ -4358,7 +4359,7 @@ NEXT_REPORT_POSITION_WITH_EARLY_EXERCISE:
     Case REPORT_POSITION_MATRIX_BY_STOCK
         For Each aUnd In m_Und
             If Not aUnd.Visible Then GoTo NEXT_REPORT_POSITION_MATRIX_BY_STOCK
-                aUnd.CalcMatrixByStock dTolerance, enRoundingRule, m_MatrixByStock(aUnd.ID)
+                aUnd.CalcMatrixByStock dTolerance, enRoundingRule, m_MatrixByStock(aUnd.ID), g_Main.CalculationParametrs
             
 NEXT_REPORT_POSITION_MATRIX_BY_STOCK:
             IncProgress pbProgress
@@ -4368,10 +4369,10 @@ NEXT_REPORT_POSITION_MATRIX_BY_STOCK:
     Case REPORT_SYNTHETIC
         For Each aUnd In m_Und
             If Not CheckPos(aUnd) Then GoTo NEXT_REPORT_SYNTHETIC
-            GetRates aUnd, RateValues, RateDates
+            GetRates aUnd, RateValues, RateDates, HTBRates, HTBDates
                 aUnd.CalcSynthetics g_Params.CalcModel, _
-                    RateValues, RateDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
-                    m_Und, dTolerance, enRoundingRule, m_Synthetic
+                RateValues, RateDates, HTBRates, HTBDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
+                    m_Und, dTolerance, enRoundingRule, m_Synthetic, g_Main.CalculationParametrs
 
 NEXT_REPORT_SYNTHETIC:
             IncProgress pbProgress
@@ -4381,10 +4382,10 @@ NEXT_REPORT_SYNTHETIC:
     Case REPORT_PNL
         For Each aUnd In m_Und
             If Not CheckPos(aUnd) Then GoTo NEXT_REPORT_PNL
-            GetRates aUnd, RateValues, RateDates
+            GetRates aUnd, RateValues, RateDates, HTBRates, HTBDates
                 Set aPnLColl = aUnd.CalcPnLs(g_Params.CalcModel, _
-                    RateValues, RateDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
-                    m_Und, dTolerance, enRoundingRule)
+                RateValues, RateDates, HTBRates, HTBDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
+                    m_Und, dTolerance, enRoundingRule, g_Main.CalculationParametrs)
             If aPnLColl Is Nothing Then GoTo NEXT_REPORT_PNL
             For Each aPnL In aPnLColl
                 nID = m_PnL.Count
@@ -4403,10 +4404,11 @@ NEXT_REPORT_PNL:
     Case REPORT_RISK_MATRIX
         For Each aUnd In m_Und
             If Not CheckPos(aUnd) Then GoTo NEXT_REPORT_RISK_MATRIX
-            GetRates aUnd, RateValues, RateDates
+            GetRates aUnd, RateValues, RateDates, HTBRates, HTBDates
                 Set aRiskMatrixColl = aUnd.CalcRiskMatrix(g_Params.CalcModel, _
-                    RateValues, RateDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
-                    m_Und, dTolerance, enRoundingRule)
+                RateValues, RateDates, HTBRates, HTBDates, bUseTheoVolatility, bUseTheoNoBid, bUseTheoBadMarketVola, _
+                    m_Und, dTolerance, enRoundingRule, g_Main.CalculationParametrs)
+                    
             If aRiskMatrixColl Is Nothing Then GoTo NEXT_REPORT_RISK_MATRIX
             For Each aRiskMatrix In aRiskMatrixColl
                 nID = m_RiskMatrix.Count
@@ -4426,7 +4428,7 @@ NEXT_REPORT_RISK_MATRIX:
     Case REPORT_EXERCISED_STOCK_POSITION
         For Each aUnd In m_Und
             If Not CheckPos(aUnd) Then GoTo NEXT_REPORT_EXERCISED_STOCK_POSITION
-                Set aExercisedStockColl = aUnd.CalcExercisedStocks(m_Und, dTolerance, enRoundingRule)
+                Set aExercisedStockColl = aUnd.CalcExercisedStocks(m_Und, dTolerance, enRoundingRule, g_Main.CalculationParametrs)
             If aExercisedStockColl Is Nothing Then GoTo NEXT_REPORT_EXERCISED_STOCK_POSITION
             For Each aExercisedStock In aExercisedStockColl
                 nID = m_ExercisedStock.Count
@@ -4510,33 +4512,65 @@ Private Function CheckPos(aUnd As EtsMmReportsLib.MmRpUndAtom) As Boolean
     CheckPos = CheckPos Or aUnd.Opt.Count > 0
 End Function
 
-Private Sub GetRates(aUnd As EtsMmReportsLib.MmRpUndAtom, RateValues() As Double, RateDates() As Double)
+Private Sub GetRates(aUnd As EtsMmReportsLib.MmRpUndAtom, RateValues() As Double, RateDates() As Double, _
+                                                          HTBRates() As Double, HTBDates() As Double)
     Dim bUseMidRates As Boolean, cPosThreshold@, dPos#
+    Dim lRatesCount As Long
     
-    dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates 'GetPos(aUnd.Pos)
-    If GetIrRuleType = enRateBasedOnPosition Then ' And dPos > BAD_DOUBLE_VALUE Then
+    dPos = g_UnderlyingAll(aUnd.ID).UndPosForRates
+    If GetIrRuleType = enRateBasedOnPosition Then
         cPosThreshold = Abs(GetPosThreshold)
         bUseMidRates = (cPosThreshold = 0 Or cPosThreshold <> 0 And Abs(dPos) <= cPosThreshold)
     Else
         bUseMidRates = True
     End If
-
-    If bUseMidRates Then
-        If Not aUnd.IsHTB Then
-            RateValues = g_IRs(0).NeutralRateValue
-            RateDates = g_IRs(0).NeutralRateDTE
+    
+    If (g_Main.Rates.Count = 0) Then
+        lRatesCount = 0
+    Else
+        lRatesCount = g_Main.Rates.Count - 1
+    End If
+    
+    ReDim RateValues(0 To lRatesCount)
+    ReDim RateDates(0 To lRatesCount)
+    
+    Dim Idx As Long: Idx = 0
+    Dim aRateAtom As EtsGeneralLib.EtsRateAtom
+    For Each aRateAtom In g_Main.Rates
+        If bUseMidRates Then
+            RateValues(Idx) = aRateAtom.NeutralRate
         Else
-            RateValues = g_IRs(0).NeutralHTBRateValue
-            RateDates = g_IRs(0).NeutralHTBRateDTE
+            RateValues(Idx) = IIf(dPos < 0, aRateAtom.ShortRate, aRateAtom.LongRate)
         End If
-   Else
-        If Not aUnd.IsHTB Then
-            RateValues = IIf(dPos < 0, g_IRs(0).ShortRateValue, g_IRs(0).LongRateValue)
-            RateDates = IIf(dPos < 0, g_IRs(0).ShortRateDTE, g_IRs(0).LongRateDTE)
+        
+        RateDates(Idx) = CDbl(aRateAtom.Period) / 365#
+        Idx = Idx + 1
+    Next
+    
+    ReDim HTBRates(0 To 0)
+    ReDim HTBDates(0 To 0)
+    
+    HTBRates(0) = BAD_DOUBLE_VALUE
+    
+    Dim bIsHTBRatesExist As Boolean: bIsHTBRatesExist = IsHTBRatesExist(aUnd.ID)
+    If bIsHTBRatesExist Then
+        
+        If (g_UnderlyingAll(aUnd.ID).HTBRates.Count = 0) Then
+            lRatesCount = 0
         Else
-            RateValues = IIf(dPos < 0, g_IRs(0).HTBRateValue, g_IRs(0).LongRateValue)
-            RateDates = IIf(dPos < 0, g_IRs(0).HTBRateDTE, g_IRs(0).LongRateDTE)
+            lRatesCount = g_UnderlyingAll(aUnd.ID).HTBRates.Count - 1
         End If
+        
+        ReDim HTBRates(0 To lRatesCount)
+        ReDim HTBDates(0 To lRatesCount)
+        
+        Idx = 0
+        For Each aRateAtom In g_UnderlyingAll(aUnd.ID).HTBRates
+            HTBRates(Idx) = IIf(dPos < 0, aRateAtom.ShortRate, aRateAtom.LongRate)
+            HTBDates(Idx) = CDbl(aRateAtom.Period) / 365#
+            
+            Idx = Idx + 1
+        Next
    End If
 End Sub
 
@@ -4746,7 +4780,7 @@ Private Sub vsPrinter_KeyUp(KeyCode As Integer, Shift As Integer)
             m_nMenuGridCol = .Col
             m_nMenuGridRow = .Row
             m_nMenuGridCols = .Cols
-            m_nMenuGridRows = .Rows
+            m_nMenuGridRows = .rows
         End With
         
         Select Case True
@@ -4889,6 +4923,7 @@ Private Sub HandleGridDblClick()
         End If
     End If
 End Sub
+
 
 
 

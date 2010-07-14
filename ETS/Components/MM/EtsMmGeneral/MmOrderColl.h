@@ -15,7 +15,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IMmOrderCollDispImpl, IMmOrderAt
 // CMmOrderColl
 
 class ATL_NO_VTABLE CMmOrderColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmOrderColl, &CLSID_MmOrderColl>,
 	public ISupportErrorInfoImpl<&IID_IMmOrderColl>,
 	public IMmOrderCollImpl

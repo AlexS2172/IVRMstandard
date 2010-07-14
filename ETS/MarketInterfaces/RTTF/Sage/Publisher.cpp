@@ -5,6 +5,7 @@
 #include "Trace.h"
 #include "resource_GUI.h"
 #include "Win32Error.h"
+#include "Sage.h"
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -114,9 +115,6 @@ void CTrade::MakeFuturesSymbolRoot()
 
 /////////////////////////////////////////////////////////////////////////////////////
 // CPublisher class implementation
-_bstr_t	CPublisher::m_bsConnectionString;
-_bstr_t	CPublisher::m_bsConnStringLabel;
-
 /////////////////////////////////////////////////////////////////////////////////////
 CPublisher::CPublisher() 
 { 		
@@ -124,39 +122,6 @@ CPublisher::CPublisher()
 	m_dwDBDeleted = 0;
 	m_dwPublished = 0;
 	m_dwReceived = 0;
-
-	TCHAR szUserName[256] = { 0 };
-	DWORD dwSize = 255;
-		
-	SYSTEMTIME st;
-	::GetLocalTime(&st);
-
-	TCHAR pTradesFile[100] = { 0 };
-    TCHAR pFailesFile[100] = { 0 };
-    TCHAR pFileDate[100] = { 0 };
-
-	CXMLParamsHelper XMLParams;
-	XMLParams.LoadXMLParams();
-
-	_bstr_t sbsUserGroup;
-	XMLParams.GetUserGroup(sbsUserGroup.GetAddress());
-
-	CString strSubjectPrefix = (LPTSTR)sbsUserGroup;
-
-    _stprintf(pFileDate, _T("%2.2i_%2.2i_%4.4i"), st.wDay, st.wMonth, st.wYear);
-			
-	CString sTradesFile;
-	CString sFailesFile;
-	CString sStructureFile;
-	sTradesFile.Format("%s_%s_%s%s", TRADES_FILENAME_BEGIN, strSubjectPrefix.GetString(), pFileDate, TRADES_FILENAME_END);
-	sFailesFile.Format("%s_%s_%s%s", FAILES_FILENAME_BEGIN, strSubjectPrefix.GetString(), pFileDate, FAILES_FILENAME_END);
-	sStructureFile.Format("%s_%s%s", STRUCTURE_FILENAME_BEGIN, strSubjectPrefix.GetString(), STRUCTURE_FILENAME_END);
-
-
-
-	m_fTradesFile.open( sTradesFile.GetString(),    ios::app | ios::out );
-    m_fFailesFile.open( sTradesFile.GetString(),    ios::app | ios::out );
-	m_fStructFile.open( sStructureFile.GetString(), ios::app | ios::out);
 }
 
 CPublisher::~CPublisher() 
@@ -164,6 +129,59 @@ CPublisher::~CPublisher()
     m_fTradesFile.close();
     m_fFailesFile.close();
     m_fStructFile.close();
+}
+
+HRESULT CPublisher::InitInfromationStream()
+{
+
+	CString sTradesFile;
+	CString sFailesFile;
+	CString sStructureFile;
+
+	TCHAR szUserName[256] = { 0 };
+	DWORD dwSize = 255;
+
+	SYSTEMTIME st;
+	::GetLocalTime(&st);
+
+	TCHAR pTradesFile[100] = { 0 };
+	TCHAR pFailesFile[100] = { 0 };
+	TCHAR pFileDate[100] = { 0 };
+
+	CString strSubjectPrefix = (LPTSTR)m_bsUserGroup;
+
+	_stprintf(pFileDate, _T("%2.2i_%2.2i_%4.4i"), st.wDay, st.wMonth, st.wYear);
+
+	sTradesFile.Format("%s_%s_%s%s", TRADES_FILENAME_BEGIN, strSubjectPrefix.GetString(), pFileDate, TRADES_FILENAME_END);
+	sFailesFile.Format("%s_%s_%s%s", FAILES_FILENAME_BEGIN, strSubjectPrefix.GetString(), pFileDate, FAILES_FILENAME_END);
+	sStructureFile.Format("%s_%s%s", STRUCTURE_FILENAME_BEGIN, strSubjectPrefix.GetString(), STRUCTURE_FILENAME_END);
+
+	m_fTradesFile.open( sTradesFile.GetString(),    ios::app | ios::out );
+	m_fFailesFile.open( sFailesFile.GetString(),    ios::app | ios::out );
+	m_fStructFile.open( sStructureFile.GetString(), ios::app | ios::out );
+
+	return S_OK;
+}
+
+HRESULT CPublisher::SetUserGroup(_bstr_t bsUserGroup)
+{
+	HRESULT dwResult = S_OK;
+	
+	if (bsUserGroup.length() > 0)
+	{
+		m_bsUserGroup = bsUserGroup;
+	}
+	else
+	{
+		CXMLParamsHelper XMLParams;
+		XMLParams.LoadXMLParams();
+		XMLParams.GetUserGroup(m_bsUserGroup.GetAddress());
+	}
+
+	//init traces for incoming data
+	dwResult = InitInfromationStream();
+
+	return dwResult;
 }
 
 HRESULT CPublisher::OnStrategyInitialize()
@@ -187,8 +205,9 @@ void CPublisher::OnData(CTradePtr& pTrade)
 	}
 	else
 	{
-		CTracer::Trace(_T("Trade with ExecID = '%s' was not published."), 
-			pTrade->sExecID.c_str());
+		CTracer::Trace(_T("Trade with ExecID = '%s' was not published in '%s'."), 
+						pTrade->sExecID.c_str(),
+						(LPCTSTR)m_bsUserGroup);
 	}
 
 	switch(dwRes)
@@ -222,7 +241,7 @@ void CPublisher::OnData(CTradePtr& pTrade)
 DWORD CPublisher::Start()
 {
 	LONG lRes = GetConnectionString();
-	if(lRes)
+	if(lRes != S_OK)
 		return CTracer::TraceError(lRes, _T("Fail to read connection string from the registry"));
 
 	if(!m_fStructFile)
@@ -237,7 +256,7 @@ DWORD CPublisher::Start()
 	try
 	{
 		m_pConnection = CDBConnectionPtr(new CDBConnection());
-        m_pConnection->Open(CPublisher::m_bsConnectionString, 5, 10, 250, 250);
+        m_pConnection->Open(m_bsConnectionString, 5, 10, 250, 250);
 
 		_bstr_t bsInitialCatalog = m_pConnection->GetAdoConnectionPtr()->Properties->Item[L"Initial Catalog"]->Value;
 		_bstr_t bsDataSource = m_pConnection->GetAdoConnectionPtr()->Properties->Item[L"Data Source"]->Value;
@@ -245,6 +264,7 @@ DWORD CPublisher::Start()
 		CTracer::Trace(_T("------------------------------------"));
 		CTracer::Trace(_T(" - DB host: %s"), (LPCTSTR)bsDataSource );	
 		CTracer::Trace(_T(" - DB name: %s"), (LPCTSTR)bsInitialCatalog );	
+		CTracer::Trace(_T(" - Group  : %s"), (LPCTSTR)m_bsUserGroup );
 		CTracer::Trace(_T("------------------------------------"));
 
 	}
@@ -278,6 +298,7 @@ DWORD CPublisher::Start()
 		if(FAILED(hr))
 			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to create BroadcastMessage object.");
 
+		m_spPubManager->PutUserGroup(m_bsUserGroup); 
 		m_spPubManager->RegPublisher(enMtTradeUpdate, NULL);
 
 		CTracer::Trace(_T("Publisher initialized."));
@@ -307,9 +328,6 @@ DWORD CPublisher::Stop()
 	{
 		if(m_spPubManager)
 			m_spPubManager->UnregPublisher(enMtTradeUpdate, NULL);
-
-		// give time for transport to prepare for shutdown..
-//		Sleep(5000);
 
 		m_spTradeUpdate = NULL;
 		m_spPubManager = NULL;
@@ -386,7 +404,8 @@ HRESULT CPublisher::FillTradeUpdate(CClientRecordset& rs, const CTradePtr& pTrad
 		m_spTradeUpdate->UndSymbol = rs[L"vcUnderlyingSymbol"];
 		m_spTradeUpdate->Expiry = rs[L"dtExpiry"];
 		m_spTradeUpdate->ExpiryOV = rs[L"dtExpiryOV"];
-		m_spTradeUpdate->TradingClose = rs[L"dtTradingClose"];
+		double dtTradingClose = rs[L"dtTradingClose"];
+		m_spTradeUpdate->TradingClose = dtTradingClose - floor(dtTradingClose);
 		m_spTradeUpdate->IsCall = rs[L"tiIsCall"];
 		m_spTradeUpdate->Strike = rs[L"fStrike"];
 		m_spTradeUpdate->PriceClose = rs[L"fPriceClose"];
@@ -445,6 +464,7 @@ HRESULT CPublisher::FillTradeUpdate(CClientRecordset& rs, const CTradePtr& pTrad
 
 DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 {
+
 	DWORD	dwTries = MAX_DBRECONNECTION_TRIES;
 	bool	bOk = false;
 	DWORD	dwRes = ERROR_SUCCESS;
@@ -604,7 +624,10 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 								break;
 							}
 
-							CTracer::Trace(_T("Trade '%s' stored in database."), pTrade->sExecID.c_str());
+							CTracer::Trace(_T("Trade '%s' stored in database '%s'."), 
+											pTrade->sExecID.c_str(), 
+											(LPCTSTR)m_bsConnStringLabel);
+
 							InterlockedIncrement((LPLONG)&m_dwDBStored);
 
 							CStoredProc<> sp_get(*m_pConnection.get(), L"usp_TradeSeq_Get");
@@ -617,8 +640,9 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 
 							if(rs.IsEOF())
 							{
-								CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist."),
-									pTrade->sExecID.c_str());
+								CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist in '%s'."),
+												pTrade->sExecID.c_str(),
+												(LPCTSTR)m_bsConnStringLabel);
 								dwRes = ERROR_NO_DATA_DETECTED;
 							}
 							else
@@ -631,8 +655,9 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 								}
 								else if(hRes == S_FALSE)
 								{
-									CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist."),
-										pTrade->sExecID.c_str());
+									CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist in '%s'."),
+													pTrade->sExecID.c_str(),
+													(LPCTSTR)m_bsConnStringLabel);
 									dwRes = ERROR_NO_DATA_DETECTED;
 								}
 							}
@@ -676,13 +701,18 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 							else
 								if (lMaxSeqNum == -1)
 								{
-									CTracer::Trace(_T("Failed to store trade in database - trade with the same ExecID '%s' either does not exist."),
-										pTrade->sExecID.c_str());
+									CTracer::Trace(_T("Failed to store trade in database - trade with the same ExecID '%s' either does not exist in '%s'."),
+													pTrade->sExecID.c_str(),
+													(LPCTSTR)m_bsConnStringLabel);
+
 									dwRes = ERROR_FILE_NOT_FOUND;
 									break;
 								}
 
-								CTracer::Trace(_T("Trade '%s' deleted from database."), pTrade->sExecID.c_str());
+								CTracer::Trace(_T("Trade '%s' deleted from database '%s'."), 
+												pTrade->sExecID.c_str(),
+												(LPCTSTR)m_bsConnStringLabel);
+
 								InterlockedIncrement((LPLONG)&m_dwDBDeleted);
 
 								CStoredProc<> sp_get(*m_pConnection.get(), L"usp_TradeSeq_Get");
@@ -696,7 +726,9 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 								if(rs.IsEOF())
 								{
 									CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist."),
-										pTrade->sExecID.c_str());
+													pTrade->sExecID.c_str(),
+													(LPCTSTR)m_bsConnStringLabel);
+
 									dwRes = ERROR_NO_DATA_DETECTED;
 								}
 								else
@@ -710,7 +742,9 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 									else if(hRes == S_FALSE)
 									{
 										CTracer::Trace(_T("Failed to retrieve trade from database - trade with the same ExecID '%s' does not exist."),
-											pTrade->sExecID.c_str());
+														pTrade->sExecID.c_str(),
+														(LPCTSTR)m_bsConnStringLabel);
+
 										dwRes = ERROR_NO_DATA_DETECTED;
 									}                        
 								}
@@ -728,7 +762,10 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 			catch(_com_error& e)
 			{
 				CString strError;
-				strError.Format(_T("Failed to store trade in database Error: %X  %s"), e.Error(), (LPCTSTR)e.Description());
+				strError.Format(_T("Failed to store trade in database Error: %X  %s %s"), 
+								e.Error(), 
+								(LPCTSTR)e.Description(),
+								(LPCTSTR)m_bsConnStringLabel);
 
 				CTracer::Trace(strError.GetString());
 
@@ -741,7 +778,7 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 				}
 				else
 				{
-					CTracer::Trace(_T("CRITICAL ERROR : FAILED TO STORE TRADE IN DATABASE."));
+					CTracer::Trace(_T("CRITICAL ERROR : FAILED TO STORE TRADE IN DATABASE %s."), (LPCTSTR)m_bsConnStringLabel);
 
 					if(/*Uncomment this Oleg StoreInFile(Trade) != 0*/false)
 					{
@@ -909,7 +946,7 @@ DWORD CPublisher::Publish(const CTradePtr& pTrade)
 	{
 		m_spPubManager->PubTradeUpdate(m_spTradeUpdate);
 
-		CTracer::Trace(_T("Trade '%s' published."), pTrade->sExecID.c_str());
+		CTracer::Trace(_T("Trade '%s' published in group '%s'."), pTrade->sExecID.c_str(), (LPCTSTR)m_bsUserGroup);
 		InterlockedIncrement((LPLONG)&m_dwPublished);
 	}
 	catch(_com_error& e)
@@ -924,17 +961,20 @@ LONG CPublisher::GetConnectionString()
 
 	try
 	{
-        ISettingsPtr spSettings;
-		HRESULT hr = spSettings.CreateInstance(__uuidof (Settings));
-		if(FAILED(hr))
-			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to create Settings object.");
+		HRESULT hr = S_OK;
 
-        CPublisher::m_bsConnectionString = spSettings->DatabaseConnection;
+		CXMLParamsHelper XMLParams;
+		XMLParams.LoadXMLParams();
+		if(FAILED(XMLParams.GetMainXMLString(DB_XML_KEY, (BSTR)m_bsUserGroup, &m_bsConnectionString)))
+			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to load connection string");
+
+		if (m_bsConnectionString.length() <= 0)
+			utils::ThrowErrorNoSetErrorInfo(E_FAIL, L"Connection string not defined for user group");				
 
 		_ConnectionPtr spConn;
 		hr = spConn.CreateInstance( __uuidof(Connection) );
-        if ( FAILED(hr) )
-	 	  	  utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to create Connection object");
+		if ( FAILED(hr) )
+		utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to create Connection object");
 
         spConn->ConnectionString = m_bsConnectionString;
 	    PropertiesPtr spParams = spConn->Properties;
@@ -942,14 +982,14 @@ LONG CPublisher::GetConnectionString()
 	    _bstr_t bs = spParams->Item[L"Data Source"]->Value;
 	    bs += L"\\";
 	    bs += (_bstr_t)spParams->Item[L"Initial Catalog"]->Value;
-	    CPublisher::m_bsConnStringLabel = bs;
+	    m_bsConnStringLabel = bs;
 	}
 	catch(_com_error& e)
 	{
 		return CTracer::TraceError(e.Error(), (LPCSTR)e.Description());
 	}
 
-	return 0;
+	return S_OK;
 }
 
 
@@ -974,7 +1014,7 @@ bool  CPublisher::Reconnect()
 	try
 	{
 		m_pConnection = CDBConnectionPtr(new CDBConnection);
-        m_pConnection->Open(CPublisher::m_bsConnectionString,5, 10, 250, 250);
+        m_pConnection->Open(m_bsConnectionString,5, 10, 250, 250);
 
 		_bstr_t bsInitialCatalog = m_pConnection->GetAdoConnectionPtr()->Properties->Item[L"Initial Catalog"]->Value;
 		_bstr_t bsDataSource = m_pConnection->GetAdoConnectionPtr()->Properties->Item[L"Data Source"]->Value;

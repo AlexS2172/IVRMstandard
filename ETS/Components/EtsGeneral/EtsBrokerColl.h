@@ -14,7 +14,7 @@ typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsBrokerCollDispImpl, IEtsBrok
 
 // CEtsBrokerColl
 class ATL_NO_VTABLE CEtsBrokerColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsBrokerColl, &CLSID_EtsBrokerColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsBrokerColl>,
 	public IEtsBrokerCollImpl
@@ -22,6 +22,7 @@ class ATL_NO_VTABLE CEtsBrokerColl :
 public:
 	CEtsBrokerColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSBROKERCOLL)
@@ -31,19 +32,25 @@ BEGIN_COM_MAP(CEtsBrokerColl)
 	COM_INTERFACE_ENTRY(IEtsBrokerColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsBrokerCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 	IEtsBrokerAtomPtr AddNew(long lID, _bstr_t bsName, _bstr_t bsDescription = L"", CComObject<CEtsBrokerAtom>** pAtom = NULL);

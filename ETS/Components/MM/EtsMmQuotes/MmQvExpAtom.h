@@ -6,6 +6,7 @@
 #include "resource.h"       // main symbols
 #include "EtsMmQuotes.h"
 #include "MmQvStrikeColl.h"
+#include "MmQvFutRootCollection.h"
 
 _COM_SMARTPTR_TYPEDEF(IMmQvExpAtom, IID_IMmQvExpAtom);
 
@@ -19,12 +20,15 @@ struct __MmQvExpAtom
 	IMmQvStrikeCollPtr		m_spStrike;
 	IMmQvStrikeAtomPtr		m_spAtmStrike;
 	_bstr_t					m_bstrRootNames;
-
+	DOUBLE					m_dHTBRate;
 	DATE					m_dtExpiryOV;
 	DATE					m_dtTradingClose;
+	IMmQvOptRootCollPtr		m_spRoots;
+	IMmQvFutRootCollectionPtr m_spFutureRoots;
 
 	__MmQvExpAtom()
 		: m_dtExpiryMonth(0.), m_dtExpiry(0.), m_dRate(0.), m_dRateCust(0.), m_bVisible(VARIANT_FALSE),
+		  m_dHTBRate(BAD_DOUBLE_VALUE),
 		  m_dtExpiryOV(0), m_dtTradingClose(0)
 	{
 	}
@@ -69,6 +73,12 @@ END_COM_MAP()
 			_CHK(CComObject<CMmQvStrikeColl>::CreateInstance(&m_pStrike), _T("Fail to create strikes."));
 			m_spStrike.Attach(m_pStrike, TRUE);
 
+			_CHK(CComObject<CMmQvOptRootColl>::CreateInstance(&m_pRoots), _T("Fail to create root's coll."));
+			m_spRoots.Attach(m_pRoots, TRUE);
+
+			_CHK(CComObject<CMmQvFutRootCollection>::CreateInstance(&m_pFutureRoots), _T("Fail to create future root's coll."));
+			m_spFutureRoots.Attach(m_pFutureRoots, TRUE);
+
 			hr = CoCreateFreeThreadedMarshaler(	GetControllingUnknown(), &m_pUnkMarshaler.p);
 
 		}
@@ -83,13 +93,14 @@ END_COM_MAP()
 	{
 		m_spStrike = NULL;
 		m_spAtmStrike = NULL;
+		m_spRoots = NULL;
 		m_pUnkMarshaler.Release();
 
 	}
 	bool AddRoot(_bstr_t& bsRootName) 
 	{
 		CRootNamesCollection::iterator itrFind = m_Roots.find(bsRootName);
-		if(itrFind != m_Roots.end())
+		if(itrFind == m_Roots.end())
 		{
 			if(m_Roots.empty())
 				m_bstrRootNames = bsRootName;
@@ -103,6 +114,8 @@ END_COM_MAP()
 	}
 public:
 	CComObject<CMmQvStrikeColl>* m_pStrike;
+	CComObject<CMmQvOptRootColl>* m_pRoots;
+	CComObject<CMmQvFutRootCollection>* m_pFutureRoots;
 private:
 	CRootNamesCollection  m_Roots;
 	CComPtr<IUnknown> m_pUnkMarshaler;
@@ -113,6 +126,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryMonth, m_dtExpiryMonth)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, Expiry, m_dtExpiry)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, HTBRate, m_dHTBRate)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, RateCust, m_dRateCust)
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL, Visible, m_bVisible)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmQvStrikeColl*, Strike, m_spStrike)
@@ -121,6 +135,8 @@ public:
 	STDMETHOD(get_NearAtmVola)(DOUBLE* pVal);
 	STDMETHOD(FindAtmStrike)(DOUBLE UnderlyingSpot);
 	STDMETHOD(get_Vola)(DOUBLE	Strike, DOUBLE SpotPrice,  DOUBLE *pVola);
+	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmQvOptRootColl*, Roots, m_spRoots)
+	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmQvFutRootCollection*, FutureRoots, m_spFutureRoots)
 
 	IMPLEMENT_SIMPLE_PROPERTY(DATE,		ExpiryOV,		m_dtExpiryOV)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE,		TradingClose,	m_dtTradingClose)

@@ -3,7 +3,7 @@
 namespace OPM
 {
 
-double DividendPv(double dDivAmnt, double dCntRate, double dCntBorrowingRate, double dTime)
+inline double DividendPv(double dDivAmnt, double dCntRate, double dCntBorrowingRate, double dTime)
 {
 	return dDivAmnt * exp(-(dCntRate - dCntBorrowingRate) * dTime);
 }

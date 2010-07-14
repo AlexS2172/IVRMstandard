@@ -5,9 +5,6 @@
 	Name="MMW"
 	ProjectGUID="{E0F06A0C-29EC-475A-B768-467AB3E3B46F}"
 	RootNamespace="MMW"
-	SccProjectName="&quot;$/ETS/Production 2.1 CIBC/MMW&quot;, PIZCAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	>
 	<Platforms>
 		<Platform

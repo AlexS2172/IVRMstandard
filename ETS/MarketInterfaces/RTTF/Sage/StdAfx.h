@@ -44,6 +44,7 @@ extern CComModule _Module;
 #include <vector>
 #include <queue>
 #include <fstream>
+#include <map>
 using namespace std;
 
 typedef basic_string<TCHAR>	tstring;
@@ -73,20 +74,26 @@ using namespace EgLib;
 //
 #pragma warning(push)
 #pragma warning(disable : 4244 4267)
-#include <Application.h>
-#include <MessageCracker.h>
-#include <FileStore.h>
-#include <FileLog.h>
-#include <SocketInitiator.h>
-#include <SocketAcceptor.h>
-#include <SessionSettings.h>
-#include <Dictionary.h>
-#include <SessionID.h>
-#include <Exceptions.h>
-#include <Session.h>
-#include <Utility.h>
-#include <Mutex.h>
-#include <Messages.h>
+#include <quickfix/Application.h>
+#include <quickfix/MessageCracker.h>
+#include <quickfix/FileStore.h>
+#include <quickfix/FileLog.h>
+#include <quickfix/SocketInitiator.h>
+#include <quickfix/SocketAcceptor.h>
+#include <quickfix/SessionSettings.h>
+#include <quickfix/Dictionary.h>
+#include <quickfix/SessionID.h>
+#include <quickfix/Exceptions.h>
+#include <quickfix/Session.h>
+#include <quickfix/Utility.h>
+#include <quickfix/Mutex.h>
+
+#include <quickfix/fix41/ExecutionReport.h>
+#include <quickfix/fix41/Reject.h>
+
+#include <quickfix/fix42/ExecutionReport.h>
+#include <quickfix/fix42/Reject.h>
+
 #pragma warning(pop)
 
 #include <Boost/shared_ptr.hpp>
@@ -102,6 +109,12 @@ using namespace EgLib;
 #include "XMLParamsHelper.h"
 
 #pragma comment(lib, "quickfix.lib")
+
+//------------------------------------------------------//
+typedef std::map<_bstr_t, long> UserGroups;
+typedef UserGroups::iterator UGIterator;
+long GetCommandLineParams(UserGroups& clParams);
+//------------------------------------------------------//
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

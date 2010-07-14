@@ -4,9 +4,6 @@
 	Version="8.00"
 	Name="TpControl"
 	ProjectGUID="{BFCA0E1A-C6A6-4224-AC1C-362F1C9F623E}"
-	SccProjectName="&quot;$/ETS/Work/TpControl&quot;, NLJAAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="MFCProj"
 	>
 	<Platforms>

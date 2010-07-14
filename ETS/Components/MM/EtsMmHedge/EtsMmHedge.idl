@@ -86,9 +86,10 @@ library EtsMmHedgeLib
 		ETSGENERAL_PROP_DEF(15,		DOUBLE,			Vega)
 		ETSGENERAL_PROP_DEF(16,		DOUBLE,			VegaWeight)
 		ETSGENERAL_PROP_DEF(17,		DOUBLE,			Vola)
-
+		ETSGENERAL_PROP_DEF(19,		DOUBLE,			HTBRate)
 		ETSGENERAL_PROP_DEF(20,		DATE,			ExpiryOV)
 		ETSGENERAL_PROP_DEF(21,		DATE,			TradingClose)
+		ETSGENERAL_PROP_DEF(22,		LONG,			OptionRootID)
 
 		[id(18), helpstring("method ClearValues")]	HRESULT ClearValues();
 	};
@@ -149,7 +150,8 @@ library EtsMmHedgeLib
 		HRESULT CalcGreeks( [in] LONG nGreekMask, [in] enum EtsCalcModelTypeEnum enCalcModel, 
 							[in] VARIANT_BOOL vbVegaWeighted, [in] VARIANT_BOOL bUseTheoVolatility, 
 							[in] VARIANT_BOOL bUseTheoVolaNoBid, [in] VARIANT_BOOL bUseTheoVolaBadMarket,
-							[in] DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule );
+							[in] DOUBLE dUndPriceTolerance, [in] enum EtsPriceRoundingRuleEnum enPriceRoundingRule,
+							[in] ICalculationParametrs* pParams);
 	};
 
 	[

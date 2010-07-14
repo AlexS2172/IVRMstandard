@@ -4,9 +4,7 @@
 	Version="8.00"
 	Name="ActivFeedProviders"
 	ProjectGUID="{BFD0D6F3-7F8D-4D48-B849-86A0BCF84D36}"
-	SccProjectName="SAK"
-	SccLocalPath=".."
-	SccProvider="MSSCCI:ClearCase"
+	RootNamespace="ActivFeedProviders"
 	Keyword="AtlProj"
 	>
 	<Platforms>
@@ -155,6 +153,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="0"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
@@ -192,6 +191,7 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				OptimizeForWindows98="1"
 				ImportLibrary="$(OutDir)/ActivFeedProviders.lib"
 				TargetMachine="1"
 			/>

@@ -5,10 +5,6 @@
 	Name="EtsMmVolaAnalysis"
 	ProjectGUID="{2B7B7256-A1F4-4954-A1D2-C5FE52934292}"
 	RootNamespace="EtsMmVolaAnalysis"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>

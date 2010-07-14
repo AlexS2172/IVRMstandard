@@ -14,7 +14,7 @@ typedef ICollectionOnSTLMapOfInterfacePtrImpl<IEtsContractBySymCollDispImpl, BST
 
 // CEtsContractBySymColl
 class ATL_NO_VTABLE CEtsContractBySymColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsContractBySymColl, &CLSID_EtsContractBySymColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsContractBySymColl>,
 	public IEtsContractBySymCollImpl
@@ -22,6 +22,7 @@ class ATL_NO_VTABLE CEtsContractBySymColl :
 public:
 	CEtsContractBySymColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSCONTRACTBYSYMCOLL)
@@ -31,19 +32,25 @@ BEGIN_COM_MAP(CEtsContractBySymColl)
 	COM_INTERFACE_ENTRY(IEtsContractBySymColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsContractBySymCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

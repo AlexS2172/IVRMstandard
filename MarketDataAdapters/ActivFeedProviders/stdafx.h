@@ -37,7 +37,7 @@
 #include "ActivMiddleware/ActivFramework/ActivFramework.h"
 #include "ActivContentPlatform/ActivFeedCommon/ActivFeedDefinitions.h"
 #include "ActivMiddleware/ActivAgentApplication/AgentApplication.h"
-
+#include "ActivContentPlatform/ActivFeedCommon/UsEquityOptionHelper.h"
 
 
 #define DEF_PROVIDER_ID    6L

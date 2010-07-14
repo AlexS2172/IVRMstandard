@@ -144,6 +144,7 @@ namespace OTCOptionCalc
 		private int  m_iStockID = -1;
 		private bool m_bManual = false;
         private bool bContractTypeSet = false;
+        private double m_dHTBRate = (double)-1E+308;
 
 
 		private System.Data.OleDb.OleDbCommand ReadExpCommand;
@@ -1612,11 +1613,11 @@ namespace OTCOptionCalc
 			try
 			{
 				EtsGeneralLib.IVolaControl oVolaControl = new EtsGeneralLib.VolaControlClass();
-				oVolaControl.Init(sSymbol, EtsGeneralLib.EtsContractTypeEnum.enCtStock, m_VolaSource);
+				oVolaControl.Init(sSymbol, EtsGeneralLib.EtsContractTypeEnum.enCtStock, m_VolaSource, false);
 				if (oVolaControl.IsInitialized )
 				{
-					dRes = oVolaControl.get_OptionVola(dtExpDate, dStrike);
-						
+                    int lSurfaceID = oVolaControl.GetSurfaceByRoot(-1);
+					dRes = oVolaControl.get_OptionVola(dtExpDate, dStrike, lSurfaceID);
 				} 
 					
 					
@@ -3998,7 +3999,7 @@ namespace OTCOptionCalc
 				{
 					try
 					{
-						dCIV = oOCWrapper.OCWCalcVolatilityMM3( dDomesticRate, dForeignRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
+						dCIV = oOCWrapper.OCWCalcVolatilityMM3( dDomesticRate, dForeignRate, m_dHTBRate, dSpotPrice, dCOptionPrice, dStrikePrice , dYTE, 1 /* Call */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
 					}
 					catch
 					{
@@ -4032,7 +4033,7 @@ namespace OTCOptionCalc
 			{
 				try
 				{
-					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, dSpotPrice, dStrikePrice , dVolatility, dYTE, 1 /* Call */, lIsAmerican, lDivCount, ref dAmounts  ,  ref dYears , lSteps , dSkew,  dKurtosis , lModel, refResults);			
+					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, m_dHTBRate, dSpotPrice, dStrikePrice , dVolatility, dYTE, 1 /* Call */, lIsAmerican, lDivCount, ref dAmounts  ,  ref dYears , lSteps , dSkew,  dKurtosis , lModel, refResults);			
 				}
 				catch
 				{
@@ -4127,7 +4128,7 @@ namespace OTCOptionCalc
 				{
 					try
 					{
-						dPIV = oOCWrapper.OCWCalcVolatilityMM3(dDomesticRate, dForeignRate, dSpotPrice, dPOptionPrice, dStrikePrice , dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
+						dPIV = oOCWrapper.OCWCalcVolatilityMM3(dDomesticRate, dForeignRate, m_dHTBRate, dSpotPrice, dPOptionPrice, dStrikePrice , dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel);
 					}
 					catch
 					{
@@ -4165,7 +4166,7 @@ namespace OTCOptionCalc
 			{
 				try
 				{
-					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, dSpotPrice, dStrikePrice , dVolatility, dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel, refResults);
+					iRet = oOCWrapper.OCWCalcGreeksMM(dDomesticRate, dForeignRate, m_dHTBRate, dSpotPrice, dStrikePrice , dVolatility, dYTE, 0 /* Put */, (int)lIsAmerican, (int)lDivCount, ref dAmounts  ,  ref dYears , (int)lSteps , dSkew,  dKurtosis , (int)lModel, refResults);
 				}
 				catch
 				{
@@ -4751,6 +4752,20 @@ namespace OTCOptionCalc
 						{
 						}
 					}
+
+                    if (CLParams.Length >= 20)
+                    {
+                        double dTmp = 0;
+                        try
+                        {
+                            dTmp = Convert.ToDouble(CLParams[19]);
+                            m_dHTBRate = dTmp;
+                        }
+                        catch
+                        {
+                            m_dHTBRate = (double)-1E+308;
+                        }
+                    }
 
 				} //Got some params
 			}

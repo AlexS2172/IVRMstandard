@@ -425,15 +425,11 @@ HRESULT CEtsMmQuotesView::LoadFutures(long lUnderlutingID)
 							IEtsFutAtomPtr spFutAtom = spFutRootAtom->Futures->Item[lFuturesID];
 							if(spFutAtom)
 							{
-								IEtsPriceProfileAtomPtr spUndPriceProfile = spFutAtom->UndPriceProfile;
+								IEtsPriceProfileAtomPtr spUndPriceProfile = spFutAtom->UndPriceProfile; 
 								pFuture->m_spUndPriceProfile		= spUndPriceProfile;
-								m_pGrp->m_pUnd->m_spUndPriceProfile = spUndPriceProfile;
-								spContract->Und->UndPriceProfile	= spUndPriceProfile;
 
 								IEtsPriceProfileAtomPtr spOptPriceProfile = spFutAtom->OptPriceProfile;
 								pFuture->m_spOptPriceProfile		= spOptPriceProfile;
-								m_pGrp->m_pUnd->m_spOptPriceProfile = spOptPriceProfile;
-								spContract->Und->OptPriceProfile	= spOptPriceProfile;
 
 								VARIANT_BOOL bIsAmerican      = spFutAtom->IsAmerican;
 								pFuture->m_bIsAmerican        = bIsAmerican;
@@ -630,6 +626,19 @@ HRESULT CEtsMmQuotesView::LoadFuturesOptions(long lUnderlutingID)
 							else
 								pExpAtom = dynamic_cast<CComObject<CMmQvExpAtom>*>(spExpiry.GetInterfacePtr());
 
+							//init list of future root's for current expiry
+							if (pExpAtom->m_pFutureRoots)
+							{
+								if (pExpAtom->m_pFutureRoots->GetFuturesRoot(pFut->m_nFutRootID) == NULL)
+								{
+									IMmQvFutRootAtomPtr spFutRoot = m_pGrp->m_pFutRootColl->GetFuturesRoot(pFut->m_nFutRootID);
+									if (spFutRoot)
+									{
+										IMmQvFutRootAtomPtr spNewVal = NULL;
+										_CHK(pExpAtom->m_pFutureRoots->Add(pFut->m_nFutRootID, spFutRoot, &spNewVal), _T("Fail to Add Future root to Expiry Collection."));						
+									}
+								}				
+							}
 
 							IMmQvExpAtomPtr spExpAll = m_pGrp->m_pFutExpAll->GetExpiry(dtExpiryMonth);
 							CComObject<CMmQvExpAtom>* pExpAll = NULL;
@@ -693,7 +702,22 @@ HRESULT CEtsMmQuotesView::LoadFuturesOptions(long lUnderlutingID)
 								pOptAtom->m_dtTradingClose = dtTradingClose;
 								pOptAtom->m_dStrike		= dStrike;
 								pOptAtom->m_nRootID		= pFut->m_nID;
-								pOptAtom->m_dVola		= m_pGrp->m_pUnd->m_spVolaSrv->OptionVola[dtExpiryOV][dStrike];
+
+
+								DOUBLE	dVola = BAD_DOUBLE_VALUE;
+								LONG	lSurfaceID = m_pGrp->m_pUnd->m_spVolaSrv->GetSurfaceByRoot(0); // get default surface
+								if (pFut)
+								{
+									if (pFut->m_spFutureRoot)
+									{
+										LONG lFutureRootID;
+										pFut->m_spFutureRoot->get_ID( &lFutureRootID );
+										lSurfaceID = m_pGrp->m_pUnd->m_spVolaSrv->GetSurfaceByRoot( lFutureRootID );
+									}
+								}
+								m_pGrp->m_pUnd->m_spVolaSrv->get_OptionVola(dtExpiryOV, dStrike, lSurfaceID, &dVola);
+
+								pOptAtom->m_dVola = dVola;
 								if(pOptAtom->m_dVola<0)
 									pOptAtom->m_dVola = BAD_DOUBLE_VALUE;
 
@@ -900,14 +924,13 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 						pExpAtom->m_dRateCust = spEnt->Data3;
 
 					long nOptRootID = rsOpt[L"iOptionRootID"];
+					_bstr_t bsRootName =  rsOpt[L"vcOptionRootSymbol"];
+
 					IMmQvOptRootAtomPtr spOptRoot = pUndAtom->GetOptRoot()->GetItem(nOptRootID);
 					CComObject<CMmQvOptRootAtom>* pOptRootAtom = NULL;
 					if(spOptRoot == NULL)
 					{
-						_bstr_t bsRootName =  rsOpt[L"vcOptionRootSymbol"];
-
 						spOptRoot = pUndAtom->m_pOptRoot->AddNew(nOptRootID, bsRootName, &pOptRootAtom);
-
 
 						pOptRootAtom->m_nLotSize = rsOpt[L"iLotSize"];
 						pOptRootAtom->m_bIsFit   = (long)rsOpt[L"tiIsFitEnabled"] !=0? VARIANT_TRUE: VARIANT_FALSE;
@@ -1147,6 +1170,15 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 					else
 						pOptRootAtom = dynamic_cast<CComObject<CMmQvOptRootAtom>*>((IMmQvOptRootAtom*)spOptRoot);
 
+					//init list of root's for current expiry
+					if (pExpAtom->m_pRoots)
+					{
+						if (pExpAtom->m_pRoots->GetOptionRoot(nOptRootID) == NULL)
+						{
+							IMmQvOptRootAtomPtr spNewVal = NULL;
+							_CHK(pExpAtom->m_pRoots->Add(nOptRootID, bsRootName, spOptRoot, &spNewVal), _T("Fail to Add Root to Expiry Collection."));						
+						}				
+					}
 					
 					IMmQvExpAtomPtr aExpAll = m_pGrp->m_pExpAll->GetExpiry(dtExpiryMonth);
 					if(aExpAll == NULL)
@@ -1211,7 +1243,8 @@ HRESULT CEtsMmQuotesView::LoadOptions(long lGroupID)
 							pOptionAtom->m_dVola = pPairAtom->GetVola();
 						else
 						{
-							pOptionAtom->m_dVola  = pUndAtom->m_spVolaSrv->OptionVola[dtExpiryOV][dStrike];
+							LONG lSurfaceID = pUndAtom->m_spVolaSrv->GetSurfaceByRoot(pOptRootAtom->m_nID);
+							pOptionAtom->m_dVola  = pUndAtom->m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike, lSurfaceID);
 							if(pOptionAtom->m_dVola<0.)
 								pOptionAtom->m_dVola = BAD_DOUBLE_VALUE;
 							pPairAtom->SetVola(pOptionAtom->m_dVola);

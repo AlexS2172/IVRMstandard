@@ -238,6 +238,12 @@ END_CONNECTION_POINT_MAP()
 			_CHK(CComObject<CMmQvRequestColl>::CreateInstance(&m_pQuoteRequestAll), _T("Fail to create Quotes View Group."));
 			m_spQuoteRequestAll.Attach(m_pQuoteRequestAll, TRUE);
 
+			_CHK(m_spTradeFilter.CreateInstance(CLSID_EtsFilterData),_T("Fail to create Trade Filter"));
+
+			if (m_spTradeFilter){
+				m_spTradeFilter->Initialize(0, 6);
+			}
+
 			_CHK(m_spCustRates.CreateInstance(CLSID_EtsMmEntityAtomColl),_T("Fail to create Cust Rates Collection"));
 			_CHK(m_spVisibleExp.CreateInstance(CLSID_EtsMmFilterAtomColl),_T("Fail to create Visible Expirations Collection"));
 			_CHK(m_spVisibleRoot.CreateInstance(CLSID_EtsMmFilterAtomColl),_T("Fail to create Visible Option Roots Collection"));
@@ -258,6 +264,7 @@ END_CONNECTION_POINT_MAP()
 	
 	void FinalRelease() 
 	{
+		m_spTradeFilter	=	NULL;
 		m_pUnkMarshaler.Release();
 	}
 
@@ -293,6 +300,8 @@ private:
 	IEtsMmFilterAtomCollPtr m_spVisibleOptExch;
 	IEtsMmFilterAtomCollPtr m_spVisibleFut;
 	IEtsMmEntityAtomCollPtr m_spVisibleStr;
+
+	IEtsFilterDataPtr		m_spTradeFilter;
 
 	volatile long           m_nUpdatedOptCount;
 	volatile long           m_nUpdatedFutCount;
@@ -415,6 +424,8 @@ public:
 	STDMETHOD(OptsRefresh)(VARIANT_BOOL vbInitialize);
 	STDMETHOD(put_Quote)(QuoteUpdateParams* Params, QuoteUpdateInfo* Info);
 	STDMETHOD(CleanUp)(VARIANT_BOOL vbAll);
+
+	IMPLEMENT_OBJECTREADONLY_PROPERTY(IEtsFilterData*, TradeFilter, m_spTradeFilter)
 
 };
 

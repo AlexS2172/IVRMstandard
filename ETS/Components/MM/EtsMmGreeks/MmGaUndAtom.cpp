@@ -12,7 +12,8 @@
 STDMETHODIMP CMmGaUndAtom::CalcPositions(IMmGaUndColl* collUnd, EtsCalcModelTypeEnum enCalcModel,
 										 VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
 										 VARIANT_BOOL bUseTheoVolaBadMarket, DOUBLE dUndPriceTolerance, 
-										 EtsPriceRoundingRuleEnum enPriceRoundingRule )
+										 EtsPriceRoundingRuleEnum enPriceRoundingRule,
+										 ICalculationParametrs* pParams)
 {
 	if(collUnd == NULL)
 	{
@@ -138,7 +139,7 @@ STDMETHODIMP CMmGaUndAtom::CalcPositions(IMmGaUndColl* collUnd, EtsCalcModelType
 						// calculate expiry position
 						__CHECK_HRESULT(_CalcPosition(spPos, spExp, collUnd, dUndPriceMid, enCalcModel, 
 							bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket, 
-							dUndPriceTolerance, enPriceRoundingRule), _T("Fail to calculate expiry position."));
+							dUndPriceTolerance, enPriceRoundingRule, pParams), _T("Fail to calculate expiry position."));
 
 						// DeltaInShares total
 						__CHECK_HRESULT3(spPos->get_DeltaInShares(&dTemp));
@@ -507,7 +508,8 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 										 DOUBLE dUndPriceMid, EtsCalcModelTypeEnum enCalcModel,
 										 VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
 										 VARIANT_BOOL bUseTheoVolaBadMarket, DOUBLE dUndPriceTolerance, 
-										 EtsPriceRoundingRuleEnum enPriceRoundingRule )
+										 EtsPriceRoundingRuleEnum enPriceRoundingRule,
+										 ICalculationParametrs* pParams)
 {
 	try
 	{
@@ -602,21 +604,26 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 			LONG nModel = static_cast<LONG>(enCalcModel);
 			LONG nIsAmerican = (m_bIsAmerican ? 1L : 0L);
 
-			__CHECK_HRESULT3(spPos->get_Expiry(&dtTemp));
-			LONG nExpiry = static_cast<LONG>(dtTemp);
+			DOUBLE dtExpiry, dtExpiryOV, dtTradingClose, dtCalcDate;
+			DOUBLE dYTE;
+			
+			__CHECK_HRESULT3(spPos->get_Expiry(&dtExpiry));
+			__CHECK_HRESULT3(spPos->get_ExpiryOV(&dtExpiryOV));
+			__CHECK_HRESULT3(spPos->get_TradingClose(&dtTradingClose));
 
-			dtTemp = vt_date::GetCurrentDate();
-			LONG nToday = static_cast<LONG>(dtTemp);
-			//LONG nDivDate = static_cast<LONG>(m_dtDivDate);
+			::GetNYDateTimeAsDATE(&dtCalcDate);
+			::GetCalculationParams(dtCalcDate, dtExpiryOV, dtTradingClose, pParams->UseTimePrecision != VARIANT_FALSE, &dtCalcDate, &dtExpiryOV, &dtTradingClose, &dYTE);
 
 			LONG nDivCount = 0L, nRetCount = 0L;
 			DOUBLE dYield = 0.;
 
 			DOUBLE dRate = 0.;
+			DOUBLE dHTBRate = BAD_DOUBLE_VALUE;
 			DOUBLE dStrike = 0., dVola = 0.;
 			EtsOptionTypeEnum enOptType = enOtPut;
 
 			__CHECK_HRESULT3(spExp->get_Rate(&dRate));
+			__CHECK_HRESULT3(spExp->get_HTBRate(&dHTBRate));
 			__CHECK_HRESULT3(spPos->get_Strike(&dStrike));
 			__CHECK_HRESULT3(spPos->get_OptType(&enOptType));
 
@@ -637,7 +644,7 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 					{
 						if (m_spDividend != NULL)
 							nDivCount = 0;
-						m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
+						m_spDividend->GetDividendCount2(dtCalcDate, dtExpiryOV, dtTradingClose, &nDivCount);
 						if (nDivCount< 0)
 							nDivCount = 0;
 
@@ -646,7 +653,7 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 							LPSAFEARRAY psaDates = NULL;
 							LPSAFEARRAY psaAmounts = NULL;
 
-							m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+							m_spDividend->GetDividends2(dtCalcDate, dtExpiryOV, dtTradingClose, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 							saDates.Attach(psaDates);
 							saAmounts.Attach(psaAmounts); 
@@ -666,12 +673,12 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 
 							if(bIsBasket && spDivColl != NULL)
 							{
-								spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+								spDivColl->GetDividendCount2(dtCalcDate, dtExpiryOV, dtTradingClose, &nDivCount);
 								if(nDivCount > 0L)
 								{
 									LPSAFEARRAY psaDates = NULL;
 									LPSAFEARRAY psaAmounts = NULL;
-									spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+									spDivColl->GetDividends2(dtCalcDate, dtExpiryOV, dtTradingClose, nDivCount, &psaAmounts, &psaDates, &nDivCount);
 
 									saDates.Attach(psaDates);
 									saAmounts.Attach(psaAmounts);
@@ -689,54 +696,6 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 				}
 
 
-
-				//if(m_enUndType == enCtStock)
-				//{
-				//	if (m_spDividend != NULL)
-				//		nDivCount = 0;
-				//	m_spDividend->GetDividendCount(nToday, nExpiry, &nDivCount);
-				//	if (nDivCount< 0)
-				//		nDivCount = 0;
-
-				//	if (nDivCount> 0)
-				//	{
-				//		LPSAFEARRAY psaDates = NULL;
-				//		LPSAFEARRAY psaAmounts = NULL;
-
-				//		m_spDividend->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
-
-				//		saDates.Attach(psaDates);
-				//		saAmounts.Attach(psaAmounts); 
-				//	}
-				//}
-				//else
-				//{
-				//	VARIANT_BOOL bIsBasket = VARIANT_FALSE;
-				//	if(m_spBasketIndex != NULL)
-				//	{
-				//		nDivCount = 0;
-				//		IEtsIndexDivCollPtr spDivColl = NULL;
-				//		m_spBasketIndex->get_BasketDivs(&spDivColl);
-				//		_CHK(m_spBasketIndex->get_IsBasket(&bIsBasket));
-
-				//		if(bIsBasket && spDivColl != NULL)
-				//		{
-				//			spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
-				//			if(nDivCount > 0L)
-				//			{
-				//				LPSAFEARRAY psaDates = NULL;
-				//				LPSAFEARRAY psaAmounts = NULL;
-				//				spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nDivCount);
-
-				//				saDates.Attach(psaDates);
-				//				saAmounts.Attach(psaAmounts);
-
-				//			}
-				//		}
-				//	}
-				//	dYield = bIsBasket!=VARIANT_FALSE? 0.0: m_dYield;
-				//}
-
 				if(nDivCount < 0)
 					nDivCount = 0;
 
@@ -751,8 +710,8 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 						LONG	nFlag = 0L;
 						if(dOptPriceMid > 0.)
 						{
-							dVola = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dUndPriceMid, dOptPriceMid, dStrike, 
-								nExpiry - nToday, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
+							dVola = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, dUndPriceMid, dOptPriceMid, dStrike, 
+								dYTE, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
 								100L, m_dSkew, m_dKurt, nModel, &nFlag);
 
 
@@ -772,11 +731,12 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 					}
 				}
 
-				nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dUndPriceMid, dStrike, dVola, nExpiry - nToday,
+				nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, dUndPriceMid, dStrike, dVola, dYTE,
 					enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, m_dSkew, m_dKurt, nModel, &aGreeks);
 
 				if (DoubleEQZero(dOptPriceMid) || DoubleEQZero(dOptPriceBid)|| DoubleEQZero(dOptPriceAsk) || DoubleEQZero(dOptPriceLast))
 					dOptPriceMid = m_spOptPriceProfile->GetOptPriceMid(dOptPriceBid, dOptPriceAsk, dOptPriceLast, enPriceRoundingRule, bUseTheoVolatility, aGreeks.dTheoPrice, NULL);
+
 
 				if(nRetCount != 0L)
 				{
@@ -843,12 +803,12 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 					spSynthRoot->get_BasketDivs(&spDivColl);
 					if (spDivColl != NULL)
 					{
-						spDivColl->GetDividendCount(nToday, nExpiry, &nDivCount);
+						spDivColl->GetDividendCount2(dtCalcDate, dtExpiryOV, dtTradingClose, &nDivCount);
 						if(nDivCount > 0L)
 						{
 							LPSAFEARRAY psaDates = NULL;
 							LPSAFEARRAY psaAmounts = NULL;
-							spDivColl->GetDividends(nToday, nExpiry, nDivCount, &psaAmounts, &psaDates, &nRetCount);
+							spDivColl->GetDividends2(dtCalcDate, dtExpiryOV, dtTradingClose, nDivCount, &psaAmounts, &psaDates, &nRetCount);
 
 							saDates.Attach(psaDates);
 							saAmounts.Attach(psaAmounts);
@@ -877,9 +837,10 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 						LONG	nFlag = 0L;
 						if(dOptPriceMid > 0.)
 						{
-							dVola = ::CalcVolatilityMM3(dRate, dYield, BAD_DOUBLE_VALUE, dSynthUndPriceMid, dOptPriceMid, dStrike, 
-								nExpiry - nToday, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
+							dVola = ::CalcVolatilityMM3(dRate, dYield, dHTBRate, dSynthUndPriceMid, dOptPriceMid, dStrike, 
+								dYTE, enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 
 								100L, dSkew, dKurt, nModel, &nFlag);
+
 
 							if (bUseTheoVolaBadMarket == VARIANT_TRUE && nFlag != VF_OK)
 							{
@@ -897,11 +858,12 @@ STDMETHODIMP CMmGaUndAtom::_CalcPosition(IMmGaPosAtom* pPos, IMmGaExpAtom* pExp,
 					}
 				}
 
-				nRetCount = ::CalcGreeksMM2(dRate, dYield, BAD_DOUBLE_VALUE, dSynthUndPriceMid, dStrike, dVola, nExpiry - nToday,
+				nRetCount = ::CalcGreeksMM2(dRate, dYield, dHTBRate, dSynthUndPriceMid, dStrike, dVola, dYTE,
 					enOptType, nIsAmerican, nDivCount, saAmounts.GetPlainData(), saDates.GetPlainData(), 100L, dSkew, dKurt, nModel, &aGreeks);
 
 				if (DoubleEQZero(dOptPriceMid) || DoubleEQZero(dOptPriceBid)|| DoubleEQZero(dOptPriceAsk) || DoubleEQZero(dOptPriceLast))
 					dOptPriceMid = m_spOptPriceProfile->GetOptPriceMid(dOptPriceBid, dOptPriceAsk, dOptPriceLast, enPriceRoundingRule, bUseTheoVolatility, aGreeks.dTheoPrice, NULL);
+
 
 				if(nRetCount != 0L)
 				{

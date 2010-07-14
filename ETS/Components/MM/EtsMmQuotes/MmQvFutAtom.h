@@ -224,7 +224,8 @@ public:
 							EtsPriceRoundingRuleEnum enPriceRoundingRule,
 							double dRate, 
 							DATE dtCalcDate, 
-							VARIANT_BOOL ManualEdit);
+							VARIANT_BOOL ManualEdit,
+							ICalculationParametrs* pParams);
 
 public:
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, ID, m_nID)
@@ -279,7 +280,8 @@ public:
 							EtsCalcModelTypeEnum enCalcModel, VARIANT_BOOL bUseTheoVolatility,
 							VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
 							DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,
-							VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit);
+							VARIANT_BOOL bUseCustomRates, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit, 
+							ICalculationParametrs* pParams);
 
 	STDMETHOD(CalcAllOptions)(IMmQvUndAtom* aUnd, LONG nCallGreekMask, LONG nPutGreekMask,
 							MmQvIvCalcEnum enCallCalcIV, MmQvIvCalcEnum enPutCalcIV, 
@@ -287,7 +289,8 @@ public:
 							VARIANT_BOOL bUseTheoVolaNoBid, VARIANT_BOOL bUseTheoVolaBadMarket,
 							VARIANT_BOOL bRecalcGreeks, DOUBLE dUndPriceTolerance,
 							EtsPriceRoundingRuleEnum enPriceRoundingRule, VARIANT_BOOL bUseCustomRates,
-							LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit);
+							LONG nCalcSleepFreq, LONG nCalcSleepAmt, DOUBLE dtCalcDate, VARIANT_BOOL ManualEdit,
+							ICalculationParametrs* pParams);
 
 	STDMETHOD(GetFuturePrice)(  IMmQvUndAtom* aUnd,DOUBLE dTolerance, 
 								EtsPriceRoundingRuleEnum enPriceRound,
@@ -300,7 +303,7 @@ public:
 	STDMETHOD(StopCalc)();
 	STDMETHOD(CleanUp)();
 
-	STDMETHOD(get_AtmVola)(IMmQvExpAtom* pExp, DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule,DOUBLE* pVola);
+	STDMETHOD(get_AtmVola)(IMmQvExpAtom* pExp, DOUBLE dUndPriceTolerance, EtsPriceRoundingRuleEnum enPriceRoundingRule, LONG SurfaceID, DOUBLE* pVola);
 	STDMETHOD(get_AtmStrike)(DOUBLE dUndPriceTolerance, enum EtsPriceRoundingRuleEnum enPriceRoundingRule, DOUBLE* dStrike);
 
 	IMPLEMENT_SIMPLE_PROPERTY(VARIANT_BOOL,	ShowInFutureContractEq, m_bShowInFutureContractEq)

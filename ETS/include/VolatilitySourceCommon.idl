@@ -30,13 +30,15 @@ struct ExpiryStrikeVolaData
 ]
 interface IVSSymbolVolatility : IDispatch
 {
-	[propput, id(1), helpstring("Volatility")] HRESULT Volatility([in]double UnderlinePrice, [in]double Strike, [in]DATE ExpDate, [in]double newVal);
-	[propget, id(1), helpstring("Volatility")] HRESULT Volatility([in]double UnderlinePrice, [in]double Strike, [in]DATE ExpDate, [out, retval] double *pVal);
-	[id(2), helpstring("method VolatilityShift")] HRESULT VolatilityShift([in] DATE expDate, [in] double shift);
-	[id(3), helpstring("method VolatilitySet")] HRESULT VolatilitySet([in] DATE expDate, [in] double newVola);
-	[id(4), helpstring("method VolatilitySetAll")] HRESULT VolatilitySetAll([in] double newVola);
-	[id(5), helpstring("method VolatilitySetAllByExp")] HRESULT VolatilitySetAllByExp([in] SAFEARRAY(struct ExpiryVolaData)* saData);
-	[id(6), helpstring("method VolatilitySetAllByExpAndStrike")] HRESULT VolatilitySetAllByExpAndStrike([in] SAFEARRAY(struct ExpiryStrikeVolaData)* saData);
+	[propput, id(1), helpstring("Volatility")] HRESULT Volatility([in]double UnderlinePrice, [in]double Strike, [in]DATE ExpDate, [in] LONG SurfaceID, [in]double newVal);
+	[propget, id(1), helpstring("Volatility")] HRESULT Volatility([in]double UnderlinePrice, [in]double Strike, [in]DATE ExpDate, [in] LONG SurfaceID, [out, retval] double *pVal);
+	[id(2), helpstring("method VolatilityShift")] HRESULT VolatilityShift([in] DATE expDate, [in] double shift, [in] LONG SurfaceID);
+	[id(3), helpstring("method VolatilitySet")] HRESULT VolatilitySet([in] DATE expDate, [in] double newVola, [in] LONG SurfaceID);
+	[id(4), helpstring("method VolatilitySetAll")] HRESULT VolatilitySetAll([in] double newVola, [in] LONG SurfaceID);
+	[id(5), helpstring("method VolatilitySetAllByExp")] HRESULT VolatilitySetAllByExp([in] SAFEARRAY(struct ExpiryVolaData)* saData, [in] LONG SurfaceID);
+	[id(6), helpstring("method VolatilitySetAllByExpAndStrike")] HRESULT VolatilitySetAllByExpAndStrike([in] SAFEARRAY(struct ExpiryStrikeVolaData)* saData, [in] LONG SurfaceID);
+	[id(7), helpstring("method VolatilitySave")] HRESULT VolatilitySave(void);
+	[id(8), helpstring("method GetSurfaceByRoot")] HRESULT GetSurfaceByRoot([in] LONG RootID, [out, retval] LONG *pVal);
 };
 [
 	object,
@@ -77,6 +79,7 @@ interface IVolatilitySource : IDispatch
 	[propput, id(6),	helpstring("DefaultVolatility")] HRESULT DefaultVolatility([in] double newVal);
 	[id(7), helpstring("Reload")] HRESULT Reload();
 	[id(8), helpstring("method UnregisterPublisher")] HRESULT UnregisterPublisher();
+	[propget, id(9),	helpstring("SimulatedSymbolVol")]HRESULT SimulatedSymbolVol([in]BSTR Symbol, [in]SYMBOL_TYPE SymbolType, [out, retval] IVSSymbolVolatility **pVal);
 };
 
 [

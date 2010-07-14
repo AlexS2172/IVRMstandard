@@ -1,11 +1,11 @@
 VERSION 5.00
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmRiskView 
    Caption         =   "Risks"
    ClientHeight    =   5595
    ClientLeft      =   165
-   ClientTop       =   855
+   ClientTop       =   735
    ClientWidth     =   7875
    Icon            =   "frmRiskView.frx":0000
    KeyPreview      =   -1  'True
@@ -229,6 +229,12 @@ Begin VB.Form frmRiskView
          Enabled         =   0   'False
          Visible         =   0   'False
       End
+      Begin VB.Menu mnuSepBR1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuFileBatchReporting 
+         Caption         =   "Batch Reporting ..."
+      End
       Begin VB.Menu mnuFileSeparator2 
          Caption         =   "-"
          Visible         =   0   'False
@@ -364,6 +370,15 @@ Begin VB.Form frmRiskView
       End
       Begin VB.Menu mnuManualPrices 
          Caption         =   "Manual Prices..."
+      End
+   End
+   Begin VB.Menu mnuSimulation 
+      Caption         =   "&Simulation"
+      Begin VB.Menu mnuSimulationUse 
+         Caption         =   "Use simulation"
+      End
+      Begin VB.Menu mnuSimulationParameters 
+         Caption         =   "Scenario"
       End
    End
    Begin VB.Menu mnuWindow 
@@ -504,6 +519,7 @@ Public EnableActiveRealTime As Boolean
 
 Private m_bShowInTaskbar As Boolean
 Private m_bShowInTaskbarChanging As Boolean
+Public lRTNum As Long
 
 Public Sub ShowWindowInTaskbar(ByVal bShow As Boolean, Optional ByVal bExtended As Boolean = False)
     On Error Resume Next
@@ -512,7 +528,7 @@ Public Sub ShowWindowInTaskbar(ByVal bShow As Boolean, Optional ByVal bExtended 
     
     If m_bShowInTaskbar <> bShow Then
         m_bShowInTaskbar = bShow
-        mnuWindowShowInTaskBar.Checked = bShow
+        mnuWindowShowInTaskbar.Checked = bShow
         m_bShowInTaskbarChanging = True
         
         If bExtended Then SetWindowPos Me.hWnd, 0, 0, 0, 0, 0, SWP_HIDEWINDOW Or SWP_NOSIZE Or SWP_NOMOVE Or SWP_NOZORDER Or SWP_NOACTIVATE
@@ -525,6 +541,11 @@ Public Sub ShowWindowInTaskbar(ByVal bShow As Boolean, Optional ByVal bExtended 
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Risk ShowWindowInTaskbar Exit", Me.Caption
 
+End Sub
+
+Public Sub StopRT()
+    On Error Resume Next
+    ctlView.ctlStopRT
 End Sub
 
 Public Sub SetWinIndex(ByVal nIndex As Long)
@@ -542,6 +563,20 @@ Public Function GetShortCaption() As String
     On Error Resume Next
     GetShortCaption = m_sShortCaption
 End Function
+
+Public Function IsRealTime() As Boolean
+    On Error Resume Next
+    IsRealTime = ctlView.RealTime
+End Function
+
+Public Sub CheckPassiveRealtime()
+    On Error Resume Next
+    If (m_nWindowIndex = g_LastActiveWindow) Then
+        ctlView.ProcessRealTime = True
+    Else
+        ctlView.ProcessRealTime = False
+    End If
+End Sub
 
 Public Sub Init(sKey As String)
     On Error Resume Next
@@ -578,10 +613,12 @@ Public Sub Init(sKey As String)
     mnuOrderNewStock.Enabled = g_Params.OrdersEnabled
     mnuOrderNewOption.Enabled = g_Params.OrdersEnabled
     mnuFileOrders.Enabled = g_Params.OrdersEnabled
+    
+    mnuFileVSCalc.Enabled = g_Params.IsVSCalcEnabled
+    mnuFileVSCalc.Visible = g_Params.IsVSCalcEnabled
     ctlView.Init
     Set aParams = g_Params
     mnuOptionsEventLog.Checked = aParams.EventLogVisible
-'    mnuFileQuotation.Enabled = g_bIseEnable
     ctlView.ProcessRealTime = True
     
     If Not g_PerformanceLog Is Nothing Then _
@@ -662,9 +699,9 @@ Private Sub aParams_NewStrategyAdded(ByVal nStrategyID As Long)
 
 End Sub
 
-Private Sub ctlView_OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal Price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+Private Sub ctlView_OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
 On Error Resume Next
-    frmMain.ManualPriceChange UndID, ID, Price, CtType, Status
+    frmMain.ManualPriceChange UndID, ID, price, CtType, Status
 End Sub
 
 Private Sub ctlView_OnSetCaption()
@@ -676,11 +713,14 @@ Private Sub ctlView_OnSetCaption()
     imgRealTime(0).Visible = (m_nCurImgIdx = 0)
     imgRealTime(1).Visible = (m_nCurImgIdx = 1)
     imgRealTime(2).Visible = (m_nCurImgIdx = 2)
+    
     If (ctlView.TotalShownUndPositions + ctlView.TotalShownOptPositions) > 0 Then
         lblStatus.Caption = imgRealTime(m_nCurImgIdx).ToolTipText & " Pos :Und " & ctlView.TotalShownUndPositions & " /Opt " & ctlView.TotalShownOptPositions & "/Tot " & ctlView.TotalShownOptPositions + ctlView.TotalShownUndPositions
     Else
         lblStatus.Caption = imgRealTime(m_nCurImgIdx).ToolTipText
     End If
+    
+    lblStatus.Caption = lblStatus.Caption & " /Time Stamp " & Format(ctlView.getRecalculationTimeStemp, "HH:MM:SS")
     
     AdjustCaption
     
@@ -707,17 +747,13 @@ End Sub
 Private Sub ctlView_OnStateChange()
     On Error Resume Next
     
-'    If Not g_PerformanceLog Is Nothing Then _
-'        g_PerformanceLog.LogMmInfo enlogUserAction, "ctlView_OnStateChange Enter", Me.Caption
-    
-    mnuViewRealTime.Enabled = ctlView.Group.ID <> 0 And Not ctlView.InProc _
-                            And Not ctlView.LastQuoteReqNow And Not ctlView.SubscribingNow
+    mnuViewRealTime.Enabled = ctlView.Group.ID <> 0 And Not ctlView.InProc
                             
     mnuViewRealTime.Checked = ctlView.RealTime
     
     mnuViewRefresh.Enabled = mnuViewRealTime.Enabled And Not ctlView.RealTime
     mnuViewRefreshPrices.Enabled = mnuViewRefresh.Enabled
-    mnuViewWtdVega.Enabled = Not ctlView.InProc And Not ctlView.WtdVegaIsOpened And Not ctlView.LastQuoteReqNow And Not ctlView.SubscribingNow
+    mnuViewWtdVega.Enabled = Not ctlView.InProc And Not ctlView.WtdVegaIsOpened
     
     Dim nCount&
     nCount = ctlView.UnderlyingsCount
@@ -727,9 +763,6 @@ Private Sub ctlView_OnStateChange()
     mnuUndPrev.Enabled = mnuUndNext.Enabled
     
     ctlView_OnSetCaption
-
- '   If Not g_PerformanceLog Is Nothing Then _
- '       g_PerformanceLog.LogMmInfo enlogUserAction, "ctlView_OnStateChange Exit", Me.Caption
 
 End Sub
 
@@ -743,10 +776,10 @@ Private Sub fMain_OnFuturesParamsChange(ByVal iUndID As Long, ByVal iFutID As Lo
     ctlView.FuturesParamsChange iUndID, iFutID, dRatio, dBasis
 End Sub
 
-Private Sub fMain_OnManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal Price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+Private Sub fMain_OnManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
 On Error Resume Next
     'manual price update for each ctrl
-    ctlView.ManualPriceUpdate UndID, ID, Price, CtType, Status
+    ctlView.ManualPriceUpdate UndID, ID, price, CtType, Status
 End Sub
 
 Private Sub Form_Load()
@@ -760,7 +793,7 @@ Private Sub Form_Load()
         Exit Sub
     End If
     m_bShowInTaskbar = True
-    mnuWindowShowInTaskBar.Checked = True
+    mnuWindowShowInTaskbar.Checked = True
     lblStatus.Caption = ""
     lblProcess.Caption = ""
     m_nCurImgIdx = 0
@@ -873,10 +906,16 @@ Private Sub Form_Activate()
     If Not g_PerformanceLog Is Nothing Then _
         nOperation = g_PerformanceLog.BeginLogMmOperation
         
+    If (ctlView.RealTime) Then
+        g_LastActiveWindow = m_nWindowIndex
+    End If
+    
     If aParams.ActiveRealTime Then
         ctlView.ProcessRealTime = True
         ctlView.RefreshView
     End If
+    
+    fMain.PassiveRealtimeControl
     
     If Not m_bShowInTaskbar Then
         ShowFormInTaskBar Me, False
@@ -898,8 +937,17 @@ Private Sub Form_Deactivate()
             g_PerformanceLog.LogMmInfo enLogUserAction, "Risk View Deactivate Exit - Not Done", Me.Caption
         Exit Sub
     End If
-    If aParams.ActiveRealTime Then ctlView.ProcessRealTime = False
     
+    If (ctlView.RealTime) Then
+        g_LastActiveWindow = m_nWindowIndex
+    End If
+    
+    If (aParams.ActiveRealTime) Then
+        ctlView.ProcessRealTime = False
+    End If
+    
+    fMain.PassiveRealtimeControl
+        
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Risk View Deactivate Exit - Done", Me.Caption
     
@@ -942,6 +990,11 @@ Private Sub aParams_CalcModelChange()
    If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "aParams_CalcModelChange Done", Me.Caption
 
+End Sub
+
+Private Sub mnuFileBatchReporting_Click()
+    On Error Resume Next
+    g_frmProjections.ShowData
 End Sub
 
 Private Sub mnuFileClose_Click()
@@ -1004,6 +1057,24 @@ Private Sub mnuManualPrices_Click()
     If (frmMPrices.ChangedCount > 0) Then
         ctlView.Refresh
     End If
+End Sub
+
+Private Sub mnuSimulationParameters_Click()
+    On Error Resume Next
+    '-------------------'
+
+    ctlView.ShowSimulationScenario
+    
+End Sub
+
+Private Sub mnuSimulationUse_Click()
+    On Error Resume Next
+    '-------------------'
+    
+    mnuSimulationUse.Checked = Not mnuSimulationUse.Checked
+    
+    ctlView.UseSimulation mnuSimulationUse.Checked
+    
 End Sub
 
 Private Sub mnuUndHideAll_Click()

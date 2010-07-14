@@ -285,7 +285,7 @@ Public Sub Init(ByVal bApplyFilter)
     m_dtCurrentDate = m_dtExpSelected
    End If
     With flxFilter
-        .Rows = 2
+        .rows = 2
         .Cols = ESC_FLT_COLUMN_COUNT
         .ColWidthMin = 2200
                         
@@ -322,7 +322,7 @@ Public Sub Init(ByVal bApplyFilter)
     End With
     
     With fgExerScr
-        .Rows = 1
+        .rows = 1
         .Cols = ESC_COLUMN_COUNT
         
         .ColHidden(ESC_KEY) = True
@@ -664,7 +664,7 @@ Private Sub PriceProvider_OnError(ByVal ErrorNumber As PRICEPROVIDERSLib.ErrorNu
         'iRespSymbol = ESC_OPTION
 '    End If
     
-    For iRowIterator = 1 To fgExerScr.Rows
+    For iRowIterator = 1 To fgExerScr.rows
         Dim strUnd As String
         strUnd = fgExerScr.TextMatrix(iRowIterator, iRespSymbol)
         If strUnd = Request.Symbol Then
@@ -687,7 +687,7 @@ Private Sub CallFinish()
     m_PrPrProgressBar.Visible = False
     m_SattusBar.Visible = True
     
-    For iRow = 1 To fgExerScr.Rows
+    For iRow = 1 To fgExerScr.rows
         EditPrice iRow, 1
     Next
     
@@ -715,7 +715,7 @@ Private Sub PriceProvider_OnLastQuote(Params As PRICEPROVIDERSLib.QuoteUpdatePar
     
     Dim iRowIterator As Integer
     iRowIterator = 1
-    For iRowIterator = 1 To fgExerScr.Rows - 1
+    For iRowIterator = 1 To fgExerScr.rows - 1
     
         Results.LastPrice = dLastPrice
     
@@ -932,7 +932,7 @@ End Function
 
 Private Sub LoadScreen(ByVal bApplyFilter As Boolean)
     Dim aTrd As MmTradeInfoAtom
-    Dim aTrdColl As EtsMmGeneralLib.MmTradeInfoColl
+    Dim aTrdColl As EtsGeneralLib.MmTradeInfoColl
     On Error GoTo Ex
     m_Positions.Clear
     
@@ -1062,7 +1062,7 @@ Ex1:
     Next
     Dim nRows As Integer
     'Dim sKeyS As String
-    nRows = fgExerScr.Rows - 1
+    nRows = fgExerScr.rows - 1
 
     m_SattusBar.Caption = "Filter Applying"
     m_SattusBar.Refresh
@@ -1110,7 +1110,7 @@ Ex1:
     Next
 
     nRow = 1
-    While nRow < fgExerScr.Rows
+    While nRow < fgExerScr.rows
         aQtyTmp = fgExerScr.TextMatrix(nRow, ESC_QTY)
         If aQtyTmp = 0 Then
             fgExerScr.RemoveItem nRow
@@ -1140,7 +1140,7 @@ End Sub
 
 Private Function FindRowByKey(sKeyS As String) As Long
     FindRowByKey = -1
-    For nRow = 1 To fgExerScr.Rows - 1
+    For nRow = 1 To fgExerScr.rows - 1
         If fgExerScr.TextMatrix(nRow, ESC_KEY) = sKeyS Then
             FindRowByKey = nRow
             Exit For
@@ -1150,7 +1150,7 @@ End Function
 
 Private Sub UpdateExScreen(ByRef aTrdByUnd As clsTradeByUndAtom, nRow As Integer)
     Dim iCol As Integer
-    Dim aTrdAt As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdAt As EtsGeneralLib.MmTradeInfoAtom
         
     For Each aTrdAt In aTrdByUnd.Trd
         fgExerScr.RowData(nRow) = aTrdByUnd
@@ -1396,7 +1396,7 @@ End Sub
 Public Function ExecteTrade() As Boolean
     Dim nRow As Integer, nCount As Integer
     ExecteTrade = True
-    nCount = fgExerScr.Rows - 1
+    nCount = fgExerScr.rows - 1
     For nRow = 1 To nCount
         On Error GoTo ExLoop1
         
@@ -1407,7 +1407,7 @@ Public Function ExecteTrade() As Boolean
             Dim CntType As EtsContractTypeEnum, iCntType As Integer
             
             Set clsaTrd = New clsTradeExecAtom
-            Set clsaTrd.Trd = New EtsMmGeneralLib.MmTradeInfoAtom
+            Set clsaTrd.Trd = New EtsGeneralLib.MmTradeInfoAtom
             clsaTrd.Trd.Status = enTrsRealtime
             Dim bExec As Boolean
             bExec = False
@@ -1516,7 +1516,7 @@ Private Sub FilterLoad(ByVal bApplyFilter As Boolean)
     Set colExpiry = New EtsMmEntityAtomColl
     On Error Resume Next
     If bApplyFilter Then m_dtExpSelected = CDate(99999)
-    For iRow = 1 To fgExerScr.Rows - 1
+    For iRow = 1 To fgExerScr.rows - 1
         dtExpDate = CDate(fgExerScr.TextMatrix(iRow, ESC_EXPIRY))
         iInd = Int(dtExpDate)
         Set aExpiry = New EtsMmEntityAtom
@@ -1567,7 +1567,7 @@ Public Sub FilterUpdate()
     iRowShow = 0
     'Exit Sub
     dtFiltDate = flxFilter.TextMatrix(1, ESC_FLT_DATE)
-    For iRow = 1 To fgExerScr.Rows - 1
+    For iRow = 1 To fgExerScr.rows - 1
         If fgExerScr.TextMatrix(iRow, ESC_EXPIRY) <> "" Then
 
             dtLoop = fgExerScr.TextMatrix(iRow, ESC_EXPIRY)
@@ -1598,7 +1598,7 @@ End Sub
 Public Sub SelectAsItIsAll()
     On Error Resume Next
     Dim iRow  As Long
-    For iRow = 1 To fgExerScr.Rows - 1
+    For iRow = 1 To fgExerScr.rows - 1
         If fgExerScr.RowHidden(iRow) = False Then
             fgExerScr.Cell(flexcpChecked, iRow, ESC_LEAVE_AS_IT_IS, iRow, ESC_LEAVE_AS_IT_IS) = flexChecked
         End If
@@ -1608,7 +1608,7 @@ End Sub
 Public Sub UnselectAll()
     On Error Resume Next
     Dim iRow  As Long
-    For iRow = 1 To fgExerScr.Rows - 1
+    For iRow = 1 To fgExerScr.rows - 1
         If fgExerScr.RowHidden(iRow) = False Then
             fgExerScr.Cell(flexcpChecked, iRow, ESC_LEAVE_AS_IT_IS, iRow, ESC_LEAVE_AS_IT_IS) = flexUnchecked
         End If
@@ -1636,7 +1636,7 @@ Private Sub UpdateStatusBarLabel()
     Dim iRowIterator As Long, bDisplayMsg As Boolean
     
     bDisplayMsg = False
-    For iRowIterator = 1 To fgExerScr.Rows - 1
+    For iRowIterator = 1 To fgExerScr.rows - 1
         If IsItIndex(iRowIterator) And Not fgExerScr.RowHidden(iRowIterator) Then
             Dim dSOQ As Double
             dSOQ = fgExerScr.TextMatrix(iRowIterator, ESC_SOQ)

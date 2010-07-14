@@ -7,14 +7,14 @@
 #include "EtsGeneral.h"
 #include "EtsFutRootAtom.h"
 
-_COM_SMARTPTR_TYPEDEF(IEtsFutRootColl, IID_IEtsFutRootColl);
+//_COM_SMARTPTR_TYPEDEF(IEtsFutRootColl, IID_IEtsFutRootColl);
 
 typedef IDispatchImpl<IEtsFutRootColl, &IID_IEtsFutRootColl, &LIBID_EtsGeneralLib>													IEtsFutRootCollDispImpl;
 typedef ICollectionOnSTLMapExOfInterfacePtrImpl<IEtsFutRootCollDispImpl, IEtsFutRootAtom, LONG, LONG, BSTR, _bstr_t >	IEtsFutRootCollImpl;
 
 // CEtsFutRootColl
 class ATL_NO_VTABLE CEtsFutRootColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsFutRootColl, &CLSID_EtsFutRootColl>,
 	public ISupportErrorInfoImpl<&IID_IEtsFutRootColl>,
 	public IEtsFutRootCollImpl
@@ -22,6 +22,7 @@ class ATL_NO_VTABLE CEtsFutRootColl :
 public:
 	CEtsFutRootColl()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSFUTROOTCOLL)
@@ -31,19 +32,25 @@ BEGIN_COM_MAP(CEtsFutRootColl)
 	COM_INTERFACE_ENTRY(IEtsFutRootColl)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		IEtsFutRootCollImpl::Clear();
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

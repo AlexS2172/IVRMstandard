@@ -50,6 +50,7 @@
 #include <fstream>
 
 #include "winsock.h"
+#include <math.h>
 
 #include <comdef.h>
 

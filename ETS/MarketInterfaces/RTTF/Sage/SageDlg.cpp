@@ -326,6 +326,7 @@ void CSageDlg::OnStop()
 void CSageDlg::OnProperties() 
 {
     CSettingsDlg dlg;
+	//dlg.m_FixConfigName = GetFixConfigName();
     dlg.DoModal();
 }
 

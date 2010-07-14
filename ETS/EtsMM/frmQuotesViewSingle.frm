@@ -5,7 +5,7 @@ Begin VB.Form frmQuotesViewSingle
    Caption         =   "Quotes"
    ClientHeight    =   5610
    ClientLeft      =   165
-   ClientTop       =   855
+   ClientTop       =   735
    ClientWidth     =   9600
    Icon            =   "frmQuotesViewSingle.frx":0000
    KeyPreview      =   -1  'True
@@ -226,6 +226,12 @@ Begin VB.Form frmQuotesViewSingle
          Caption         =   "T&wo Indices Hedge..."
          Enabled         =   0   'False
          Visible         =   0   'False
+      End
+      Begin VB.Menu mnuSepBR1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuFileBatchReporting 
+         Caption         =   "Batch Reporting ..."
       End
       Begin VB.Menu mnuSeparator2 
          Caption         =   "-"
@@ -857,7 +863,7 @@ Public Sub ShowWindowInTaskbar(ByVal bShow As Boolean, Optional ByVal bExtended 
     
     If m_bShowInTaskbar <> bShow Then
         m_bShowInTaskbar = bShow
-        mnuWindowShowInTaskBar.Checked = bShow
+        mnuWindowShowInTaskbar.Checked = bShow
         m_bShowInTaskbarChanging = True
         
         If bExtended Then SetWindowPos Me.hWnd, 0, 0, 0, 0, 0, SWP_HIDEWINDOW Or SWP_NOSIZE Or SWP_NOMOVE Or SWP_NOZORDER Or SWP_NOACTIVATE
@@ -888,6 +894,14 @@ Public Function IsRealTime() As Boolean
     IsRealTime = ctlView.RealTime
 End Function
 
+Public Sub CheckPassiveRealtime()
+    On Error Resume Next
+    If (m_nWindowIndex = g_LastActiveWindow) Then
+        ctlView.ProcessRealTime = True
+    Else
+        ctlView.ProcessRealTime = False
+    End If
+End Sub
 
 Public Function GetShortCaption() As String
     On Error Resume Next
@@ -1007,9 +1021,9 @@ Private Sub ctlView_OnFutChange(ByVal bStateOnly As Boolean)
     
 End Sub
 
-Private Sub ctlView_OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal Price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+Private Sub ctlView_OnManualPriceChanged(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
 On Error Resume Next
-    frmMain.ManualPriceChange UndID, ID, Price, CtType, Status
+    frmMain.ManualPriceChange UndID, ID, price, CtType, Status
 End Sub
 
 Private Sub ctlView_OnOptExchangesChange(ByVal bStateOnly As Boolean)
@@ -1401,6 +1415,9 @@ Public Sub Init(sKey As String)
     mnuOrderNewStock.Enabled = g_Params.OrdersEnabled
     mnuOrderNewOption.Enabled = g_Params.OrdersEnabled
     
+    mnuVSCalc.Enabled = g_Params.IsVSCalcEnabled
+    mnuVSCalc.Visible = g_Params.IsVSCalcEnabled
+    
     Set ctlView.m_frmOwner = Me
     Set ctlView.pbProgress = pbProgress
     Set ctlView.lblProcess = lblProcess
@@ -1443,10 +1460,10 @@ On Error Resume Next
 ctlView.FuturesParamsChange aUndID, iFutID, dRatio, dBasis
 End Sub
 
-Private Sub fMain_OnManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal Price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
+Private Sub fMain_OnManualPriceChange(ByVal UndID As Long, ByVal ID As Long, ByVal price As Double, ByVal CtType As EtsGeneralLib.EtsContractTypeEnum, ByVal Status As ManualPriceUpdateEnum)
 On Error Resume Next
     'manual price update for each ctrl
-    ctlView.ManualPriceUpdate UndID, ID, Price, CtType, Status
+    ctlView.ManualPriceUpdate UndID, ID, price, CtType, Status
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
@@ -1500,7 +1517,7 @@ Private Sub Form_Load()
         Exit Sub
     End If
     m_bShowInTaskbar = True
-    mnuWindowShowInTaskBar.Checked = True
+    mnuWindowShowInTaskbar.Checked = True
     lblStatus.Caption = ""
     lblProcess.Caption = ""
     m_nCurImgIdx = 0
@@ -1569,6 +1586,12 @@ Private Sub Form_Unload(Cancel As Integer)
     On Error Resume Next
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogEnhDebug, "Quote View Unload", Me.Caption
+        
+    If Not ctlView.SaveSimulatedVolatility Then
+        Cancel = True
+        Exit Sub
+    End If
+    
     Form_Terminate
 End Sub
 
@@ -1624,10 +1647,17 @@ Private Sub Form_Activate()
     If Not m_bShowInTaskbar Then
         ShowFormInTaskBar Me, False
     End If
+    
+    If (ctlView.RealTime) Then
+        g_LastActiveWindow = m_nWindowIndex
+    End If
+    
     If aParams.ActiveRealTime Then
         ctlView.ProcessRealTime = True
         ctlView.RefreshView
     End If
+    
+    fMain.PassiveRealtimeControl
 
     If Not g_PerformanceLog Is Nothing Then
        g_PerformanceLog.FinishLogMmOperation nOperation, OPER_ACTIVATEWINDOW, GetCaption
@@ -1652,9 +1682,16 @@ Private Sub Form_Deactivate()
             g_PerformanceLog.LogMmInfo enLogUserAction, "Quote View Deactivate Exit - Not Done", Me.Caption
         Exit Sub
     End If
+    
+    If (ctlView.RealTime) Then
+        g_LastActiveWindow = m_nWindowIndex
+    End If
+    
     If aParams.ActiveRealTime Then
         ctlView.ProcessRealTime = False
     End If
+    
+    fMain.PassiveRealtimeControl
     
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Quote View Deactivate Exit - Done", Me.Caption
@@ -1999,6 +2036,11 @@ Private Sub mnuExpiryMore_Click()
 
 End Sub
 
+Private Sub mnuFileBatchReporting_Click()
+    On Error Resume Next
+    g_frmProjections.ShowData
+End Sub
+
 Private Sub mnuFIleGraphicalPnL_Click()
     On Error Resume Next
     frmMain.ShowGraphicalPnL
@@ -2018,12 +2060,12 @@ End Sub
 Private Sub mnuManualPrices_Click()
     Dim frmMPrices As New frmManualPrices
     Dim i As Integer
-    Dim ctrID() As Long, Price() As Double, isManual() As Boolean
+    Dim ctrID() As Long, price() As Double, isManual() As Boolean
     
     frmMPrices.Show vbModal, Me
     
     If (frmMPrices.ChangedCount > 0) Then
-        ctlView.UpdateManualPrices ctrID, Price, isManual
+        ctlView.UpdateManualPrices ctrID, price, isManual
     End If
         
 End Sub
@@ -2460,6 +2502,8 @@ Private Sub mnuFileOpen_Click()
         g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""File->Open..."" Enter. " & ctlView.GetOptionInfo, Me.Caption
     
     Dim aStorage As New clsSettingsStorage
+    
+    If Not ctlView.SaveSimulatedVolatility Then Exit Sub
     
     With dlgCommon
         .Flags = cdlOFNExplorer Or cdlOFNLongNames Or cdlOFNPathMustExist _

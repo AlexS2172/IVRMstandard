@@ -433,7 +433,7 @@ End Sub
 
 Private Sub btnTrades_Click()
  On Error Resume Next
- Dim aNewTrdInfo As EtsMmGeneralLib.MmTradeInfoAtom
+ Dim aNewTrdInfo As EtsGeneralLib.MmTradeInfoAtom
  Dim iRows As Long
  Dim aSpreadPos As EtsMmQuotesLib.MmQvSpreadData
  Dim bValidContract As Boolean
@@ -448,7 +448,7 @@ Private Sub btnTrades_Click()
        bValidContract = False
         Set aSpreadPos = fgSpread.RowData(iRow - 1)
         If Not aSpreadPos Is Nothing Then
-             Set aNewTrdInfo = New EtsMmGeneralLib.MmTradeInfoAtom
+             Set aNewTrdInfo = New EtsGeneralLib.MmTradeInfoAtom
              If Not aNewTrdInfo Is Nothing Then
                 Set aNewTrdInfo.Und = g_UnderlyingAll(m_nUnderlyingID)
                 If Not aNewTrdInfo.Und Is Nothing Then
@@ -462,15 +462,15 @@ Private Sub btnTrades_Click()
                     'if there not BID or ASK price we need to use a THEOPRICE
                     If aNewTrdInfo.IsBuy Then
                         If aSpreadPos.Ask <> BAD_DOUBLE_VALUE Then
-                            aNewTrdInfo.Price = aSpreadPos.Ask
+                            aNewTrdInfo.price = aSpreadPos.Ask
                         Else
-                            aNewTrdInfo.Price = IIf(aSpreadPos.TheoPrice <> BAD_DOUBLE_VALUE, aSpreadPos.TheoPrice, 0)
+                            aNewTrdInfo.price = IIf(aSpreadPos.TheoPrice <> BAD_DOUBLE_VALUE, aSpreadPos.TheoPrice, 0)
                         End If
                     Else
                         If aSpreadPos.Bid <> BAD_DOUBLE_VALUE Then
-                            aNewTrdInfo.Price = aSpreadPos.Bid
+                            aNewTrdInfo.price = aSpreadPos.Bid
                         Else
-                            aNewTrdInfo.Price = IIf(aSpreadPos.TheoPrice <> BAD_DOUBLE_VALUE, aSpreadPos.TheoPrice, 0)
+                            aNewTrdInfo.price = IIf(aSpreadPos.TheoPrice <> BAD_DOUBLE_VALUE, aSpreadPos.TheoPrice, 0)
                         End If
                     End If
                                       
@@ -496,7 +496,7 @@ Private Sub btnTrades_Click()
                             aNewTrdInfo.Opt.Expiry = aSpreadPos.Opt.Expiry
                             aNewTrdInfo.Opt.Strike = aSpreadPos.Opt.Strike
                             aNewTrdInfo.Opt.PriceClose = aSpreadPos.Opt.Quote(0).PriceClose
-                            aNewTrdInfo.Opt.PriceTheoClose = aSpreadPos.Opt.Quote(0).PriceTheo
+                            aNewTrdInfo.Opt.PriceTheoclose = aSpreadPos.Opt.Quote(0).PriceTheo
                             aNewTrdInfo.Opt.Series = aNewTrdInfo.OptRoot.Name + UCase$(Format$(aNewTrdInfo.Opt.Expiry, "YYMMM")) & Trim$(Str$(Int(aNewTrdInfo.Opt.Strike)))
                             aNewTrdInfo.SpotReference = m_aUndQuote.PriceLast
 

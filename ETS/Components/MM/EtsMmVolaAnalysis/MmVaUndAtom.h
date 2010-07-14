@@ -153,7 +153,8 @@ public:
 	IMPLEMENT_OBJECT_PROPERTY(IEtsIndexDivAtom*, Dividend, m_spDividend)
 
 	STDMETHOD(CalcCurrentValues)(DOUBLE dVegaAmount, EtsCalcModelTypeEnum enCalcModel,
-								VARIANT_BOOL bUseTheoVolatility);
+								VARIANT_BOOL bUseTheoVolatility,
+								ICalculationParametrs* pParams);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MmVaUndAtom), CMmVaUndAtom)

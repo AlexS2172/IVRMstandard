@@ -125,8 +125,12 @@ private:
 public:
     
 	CDBConnectionPtr m_pConnection;
-    static _bstr_t	m_bsConnectionString;
-	static _bstr_t	m_bsConnStringLabel;
+    _bstr_t	m_bsConnectionString;
+	_bstr_t	m_bsConnStringLabel;
+	_bstr_t	m_bsUserGroup;
+
+    HRESULT	SetUserGroup(_bstr_t bsUserGroup = L"");
+	HRESULT	InitInfromationStream();
 
 	PDWORD	GetCounterReceived();	
 

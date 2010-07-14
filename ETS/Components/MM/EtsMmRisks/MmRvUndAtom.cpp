@@ -145,14 +145,28 @@ void __MmRvUndAtom::AggregatePositionDeltas(CMmRvPosAtom* pPos){
 		// if we have delta in position and where to aggregate it
 		for (unsigned i = 0; i < 3 && pPos->AggregationsPtr_[i]; ++i ) {
 			// aggregate option delta
-			if (IsBadValue(pPos->AggregationsPtr_[i]->OptDlt_) ) 
-				pPos->AggregationsPtr_[i]->OptDlt_ = 0.;
-			pPos->AggregationsPtr_[i]->OptDlt_ += pPos->m_dDeltaInShares;
 
-			if (IsBadValue(pPos->AggregationsPtr_[i]->OptDlt$_) ) 
-				pPos->AggregationsPtr_[i]->OptDlt$_ = 0.;
-			pPos->AggregationsPtr_[i]->OptDlt$_ += pPos->m_dDeltaEq;
+			EtsContractTypeEnum contract_type = pPos->m_enContractType;
+			if ( contract_type == enCtOption ||
+				 contract_type == enCtFutOption ){
 
+				if (IsBadValue(pPos->AggregationsPtr_[i]->OptDlt_) ) 
+					pPos->AggregationsPtr_[i]->OptDlt_ = 0.;
+				pPos->AggregationsPtr_[i]->OptDlt_ += pPos->m_dDeltaInShares;
+
+				if (IsBadValue(pPos->AggregationsPtr_[i]->OptDlt$_) ) 
+					pPos->AggregationsPtr_[i]->OptDlt$_ = 0.;
+				pPos->AggregationsPtr_[i]->OptDlt$_ += pPos->m_dDeltaEq;
+			};
+			
+			if (IsBadValue(pPos->AggregationsPtr_[i]->NetDlt_) ) 
+				pPos->AggregationsPtr_[i]->NetDlt_ = 0.;
+			pPos->AggregationsPtr_[i]->NetDlt_ += pPos->m_dDeltaInShares;
+
+			if (IsBadValue(pPos->AggregationsPtr_[i]->NetDlt$_) ) 
+				pPos->AggregationsPtr_[i]->NetDlt$_ = 0.;
+			pPos->AggregationsPtr_[i]->NetDlt$_ += pPos->m_dDeltaEq;
+	
 			if (IsBadValue(pPos->AggregationsPtr_[i]->NetExposure_) ) 
 				pPos->AggregationsPtr_[i]->NetExposure_ = 0.;
 			pPos->AggregationsPtr_[i]->NetExposure_ += pPos->m_dNetExposure;
@@ -165,27 +179,27 @@ void __MmRvUndAtom::AggregatePositionGammas(CMmRvPosAtom* pPos, double underlyin
 		// if we have gamma in position and where to aggregate it
 		for (unsigned i = 0; i < 3 && pPos->AggregationsPtr_[i]; ++i ) {
 			// aggregate gamma1%
-			double undPrice;
+			//double undPrice;
 			if (IsBadValue(pPos->AggregationsPtr_[i]->Gma1P_) ) 
 				pPos->AggregationsPtr_[i]->Gma1P_ = 0.;
 			if(m_enContractType == enCtFutUnd && pPos){
-				EtsReplacePriceStatusEnum penPriceStatus;	VARIANT_BOOL dummy;
+				//EtsReplacePriceStatusEnum penPriceStatus;	VARIANT_BOOL dummy;
 				CMmRvFutAtom* pFut = static_cast<CMmRvFutAtom*>(pPos->m_spFut.GetInterfacePtr() );
 				if( pFut ){
 					try{	
 						// NOTE: pPos->m_dGammaInShares already multiplied by FutureContractSize
 						// if this needed
-						pFut->GetFuturePrice(dUndPriceTolerance, enPriceRoundingRule, &penPriceStatus, &dummy, &undPrice ); 	
-						if (IsBadValue(undPrice) || !undPrice)
-							continue;
+						//pFut->GetFuturePrice(dUndPriceTolerance, enPriceRoundingRule, &penPriceStatus, &dummy, &undPrice ); 	
+						//if (IsBadValue(undPrice) || !undPrice)
+						//	continue;
 						// aggregate gamma1%
-						pPos->AggregationsPtr_[i]->Gma1P_ += (pPos->m_dGammaInShares * undPrice / 100.);
+						pPos->AggregationsPtr_[i]->Gma1P_ += pPos->m_dGammaInSharesPerc;
 						// aggregate net gamma$
-						if (!IsBadValue(undPrice) && undPrice && pPos->m_pQuote) {
+						//if (!IsBadValue(undPrice) && undPrice && pPos->m_pQuote) {
 							if (IsBadValue(pPos->AggregationsPtr_[i]->NetGma$_) ) 
 								pPos->AggregationsPtr_[i]->NetGma$_ = 0.;
-							pPos->AggregationsPtr_[i]->NetGma$_ += (pPos->m_pQuote->m_dGamma * pPos->m_nQty * undPrice * undPrice / 100. * pFut->m_dKEq);
-						}
+							pPos->AggregationsPtr_[i]->NetGma$_ += pPos->m_dNetGamma;
+						//}
 						// aggregate gamma 1$
 						if (IsBadValue(pPos->AggregationsPtr_[i]->Gma1$_) )
 							pPos->AggregationsPtr_[i]->Gma1$_ = 0.;
@@ -200,16 +214,16 @@ void __MmRvUndAtom::AggregatePositionGammas(CMmRvPosAtom* pPos, double underlyin
 					pPos->AggregationsPtr_[i]->Gma1$_ = 0.;
 				pPos->AggregationsPtr_[i]->Gma1$_ += pPos->m_dGammaInShares;
 
-				if (IsBadValue(underlyingPtrice) || !underlyingPtrice)
-					continue;
+				//if (IsBadValue(underlyingPtrice) || !underlyingPtrice)
+				//	continue;
 
 				// aggregate gamma1%
-				pPos->AggregationsPtr_[i]->Gma1P_ += pPos->m_dGammaInShares * underlyingPtrice / 100.;
+				pPos->AggregationsPtr_[i]->Gma1P_ += pPos->m_dGammaInSharesPerc;
 				
 				// aggregate net gamma$
 				if (IsBadValue(pPos->AggregationsPtr_[i]->NetGma$_) ) 
 					pPos->AggregationsPtr_[i]->NetGma$_ = 0.;
-				pPos->AggregationsPtr_[i]->NetGma$_ += (pPos->m_dGammaInShares * underlyingPtrice* underlyingPtrice/100.);
+				pPos->AggregationsPtr_[i]->NetGma$_ += pPos->m_dNetGamma;
 			}
 		}
 	}
@@ -341,8 +355,129 @@ void __MmRvUndAtom::AggregatePositionTmVal(CMmRvPosAtom* pPos)
 		}
 	}
 }
-/////////////////////////////////////////////////////////////////////////////
-//
+//----------------------------------------------------------------------------------------------//
+STDMETHODIMP CMmRvUndAtom::UpdateQuotes()
+{
+	try
+	{
+		if (m_spContract != NULL)
+		{
+			QuoteUpdateInfo retQuotes;
+			_CHK(m_spContract->raw_GetQuotes(&retQuotes), _T("Fail to get contract quotes."));
+
+			if (retQuotes.BidPrice > BAD_DOUBLE_VALUE)
+				m_pPrice->put_Bid(retQuotes.BidPrice);
+
+			if (retQuotes.AskPrice > BAD_DOUBLE_VALUE)
+				m_pPrice->put_Ask(retQuotes.AskPrice);
+
+			if (retQuotes.LastPrice > BAD_DOUBLE_VALUE)
+				m_pPrice->put_Last(retQuotes.LastPrice);
+
+			if (retQuotes.NetChange > BAD_DOUBLE_VALUE)
+				m_pPrice->put_NetChange(retQuotes.NetChange);
+
+			SysFreeString(retQuotes.BidExchange);
+			SysFreeString(retQuotes.AskExchange);
+			SysFreeString(retQuotes.Currency);
+			SysFreeString(retQuotes.Exchange);
+		}
+	}
+	catch(_com_error& e)
+	{
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvPosAtom, e.Error());
+	}
+
+	return S_OK;
+};
+//----------------------------------------------------------------------------------------------//
+STDMETHODIMP CMmRvUndAtom::UpdateRisks(){
+	//try{
+	//	
+	//	IRisks retRisks;
+
+	//	if (m_spContract != NULL){
+
+	//		MarketSimulationScenario simulation_scenario;
+	//		_CHK(m_spContract->raw_Calculate(NULL, &simulation_scenario, &retRisks),
+	//			_T("Fail to calculate contract."));
+
+	//		_CHK(m_spContract->raw_GetRisks(&retRisks),
+	//			_T("Fail to get contract risks."));
+
+	//		if ((retRisks.TheoPrice > BAD_DOUBLE_VALUE)&&(retRisks.TheoPrice < 0))
+	//			retRisks.TheoPrice = 0;
+
+	//		if ( _finite(retRisks.Delta) )
+	//			m_pQuote->m_dPriceTheo = retRisks.TheoPrice;
+
+	//		if ( _finite(retRisks.Delta) )
+	//			m_pQuote->m_dDelta = retRisks.Delta;
+
+	//		if ( _finite(retRisks.Gamma) )
+	//			m_pQuote->m_dGamma = retRisks.Gamma;
+
+	//		if ( _finite(retRisks.Theta) )
+	//			m_pQuote->m_dTheta = retRisks.Theta;
+
+	//		if ( _finite(retRisks.Vega) )
+	//			m_pQuote->m_dVega = retRisks.Vega;
+
+	//		if ( _finite(retRisks.Rho) )
+	//			m_pQuote->m_dRho = retRisks.Rho;
+
+	//		if ( _finite(retRisks.DeltaVega) )
+	//			m_pQuote->m_dVegaDelta = retRisks.DeltaVega;
+
+	//		if ( _finite(retRisks.GammaVega) )
+	//			m_pQuote->m_dVegaGamma = retRisks.GammaVega;
+
+	//		if ( _finite(retRisks.DeltaTheta) )
+	//			m_pQuote->m_dThetaDelta = retRisks.DeltaTheta;
+
+	//		if ( _finite(retRisks.GammaTheta) )
+	//			m_pQuote->m_dThetaGamma = retRisks.GammaTheta;
+
+	//		if ( _finite(retRisks.IVola) )
+	//			m_pQuote->m_dImpliedVola = retRisks.IVola;
+
+	//		if ( _finite(retRisks.TheoVola) )
+	//			m_pQuote->m_dVola = retRisks.TheoVola;
+
+	//		if ( _finite(retRisks.TheoPriceBid) )
+	//			m_pQuote->m_dPriceTheoBid = retRisks.TheoPriceBid;
+
+	//		if ( _finite(retRisks.TheoPriceAsk) )
+	//			m_pQuote->m_dPriceTheoAsk = retRisks.TheoPriceAsk;
+
+	//		if ( _finite(retRisks.ContractPrice) )
+	//			m_pQuote->m_dContractPrice = retRisks.ContractPrice;
+
+	//		if ( _finite(retRisks.ContractPriceBid) )
+	//			m_pQuote->m_dContractPriceBid = retRisks.ContractPriceBid;
+
+	//		if ( _finite(retRisks.ContractPriceAsk) )
+	//			m_pQuote->m_dContractPriceAsk = retRisks.ContractPriceAsk;
+
+	//		if ( _finite(retRisks.BaseContractPrice) )
+	//			m_pQuote->m_dBaseContractPrice = retRisks.BaseContractPrice;
+
+	//		if ( _finite(retRisks.BaseContractPriceBid) )
+	//			m_pQuote->m_dBaseContractPriceBid = retRisks.BaseContractPriceBid;
+
+	//		if ( _finite(retRisks.BaseContractPriceAsk) )
+	//			m_pQuote->m_dBaseContractPriceAsk = retRisks.BaseContractPriceAsk;
+
+	//		m_pQuote->m_spPrice->put_Active(retRisks.ContractPrice);
+	//	}
+	//}
+	//catch(_com_error& e){
+	//	return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvPosAtom, e.Error());
+	//}
+
+	return S_OK;
+};
+//----------------------------------------------------------------------------------------------//
 STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 																		 ISynthRootAtom* aSynthRoot,
 																		 DOUBLE* pdSynthBid,
@@ -470,420 +605,104 @@ STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
 
 /////////////////////////////////////////////////////////////////////////////
 //
-STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
-										  LONG nMask,
-										  VARIANT_BOOL bCalcGreeks,
-										  VARIANT_BOOL bUpdateVola,
-										  VARIANT_BOOL bRealtimeCalc,
-										  VARIANT_BOOL bClearSynthGreeks,
-										  IEtsProcessDelay* aDelay,
-										  VARIANT_BOOL bIsPnlLTD,
-										  EtsCalcModelTypeEnum enCalcModel,
-										  VARIANT_BOOL bUseTheoVolatility,
-										  VARIANT_BOOL bUseTheoVolaNoBid,
-										  VARIANT_BOOL bUseTheoVolaBadMarket,
-										  DOUBLE dUndPriceTolerance,
-										  EtsPriceRoundingRuleEnum enPriceRoundingRule,
-										  LONG* pnOptUpdated,
-										  LONG* pnUndUpdated,
-										  LONG* pnFutUpdated,
-										  DATE dtCalcDate)
+HRESULT
+CMmRvUndAtom::CalcEx(IMmRvUndColl* aUndColl, 
+					 LONG nMask, 
+					 VARIANT_BOOL bCalcGreeks, 
+					 VARIANT_BOOL bUpdateVola, 
+					 VARIANT_BOOL bRealtimeCalc, 
+					 VARIANT_BOOL bClearSynthGreeks, 
+					 IEtsProcessDelay* aDelay, 
+					 VARIANT_BOOL bIsPnlLTD, 
+					 EtsCalcModelTypeEnum enCalcModel, 
+					 VARIANT_BOOL bUseTheoVolatility, 
+					 VARIANT_BOOL bUseTheoVolaNoBid, 
+					 VARIANT_BOOL bUseTheoVolaBadMarket, 
+					 DOUBLE dUndPriceTolerance, 
+					 EtsPriceRoundingRuleEnum enPriceRoundingRule, 
+					 LONG* pnOptUpdated, 
+					 LONG* pnUndUpdated, 
+					 LONG* pnFutUpdated, 
+					 DATE dtCalcDate, 
+					 ICalculationParametrs* pParams, 
+					 IMarketSimulationScenarioPtr SimulationScenario)
 {
-	if(aUndColl == NULL)
+
+	if(aUndColl == NULL || pParams == NULL)
 		return Error(L"Invalid object passed.", IID_IMmRvUndAtom, E_INVALIDARG);
-	try
-	{
+
+	try{
+
+		UpdateQuotes();
+
 		IMmRvUndCollPtr spUndColl(aUndColl);
+		ICalculationParametrsPtr spParams(pParams);
 
-		ULONG nFetched = 0L;
 		LONG nOptUpdated = 0L, nUndUpdated = 0L, nFutUpdated = 0L;
-
-		IEtsProcessDelayPtr spDelay(aDelay);
-		if(spDelay != NULL && spDelay->IsInterrupted)
-			return S_OK;
-
-		if(bUpdateVola)
-			bCalcGreeks = VARIANT_TRUE;
 
 		ClearAggregatedValues();
 		if(bClearSynthGreeks)
 			_ClearSynthGreeks();
 
-		EtsReplacePriceStatusEnum enUndPriceStatusMid = enRpsNone;
-		EtsReplacePriceStatusEnum enUndPriceStatusBid = enRpsNone;
-		EtsReplacePriceStatusEnum enUndPriceStatusAsk = enRpsNone;
-		DOUBLE dUndPriceMid = 0., dUndPriceBid = 0., dUndPriceAsk = 0.;
-		VARIANT_BOOL bDriverUsed = VARIANT_FALSE;
 
-		EtsReplacePriceStatusEnum	enActiveUndPriceStatus = enRpsNone;
-		_CHK(GetUnderlyingPrice(dUndPriceTolerance, enPriceRoundingRule, &enActiveUndPriceStatus ,&bDriverUsed, &dUndPriceMid));
-
-		if(m_spUndPriceProfile != NULL)
-		{
-			if ( bDriverUsed )
-			{
-				//active future have no market price and manual price
-				if (dUndPriceMid <= 0.0)
-					dUndPriceBid = dUndPriceAsk	= DBL_EPSILON;
-				else
-					dUndPriceBid = dUndPriceAsk	= dUndPriceMid;
-			}
-			else
-			{
-				dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
-
-				dUndPriceAsk = m_spUndPriceProfile->GetUndPriceAskForPnL(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk,
-					m_pPrice->m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
-			}
-		}
-		//set this underlying active price
-		m_pPrice->m_dActivePrice = dUndPriceMid;
-
-		m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enUndPriceStatusMid | enUndPriceStatusBid | enUndPriceStatusAsk);
-
-		VARIANT_BOOL bNeedRecalc = VARIANT_FALSE;
-		VARIANT_BOOL bPosCalcGreeks = VARIANT_FALSE;
-		VARIANT_BOOL bCalcTheos = VARIANT_FALSE;
-		DOUBLE dPosValue = BAD_DOUBLE_VALUE;
-
-		bool bHasItems = false;
 		CMmRvPosColl::EnumCollType::iterator itrPos    = m_pPos->m_coll.begin();
 		const CMmRvPosColl::EnumCollType::iterator itrPosEnd = m_pPos->m_coll.end();
-		if(!m_pPos->m_coll.empty())
-			bHasItems = true;
-		double underlyingPriceSave = dUndPriceMid;
+
+		m_vecPos.clear();
 
 		for(;itrPos!=itrPosEnd; ++itrPos)
 		{
-			dUndPriceMid = underlyingPriceSave;
 			CMmRvPosAtom* pPos = dynamic_cast<CMmRvPosAtom*>(itrPos->second);
 
-			if(pPos != NULL)
-			{
-				if(pPos->m_bVisible)
-				{
-					EtsContractTypeEnum enContractType = pPos->m_enContractType;
-					LONG nPosQty = pPos->m_nQty;
-					LONG nPosQtyInShares = pPos->m_nQtyInShares;
+			m_vecPos.push_back(itrPos->second);
 
-					// options
-					if(enContractType == enCtOption || enContractType == enCtFutOption)
-					{
+			if(pPos != NULL){
 
-						DATE dtExpiryOV = pPos->m_dtExpiryOV;
-						DOUBLE dStrike = pPos->m_dStrike;
+				pPos->ClearValues();
+				pPos->UpdateRisks(SimulationScenario);
+				pPos->UpdateQuotes();
 
-						if(dtExpiryOV >= dtCalcDate )
-						{
-							bPosCalcGreeks = pPos->m_bCalcGreeks;
+				if(pPos->m_bVisible){
 
-							if(bRealtimeCalc)
-							{
-								bCalcTheos = m_bCalcGreeks || m_bCalcTotals || bPosCalcGreeks;
+				EtsContractTypeEnum enContractType = pPos->m_enContractType;
 
-								if(!bCalcTheos && enContractType == enCtFutOption)
-								{
-									IMmRvFutAtomPtr spFut = pPos->m_spFut;
+				pPos->Calculate(bIsPnlLTD == VARIANT_TRUE);
 
-									if(spFut != NULL)
-									{
-										VARIANT_BOOL bFutCalcGreeks = VARIANT_FALSE;
-										_CHK(spFut->get_CalcGreeks(&bFutCalcGreeks));
-										bCalcTheos = bCalcTheos || bFutCalcGreeks;
-									}
-								}
+				m_pPrice->m_dActivePrice = pPos->m_pQuote->m_dBaseContractPrice;
+				// options
+				if(enContractType == enCtOption || enContractType == enCtFutOption){
+					nOptUpdated++;
+				}
+				else if (enContractType == enCtFuture){
+					nFutUpdated++;
+				}
+				else{
+					nUndUpdated++;
+				}
 
-								bUpdateVola = m_bCalcGreeks;
-								bNeedRecalc = m_bCalcTotals;
-							}
-							else
-							{
-								bCalcTheos = bCalcGreeks;
-								bNeedRecalc = VARIANT_TRUE;
-							}
-
-							if(bNeedRecalc)
-							{
-								nOptUpdated++;
-
-								if(bUpdateVola)
-								{
-									if(pPos->m_spQuote!=NULL)
-										_CHK(pPos->m_spQuote->put_Vola(m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike)));
-								}
-
-								if(enContractType == enCtOption)
-								{
-									_CHK(pPos->CalcOptionGreeks(spUndColl, this, dUndPriceMid,
-										(bCalcTheos ? nMask : GT_NOTHING), bIsPnlLTD, enCalcModel,
-										bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-										dUndPriceTolerance, enPriceRoundingRule,dtCalcDate));
-								}
-								else
-								{
-
-									_CHK(pPos->CalcFutOptionGreeks(this, dUndPriceMid,
-										(bCalcTheos ? nMask : GT_NOTHING), bIsPnlLTD, enCalcModel,
-										bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-										dUndPriceTolerance, enPriceRoundingRule,dtCalcDate));
-								}
-
-								if(spDelay != NULL)
-									spDelay->Sleep();
-							}
-
-							if ( m_enContractType == enCtFutUnd && pPos->m_spFut ) {
-								// we have no price for this underlying, use 
-								// price of future
-								VARIANT_BOOL futureUsed = VARIANT_FALSE;
-								EtsReplacePriceStatusEnum enFutPriceStatusMid = enRpsNone;
-								_CHK(pPos->m_spFut->GetFuturePrice(dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusMid, &futureUsed, &dUndPriceMid));
-							}
-							_CalcTotalsForOptionPos(pPos);
-						}
-						else
-						{
-
-							if(nMask != GT_NOTHING)
-							{
-								if(nMask & GT_THEOPRICE)
-									pPos->m_pQuote->m_dPriceTheo = BAD_DOUBLE_VALUE;
-
-								if((nMask & GT_DELTA))
-								{
-									pPos->m_pQuote->m_dDelta = 0.0;
-									if(pPos->m_enOptType == enOtPut && dUndPriceMid < pPos->m_dStrike)
-										pPos->m_pQuote->m_dDelta = -1.;
-
-									if(pPos->m_enOptType == enOtCall && dUndPriceMid > pPos->m_dStrike)
-										pPos->m_pQuote->m_dDelta = 1.;
-								}
-
-								if(nMask & GT_GAMMA) pPos->m_pQuote->m_dGamma = 0;
-								if(nMask & GT_THETA) pPos->m_pQuote->m_dTheta = 0;
-								if(nMask & GT_VEGA)  pPos->m_pQuote->m_dVega  = 0;
-								if(nMask & GT_RHO)   pPos->m_pQuote->m_dRho	  = 0;
-								if(nMask & GT_DELTA_VEGA) pPos->m_pQuote->m_dVegaDelta = 0;
-								if(nMask & GT_GAMMA_VEGA) pPos->m_pQuote->m_dVegaGamma = 0;
-								if(nMask & GT_DELTA_THETA) pPos->m_pQuote->m_dThetaDelta = 0;
-								if(nMask & GT_GAMMA_THETA) pPos->m_pQuote->m_dThetaGamma = 0;
-
-								if(enContractType == enCtOption)
-								{
-									ISynthRootAtomPtr spSynthRoot;
-									if(pPos->m_bIsSynthetic && m_spSynthRoots != NULL)
-											spSynthRoot = m_spSynthRoots->Item[pPos->m_nOptionRootID];
-
-									pPos->_CalcOptPositionData(m_spOptPriceProfile,
-															   spSynthRoot,
-															   bIsPnlLTD,
-															   bUseTheoVolatility,
-															   bUseTheoVolaNoBid,
-															   bUseTheoVolaBadMarket,
-															   dUndPriceTolerance,
-															   enPriceRoundingRule, 
-															   spUndColl,
-															   dUndPriceMid,
-															   m_nID, 
-															   dtCalcDate);
-								}
-								else
-								{
-									pPos->_CalcFutPositionData(m_spOptPriceProfile,
-										bIsPnlLTD,
-										bUseTheoVolatility,
-										bUseTheoVolaNoBid,
-										bUseTheoVolaBadMarket,
-										dUndPriceTolerance,
-										enPriceRoundingRule, 
-										dUndPriceMid,
-										dtCalcDate,
-										m_enContractType);
-
-								}
-
-								_CalcTotalsForOptionPos(pPos);
-
-							}
-
-							pPos->put_LogEnhansement ( L"The option is expired" ) ;
-
-							WCHAR strparam[200] ;
-							_snwprintf_s ( strparam, sizeof(strparam), L"Expiration Date %f" , dtExpiryOV  ) ;
-
-							IRvMmQuoteAtomPtr spQuote = pPos->m_spQuote;
-
-							if(spQuote!=NULL)
-								spQuote->put_VolaCalculatedParametrs( strparam ) ;
-
-							__MmRvUndAtom::SetAllValuesAsBad();
-						}
-					}
-
-					// underlyings
-					else if(enContractType == enCtStock || enContractType == enCtIndex)
-					{
-
-						nUndUpdated++;
-						
-						//_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dActiveFutureMid > 0 ? dActiveFutureMid : dUndPriceBid, dActiveFutureMid > 0 ? dActiveFutureMid : dUndPriceAsk, VARIANT_TRUE , dtCalcDate));
-						//achuchev
-						_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dUndPriceMid > 0 ? dUndPriceMid : dUndPriceBid, dUndPriceMid > 0 ? dUndPriceMid : dUndPriceAsk, VARIANT_TRUE , dtCalcDate));
-						
-						if(dUndPriceMid > DBL_EPSILON)
-						{
-							pPos->m_dNetExposure = nPosQtyInShares * dUndPriceMid / m_dNetExposureAUM * 100.0;
-						}
-						else
-							BadNetDlt$_= VARIANT_TRUE;
-
-						IRvMmQuoteAtomPtr spQuote = pPos->m_spQuote;
-						if( spQuote!=NULL )
-						{
-							_CHK(spQuote->put_ReplacePriceStatus(m_enReplacePriceStatus));
-						}
-						pPos->m_pQuote->m_pPrice->m_dActivePrice = dUndPriceMid;
-					}
-
-					// futures
-					else if(enContractType == enCtFuture)
-					{
-						nFutUpdated++;
-
-						IMmRvFutAtomPtr spFut = pPos->m_spFut;
-						DOUBLE futurePrice = BAD_DOUBLE_VALUE;
-						CMmRvFutAtom *pFut = static_cast<CMmRvFutAtom*>(spFut.GetInterfacePtr());
-
-						if(pFut != NULL)
-						{
-							EtsReplacePriceStatusEnum enFutPriceStatusMid = enRpsNone;
-							EtsReplacePriceStatusEnum enFutPriceStatusBid = enRpsNone;
-							EtsReplacePriceStatusEnum enFutPriceStatusAsk = enRpsNone;
-							DOUBLE dFutPriceMid = 0., dFutPriceBid = 0., dFutPriceAsk = 0.;
-							
-							IEtsPriceProfileAtomPtr spUndPriceProfile = pFut->m_spUndPriceProfile;
-							VARIANT_BOOL futureUsed = VARIANT_FALSE;
-							VARIANT_BOOL vb;
-							DOUBLE dPriceActive = 0.;
-
-							if(spUndPriceProfile != NULL)
-							{
-								DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
-								
-
-								IMmRvPricePtr spFutPrice;
-								_CHK(spFut->get_Price(&spFutPrice));
-
-								_CHK(spFutPrice->get_Bid(&dPriceBid));
-								_CHK(spFutPrice->get_Ask(&dPriceAsk));
-								_CHK(spFutPrice->get_Last(&dPriceLast));
-								_CHK(spFutPrice->get_Active(&dPriceActive));
-								_CHK(spFutPrice->get_IsUseManualActive(&vb));
-
-								_CHK(spFut->GetFuturePrice(dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusMid, &futureUsed, &futurePrice ));
-
-								if (futureUsed && futurePrice > 0.)	
-									/*dUndPriceMid = */dFutPriceBid = dFutPriceAsk = dFutPriceMid = futurePrice;
-								else
-								{
-									dFutPriceBid = spUndPriceProfile->GetUndPriceBidForPnL(dPriceBid, dPriceAsk,
-										dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusBid);
-
-									dFutPriceAsk = spUndPriceProfile->GetUndPriceAskForPnL(dPriceBid, dPriceAsk,
-										dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusAsk);
-								}
-							}
-
-							IRvMmQuoteAtomPtr spQuote = pPos->m_spQuote;
-							if( spQuote!=NULL )
-							{
-								_CHK(spQuote->put_ReplacePriceStatus(static_cast<EtsReplacePriceStatusEnum>(enFutPriceStatusMid | enFutPriceStatusBid | enFutPriceStatusAsk)));
-							}
-							spFut->put_ReplacePriceStatus(static_cast<EtsReplacePriceStatusEnum>(enFutPriceStatusMid | enFutPriceStatusBid | enFutPriceStatusAsk));
-
-							if (vb == FALSE)
-							{
-								_CHK(pPos->CalcPnlMtm(bIsPnlLTD, ( futurePrice > 0. && futureUsed ) ? futurePrice  : dFutPriceBid, 
-									( futurePrice > 0. && futureUsed ) ? futurePrice  : dFutPriceAsk, VARIANT_TRUE , dtCalcDate) );
-							}
-							else
-							{
-								_CHK(pPos->CalcPnlMtm(bIsPnlLTD, dPriceActive, dPriceActive, VARIANT_TRUE , dtCalcDate) );							
-							}
-
-							if ( m_enContractType == enCtFutUnd ) 
-							{
-								if(pPos->m_dPnlMtm <= BAD_DOUBLE_VALUE)
-									pPos->m_dPnlMtm = 0.;
-								else
-									pPos->m_dPnlMtm *= pFut->m_dKEq / pFut->m_nFutLotSize;
-
-								pPos->m_bMultOptDltEq = pFut->m_bMultOptDltEq;
-								pPos->m_dKEq = pFut->m_dKEq;
-
-								pFut->m_dUndMidPrice = dUndPriceMid;
-							}
-							pPos->m_dPnlTheo = pPos->m_dPnlMtm;
-
-							if(dUndPriceMid > DBL_EPSILON || (futurePrice > 0 &&  m_enContractType == enCtFutUnd) )
-							{
-								if(m_enContractType != enCtFutUnd)
-								{
-									if (IsBadValue(pPos->m_dDeltaEq) ) pPos->m_dDeltaEq = 0.;
-									double dEq = nPosQtyInShares * dUndPriceMid;
-
-									pPos->m_dDeltaEq += dEq;
-									pPos->m_dNetExposure = dEq / m_dNetExposureAUM * 100.0;
-
-								}
-								else
-								{
-									double dEq = nPosQtyInShares * futurePrice;
-									pPos->m_dNetExposure = dEq / m_dNetExposureAUM * 100.0;
-
-								}
-
-							}
-							else
-								BadNetDlt$_ = VARIANT_TRUE;
-
-
-							if(pFut && !pFut->m_bMultOptDltEq)
-								pPos->m_dNetExposure *= pFut->m_nFutLotSize;
-						}
-
-
-					}
-
-		
-					// PnlMtm
-					if ( IsBadValue(pPos->m_dPnlMtm)) 
-						BadPnlMtm_ = VARIANT_TRUE;
-					if ( IsBadValue(pPos->m_dPnlTheo)) 
-						BadPnlTheo_ = VARIANT_TRUE;
+				// PnlMtm
+				if ( IsBadValue(pPos->m_dPnlMtm)) 
+					BadPnlMtm_ = VARIANT_TRUE;
+				if ( IsBadValue(pPos->m_dPnlTheo)) 
+					BadPnlTheo_ = VARIANT_TRUE;
 
 					// aggregate
-					AggregatePosition(pPos, dUndPriceMid, dUndPriceTolerance, enPriceRoundingRule);
+					AggregatePosition(pPos, 0., 0., enPrrRoundNone);
 				}
 			}
-		}
+		};
 
-		CalcNetDeltas(m_enContractType);
 		DOUBLE	dBeta = Beta_;
 		if (m_spHeadComponent)
 			m_spHeadComponent->get_Beta(&dBeta);
 
-		if(NetDlt$_ > BAD_DOUBLE_VALUE && dBeta > BAD_DOUBLE_VALUE && DoubleNEQZero(dBeta))
-		{
-
+		if(NetDlt$_ > BAD_DOUBLE_VALUE && dBeta > BAD_DOUBLE_VALUE && DoubleNEQZero(dBeta)){
 			BetaWtdDelta$_ = NetDlt$_ * dBeta;
 			if(BadNetDlt$_) BadBetaWtdDelta$_ = VARIANT_TRUE;
 		}
-		else
+		else{
 			BadBetaWtdDelta$_ = VARIANT_TRUE;
-
-
+		}
 
 		if(pnOptUpdated)
 			*pnOptUpdated += nOptUpdated;
@@ -897,11 +716,37 @@ STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
 		m_pPrice->m_bDirty   = VARIANT_FALSE;
 		m_pSuPrice->m_bDirty = VARIANT_FALSE;
 	}
-	catch(const _com_error& e)
-	{
+	catch(const _com_error& e){
 		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvUndAtom, e.Error());
 	}
 	return S_OK;
+};
+
+STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
+								LONG nMask,
+								VARIANT_BOOL bCalcGreeks,
+								VARIANT_BOOL bUpdateVola,
+								VARIANT_BOOL bRealtimeCalc,
+								VARIANT_BOOL bClearSynthGreeks,
+								IEtsProcessDelay* aDelay,
+								VARIANT_BOOL bIsPnlLTD,
+								EtsCalcModelTypeEnum enCalcModel,
+								VARIANT_BOOL bUseTheoVolatility,
+								VARIANT_BOOL bUseTheoVolaNoBid,
+								VARIANT_BOOL bUseTheoVolaBadMarket,
+								DOUBLE dUndPriceTolerance,
+								EtsPriceRoundingRuleEnum enPriceRoundingRule,
+								LONG* pnOptUpdated,
+								LONG* pnUndUpdated,
+								LONG* pnFutUpdated,
+								DATE dtCalcDate,
+								ICalculationParametrs* pParams)
+{
+	 return CalcEx(aUndColl, nMask, bCalcGreeks, bUpdateVola, bRealtimeCalc,
+					bClearSynthGreeks, aDelay, bIsPnlLTD, enCalcModel, 
+					bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
+					dUndPriceTolerance, enPriceRoundingRule, pnOptUpdated, 
+					pnUndUpdated, pnFutUpdated, dtCalcDate, pParams, NULL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -921,91 +766,38 @@ void CMmRvUndAtom::_CalcTotalsForOptionPos(CMmRvPosAtom* pPos) throw()
 	// DeltaInShares
 	if(pPos->m_dDeltaInShares > BAD_DOUBLE_VALUE)
 	{
-		/*if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
-		m_dOptDelta += pPos->m_dDeltaInShares;*/
-		/*if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-		m_dNetDelta += pPos->m_dDeltaInShares;*/
 		if(dUndPriceMid > DBL_EPSILON)
 		{
-			//if(NetDlt$_ <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
+			
+			pPos->m_dInternalEqDelta = pPos->m_dDeltaInShares * dUndPriceMid;
+
+			if(m_dNetExposureAUM >BAD_DOUBLE_VALUE && m_dNetExposureAUM != 0.0)
+				pPos->m_dNetExposure = pPos->m_dInternalEqDelta / m_dNetExposureAUM * 100;
+
+			if(m_enContractType != enCtFutUnd)
 			{
-				//if(OptDlt$_ <= BAD_DOUBLE_VALUE) OptDlt$_ = 0.;
-				pPos->m_dInternalEqDelta = pPos->m_dDeltaInShares * dUndPriceMid;
-// 				if(pPos->m_dInternalEqDelta > BAD_DOUBLE_VALUE )
-// 				{
-// 					if(m_dNetExposureAUM >BAD_DOUBLE_VALUE && m_dNetExposureAUM != 0.0)
-// 					{
-// 						pPos->m_dNetExposure = pPos->m_dInternalEqDelta / m_dNetExposureAUM * 100;
-// 						if(pPos->m_spFut!=NULL)
-// 						{
-// 							CMmRvFutAtom* pFut = static_cast<CMmRvFutAtom*>(pPos->m_spFut.GetInterfacePtr());
-// 							if(pFut && pFut->m_bMultOptDltEq)
-// 								pPos->m_dNetExposure *= pFut->m_nFutLotSize;
-// 						}
-// 						
-//						if(NetExposure_ == BAD_DOUBLE_VALUE) NetExposure_ = 0.0;
-// 						 NetExposure_ += pPos->m_dNetExposure;
-// 
-// 						ATLTRACE("NetExp %.4f -> %.4f\n",pPos->m_dNetExposure, NetExposure_);
-// 						if(pPos->m_dNetExposure < 0.0)
-// 						{
-// 							if(NetExposureSort_ == BAD_DOUBLE_VALUE) NetExposureSort_ = 0;
-// 							NetExposureSort_+= pPos->m_dNetExposure;
-// 						}
-// 						if(pPos->m_dNetExposure > 0.0)
-// 						{
-// 							if(NetExposureLong_ == BAD_DOUBLE_VALUE) NetExposureLong_ = 0;
-// 							NetExposureLong_+= pPos->m_dNetExposure;
-// 						}
-// 						
-// 					}
-// 					else
-// 						pPos->m_dNetExposure = BAD_DOUBLE_VALUE;
-// 					pPos->m_bBadNetExposure = VARIANT_FALSE;
-// 				}
-// 				else
-// 				{
-// 					pPos->m_dNetExposure = BAD_DOUBLE_VALUE;
-// 					pPos->m_bBadNetExposure = VARIANT_TRUE;
-// 				}
-// 
-				if(m_dNetExposureAUM >BAD_DOUBLE_VALUE && m_dNetExposureAUM != 0.0)
-					pPos->m_dNetExposure = pPos->m_dInternalEqDelta / m_dNetExposureAUM * 100;
-
-				if(m_enContractType != enCtFutUnd)
-				{
-					pPos->m_dDeltaEq = pPos->m_dInternalEqDelta;
-				}
-				else
-				{
-					if(pPos->m_spFut!=NULL)
-					{
-						CMmRvFutAtom* pFut = static_cast<CMmRvFutAtom*>(pPos->m_spFut.GetInterfacePtr());
-						if(pFut && pFut->m_bMultOptDltEq)
-							pPos->m_dNetExposure *= pFut->m_nFutLotSize;
-					}
-				}
-
-				/*if(pPos->m_dDeltaEq > BAD_DOUBLE_VALUE)
-					m_dDeltaEq += pPos->m_dDeltaEq;
-
-				if(pPos->m_bMultOptDltEq)
-					dOptDltEqOnePos = pPos->m_dInternalEqDelta * pPos->m_dKEq;
-				else
-					dOptDltEqOnePos = pPos->m_dInternalEqDelta;
-
-				OptDlt$_ += dOptDltEqOnePos;*/
-
-				if( m_enContractType == enCtFutUnd)
-				{
-					dOptDltEqOnePos = pPos->m_dInternalEqDelta * pPos->m_dKEq;
-					if (!pPos->m_bMultOptDltEq && pPos->m_pQuote && !IsBadValue(pPos->m_pQuote->m_nLotSize) && pPos->m_pQuote->m_nLotSize) 
-						dOptDltEqOnePos /= pPos->m_pQuote->m_nLotSize;
-				}
-				else
-					dOptDltEqOnePos = pPos->m_dInternalEqDelta;
-				//OptDlt$_ += dOptDltEqOnePos;
+				pPos->m_dDeltaEq = pPos->m_dInternalEqDelta;
 			}
+			else
+			{
+				if(pPos->m_spFut!=NULL)
+				{
+					CMmRvFutAtom* pFut = static_cast<CMmRvFutAtom*>(pPos->m_spFut.GetInterfacePtr());
+					if(pFut && pFut->m_bMultOptDltEq)
+						pPos->m_dNetExposure *= pFut->m_nFutLotSize;
+				}
+			}
+
+
+			if( m_enContractType == enCtFutUnd)
+			{
+				dOptDltEqOnePos = pPos->m_dInternalEqDelta * pPos->m_dKEq;
+				if (!pPos->m_bMultOptDltEq && pPos->m_pQuote && !IsBadValue(pPos->m_pQuote->m_nLotSize) && pPos->m_pQuote->m_nLotSize) 
+					dOptDltEqOnePos /= pPos->m_pQuote->m_nLotSize;
+			}
+			else
+				dOptDltEqOnePos = pPos->m_dInternalEqDelta;
+			
 		}
 		else
 		{
@@ -1020,140 +812,51 @@ void CMmRvUndAtom::_CalcTotalsForOptionPos(CMmRvPosAtom* pPos) throw()
 		BadNetDlt$_ = VARIANT_TRUE;
 	}
 
-	// GammaInSharesPerc
-	/*if(pPos->m_dGammaInSharesPerc > BAD_DOUBLE_VALUE)
-	{
-		if(m_dGammaPerc <= BAD_DOUBLE_VALUE) m_dGammaPerc = 0.;
-		m_dGammaPerc += pPos->m_dGammaInSharesPerc;
-		if(dUndPriceMid > DBL_EPSILON)
-		{
-			if(m_dGammaEq <= BAD_DOUBLE_VALUE) m_dGammaEq = 0.;
-			m_dGammaEq += pPos->m_dGammaInSharesPerc * dUndPriceMid;
-		}
-		else
-			m_bBadGammaEq = VARIANT_TRUE;
-	}*/
 	if(IsBadValue(pPos->m_dGammaInSharesPerc)) /*else*/
 	{
 		BadGma1P_ = VARIANT_TRUE;
 		BadNetGma$_ = VARIANT_TRUE;
 	}
 
-	// GammaInShares
-	/*if(pPos->m_dGammaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dGamma <= BAD_DOUBLE_VALUE) m_dGamma = 0.;
-		m_dGamma += pPos->m_dGammaInShares;
-	}*/
 	if(IsBadValue(pPos->m_dGammaInShares) )/*else*/
 		BadGma1$_ = VARIANT_TRUE;
 
 
-	// Net Gamma
-	/*if(pPos->m_dNetGamma > BAD_DOUBLE_VALUE)
-	{
-		if(m_dNetGamma <= BAD_DOUBLE_VALUE) m_dNetGamma = 0.;
-		m_dNetGamma += pPos->m_dNetGamma;
-	}
-	else*/
 	if(IsBadValue(pPos->m_dNetGamma))
 		BadNetGma_ = VARIANT_TRUE;
 
-
-	// VegaInShares
-	/*if(pPos->m_dVegaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dVega <= BAD_DOUBLE_VALUE) m_dVega = 0.;
-		m_dVega += pPos->m_dVegaInShares;
-	}
-	else*/
 	if(IsBadValue(pPos->m_dVegaInShares))
 		BadVga$_ = VARIANT_TRUE;
 
-	// WtdVega
-	/*if(pPos->m_dWtdVega > BAD_DOUBLE_VALUE)
-	{
-		if(m_dWtdVega <= BAD_DOUBLE_VALUE) m_dWtdVega = 0.;
-		m_dWtdVega += pPos->m_dWtdVega;
-	}
-	else*/
+
 	if(IsBadValue(pPos->m_dWtdVega))
 		BadWtdVga$_ = VARIANT_TRUE;
 
-	// ThetaInShares
-	/*if(pPos->m_dThetaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dTheta <= BAD_DOUBLE_VALUE) m_dTheta = 0.;
-		m_dTheta += pPos->m_dThetaInShares;
-	}
-	else*/
+
 	if(IsBadValue(pPos->m_dThetaInShares))
 		BadTht$_ = VARIANT_TRUE;
 
-	// RhoInShares
-	/*if(pPos->m_dRhoInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dRho <= BAD_DOUBLE_VALUE) m_dRho = 0.;
-		m_dRho += pPos->m_dRhoInShares;
-	}
-	else*/
+
 	if(IsBadValue(pPos->m_dRhoInShares))
 		BadRho$_ = VARIANT_TRUE;
 
-	// ThetaDeltaInShares
-	/*if(pPos->m_dThetaDeltaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dThetaDelta <= BAD_DOUBLE_VALUE) m_dThetaDelta = 0.;
-		m_dThetaDelta += pPos->m_dThetaDeltaInShares;
-	}
-	else
-		m_bBadThetaDelta = VARIANT_TRUE;*/
+
 	if(IsBadValue(pPos->m_dThetaDeltaInShares))
 		BadThtDlt_ = VARIANT_TRUE;
 
-	// ThetaGammaInShares
-	/*if(pPos->m_dThetaGammaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dThetaGamma <= BAD_DOUBLE_VALUE) m_dThetaGamma = 0.;
-		m_dThetaGamma += pPos->m_dThetaGammaInShares;
-	}
-	else
-		m_bBadThetaGamma = VARIANT_TRUE;*/
 	if(IsBadValue(pPos->m_dThetaGammaInShares))
 		BadThtGma_ = VARIANT_TRUE;
 
 
-	// VegaDeltaInShares
-	/*if(pPos->m_dVegaDeltaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dVegaDelta <= BAD_DOUBLE_VALUE) m_dVegaDelta = 0.;
-		m_dVegaDelta += pPos->m_dVegaDeltaInShares;
-	}
-	else*/
 	if(IsBadValue(pPos->m_dVegaDeltaInShares))
 		BadVgaDlt_ = VARIANT_TRUE;
 
-	// VegaGammaInShares
-	/*if(pPos->m_dVegaGammaInShares > BAD_DOUBLE_VALUE)
-	{
-		if(m_dVegaGamma <= BAD_DOUBLE_VALUE) m_dVegaGamma = 0.;
-		m_dVegaGamma += pPos->m_dVegaGammaInShares;
-	}
-	else
-		m_bBadVegaGamma = VARIANT_TRUE;*/
+
 	if(IsBadValue(pPos->m_dVegaGammaInShares))
 		BadVgaGma_ = VARIANT_TRUE;
 
 	// TimeValue
-	/*if(pPos->m_dTimeValue > BAD_DOUBLE_VALUE)
-	{
-		if(m_dTimeValue <= BAD_DOUBLE_VALUE) m_dTimeValue = 0.;
-		m_dTimeValue += pPos->m_dTimeValue;
 
-		if(m_dTimeValueInShares <= BAD_DOUBLE_VALUE) m_dTimeValueInShares = 0.;
-		m_dTimeValueInShares += (pPos->m_dTimeValue*pPos->m_nQtyInShares);
-	}
-	else*/
 	if(IsBadValue(pPos->m_dTimeValue))
 		BadTmVal_ = VARIANT_TRUE;
 
@@ -1357,16 +1060,17 @@ STDMETHODIMP CMmRvUndAtom::CalcWtdVega(IEtsExpCalColl* aExpCalColl)
 
 /////////////////////////////////////////////////////////////////////////////
 //
-STDMETHODIMP CMmRvUndAtom::CalcSyntheticUnderlying(IMmRvUndColl* aUndColl,
-																	LONG nMask,
-																	VARIANT_BOOL bIsPnlLTD,
-																	EtsCalcModelTypeEnum enCalcModel,
-																	VARIANT_BOOL bUseTheoVolatility,
-																	VARIANT_BOOL bUseTheoVolaNoBid,
-																	VARIANT_BOOL bUseTheoVolaBadMarket,
-																	DOUBLE dUndPriceTolerance,
-																	EtsPriceRoundingRuleEnum enPriceRoundingRule,
-																	DATE dtCalcDate)
+STDMETHODIMP CMmRvUndAtom::CalcSyntheticUnderlying(	IMmRvUndColl* aUndColl,
+													LONG nMask,
+													VARIANT_BOOL bIsPnlLTD,
+													EtsCalcModelTypeEnum enCalcModel,
+													VARIANT_BOOL bUseTheoVolatility,
+													VARIANT_BOOL bUseTheoVolaNoBid,
+													VARIANT_BOOL bUseTheoVolaBadMarket,
+													DOUBLE dUndPriceTolerance,
+													EtsPriceRoundingRuleEnum enPriceRoundingRule,
+													DATE dtCalcDate,
+													ICalculationParametrs* pParams)
 {
 	if(aUndColl == NULL)
 		return Error(L"Invalid objects passed.", IID_IMmRvUndAtom, E_INVALIDARG);
@@ -1381,14 +1085,20 @@ STDMETHODIMP CMmRvUndAtom::CalcSyntheticUnderlying(IMmRvUndColl* aUndColl,
 		DOUBLE dUndPriceMid = 0.;
 		if(m_spUndPriceProfile != NULL)
 		{
-			dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_pPrice->m_dPriceBid, m_pPrice->m_dPriceAsk, m_pPrice->m_dPriceLast, 
-				dUndPriceTolerance, enPriceRoundingRule, NULL, VARIANT_FALSE);
-		}
+			dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(	m_pPrice->m_dPriceBid,
+																m_pPrice->m_dPriceAsk,
+																m_pPrice->m_dPriceLast, 
+																dUndPriceTolerance,
+																enPriceRoundingRule,
+																NULL, VARIANT_FALSE);
+		};
 
 		IMmRvUndCollPtr spUndColl(aUndColl);
 		IMmRvUndCollPtr spUndColl2;
 		IMmRvPosAtomPtr spPos;
 		IMmRvUndAtomPtr spUnd, spUnd2;
+
+		ICalculationParametrsPtr spParams(pParams);
 
 		_CHK(spUndColl2.CreateInstance(CLSID_MmRvUndColl), _T("Fail to create underlings."));
 		if(spUndColl2 == NULL)
@@ -1424,7 +1134,7 @@ STDMETHODIMP CMmRvUndAtom::CalcSyntheticUnderlying(IMmRvUndColl* aUndColl,
 						_CHK(spPos->CalcOptionGreeks(spUndColl, this, dUndPriceMid,
 							nMask, bIsPnlLTD, enCalcModel,
 							bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-							dUndPriceTolerance, enPriceRoundingRule,dtCalcDate));
+							dUndPriceTolerance, enPriceRoundingRule,dtCalcDate, spParams));
 					}
 				}
 			}
@@ -1443,21 +1153,23 @@ STDMETHODIMP CMmRvUndAtom::CalcSyntheticUnderlying(IMmRvUndColl* aUndColl,
 				_CHK(spUnd->get_ID(&nUndID));
 				if(nUndID != m_nID)
 				{
-					_CHK(spUnd->Calc(spUndColl,
-						nMask,
-						VARIANT_TRUE,
-						VARIANT_TRUE,
-						VARIANT_FALSE,
-						VARIANT_TRUE,
-						NULL,
-						bIsPnlLTD,
-						enCalcModel,
-						bUseTheoVolatility,
-						bUseTheoVolaNoBid,
-						bUseTheoVolaBadMarket,
-						dUndPriceTolerance,
-						enPriceRoundingRule,
-						NULL, NULL, NULL,dtCalcDate));
+					_CHK(spUnd->Calc(	spUndColl,
+										nMask,
+										VARIANT_TRUE,
+										VARIANT_TRUE,
+										VARIANT_FALSE,
+										VARIANT_TRUE,
+										NULL,
+										bIsPnlLTD,
+										enCalcModel,
+										bUseTheoVolatility,
+										bUseTheoVolaNoBid,
+										bUseTheoVolaBadMarket,
+										dUndPriceTolerance,
+										enPriceRoundingRule,
+										NULL, NULL, NULL,
+										dtCalcDate,
+										spParams));
 				}
 			}
 		}
@@ -1620,879 +1332,312 @@ STDMETHODIMP CMmRvUndAtom::ClearRatios()
 
 	return S_OK;
 }
-//// MmRvUndAtom.cpp : Implementation of CMmRvUndAtom
-//
-//#include "stdafx.h"
-//#include "MmRvUndAtom.h"
-//#include "MmRvUndColl.h"
-//#include "MmRvUndAtom.h"
-//
-///////////////////////////////////////////////////////////////////////////////
-////
-//STDMETHODIMP CMmRvUndAtom::GetSyntheticUnderlyingPrice(IMmRvUndColl* aUndColl,
-//														ISynthRootAtom* aSynthRoot,
-//														DOUBLE* pdSynthBid,
-//														DOUBLE* pdSynthAsk,
-//														DOUBLE* pdSynthLast)
-//{
-//	if(aUndColl == NULL)
-//		return Error(L"Invalid object passed.", IID_IMmRvUndAtom, E_INVALIDARG);
-//
-//	__CHECK_POINTER(pdSynthBid);
-//	__CHECK_POINTER(pdSynthAsk);
-//	__CHECK_POINTER(pdSynthLast);
-//
-//	*pdSynthBid = BAD_DOUBLE_VALUE;
-//	*pdSynthAsk = BAD_DOUBLE_VALUE;
-//	*pdSynthLast = BAD_DOUBLE_VALUE;
-//
-//	if(!m_bHasSynthetic || m_spSynthRoots == NULL || aSynthRoot == NULL)
-//		return S_OK;
-//
-//	try
-//	{
-//		IUnknownPtr spUnk;
-//		_variant_t varItem;
-//		ULONG nFetched = 0L;
-//		HRESULT hr;
-//
-//		ISynthRootAtomPtr spSynthRoot(aSynthRoot);
-//
-//		IMmRvUndCollPtr spUndColl(aUndColl);
-//		IMmRvUndAtomPtr spSynthUnd;
-//
-//		bool bBadSpotBid = false, bBadSpotAsk = false, bBadSpotLast = false;
-//
-//
-//		*pdSynthBid = spSynthRoot->CashValue;
-//		*pdSynthAsk = *pdSynthBid;
-//		*pdSynthLast = *pdSynthBid;
-//
-//		ISynthRootCompAtomPtr spSRComp;
-//		ISynthRootCompCollPtr spSRCompColl;
-//
-//		spSRCompColl = spSynthRoot->SynthRootComponents;
-//
-//
-//		_CHK(spSRCompColl->get__NewEnum(&spUnk), _T("Fail to get synthetic underlying component collection enum."));
-//		IEnumVARIANTPtr spSynthRootEnum(spUnk);
-//		_CHK(spSynthRootEnum->Reset(), _T("Fail to reset synthetic underlying component collection."));
-//		while((hr = spSynthRootEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//		{
-//			ATLASSERT(varItem.vt == VT_DISPATCH);
-//			spSRComp = varItem;
-//			if(spSRComp != NULL)
-//			{
-//				LONG nUndID = 0L;
-//				DOUBLE dWeight = 0.;
-//				DOUBLE dPrice = 0.;
-//
-//				nUndID = spSRComp->UndID;
-//				_CHK(spUndColl->get_Item(nUndID, &spSynthUnd), _T("Fail to get synthetic underlying."));
-//
-//				if(spSynthUnd != NULL)
-//				{
-//					dWeight = spSRComp->Weight;
-//
-//					_CHK(spSynthUnd->get_PriceBid(&dPrice));
-//					if(!bBadSpotBid && dPrice > DBL_EPSILON)
-//						*pdSynthBid += dPrice * dWeight;
-//					else
-//					{
-//						bBadSpotBid = true;
-//						*pdSynthBid = BAD_DOUBLE_VALUE;
-//					}
-//
-//					_CHK(spSynthUnd->get_PriceAsk(&dPrice));
-//					if(!bBadSpotAsk && dPrice > DBL_EPSILON)
-//						*pdSynthAsk += dPrice * dWeight;
-//					else
-//					{
-//						bBadSpotAsk = true;
-//						*pdSynthAsk = BAD_DOUBLE_VALUE;
-//					}
-//
-//					_CHK(spSynthUnd->get_PriceLast(&dPrice));
-//					if(!bBadSpotLast && dPrice > DBL_EPSILON)
-//						*pdSynthLast += dPrice * dWeight;
-//					else
-//					{
-//						bBadSpotLast = true;
-//						*pdSynthLast = BAD_DOUBLE_VALUE;
-//					}
-//				}
-//			}
-//		}
-//	}
-//	catch(const _com_error& e)
-//	{
-//		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvUndAtom, e.Error());
-//	}
-//	return S_OK;
-//}
-//
-///////////////////////////////////////////////////////////////////////////////
-////
-//STDMETHODIMP CMmRvUndAtom::Calc(IMmRvUndColl* aUndColl,
-//								LONG nMask,
-//								VARIANT_BOOL bCalcGreeks,
-//								VARIANT_BOOL bUpdateVola,
-//								VARIANT_BOOL bRealtimeCalc,
-//								VARIANT_BOOL bClearSynthGreeks,
-//								IEtsProcessDelay* aDelay,
-//								VARIANT_BOOL bIsPnlLTD,
-//								EtsCalcModelTypeEnum enCalcModel,
-//								VARIANT_BOOL bUseTheoVolatility,
-//								VARIANT_BOOL bUseTheoVolaNoBid,
-//								VARIANT_BOOL bUseTheoVolaBadMarket,
-//								DOUBLE dUndPriceTolerance,
-//								EtsPriceRoundingRuleEnum enPriceRoundingRule,
-//								LONG* pnOptUpdated,
-//								LONG* pnUndUpdated,
-//								LONG* pnFutUpdated)
-//{
-//	if(aUndColl == NULL)
-//		return Error(L"Invalid object passed.", IID_IMmRvUndAtom, E_INVALIDARG);
-//   	try
-//	{
-//		IMmRvUndCollPtr spUndColl(aUndColl);
-//
-//		IUnknownPtr spUnk;
-//		_variant_t varItem;
-//		ULONG nFetched = 0L;
-//		HRESULT hr;
-//		LONG nOptUpdated = 0L, nUndUpdated = 0L, nFutUpdated = 0L;
-//
-//		IEtsProcessDelayPtr spDelay(aDelay);
-//		if(spDelay != NULL && spDelay->IsInterrupted)
-//			return S_OK;
-//		
-//		if(bUpdateVola)
-//			bCalcGreeks = VARIANT_TRUE;
-//
-//		__MmRvUndAtom::ClearValues();
-//
-//		if(bClearSynthGreeks)
-//			_ClearSynthGreeks();
-//
-//		EtsReplacePriceStatusEnum enUndPriceStatusMid = enRpsNone;
-//		EtsReplacePriceStatusEnum enUndPriceStatusBid = enRpsNone;
-//		EtsReplacePriceStatusEnum enUndPriceStatusAsk = enRpsNone;
-//		DOUBLE dUndPriceMid = 0., dUndPriceBid = 0., dUndPriceAsk = 0.;
-//
-//		if(m_spUndPriceProfile != NULL)
-//		{
-//			dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_dPriceBid, m_dPriceAsk,
-//				m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusMid, TRUE);
-//
-//			dUndPriceBid = m_spUndPriceProfile->GetUndPriceBidForPnL(m_dPriceBid, m_dPriceAsk,
-//				m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusBid);
-//
-//			dUndPriceAsk = m_spUndPriceProfile->GetUndPriceAskForPnL(m_dPriceBid, m_dPriceAsk,
-//				m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enUndPriceStatusAsk);
-//		}
-//	          
-//		m_enReplacePriceStatus = static_cast<EtsReplacePriceStatusEnum>(enUndPriceStatusMid | enUndPriceStatusBid | enUndPriceStatusAsk);
-//	                
-//		DATE dtToday = vt_date::GetCurrentDate(true);
-//		VARIANT_BOOL bNeedRecalc = VARIANT_FALSE;
-//		VARIANT_BOOL bPosCalcGreeks = VARIANT_FALSE;
-//		VARIANT_BOOL bCalcTheos = VARIANT_FALSE;
-//		DOUBLE dPosValue = BAD_DOUBLE_VALUE;
-//
-//		IMmRvPosAtomPtr spPos;
-//
-//		_CHK(m_spPos->get__NewEnum(&spUnk));
-//		IEnumVARIANTPtr spPosEnum(spUnk);
-//		_CHK(spPosEnum->Reset());
-//		bool bHasItems = false;
-//
-//		while((hr = spPosEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//		{
-//			bHasItems = true;
-//			ATLASSERT(varItem.vt == VT_DISPATCH);
-//			spPos = varItem;
-//			if(spPos != NULL)
-//			{
-//				VARIANT_BOOL bVisible = VARIANT_FALSE;
-//				_CHK(spPos->get_Visible(&bVisible));
-//				if(bVisible)
-//				{
-//					EtsContractTypeEnum enContractType = enCtNone;
-//					_CHK(spPos->get_ContractType(&enContractType));
-//					LONG nPosQty = 0L;
-//					_CHK(spPos->get_Qty(&nPosQty));
-//
-//					LONG nPosQtyInShares = 0L;
-//					_CHK(spPos->get_QtyInShares(&nPosQtyInShares));
-//
-//					// options
-//					if(enContractType == enCtOption || enContractType == enCtFutOption)
-//					{
-//						if(m_nOptQty <= BAD_LONG_VALUE) m_nOptQty = 0L;
-//						m_nOptQty += nPosQty;
-//
-//						DATE dtExpiry = 0.;
-//						_CHK(spPos->get_Expiry(&dtExpiry));
-//						DOUBLE dStrike = 0.;
-//						_CHK(spPos->get_Strike(&dStrike));
-//
-//						if(dtExpiry >= dtToday)
-//						{
-//							_CHK(spPos->get_CalcGreeks(&bPosCalcGreeks));
-//
-//							if(bRealtimeCalc)
-//							{
-//								bCalcTheos = m_bCalcGreeks || m_bCalcTotals || bPosCalcGreeks;
-//
-//								if(!bCalcTheos && enContractType == enCtFutOption)
-//								{
-//									IMmRvFutAtomPtr spFut;
-//									_CHK(spPos->get_Fut(&spFut));
-//
-//									if(spFut != NULL)
-//									{
-//										VARIANT_BOOL bFutCalcGreeks = VARIANT_FALSE;
-//										_CHK(spFut->get_CalcGreeks(&bFutCalcGreeks));
-//										bCalcTheos = bCalcTheos || bFutCalcGreeks;
-//									}
-//								}
-//
-//								bUpdateVola = m_bCalcGreeks;
-//								bNeedRecalc = m_bCalcTotals;
-//							}
-//							else
-//							{
-//								bCalcTheos = bCalcGreeks;
-//								bNeedRecalc = VARIANT_TRUE;
-//							}
-//
-//							if(bNeedRecalc)
-//							{
-//								nOptUpdated++;
-//
-//								if(bUpdateVola)
-//									_CHK(spPos->put_Vola(m_spVolaSrv->GetOptionVola(dtExpiryOV, dStrike)));
-//
-//								if(enContractType == enCtOption)
-//								{
-//									_CHK(spPos->CalcOptionGreeks(spUndColl, this, dUndPriceMid,
-//										(bCalcTheos ? nMask : GT_NOTHING), bIsPnlLTD, enCalcModel,
-//										bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-//										dUndPriceTolerance, enPriceRoundingRule));
-//								}
-//								else
-//								{
-//									_CHK(spPos->CalcFutOptionGreeks(this, dUndPriceMid,
-//										(bCalcTheos ? nMask : GT_NOTHING), bIsPnlLTD, enCalcModel,
-//										bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-//										dUndPriceTolerance, enPriceRoundingRule));
-//								}
-//
-//								if(spDelay != NULL)
-//									spDelay->Sleep();
-//							}
-//
-//							_CalcTotalsForOptionPos(spPos, dUndPriceMid);
-//						}
-//						else
-//							__MmRvUndAtom::SetAllValuesAsBad();
-//					}
-//
-//					// underlyings
-//					else if(enContractType == enCtStock || enContractType == enCtIndex)
-//					{
-//						if(m_nQty <= BAD_LONG_VALUE) m_nQty = 0L;
-//						m_nQty += nPosQtyInShares;
-//
-//						nUndUpdated++;
-//
-//						_CHK(spPos->CalcPnlMtm(bIsPnlLTD, dUndPriceBid, dUndPriceAsk, VARIANT_TRUE));
-//
-//						if(dUndPriceMid > DBL_EPSILON)
-//						{
-//							if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-//							m_dDeltaEq += nPosQtyInShares * dUndPriceMid;
-//						}
-//						else
-//							m_bBadDeltaEq = VARIANT_TRUE;
-//
-//						if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-//						m_dNetDelta += nPosQtyInShares;
-//					}
-//
-//					// futures
-//					else if(enContractType == enCtFuture)
-//					{
-//						if(m_nFutQty <= BAD_LONG_VALUE) m_nFutQty = 0L;
-//						m_nFutQty += nPosQty;
-//
-//						if(m_nQty <= BAD_LONG_VALUE) m_nQty = 0L;
-//						m_nQty += nPosQtyInShares;
-//
-//						nFutUpdated++;
-//
-//						IMmRvFutAtomPtr spFut;
-//						_CHK(spPos->get_Fut(&spFut));
-//
-//						if(spFut != NULL)
-//						{
-//							EtsReplacePriceStatusEnum enFutPriceStatusMid = enRpsNone;
-//							EtsReplacePriceStatusEnum enFutPriceStatusBid = enRpsNone;
-//							EtsReplacePriceStatusEnum enFutPriceStatusAsk = enRpsNone;
-//							DOUBLE dFutPriceMid = 0., dFutPriceBid = 0., dFutPriceAsk = 0.;
-//							IEtsPriceProfileAtomPtr spUndPriceProfile;
-//
-//							_CHK(spFut->get_UndPriceProfile(&spUndPriceProfile));
-//
-//							if(spUndPriceProfile != NULL)
-//							{
-//								DOUBLE dPriceBid = 0., dPriceAsk = 0., dPriceLast = 0.;
-//
-//								_CHK(spFut->get_PriceBid(&dPriceBid));
-//								_CHK(spFut->get_PriceAsk(&dPriceAsk));
-//								_CHK(spFut->get_PriceLast(&dPriceLast));
-//
-//								dFutPriceMid = spUndPriceProfile->GetUndPriceMid(dPriceBid, dPriceAsk,
-//									dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusMid, TRUE);
-//
-//								dFutPriceBid = spUndPriceProfile->GetUndPriceBidForPnL(dPriceBid, dPriceAsk,
-//									dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusBid);
-//
-//								dFutPriceAsk = spUndPriceProfile->GetUndPriceAskForPnL(dPriceBid, dPriceAsk,
-//									dPriceLast, dUndPriceTolerance, enPriceRoundingRule, &enFutPriceStatusAsk);
-//							}
-//						          
-//							_CHK(spPos->put_ReplacePriceStatus(static_cast<EtsReplacePriceStatusEnum>(enFutPriceStatusMid | enFutPriceStatusBid | enFutPriceStatusAsk)));
-//
-//							_CHK(spPos->CalcPnlMtm(bIsPnlLTD, dFutPriceBid, dFutPriceAsk, VARIANT_TRUE));
-//						}
-//
-//						if(dUndPriceMid > DBL_EPSILON)
-//						{
-//							if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-//							m_dDeltaEq += nPosQtyInShares * dUndPriceMid;
-//						}
-//						else
-//							m_bBadDeltaEq = VARIANT_TRUE;
-//
-//						if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-//						m_dNetDelta += nPosQtyInShares;
-//					}
-//
-//					// PnlMtm
-//					_CHK(spPos->get_PnlMtm(&dPosValue));
-//					if(dPosValue > BAD_DOUBLE_VALUE)
-//					{
-//						if(m_dPnlMtm <= BAD_DOUBLE_VALUE) m_dPnlMtm = 0.;
-//						m_dPnlMtm += dPosValue;
-//					}
-//					else
-//						m_bBadPnlMtm = VARIANT_TRUE;
-//
-//					// PnlTheo
-//					_CHK(spPos->get_PnlTheo(&dPosValue));
-//					if(dPosValue > BAD_DOUBLE_VALUE)
-//					{
-//						if(m_dPnlTheo <= BAD_DOUBLE_VALUE) m_dPnlTheo = 0.;
-//						m_dPnlTheo += dPosValue;
-//					}
-//					else
-//						m_bBadPnlTheo = VARIANT_TRUE;
-//				}
-//			}
-//		}
-//
-//		if(m_dDeltaEq > BAD_DOUBLE_VALUE && m_dBeta > BAD_DOUBLE_VALUE && DoubleNEQZero(m_dBeta))
-//		{
-//			m_dBetaWtdDeltaEq = m_dDeltaEq * m_dBeta;
-//			if(m_bBadDeltaEq) m_bBadBetaWtdDeltaEq = VARIANT_TRUE;
-//		}
-//		else
-//			m_bBadBetaWtdDeltaEq = VARIANT_TRUE;
-//
-//
-//
-//		if(pnOptUpdated)
-//			*pnOptUpdated += nOptUpdated;
-//
-//		if(pnUndUpdated)
-//			*pnUndUpdated += nUndUpdated;
-//
-//		if(pnFutUpdated)
-//			*pnFutUpdated += nFutUpdated;
-//	}
-//	catch(const _com_error& e)
-//	{
-//		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvUndAtom, e.Error());
-//	}
-//	return S_OK;
-//}
-//
-///////////////////////////////////////////////////////////////////////////////
-////
-//void CMmRvUndAtom::_CalcTotalsForOptionPos(IMmRvPosAtomPtr spPos, DOUBLE dUndPriceMid) throw()
-//{
-//	DOUBLE dPosValue = BAD_DOUBLE_VALUE;
-//	// DeltaInShares
-//	_CHK(spPos->get_DeltaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dOptDelta <= BAD_DOUBLE_VALUE) m_dOptDelta = 0.;
-//		m_dOptDelta += dPosValue;
-//		if(m_dNetDelta <= BAD_DOUBLE_VALUE) m_dNetDelta = 0.;
-//		m_dNetDelta += dPosValue;
-//		if(dUndPriceMid > DBL_EPSILON)
-//		{
-//			if(m_dDeltaEq <= BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-//			m_dDeltaEq += dPosValue * dUndPriceMid;
-//		}
-//		else
-//			m_bBadDeltaEq = VARIANT_TRUE;
-//	}
-//	else
-//	{
-//		m_bBadNetDelta = VARIANT_TRUE;
-//		m_bBadOptDelta = VARIANT_TRUE;
-//		m_bBadDeltaEq = VARIANT_TRUE;
-//	}
-//
-//	// GammaInSharesPerc
-//	_CHK(spPos->get_GammaInSharesPerc(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dGammaPerc <= BAD_DOUBLE_VALUE) m_dGammaPerc = 0.;
-//		m_dGammaPerc += dPosValue;
-//		if(dUndPriceMid > DBL_EPSILON)
-//		{
-//			if(m_dGammaEq <= BAD_DOUBLE_VALUE) m_dGammaEq = 0.;
-//			m_dGammaEq += dPosValue * dUndPriceMid;
-//		}
-//		else
-//			m_bBadGammaEq = VARIANT_TRUE;
-//	}
-//	else
-//	{
-//		m_bBadGammaPerc = VARIANT_TRUE;
-//		m_bBadGammaEq = VARIANT_TRUE;
-//	}
-//
-//	// GammaInShares
-//	_CHK(spPos->get_GammaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dGamma <= BAD_DOUBLE_VALUE) m_dGamma = 0.;
-//		m_dGamma += dPosValue;
-//	}
-//	else
-//		m_bBadGamma = VARIANT_TRUE;
-//
-//
-//	// Net Gamma
-//	_CHK(spPos->get_NetGamma(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dNetGamma <= BAD_DOUBLE_VALUE) m_dNetGamma = 0.;
-//		m_dNetGamma += dPosValue;
-//	}
-//	else
-//		m_bBadNetGamma = VARIANT_TRUE;
-//
-//
-//	// VegaInShares
-//	_CHK(spPos->get_VegaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dVega <= BAD_DOUBLE_VALUE) m_dVega = 0.;
-//		m_dVega += dPosValue;
-//	}
-//	else
-//		m_bBadVega = VARIANT_TRUE;
-//
-//	// WtdVega
-//	_CHK(spPos->get_WtdVega(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dWtdVega <= BAD_DOUBLE_VALUE) m_dWtdVega = 0.;
-//		m_dWtdVega += dPosValue;
-//	}
-//	else
-//		m_bBadWtdVega = VARIANT_TRUE;
-//
-//	// ThetaInShares
-//	_CHK(spPos->get_ThetaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dTheta <= BAD_DOUBLE_VALUE) m_dTheta = 0.;
-//		m_dTheta += dPosValue;
-//	}
-//	else
-//		m_bBadTheta = VARIANT_TRUE;
-//
-//	// RhoInShares
-//	_CHK(spPos->get_RhoInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dRho <= BAD_DOUBLE_VALUE) m_dRho = 0.;
-//		m_dRho += dPosValue;
-//	}
-//	else
-//		m_bBadRho = VARIANT_TRUE;
-//
-//	// ThetaDeltaInShares
-//	_CHK(spPos->get_ThetaDeltaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dThetaDelta <= BAD_DOUBLE_VALUE) m_dThetaDelta = 0.;
-//		m_dThetaDelta += dPosValue;
-//	}
-//	else
-//		m_bBadThetaDelta = VARIANT_TRUE;
-//
-//	// ThetaGammaInShares
-//	_CHK(spPos->get_ThetaGammaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dThetaGamma <= BAD_DOUBLE_VALUE) m_dThetaGamma = 0.;
-//		m_dThetaGamma += dPosValue;
-//	}
-//	else
-//		m_bBadThetaGamma = VARIANT_TRUE;
-//
-//	// VegaDeltaInShares
-//	_CHK(spPos->get_VegaDeltaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dVegaDelta <= BAD_DOUBLE_VALUE) m_dVegaDelta = 0.;
-//		m_dVegaDelta += dPosValue;
-//	}
-//	else
-//		m_bBadVegaDelta = VARIANT_TRUE;
-//
-//	// VegaGammaInShares
-//	_CHK(spPos->get_VegaGammaInShares(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dVegaGamma <= BAD_DOUBLE_VALUE) m_dVegaGamma = 0.;
-//		m_dVegaGamma += dPosValue;
-//	}
-//	else
-//		m_bBadVegaGamma = VARIANT_TRUE;
-//
-//	// TimeValue
-//	_CHK(spPos->get_TimeValue(&dPosValue));
-//	if(dPosValue > BAD_DOUBLE_VALUE)
-//	{
-//		if(m_dTimeValue <= BAD_DOUBLE_VALUE) m_dTimeValue = 0.;
-//		m_dTimeValue += dPosValue;
-//	}
-//	else
-//		m_bBadTimeValue = VARIANT_TRUE;
-//
-//	VARIANT_BOOL bPosIsSynthetic = VARIANT_FALSE;
-//	_CHK(spPos->get_IsSynthetic(&bPosIsSynthetic));
-//	if(bPosIsSynthetic)
-//	{
-//		IMmRvSynthGreeksCollPtr spPosSynthGreeksColl;
-//		_CHK(spPos->get_SynthGreeks(&spPosSynthGreeksColl));
-//		
-//		if(spPosSynthGreeksColl != NULL)
-//		{
-//			IMmRvSynthGreeksAtomPtr spPosSynthGreeks;
-//			LONG nSynthUndID = 0L;
-//			DOUBLE dSelfValue = BAD_DOUBLE_VALUE;
-//
-//			IUnknownPtr spUnk;
-//			_variant_t varItem;
-//			ULONG nFetched = 0L;
-//			HRESULT hr;
-//
-//			_CHK(spPosSynthGreeksColl->get__NewEnum(&spUnk));
-//			IEnumVARIANTPtr spPosSynthGreekEnum(spUnk);
-//			_CHK(spPosSynthGreekEnum->Reset());
-//			while((hr = spPosSynthGreekEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//			{
-//				ATLASSERT(varItem.vt == VT_DISPATCH);
-//				spPosSynthGreeks = varItem;
-//				if(spPosSynthGreeks != NULL)
-//				{
-//					_CHK(spPosSynthGreeks->get_SynthUndID(&nSynthUndID));
-//					IMmRvSynthGreeksAtomPtr spSynthGreeks;
-//					_CHK(m_spSynthGreeks->get_Item(nSynthUndID, &spSynthGreeks));
-//
-//					if(spSynthGreeks != NULL)
-//					{
-//						// DeltaInShares
-//						_CHK(spPosSynthGreeks->get_DeltaInShares(&dPosValue));
-//						if(dPosValue > BAD_DOUBLE_VALUE)
-//						{
-//							_CHK(spSynthGreeks->get_DeltaInShares(&dSelfValue));
-//							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-//							_CHK(spSynthGreeks->put_DeltaInShares(dSelfValue + dPosValue));
-//						}
-//						else
-//							_CHK(spSynthGreeks->put_BadDelta(VARIANT_TRUE));
-//
-//						// GammaInSharesPerc
-//						_CHK(spPosSynthGreeks->get_GammaInSharesPerc(&dPosValue));
-//						if(dPosValue > BAD_DOUBLE_VALUE)
-//						{
-//							_CHK(spSynthGreeks->get_GammaInSharesPerc(&dSelfValue));
-//							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-//							_CHK(spSynthGreeks->put_GammaInSharesPerc(dSelfValue + dPosValue));
-//						}
-//						else
-//							_CHK(spSynthGreeks->put_BadGammaPerc(VARIANT_TRUE));
-//
-//						// GammaInShares
-//						_CHK(spPosSynthGreeks->get_GammaInShares(&dPosValue));
-//						if(dPosValue > BAD_DOUBLE_VALUE)
-//						{
-//							_CHK(spSynthGreeks->get_GammaInShares(&dSelfValue));
-//							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-//							_CHK(spSynthGreeks->put_GammaInShares(dSelfValue + dPosValue));
-//						}
-//						else
-//							_CHK(spSynthGreeks->put_BadGamma(VARIANT_TRUE));
-//
-//						// Net Gamma
-//						_CHK(spPosSynthGreeks->get_NetGamma(&dPosValue));
-//						if(dPosValue > BAD_DOUBLE_VALUE)
-//						{
-//							_CHK(spSynthGreeks->get_NetGamma(&dSelfValue));
-//							if(dSelfValue <= BAD_DOUBLE_VALUE) dSelfValue = 0.;
-//							_CHK(spSynthGreeks->put_NetGamma(dSelfValue + dPosValue));
-//						}
-//						else
-//							_CHK(spSynthGreeks->put_BadNetGamma(VARIANT_TRUE));
-//
-//					}
-//				}
-//			}
-//		}
-//	}
-//}
-//
-///////////////////////////////////////////////////////////////////////////////
-////
-//void CMmRvUndAtom::_ClearSynthGreeks() throw()
-//{
-//	if(m_bHasSynthetic && m_spSynthGreeks != NULL)
-//	{
-//		IUnknownPtr spUnk;
-//		_variant_t varItem;
-//		ULONG nFetched = 0L;
-//		HRESULT hr;
-//		IMmRvSynthGreeksAtomPtr spSynthGreeks;
-//
-//		_CHK(m_spSynthGreeks->get__NewEnum(&spUnk));
-//		IEnumVARIANTPtr spSynthGreekEnum(spUnk);
-//		_CHK(spSynthGreekEnum->Reset());
-//		while((hr = spSynthGreekEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//		{
-//			ATLASSERT(varItem.vt == VT_DISPATCH);
-//			spSynthGreeks = varItem;
-//			if(spSynthGreeks != NULL)
-//				_CHK(spSynthGreeks->ClearValuesInShares());
-//		}
-//	}
-//}
-//
-///////////////////////////////////////////////////////////////////////////////
-////
-//STDMETHODIMP CMmRvUndAtom::CalcWtdVega(IEtsExpCalColl* aExpCalColl)
-//{
-//	if(aExpCalColl == NULL)
-//		return Error(L"Invalid objects passed.", IID_IMmRvUndAtom, E_INVALIDARG);
-//
-//	try
-//	{
-//		m_bBadWtdVega = VARIANT_FALSE;
-//		m_dWtdVega = BAD_DOUBLE_VALUE;
-//
-//		IUnknownPtr spUnk;
-//		_variant_t varItem;
-//		ULONG nFetched = 0L;
-//		HRESULT hr;
-//		DATE dtToday = vt_date::GetCurrentDate(true);
-//
-//		IEtsExpCalCollPtr spExpCalColl(aExpCalColl);
-//		IMmRvPosAtomPtr spPos;
-//
-//		_CHK(m_spPos->get__NewEnum(&spUnk));
-//		IEnumVARIANTPtr spPosEnum(spUnk);
-//		_CHK(spPosEnum->Reset());
-//		while((hr = spPosEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//		{
-//			ATLASSERT(varItem.vt == VT_DISPATCH);
-//			spPos = varItem;
-//			if(spPos != NULL)
-//			{
-//				EtsContractTypeEnum enContractType = enCtNone;
-//				_CHK(spPos->get_ContractType(&enContractType));
-//				
-//				if(enContractType == enCtOption || enContractType == enCtFutOption)
-//				{
-//					DOUBLE dVegaWeight = BAD_DOUBLE_VALUE;
-//					DATE dtExpiry = 0.;
-//					_CHK(spPos->get_Expiry(&dtExpiry));
-//
-//					if(enContractType == enCtOption)
-//						dVegaWeight = spExpCalColl->GetVegaWeight(m_nExpCalendarID, dtExpiry);
-//					else
-//					{
-//						LONG nExpCalendarID = 0L;
-//						IMmRvFutAtomPtr spFut;
-//						_CHK(spPos->get_Fut(&spFut));
-//
-//						if(spFut != NULL)
-//						{
-//							_CHK(spFut->get_ExpCalendarID(&nExpCalendarID));
-//							dVegaWeight = spExpCalColl->GetVegaWeight(nExpCalendarID, dtExpiry);
-//						}
-//					}
-//
-//					_CHK(spPos->put_VegaWeight(dVegaWeight));
-//
-//					VARIANT_BOOL bVisible = VARIANT_FALSE;
-//					_CHK(spPos->get_Visible(&bVisible));
-//					if(bVisible && dtExpiry >= dtToday && dVegaWeight > BAD_DOUBLE_VALUE)
-//					{
-//						DOUBLE dPosValue = BAD_DOUBLE_VALUE;
-//						// VegaInShares
-//						_CHK(spPos->get_VegaInShares(&dPosValue));
-//						if(dPosValue > BAD_DOUBLE_VALUE)
-//						{
-//							_CHK(spPos->put_WtdVega(dPosValue * dVegaWeight));
-//
-//							if(m_dWtdVega <= BAD_DOUBLE_VALUE) m_dWtdVega = 0.;
-//							m_dWtdVega += dPosValue * dVegaWeight;
-//						}
-//						else
-//							m_bBadWtdVega = VARIANT_TRUE;
-//					}
-//				}
-//			}
-//		}
-//	}
-//	catch(const _com_error& e)
-//	{
-//		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvUndAtom, e.Error());
-//	}
-//	return S_OK;
-//}
-//
-///////////////////////////////////////////////////////////////////////////////
-////
-//STDMETHODIMP CMmRvUndAtom::CalcSyntheticUnderlying(IMmRvUndColl* aUndColl,
-//													LONG nMask,
-//													VARIANT_BOOL bIsPnlLTD,
-//													EtsCalcModelTypeEnum enCalcModel,
-//													VARIANT_BOOL bUseTheoVolatility,
-//													VARIANT_BOOL bUseTheoVolaNoBid,
-//													VARIANT_BOOL bUseTheoVolaBadMarket,
-//													DOUBLE dUndPriceTolerance,
-//													EtsPriceRoundingRuleEnum enPriceRoundingRule)
-//{
-//	if(aUndColl == NULL)
-//		return Error(L"Invalid objects passed.", IID_IMmRvUndAtom, E_INVALIDARG);
-//
-//	try
-//	{
-//		IUnknownPtr spUnk;
-//		_variant_t varItem;
-//		ULONG nFetched = 0L;
-//		HRESULT hr;
-//
-//		DOUBLE dUndPriceMid = 0.;
-//		if(m_spUndPriceProfile != NULL)
-//		{
-//			dUndPriceMid = m_spUndPriceProfile->GetUndPriceMid(m_dPriceBid, m_dPriceAsk,
-//				m_dPriceLast, dUndPriceTolerance, enPriceRoundingRule, NULL, TRUE);
-//		}
-//
-//		IMmRvUndCollPtr spUndColl(aUndColl);
-//		IMmRvUndCollPtr spUndColl2;
-//		IMmRvPosAtomPtr spPos;
-//		IMmRvUndAtomPtr spUnd, spUnd2;
-//
-//		_CHK(spUndColl2.CreateInstance(CLSID_MmRvUndColl), _T("Fail to create underlings."));
-//		if(spUndColl2 == NULL)
-//			return Error(L"Fail to create underlings.", IID_IMmRvUndAtom, E_INVALIDARG);
-//
-//		spUndColl2.AddRef();
-//
-//		_CHK(m_spSynthPos->get__NewEnum(&spUnk));
-//		IEnumVARIANTPtr spPosEnum(spUnk);
-//		_CHK(spPosEnum->Reset());
-//		while((hr = spPosEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//		{
-//			ATLASSERT(varItem.vt == VT_DISPATCH);
-//			spPos = varItem;
-//			if(spPos != NULL)
-//			{
-//				EtsContractTypeEnum enContractType = enCtNone;
-//				_CHK(spPos->get_ContractType(&enContractType));
-//
-//				if(enContractType == enCtOption)
-//				{
-//					LONG nUndID = 0L;
-//					_CHK(spPos->get_UndID(&nUndID));
-//					_CHK(spUndColl->get_Item(nUndID, &spUnd));
-//
-//					if(spUnd != NULL)
-//					{
-//						_CHK(spUndColl2->get_Item(nUndID, &spUnd2));
-//						if(spUnd2 == NULL)
-//							_CHK(spUndColl2->Add(nUndID, L"", spUnd, NULL));
-//
-//						_CHK(spUnd->ClearValues());
-//						_CHK(spPos->CalcOptionGreeks(spUndColl, this, dUndPriceMid,
-//							nMask, bIsPnlLTD, enCalcModel,
-//							bUseTheoVolatility, bUseTheoVolaNoBid, bUseTheoVolaBadMarket,
-//							dUndPriceTolerance, enPriceRoundingRule));
-//					}
-//				}
-//			}
-//		}
-//
-//		_CHK(spUndColl2->get__NewEnum(&spUnk));
-//		IEnumVARIANTPtr spUndEnum(spUnk);
-//		_CHK(spUndEnum->Reset());
-//		while((hr = spUndEnum->Next(1L, &varItem, &nFetched)) == S_OK)
-//		{
-//			ATLASSERT(varItem.vt == VT_DISPATCH);
-//			spUnd = varItem;
-//			if(spUnd != NULL)
-//			{
-//				LONG nUndID = 0L;
-//				_CHK(spUnd->get_ID(&nUndID));
-//				if(nUndID != m_nID)
-//				{
-//					_CHK(spUnd->Calc(spUndColl,
-//									nMask,
-//									VARIANT_TRUE,
-//									VARIANT_TRUE,
-//									VARIANT_FALSE,
-//									VARIANT_TRUE,
-//									NULL,
-//									bIsPnlLTD,
-//									enCalcModel,
-//									bUseTheoVolatility,
-//									bUseTheoVolaNoBid,
-//									bUseTheoVolaBadMarket,
-//									dUndPriceTolerance,
-//									enPriceRoundingRule,
-//									NULL, NULL, NULL));
-//				}
-//			}
-//		}
-//
-//		spUndColl2 = NULL;
-//	}
-//	catch(const _com_error& e)
-//	{
-//		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvUndAtom, e.Error());
-//	}
-//	return S_OK;
-//}
+
+//////////////////////////////////////////////////////////////////////////
+// IcvDataProvider 
+//////////////////////////////////////////////////////////////////////////
+
+vector<cvProvidedID>		CMmRvUndAtom::m_vecInternalVarID;
+cvIDToIDMap					CMmRvUndAtom::m_mapSupportedCVID;
+vector<cvProvidedID>		CMmRvUndAtom::m_vecInternalFuncID;
+cvIDToIDMap					CMmRvUndAtom::m_mapSupportedFuncID;
+
+STDMETHODIMP CMmRvUndAtom::raw_GetData(LONG lDataID, VARIANT* Value){
+	int iLocalDataID = GetDataID( lDataID );
+	VARIANT vtValue;
+
+	if ( iLocalDataID == CV_DATAPROVIDER_BAD_ID ) 
+		return E_FAIL;
+	switch( iLocalDataID ) {
+			case CV_DP_DATA_UNDBID :
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == m_pPrice->m_dPriceBid )  ? 0.0 : m_pPrice->m_dPriceBid );
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDASK :
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == m_pPrice->m_dPriceAsk)  ? 0.0 : m_pPrice->m_dPriceAsk);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDLAST:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == m_pPrice->m_dPriceLast)  ? 0.0 : m_pPrice->m_dPriceLast);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDMARK:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == m_pPrice->m_dPriceClose)  ? 0.0 : m_pPrice->m_dPriceClose);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDBETA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == Beta_)  ? 0.0 : Beta_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDPNLMTM :
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == PnlMTM_ )  ? 0.0 : PnlMTM_ );
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDPNLTHEO:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == PnLTheo_)  ? 0.0 : PnLTheo_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDPRICE:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == m_pPrice->m_dActivePrice)  ? 0.0 : m_pPrice->m_dActivePrice);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDPOS:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_LONG_VALUE == UndPos_)  ? 0.0 : static_cast<double>(UndPos_) );
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDOPTQTY:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_LONG_VALUE == OptQty_)  ? 0.0 : static_cast<double>(OptQty_) );
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDTV:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == TmVal_)  ? 0.0 : TmVal_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDTHETA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == Tht$_)  ? 0.0 : Tht$_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDTHETADELTA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == ThtDlt_)  ? 0.0 : ThtDlt_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDTHETAGAMMA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == ThtGma_)  ? 0.0 : ThtGma_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDVEGA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == Vga$_)  ? 0.0 : Vga$_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDVEGADELTA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == VgaDlt_)  ? 0.0 : VgaDlt_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDVEGAGAMMA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == VgaGma_)  ? 0.0 : VgaGma_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDWTDVEGA:
+				VariantInit( &vtValue );
+				vtValue.vt = VT_R8;
+				vtValue.dblVal = ( ( BAD_DOUBLE_VALUE == WtdVga$_)  ? 0.0 : WtdVga$_);
+				VariantCopy( Value, &vtValue );
+				break;
+			case CV_DP_DATA_UNDDIVS:
+				{
+					VariantInit( &vtValue );
+					vtValue.vt = VT_R8;
+					_GetDividendsForCV(vtValue);
+					VariantCopy( Value, &vtValue );
+				}
+				break;
+			case CV_DP_DATA_UNDDIVSDATE:
+				{
+					if ( !Value) 
+						return E_POINTER;
+
+					VariantInit( Value );
+					Value->vt = VT_R8;
+					_GetDividendsForCV(*Value, false);
+
+					CComBSTR sbsDivsDate = "";
+					if(Value->dblVal != BAD_DOUBLE_VALUE)
+					{
+						LONG nToday = static_cast<LONG>(vt_date::GetCurrentDate(true));
+						Value->dblVal = floor(Value->dblVal);/* * OPM::cdDaysPerYear365 + nToday);*/
+
+						vt_date DivsDate(Value->dblVal);
+
+						wchar_t buff[5];
+						swprintf_s(buff, L"%02u", DivsDate.get_month());
+						sbsDivsDate = buff;
+						sbsDivsDate += L"/";
+						swprintf_s(buff, L"%02u", DivsDate.get_day());
+						sbsDivsDate += buff;
+						sbsDivsDate += L"/";
+						swprintf_s(buff, L"%u", DivsDate.get_year());
+						sbsDivsDate += buff;
+					}
+
+					VariantInit( Value );
+					Value->vt = VT_BSTR;
+					Value->bstrVal = sbsDivsDate.Copy();
+					//VariantCopy(Value, &vtValue);
+				}
+				break;
+			default:;
+	}
+	return S_OK;
+}
+
+void CMmRvUndAtom::_GetDividendsForCV(VARIANT& dividendsValue, bool bIsDivValue){
+	LONG nDivCount = 0;
+
+	DOUBLE dtNow;
+	::GetNYDateTimeAsDATE(&dtNow);
+	DOUBLE dtToday = /*m_simulationParams.m_dDate  ? m_simulationParams.m_dDate  :*/ dtNow;
+	CSafeArrayWrapper<double> saDates;
+	CSafeArrayWrapper<double> saAmounts;
+
+	if(m_enContractType == enCtStock)
+	{
+		if (m_spDividend != NULL)
+		{
+			m_spDividend->GetDividendCount2(dtNow, 99999., 0.5, &nDivCount);
+			if(nDivCount > 0L) 
+			{
+				LPSAFEARRAY psaAmounts = NULL;
+				LPSAFEARRAY psaDates = NULL;
+
+				m_spDividend->GetDividends2(dtNow, 99999., 0.5, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+
+				saAmounts.Attach(psaAmounts);
+				saDates.Attach(psaDates);
+			}
+		}
+	}
+	else
+	{
+		VARIANT_BOOL bIsBasket = VARIANT_FALSE;
+
+		if(m_spBasketIndex != NULL)
+		{
+			_CHK((m_spBasketIndex->get_IsBasket(&bIsBasket)));
+			if(bIsBasket)
+			{
+				IEtsIndexDivCollPtr spBasketDivs;
+				m_spBasketIndex->get_BasketDivs(&spBasketDivs);
+				nDivCount = 0;
+				LPSAFEARRAY psaAmounts = NULL;
+				LPSAFEARRAY psaDates = NULL;
+
+				spBasketDivs->GetDividends2(dtNow, 99999.0, 0.5, nDivCount, &psaAmounts, &psaDates, &nDivCount);
+
+				saAmounts.Attach(psaAmounts);
+				saDates.Attach(psaDates);
+			}
+		}
+	}
+	if ( nDivCount ) {
+		dividendsValue.dblVal = bIsDivValue ? *saAmounts.GetPlainData() : *saDates.GetPlainData();
+	}
+	else{
+		dividendsValue.dblVal = BAD_DOUBLE_VALUE;
+	}
+
+}
+
+STDMETHODIMP CMmRvUndAtom::raw_CallFunction(LONG lFunctionID, SAFEARRAY** arrParameters, VARIANT *Value){
+	return E_FAIL;
+}
+
+STDMETHODIMP CMmRvUndAtom::raw_Check(SAFEARRAY **arrSysVars, SAFEARRAY **arrSysFuncs, LONG *pRetVal){
+	long lUBound;
+	long lLBound;
+	cvInfo *pInfo = NULL;
+
+	lUBound = lLBound = 0;
+	SafeArrayGetUBound( *arrSysVars, 1, &lUBound );
+	SafeArrayGetLBound( *arrSysVars, 1, &lLBound );
+	SafeArrayAccessData( *arrSysVars, (void**)&pInfo);
+	size_t UnsupportedCount = lUBound -lLBound + 1;
+	if( pInfo ) {
+		for ( long i = lLBound; i <= lUBound;i++) {
+			// add every required system variable into vector
+			string strName = (LPCSTR)_bstr_t(pInfo->Name);
+			size_t s = FindDataByName(strName);
+			if ( s != CV_DATANOTSUPPORTED ) {
+				m_mapSupportedCVID[pInfo->ID] = m_vecInternalVarID[s].m_DataId;
+				UnsupportedCount--;
+			}
+			pInfo++;
+		}
+	}
+	SafeArrayUnaccessData(*arrSysVars);
+
+	if ( UnsupportedCount ) {
+		*pRetVal = static_cast<LONG>(UnsupportedCount) ;
+		return S_OK;
+	}
+
+
+	lUBound = lLBound = 0;
+	SafeArrayGetUBound( *arrSysFuncs, 1, &lUBound );
+	SafeArrayGetLBound( *arrSysFuncs, 1, &lLBound );
+	pInfo = NULL;
+	SafeArrayAccessData( *arrSysFuncs, (void**)&pInfo);
+	if( pInfo ){
+		UnsupportedCount = lUBound -lLBound + 1;
+		for ( long i = lLBound; i <= lUBound;i++) {
+			// add every required system function into vector
+			string strName = (LPCSTR)_bstr_t(pInfo->Name);
+			size_t s = FindFuncByName(strName);
+			if ( s != CV_DATANOTSUPPORTED ) {
+				m_mapSupportedFuncID[pInfo->ID] = m_vecInternalFuncID[s].m_DataId;
+				UnsupportedCount--;
+			}
+			pInfo++;
+		}
+	}
+	SafeArrayUnaccessData(*arrSysFuncs);
+	*pRetVal = static_cast<LONG>(UnsupportedCount);
+
+	return S_OK;
+}
+
+STDMETHODIMP CMmRvUndAtom::CalcCV(void)
+{
+	try
+	{
+		for(cvPosVectorIt it = m_vecPos.begin(); it != m_vecPos.end(); ++it)
+			_CHK((*it)->CalcCV());
+
+
+		if ( m_spRTContext != NULL && m_nPoolID != BAD_LONG_VALUE ) 
+			_CHK(m_spRTContext->Recalculate(m_nPoolID));
+	}
+	catch(const _com_error& e)
+	{
+		m_vecPos.clear();
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IMmRvUndAtom, e.Error());
+	}
+	_CATCH_UNHANDLED_EXCEPTION_RETURN_COM;
+
+	m_vecPos.clear();
+
+	return S_OK;
+}

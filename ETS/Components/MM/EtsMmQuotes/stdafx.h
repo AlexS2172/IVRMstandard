@@ -43,8 +43,6 @@
 
 using namespace ATL;
 
-#import "..\..\tlb\EtsGeneral.tlb"			no_namespace named_guids
-#import "..\..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb" no_namespace named_guids
 #import "vsflex8.ocx"  named_guids rename_namespace("VSFLEX") exclude("IVSFlexGrid")
 
 
@@ -67,3 +65,11 @@ using namespace EgLib;
 #include <OptionCalc\OptionCalc.h>
 #include <ComponentsCommon.h>
 #include <Boost/noncopyable.hpp>
+
+#import "../../../tlb/MsgStruct.tlb" no_namespace named_guids
+#import "../../../tlb/VADBLayout.tlb"		no_namespace named_guids
+#import "../../../tlb/VolatilitySources.tlb"	no_namespace named_guids
+#import "..\..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb" rename("SettlementTypeEnum", "PpSettlementTypeEnum") no_namespace named_guids
+
+#import "..\..\tlb\EtsGeneral.tlb"	no_namespace named_guids
+#import "..\..\tlb\EtsMMGeneral.tlb"	no_namespace named_guids

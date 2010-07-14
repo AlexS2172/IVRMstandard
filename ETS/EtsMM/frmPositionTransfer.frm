@@ -444,11 +444,11 @@ Private m_TraderFrom As clsPtTraderColl
 Private m_TraderTo As clsPtTraderColl
 
 Private m_PtTraderFrom As clsPtTraderAtom
-Private m_TrdFrom As EtsMmGeneralLib.MmTradeInfoAtom
+Private m_TrdFrom As EtsGeneralLib.MmTradeInfoAtom
 Private m_nDefTraderFromID&
 
 Private m_PtTraderTo As clsPtTraderAtom
-Private m_TrdTo As EtsMmGeneralLib.MmTradeInfoAtom
+Private m_TrdTo As EtsGeneralLib.MmTradeInfoAtom
 Private m_nDefTraderToID&
 Private m_nContractID As Long
 
@@ -517,11 +517,11 @@ End Sub
 
 Private Sub InitTradersList(ByVal nContractID&, ByRef nTraderFromID&)
     On Error Resume Next
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl, aTrdUnd As EtsGeneralLib.EtsTraderUndAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl, aTrdUnd As EtsGeneralLib.EtsTraderUndAtom
     Dim aTrader As EtsGeneralLib.EtsTraderAtom
     Dim aPtTraderFrom As clsPtTraderAtom
     Dim aPtTraderTo As clsPtTraderAtom
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim eStrategy As EtsStrategyAtom
 
     m_TraderFrom.Clear
@@ -687,7 +687,7 @@ Private Sub AdjustTradeFrom()
     
     If Not m_PtTraderFrom.LastTrade Is Nothing Or (m_PtTraderFrom.CurQuantity > BAD_LONG_VALUE And m_PtTraderFrom.CurQuantity <> 0) Then
         If Not m_PtTraderFrom.Strategy Is Nothing Or (m_PtTraderFrom.CurQuantity > BAD_LONG_VALUE And m_PtTraderFrom.CurQuantity <> 0) Then
-            Set m_TrdFrom = New EtsMmGeneralLib.MmTradeInfoAtom
+            Set m_TrdFrom = New EtsGeneralLib.MmTradeInfoAtom
             If Not m_PtTraderFrom.LastTrade Is Nothing Then _
                 m_PtTraderFrom.LastTrade.CopyTo m_TrdFrom
 
@@ -700,9 +700,9 @@ Private Sub AdjustTradeFrom()
             Set m_TrdFrom.ClearingBroker = Nothing
             m_TrdFrom.ClearingBrokerCommission = 0#
             If Not m_TrdFrom.Opt Is Nothing Then
-                m_TrdFrom.Price = m_TrdFrom.Opt.PriceClose
+                m_TrdFrom.price = m_TrdFrom.Opt.PriceClose
             ElseIf Not m_TrdFrom.Und Is Nothing Then
-                m_TrdFrom.Price = m_TrdFrom.Und.PriceClose
+                m_TrdFrom.price = m_TrdFrom.Und.PriceClose
             End If
             
             
@@ -732,7 +732,7 @@ Private Sub AdjustTradeTo()
     If m_PtTraderTo Is Nothing Then Exit Sub
     
     If Not m_TrdFrom Is Nothing Then
-        Set m_TrdTo = New EtsMmGeneralLib.MmTradeInfoAtom
+        Set m_TrdTo = New EtsGeneralLib.MmTradeInfoAtom
         m_TrdFrom.CopyTo m_TrdTo
         
         Set m_TrdTo.Trader = m_PtTraderTo.Trader
@@ -744,8 +744,8 @@ End Sub
 Private Sub ShowTradeFromData()
     On Error Resume Next
     Dim i&
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim nTraderID&: nTraderID = 0&
     If cmbTraderFrom.ListIndex >= 0 Then _
        nTraderID = cmbTraderFrom.ItemData(cmbTraderFrom.ListIndex)
@@ -770,7 +770,7 @@ Private Sub ShowTradeFromData()
                 nStrategyID = IIf(m_PtTraderFrom.Strategy Is Nothing, 0, m_PtTraderFrom.Strategy.ID)
             
                  For Each aTrd In aTrdByUnd
-                    If aTrd.StrategyID = nStrategyID Then
+                    If aTrd.strategyID = nStrategyID Then
                        If aTrd.Status = enTrsRealtime Or aTrd.Status = enTrsMatchedRealtime Then
                             m_PtTraderFrom.CurQuantity = m_PtTraderFrom.CurQuantity + aTrd.Quantity * IIf(aTrd.IsBuy, 1, -1)
                        End If
@@ -819,7 +819,7 @@ Private Sub ShowTradeFromData()
             End If
                                                 
             txtQuantity.Text = Format$(m_TrdFrom.Quantity, "#,##0")
-            txtPrice.Text = Format$(m_TrdFrom.Price, "#,##0.#0")
+            txtPrice.Text = Format$(m_TrdFrom.price, "#,##0.#0")
             lblLotSize.Caption = Format$(m_TrdFrom.LotSize, "#,##0")
             lblTotalPrice.Caption = Format$(m_TrdFrom.TotalPrice, "#,##0.#0")
             chkMarkFrom.Value = IIf(m_TrdFrom.Mark <> 0, 1, 0)
@@ -849,8 +849,8 @@ End Sub
 Private Sub ShowTradeToData()
     On Error Resume Next
     Dim i&
-    Dim aTrdByUnd As EtsMmGeneralLib.MmTradeInfoColl
-    Dim aTrd As EtsMmGeneralLib.MmTradeInfoAtom
+    Dim aTrdByUnd As EtsGeneralLib.MmTradeInfoColl
+    Dim aTrd As EtsGeneralLib.MmTradeInfoAtom
     Dim nTraderID&: nTraderID = 0&
     If cmbTraderTo.ListIndex >= 0 Then _
        nTraderID = cmbTraderTo.ItemData(cmbTraderTo.ListIndex)
@@ -866,7 +866,7 @@ Private Sub ShowTradeToData()
             Set aTrdByUnd = g_TradeChannel.TrdByTraderAndContract(CStr(nTraderID) & "_" & CStr(m_nContractID))
             If Not aTrdByUnd Is Nothing Then
                  For Each aTrd In aTrdByUnd
-                    If aTrd.StrategyID = m_PtTraderTo.Strategy.ID Then
+                    If aTrd.strategyID = m_PtTraderTo.Strategy.ID Then
                        If aTrd.Status = enTrsRealtime Or aTrd.Status = enTrsMatchedRealtime Then
                             m_PtTraderTo.CurQuantity = m_PtTraderTo.CurQuantity + aTrd.Quantity * IIf(aTrd.IsBuy, 1, -1)
                        End If
@@ -996,7 +996,7 @@ Private Sub btnTransfer_Click()
         Exit Sub
     End If
 
-    If m_TrdFrom.Price < 0# Then
+    If m_TrdFrom.price < 0# Then
         gCmn.MyMsgBox Me, "Price for transfer must be greater or equal then zero." & vbCrLf & "Please specify valid quantity for transfer.", vbCritical
         txtQuantity.SetFocus
         Exit Sub
@@ -1119,12 +1119,12 @@ Private Sub txtPrice_Change()
     
     dValue = CDbl(txtPrice.Text)
     
-    If m_TrdFrom.Price <> dValue Then
-        m_TrdFrom.Price = dValue
-        lblPriceTitle.ForeColor = IIf(m_TrdFrom.Price > 0, GCOLOR_LABEL_VALID, GCOLOR_LABEL_INVALID)
+    If m_TrdFrom.price <> dValue Then
+        m_TrdFrom.price = dValue
+        lblPriceTitle.ForeColor = IIf(m_TrdFrom.price > 0, GCOLOR_LABEL_VALID, GCOLOR_LABEL_INVALID)
         lblTotalPrice.Caption = Format$(m_TrdFrom.TotalPrice, "#,##0.00#####")
         
-        m_TrdTo.Price = dValue
+        m_TrdTo.price = dValue
     End If
 End Sub
 

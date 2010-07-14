@@ -3,6 +3,7 @@
 #include "SageConnector.h"
 #include "Publisher.h"
 #include "SgConst.h"
+//#include "Sage.h"
 
 
 CFixTimeValue Convert(FIX::TransactTime & value) 
@@ -94,14 +95,18 @@ CFixDayOfMonthValue Convert(FIX::MaturityDay& value)
 
 DWORD CSageConnector::Start()
 {
-	if(m_pInitiator!=NULL || m_pAcceptor != NULL)
+	if(m_pInitiator != NULL || m_pAcceptor != NULL)
 		return E_FAIL;
 
 	DWORD dwResult = ERROR_SUCCESS;
 	CTracer::Trace(_T("Starting publisher..."));
+	
+	for (DWORD i = 0; i < m_nGroupsCount; i++)
+	{
+		if(ERROR_SUCCESS != m_Publisher[i].Start()) 
+			return CTracer::TraceError(E_FAIL, _T("Unable to start publisher"));
+	}
 
-	if(ERROR_SUCCESS != m_Publisher.Start())
-		return CTracer::TraceError(E_FAIL);
 	CTracer::Trace(_T("Publisher started."));
 
 	try
@@ -115,6 +120,7 @@ DWORD CSageConnector::Start()
 		XMLParams.GetUserGroup(sbsUserGroup.GetAddress());
 
 		_bstr_t sbsValue;
+		
 		XMLParams.GetMainXMLString(SETTINGS_XML_KEY, sbsUserGroup, &sbsValue);
 
 		_bstr_t sbsKeyValue;
@@ -192,7 +198,12 @@ DWORD CSageConnector::Start()
 	}
 	
 	if(dwResult != ERROR_SUCCESS)
-		m_Publisher.Stop();
+	{	
+		for (DWORD i = 0; i < m_nGroupsCount; i++)
+		{
+			m_Publisher[i].Stop();
+		}
+	}
 
 	return dwResult;
 
@@ -222,7 +233,11 @@ DWORD CSageConnector::Stop()
 			m_pSettings     = boost::shared_ptr<FIX::SessionSettings>();
 		}
 		CTracer::Trace(_T("Stopping publisher..."));
-		m_Publisher.Stop();
+
+		for (DWORD i = 0; i < m_nGroupsCount; i++)
+		{
+			m_Publisher[i].Stop();
+		}
 		CTracer::Trace(_T("Publisher stopped."));
 
 	}
@@ -327,7 +342,10 @@ void CSageConnector::onMessage(const FIX41::ExecutionReport& message, const FIX:
 			pTrade->sAccount = account;
 
 		CTracer::Trace(_T("Trade received ExecID = '%s'"), pTrade->sExecID.c_str());
-		InterlockedIncrement((LPLONG)m_Publisher.GetCounterReceived());
+		for (DWORD i = 0; i < m_nGroupsCount; i++)
+		{
+			InterlockedIncrement((LPLONG)m_Publisher[i].GetCounterReceived());
+		}
 
 		FIX::Symbol symbol;
 		message.get(symbol);
@@ -511,8 +529,8 @@ void CSageConnector::onMessage(const FIX41::ExecutionReport& message, const FIX:
 			long lStrategyField = dicSettings.getLong("StrategyField");
 			if(lStrategyField > 0 && message.isSetField(lStrategyField))
 			{
-				FIX::Text txtStrategy;
-				message.get(txtStrategy);
+				std::string txtStrategy;
+				txtStrategy = message.getField(lStrategyField);
 				pTrade->sStrategy = txtStrategy;				
 			}
 		}
@@ -527,19 +545,21 @@ void CSageConnector::onMessage(const FIX41::ExecutionReport& message, const FIX:
 			CTracer::Trace(_T("!!! enFtText = '%s'"), pTrade->sText.c_str());
 
 		}
-		if(!bCorrection)
-			m_Publisher.PushData(pTrade);
-		else
+		for (DWORD i = 0; i < m_nGroupsCount; i++)
 		{
-			pTrade->cExecTransType = FIX::ExecTransType_CANCEL;
-			m_Publisher.PushData(pTrade);
+			if(!bCorrection)
+				m_Publisher[i].PushData(pTrade);
+			else
+			{
+				pTrade->cExecTransType = FIX::ExecTransType_CANCEL;
+				m_Publisher[i].PushData(pTrade);
 
-			SwitchToThread();
-			CTradePtr pNewTrade = CTradePtr(new CTrade(pTrade.get()));
-			pNewTrade->cExecTransType = FIX::ExecTransType_NEW;
-			pNewTrade->sExecID = sCorrectionID;
-			m_Publisher.PushData(pNewTrade);
-
+				SwitchToThread();
+				CTradePtr pNewTrade = CTradePtr(new CTrade(pTrade.get()));
+				pNewTrade->cExecTransType = FIX::ExecTransType_NEW;
+				pNewTrade->sExecID = sCorrectionID;
+				m_Publisher[i].PushData(pNewTrade);
+			}
 		}
 	}
 	catch (std::logic_error& err)
@@ -622,7 +642,11 @@ void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX:
 
 
 		CTracer::Trace(_T("Trade received ExecID = '%s'"), pTrade->sExecID.c_str());
-		InterlockedIncrement((LPLONG)m_Publisher.GetCounterReceived());
+
+		for (DWORD i = 0; i < m_nGroupsCount; i++)
+		{
+			InterlockedIncrement((LPLONG)m_Publisher[i].GetCounterReceived());
+		}
 
 		FIX::Symbol symbol;
 		message.get(symbol);
@@ -810,8 +834,8 @@ void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX:
 			long lStrategyField = dicSettings.getLong("StrategyField");
 			if(lStrategyField > 0 && message.isSetField(lStrategyField))
 			{
-				FIX::Text txtStrategy;
-				message.get(txtStrategy);
+				std::string txtStrategy;
+				txtStrategy = message.getField(lStrategyField);
 				pTrade->sStrategy = txtStrategy;				
 			}
 		}
@@ -826,19 +850,23 @@ void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX:
 			CTracer::Trace(_T("!!! enFtText = '%s'"), pTrade->sText.c_str());
 
 		}
-		if(!bCorrection)
-			m_Publisher.PushData(pTrade);
-		else
-		{
-			pTrade->cExecTransType = FIX::ExecTransType_CANCEL;
-			m_Publisher.PushData(pTrade);
-			
-			SwitchToThread();
-			CTradePtr pNewTrade = CTradePtr(new CTrade(pTrade.get()));
-			pNewTrade->cExecTransType = FIX::ExecTransType_NEW;
-			pNewTrade->sExecID = sCorrectionID;
-			m_Publisher.PushData(pNewTrade);
 
+		for (DWORD i = 0; i < m_nGroupsCount; i++)
+		{
+			if(!bCorrection)
+				m_Publisher[i].PushData(pTrade);
+			else
+			{
+				pTrade->cExecTransType = FIX::ExecTransType_CANCEL;
+				m_Publisher[i].PushData(pTrade);
+
+				SwitchToThread();
+				CTradePtr pNewTrade = CTradePtr(new CTrade(pTrade.get()));
+				pNewTrade->cExecTransType = FIX::ExecTransType_NEW;
+				pNewTrade->sExecID = sCorrectionID;
+				m_Publisher[i].PushData(pNewTrade);
+
+			}
 		}
 	}
 	catch (std::logic_error& err)

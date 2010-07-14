@@ -19,6 +19,7 @@ struct __MmShOptAtom
 	DOUBLE						m_dVola;
 	DOUBLE						m_dRate;
 	IMmShOptRootAtomPtr			m_spOptRoot;
+	DOUBLE						m_dHTBRate;
 
 	DOUBLE						m_dPriceBid;
 	DOUBLE						m_dPriceAsk;
@@ -32,6 +33,7 @@ struct __MmShOptAtom
 		: m_nID(BAD_LONG_VALUE), m_dtExpiry(0.), m_enOptType(enOtPut), m_dStrike(BAD_DOUBLE_VALUE),
 		m_dVola(BAD_DOUBLE_VALUE), m_dRate(BAD_DOUBLE_VALUE), m_dPriceBid(BAD_DOUBLE_VALUE),
 		m_dPriceAsk(BAD_DOUBLE_VALUE), m_dPriceLast(BAD_DOUBLE_VALUE), m_dDelta(BAD_DOUBLE_VALUE),
+		m_dHTBRate(BAD_DOUBLE_VALUE),
 		m_dtExpiryOV(0.), m_dtTradingClose(0.)
 	{
 	}
@@ -78,6 +80,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Vola, m_dVola)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
 	IMPLEMENT_OBJECT_PROPERTY(IMmShOptRootAtom*, OptRoot, m_spOptRoot)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, HTBRate, m_dHTBRate)
 
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceBid, m_dPriceBid)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, PriceAsk, m_dPriceAsk)

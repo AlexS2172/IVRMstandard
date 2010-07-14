@@ -8,6 +8,7 @@
 #include "MmRvPosAtom.h"
 #include "MmRvSynthGreeksAtom.h"
 #include "MmRvAggregationData.h"
+
 #include <boost/shared_ptr.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -19,6 +20,8 @@ using namespace boost::gregorian;
 
 using namespace	boost;
 
+
+class CMmRiskView;
 // CMmRvRowData
 struct _CMmRvRowData
 {
@@ -82,7 +85,7 @@ END_COM_MAP()
 	}
 
 public:
-	bool GetField(RisksPosColumnEnum enCol, _variant_t& vt, bool bForSorting = false);
+	bool GetField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vt, bool bForSorting = false);
 	bool SetField(long lColumnId, _variant_t& vtData){return false;}
 
 public:
@@ -194,13 +197,13 @@ private:
 	void GetValue(double dValue, bool bForSorting, bool bNegativeFormatting, long lRound, _variant_t& vtRet);
 	void GetValue(long lValue, bool bForSorting, bool bNegativeFormatting, _variant_t& vtRet);
 
-	bool GetFutOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
-	bool GetOptionField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
-	bool GetUndField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
-	bool GetFutField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
+	bool GetFutOptionField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
+	bool GetOptionField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
+	bool GetUndField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
+	bool GetFutField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
 	//bool GetAggField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
 	//bool GetUndAggField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
-	bool GetAggregationField(RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
+	bool GetAggregationField(CMmRiskView* view, RisksPosColumnEnum enCol, _variant_t& vtRet, bool bForSorting, bool bNegativeFormatting, long lRound);
 
 };
 

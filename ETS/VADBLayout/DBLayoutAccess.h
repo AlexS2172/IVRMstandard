@@ -62,6 +62,8 @@ public:
 
 	STDMETHOD(SaveSurfaceVolatilities)(/*[in]*/long SurfaceID, /*[in]*/EOptType OptType, /*[in]*/_Recordset *pRecordset);
 	STDMETHOD(GetSurfaceVolatilities) (/*[in]*/long SurfaceID, /*[in]*/EOptType OptType, /*[out, retval]*/_Recordset **ppRecordset);
+
+	STDMETHOD(GetVolaSurfaceGroup) (/*[in]*/BSTR Symbol, /*[out, retval]*/_Recordset **ppRecordset);
 };
 
 #endif //__DBLAYOUTACCESS_H_

@@ -35,7 +35,7 @@ struct __SynthRootAtom
 // CSynthRootAtom
 
 class ATL_NO_VTABLE CSynthRootAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CSynthRootAtom, &CLSID_SynthRootAtom>,
 	public ISupportErrorInfoImpl<&IID_ISynthRootAtom>,
 	public IDispatchImpl<ISynthRootAtom, &IID_ISynthRootAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -44,6 +44,7 @@ class ATL_NO_VTABLE CSynthRootAtom :
 public:
 	CSynthRootAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_SYNTHROOTATOM)
@@ -53,10 +54,12 @@ BEGIN_COM_MAP(CSynthRootAtom)
 	COM_INTERFACE_ENTRY(ISynthRootAtom)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
@@ -76,15 +79,18 @@ END_COM_MAP()
 		{
 			hr = Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_ISynthRootAtom, e.Error());
 		}
-		return hr;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		m_spSynthRootComponents = NULL;
 		m_Divs.clear();
+		m_pUnkMarshaler.Release();
 	}
 
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, OptRootID, m_nOptRootID)

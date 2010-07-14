@@ -27,7 +27,7 @@ struct __MmOrderExecDestAtom
 /////////////////////////////////////////////////////////////////////////////
 //
 class ATL_NO_VTABLE CMmOrderExecDestAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmOrderExecDestAtom, &CLSID_MmOrderExecDestAtom>,
 	public ISupportErrorInfoImpl<&IID_IMmOrderExecDestAtom>,
 	public IDispatchImpl<IMmOrderExecDestAtom, &IID_IMmOrderExecDestAtom, &LIBID_EtsMmGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,

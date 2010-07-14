@@ -29,6 +29,7 @@ struct __MmVaOptAtom
 	DOUBLE				m_dDeltaBid;
 	DOUBLE				m_dDeltaAsk;
 	DATE				m_dtExpiryOV;
+	LONG				m_nOptionRootID;
 
 	__MmVaOptAtom()
 		: m_nID(0L), m_dtExpiry(0.), m_enOptType(enOtPut), m_dStrike(0.),
@@ -36,6 +37,7 @@ struct __MmVaOptAtom
 		m_dPriceClose(BAD_DOUBLE_VALUE), m_dPriceTheoClose(BAD_DOUBLE_VALUE),
 		m_dIVBid(BAD_DOUBLE_VALUE), m_dIVAsk(BAD_DOUBLE_VALUE), m_dVegaBid(BAD_DOUBLE_VALUE),
 		m_dVegaAsk(BAD_DOUBLE_VALUE), m_dDeltaBid(BAD_DOUBLE_VALUE), m_dDeltaAsk(BAD_DOUBLE_VALUE), m_dtExpiryOV(0.)
+		,m_nOptionRootID(0)
 	{
 	}
 
@@ -110,6 +112,7 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, DeltaBid, m_dDeltaBid)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, DeltaAsk, m_dDeltaAsk)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(LONG, OptionRootID, m_nOptionRootID)
 
 	STDMETHODIMP ClearValues(VARIANT_BOOL WithIV)
 	{

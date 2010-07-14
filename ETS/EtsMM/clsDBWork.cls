@@ -481,14 +481,14 @@ Public Function usp_Stock_Save(ByVal iStockID As Variant, ByVal iExchangeId As V
                                 ByVal tiIsDivCustom As Variant, ByVal fDivAmtCustom As Variant, ByVal iDivFreqCustom As Variant, ByVal dtDivDateCustom As Variant, _
                                 ByVal tiCalcOptionType As Variant, ByVal tiCalcModelType As Variant, ByVal iExpCalendarID As Variant, ByVal tiIsActive As Variant, _
                                 ByVal fSkew As Variant, ByVal fKurt As Variant, ByVal bIsHedgeSymbol As Variant, ByVal tiCheckExistance As Byte, _
-                                ByVal iUndPriceProfileID As Variant, ByVal iOptPriceProfileID As Variant) As Long
+                                ByVal iUndPriceProfileID As Variant, ByVal iOptPriceProfileID As Variant, ByVal bIsAllowLending As Variant) As Long
     
     usp_Stock_Save = Execute(False, "usp_Stock_Save", _
                                 iStockID, iExchangeId, vcSymbol, vcContractName, _
                                 bIsHTB, iDivFreq, fDivAmt, dtDivDate, _
                                 tiIsDivCustom, fDivAmtCustom, iDivFreqCustom, dtDivDateCustom, _
                                 tiCalcOptionType, tiCalcModelType, iExpCalendarID, tiIsActive, _
-                                fSkew, fKurt, tiCheckExistance, iUndPriceProfileID, iOptPriceProfileID, bIsHedgeSymbol)
+                                fSkew, fKurt, tiCheckExistance, iUndPriceProfileID, iOptPriceProfileID, bIsHedgeSymbol, bIsAllowLending)
 End Function
 
 Public Function usp_Stock_Import(ByVal iContractID As Variant, ByVal bIsStock As Variant, ByVal vcContractName As Variant, _
@@ -510,12 +510,12 @@ Public Function usp_Index_Save(ByVal iIndexID As Variant, ByVal vcSymbol As Vari
                                 ByVal tiCalcModelType As Variant, ByVal iExpCalendarID As Variant, ByVal tiIsBasket As Variant, _
                                 ByVal tiIsActive As Variant, ByVal fSkew As Variant, ByVal fKurt As Variant, ByVal bIsHedgeSymbol As Variant, ByVal tiCheckExistance As Byte, _
                                 ByVal SOQ As Variant, _
-                                ByVal iUndPriceProfileID As Variant, ByVal iOptPriceProfileID As Variant, Optional ByVal tiIsDivCustom As Variant = Null) As Long
+                                ByVal iUndPriceProfileID As Variant, ByVal iOptPriceProfileID As Variant, Optional ByVal tiIsDivCustom As Variant = Null, Optional ByVal bIsAllowLending As Variant) As Long
     
     usp_Index_Save = Execute(False, "usp_Index_Save", _
                                 iIndexID, vcSymbol, vcContractName, _
                                 fYield, bIsHTB, tiCalcOptionType, tiCalcModelType, iExpCalendarID, _
-                                tiIsBasket, tiIsActive, fSkew, fKurt, tiCheckExistance, SOQ, iUndPriceProfileID, iOptPriceProfileID, bIsHedgeSymbol, Null, tiIsDivCustom)
+                                tiIsBasket, tiIsActive, fSkew, fKurt, tiCheckExistance, SOQ, iUndPriceProfileID, iOptPriceProfileID, bIsHedgeSymbol, Null, tiIsDivCustom, Null, Null, Null, Null, Null, Null, bIsAllowLending)
 End Function
 
 Public Function usp_MmFuture_Save(ByVal iFutureID&, _
@@ -1268,8 +1268,8 @@ Public Function usp_MmContractForTradeByUnd_Get(ByVal iUnderlyingID As Long) As 
     Set usp_MmContractForTradeByUnd_Get = Execute(True, "usp_MmContractForTradeByUnd_Get", iUnderlyingID)
 End Function
 
-Public Function usp_IRPoint_Get(iCurveID As Long) As ADODB.Recordset
-    Set usp_IRPoint_Get = Execute(True, "usp_IRPoint_Get", iCurveID)
+Public Function usp_IRPoint_Get(ByVal iCurveID As Variant, Optional ByVal IsGlobal As Variant, Optional ByVal iContractID As Variant) As ADODB.Recordset
+    Set usp_IRPoint_Get = Execute(True, "usp_IRPoint_Get", iCurveID, IsGlobal, iContractID)
 End Function
 
 Public Function usp_IRCurve_Get(Optional iCurveID As Variant = Null) As ADODB.Recordset
@@ -1297,14 +1297,23 @@ Public Function usp_RMScenario_Save(ByVal iRMScenarioID As Variant, _
                                     ByVal tiType2 As Integer, _
                                     ByVal tiVolaShift As Integer, _
                                     ByVal iHours As Integer, _
-                                    ByVal iMinutes As Integer) As Long
+                                    ByVal iMinutes As Integer, _
+                                    ByVal iShowChange As Integer, _
+                                    ByVal iVolaSpecificShift As Long, _
+                                    ByVal iSpotShift As Long, _
+                                    ByVal iSpotSpecificShift As Long, _
+                                    ByVal iCalcModel As Long, _
+                                    ByVal iCorrIndex As Long, _
+                                    ByVal vcParams As String) As Long
     
     Dim iResult As Long
     Dim iNewScenarioNumber As Long
     iResult = Execute(False, "usp_RMScenario_Save", iRMScenarioID, vcScenarioName, _
                                                     vcDescription, iPoints1, fStep1, tiIsAbs1, _
                                                      tiType1, iPoints2, fStep2, tiIsAbs2, tiType2, tiVolaShift, _
-                                                     iHours, iMinutes)
+                                                     iHours, iMinutes, iShowChange, iVolaSpecificShift, _
+                                                     iSpotShift, iSpotSpecificShift, iCalcModel, _
+                                                     iCorrIndex, vcParams)
     If iResult > 0 Then
         usp_RMScenario_Save = iResult
     Else
@@ -1969,6 +1978,41 @@ On Error Resume Next
     usp_AssetGroupElement_Save = Execute(False, "usp_AssetGroupElement_Save", iHeadId, iElementID, bUseHead, fCoeff)
 End Function
 
+Public Function usp_IRPoint_Del(ByVal iIRpointID As Long, ByVal iCurveID As Long) As Long
+    usp_IRPoint_Del = Execute(False, "usp_IRPoint_Del", iIRpointID, iCurveID)
+End Function
+
+Public Function usp_IRPoint_Save(ByVal iIRpointID As Long, _
+                                 ByVal iCurveID As Long, _
+                                 ByVal iPeriodTypeID As Long, _
+                                 ByVal iNum As Long, _
+                                 ByVal fShortRate As Double, _
+                                 ByVal fLongRate As Double, _
+                                 ByVal iContractID As Long) As Long
+    usp_IRPoint_Save = Execute(False, "usp_IRPoint_Save_CV", IIf(iIRpointID <> BAD_LONG_VALUE, iIRpointID, Null), _
+                                                          iCurveID, _
+                                                          iPeriodTypeID, _
+                                                          iNum, _
+                                                          fShortRate, _
+                                                          Null, _
+                                                          fLongRate, _
+                                                          Null, _
+                                                          iContractID)
+End Function
+
+Public Function usp_IRPoint_Update(ByVal iPeriodTypeID As Long, _
+                                   ByVal iNum As Long, _
+                                   ByVal fShortRate As Double, _
+                                   ByVal fLongRate As Double, _
+                                   ByVal iContractID As Long) As Long
+    usp_IRPoint_Update = Execute(False, "usp_IRPoint_Update_CV", iPeriodTypeID, _
+                                                              iNum, _
+                                                              fShortRate, _
+                                                              fLongRate, _
+                                                              Null, _
+                                                              iContractID)
+End Function
+
 'Public Function usp_ProjectionShedule_Get(Optional ByVal vcUserName As String = STR_NA, _
 '                                          Optional ByVal iSheduleID As Long = BAD_LONG_VALUE) As ADODB.Recordset
 '    Set usp_ProjectionShedule_Get = Execute(True, "usp_ProjectionShedule_Get", IIf(vcUserName <> STR_NA, vcUserName, Null), _
@@ -2018,6 +2062,8 @@ Public Function usp_BR_Report_Save(ByVal vcUserName As String, _
                                    ByVal vcResultFilePath As String, _
                                    ByVal dtLastRun As Date, _
                                    ByVal vcResultFile As String, _
+                                   ByVal vcFileNameHeader As String, _
+                                   ByVal iReportFormat As Long, _
                                    Optional ByVal iReportID As Long = BAD_LONG_VALUE) As Long
     usp_BR_Report_Save = Execute(False, "usp_BR_Report_Save", IIf(iReportID <> BAD_LONG_VALUE, iReportID, Null), _
                                                                 vcUserName, _
@@ -2030,7 +2076,9 @@ Public Function usp_BR_Report_Save(ByVal vcUserName As String, _
                                                                 tiPositions, _
                                                                 vcResultFilePath, _
                                                                 dtLastRun, _
-                                                                vcResultFile)
+                                                                vcResultFile, _
+                                                                vcFileNameHeader, _
+                                                                iReportFormat)
 End Function
 
 Public Function usp_BR_Report_Complete(ByVal iReportID As Long, ByVal dtDate As Date, ByVal vcFileName As String) As Long
@@ -2055,4 +2103,16 @@ End Function
 
 Public Function usp_BR_Shedule_Complete(ByVal iSheduleID As Long, ByVal dtDate As Date) As Long
     usp_BR_Shedule_Complete = Execute(False, "usp_BR_Shedule_Complete", iSheduleID, dtDate)
+End Function
+
+Public Function usp_cvContext_Get(ByVal iID As Long, ByVal iInfoLevel As Long) As ADODB.Recordset
+    Set usp_cvContext_Get = Execute(True, "usp_cvContext_Get", iID, iInfoLevel)
+End Function
+
+Public Function usp_cvContextID_Get(ByVal strContextName As String) As Long
+    usp_cvContextID_Get = Execute(False, "usp_cvContextID_Get", strContextName)
+End Function
+
+Public Function usp_cvCV_Del(ByVal iID As Long) As Long
+    usp_cvCV_Del = Execute(False, "usp_cvCV_Del", iID)
 End Function

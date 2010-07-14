@@ -443,7 +443,7 @@ Begin VB.Form frmVarSwapCalc
       _ExtentX        =   3625
       _ExtentY        =   661
       _Version        =   393216
-      Format          =   65273857
+      Format          =   50855937
       CurrentDate     =   39234
       MinDate         =   39234
    End
@@ -942,7 +942,7 @@ Private Sub GetUnderlyingHistoricalPrices()
         ReDim m_undPricesDates(0 To rs.RecordCount - 1)
         i = 0
         While Not rs.EOF
-            m_undPrices(i) = Round(rs!Price, 2)
+            m_undPrices(i) = Round(rs!price, 2)
             m_undPricesDates(i) = rs!t_date
             rs.MoveNext
             i = i + 1
@@ -1540,15 +1540,15 @@ GetStockData_Error:
     MsgBox "Unable to retrieve price data for " + undSymbol + Chr$(10) + Error$, vbExclamation
 End Sub
 
-Private Function ShiftPrice(Price As Double) As Double
+Private Function ShiftPrice(price As Double) As Double
     If m_ShiftSpot <> 0 Then
         If spotShiftAbs = True Then
-            ShiftPrice = Price + m_ShiftSpot
+            ShiftPrice = price + m_ShiftSpot
         Else
-            ShiftPrice = Price + (Price / 100 * m_ShiftSpot)
+            ShiftPrice = price + (price / 100 * m_ShiftSpot)
         End If
     Else
-        ShiftPrice = Price
+        ShiftPrice = price
     End If
 End Function
 

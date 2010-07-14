@@ -4,7 +4,6 @@
 #include "MmRvExpAtom.h"
 #include "MmRvPosAtom.h"
 
-
 // CMmRvExpAtom
 double CMmRvExpAtom::GetCoeff()
 {
@@ -52,10 +51,10 @@ void CMmRvExpAtom::CalcTotals()
 				//////////////////////////////////////////////////////////////////////////
 				if(pPos->m_enContractType == enCtOption || pPos->m_enContractType == enCtFutOption)
 				{
-					if(pPos->m_dInternalEqDelta > BAD_DOUBLE_VALUE)
+					if(pPos->m_dDeltaEq > BAD_DOUBLE_VALUE)
 					{
 						if(m_dDeltaEq == BAD_DOUBLE_VALUE) m_dDeltaEq = 0.;
-						m_dDeltaEq += pPos->m_dInternalEqDelta;
+						m_dDeltaEq += pPos->m_dDeltaEq;
 					}
 					else m_bBadDeltaEq = VARIANT_TRUE;
 					//////////////////////////////////////////////////////////////////////////
@@ -87,6 +86,13 @@ void CMmRvExpAtom::CalcTotals()
 					m_dGammaInShares += pPos->m_dGammaInShares;
 				}
 				else m_bBadGammaInShares = VARIANT_TRUE;
+				//////////////////////////////////////////////////////////////////////////
+				if(pPos->m_dThetaInShares > BAD_DOUBLE_VALUE)
+				{
+					if(m_dThetaInShares == BAD_DOUBLE_VALUE) m_dThetaInShares = 0;
+					m_dThetaInShares += pPos->m_dThetaInShares;
+				}
+				else m_bBadThetaInShares = VARIANT_TRUE;
 				//////////////////////////////////////////////////////////////////////////
 				if(pPos->m_dVegaInShares > BAD_DOUBLE_VALUE)
 				{
@@ -185,10 +191,15 @@ void CMmRvExpAtom::CalcSynthetictotals(CMmRvPosAtom* pPos)
 							if(pExpSynthAtom->m_dRhoInShares <= BAD_DOUBLE_VALUE) pExpSynthAtom->m_dRhoInShares = 0.;
 							pExpSynthAtom->m_dRhoInShares += sPosSynthAtom->m_dRhoInShares;
 						}
+						// ThetaInShares total
+						if(sPosSynthAtom->m_dThetaInShares > BAD_DOUBLE_VALUE)
+						{
+							if(pExpSynthAtom->m_dThetaInShares <= BAD_DOUBLE_VALUE) pExpSynthAtom->m_dThetaInShares = 0.;
+							pExpSynthAtom->m_dThetaInShares += sPosSynthAtom->m_dThetaInShares;
+						}
 
 						if(VARIANT_FALSE == pExpSynthAtom->m_bBadGamma)
 							pExpSynthAtom->m_bBadGamma = sPosSynthAtom->m_bBadGamma;
-
 
 					}
 				}
@@ -196,3 +207,38 @@ void CMmRvExpAtom::CalcSynthetictotals(CMmRvPosAtom* pPos)
 		}
 	}
 }
+
+//-----------------------------------------------------------------------//
+STDMETHODIMP 
+CMmRvExpAtom::CalcCV(void){
+	try {
+		if ( m_spRTContext != NULL && m_nPoolID != BAD_LONG_VALUE ) 
+			_CHK(m_spRTContext->Recalculate(m_nPoolID));
+	}
+	catch(const _com_error& e){
+		return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), 
+					 IID_IMmRvExpAtom, e.Error());
+	};
+	return S_OK;
+};
+//-----------------------------------------------------------------------//
+// IcvDataProvider
+STDMETHODIMP 
+CMmRvExpAtom::raw_GetData(LONG lDataID, VARIANT* Value){
+	return E_NOTIMPL;
+};
+//-----------------------------------------------------------------------//
+STDMETHODIMP 
+CMmRvExpAtom::raw_CallFunction(	LONG lFunctionID, 
+								SAFEARRAY** arrParameters, 
+								VARIANT *Value){
+	return E_NOTIMPL;
+};
+//-----------------------------------------------------------------------//
+STDMETHODIMP 
+CMmRvExpAtom::raw_Check(SAFEARRAY **arrSysVars, 
+						SAFEARRAY **arrSysFuncs, 
+						LONG *pRetVal){
+	return E_NOTIMPL;
+};
+//-----------------------------------------------------------------------//

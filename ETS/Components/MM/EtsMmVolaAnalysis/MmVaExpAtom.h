@@ -23,6 +23,7 @@ struct __MmVaExpAtom
 	DOUBLE					m_dRate;
 	IMmVaStrikeCollPtr		m_spStrike;
 	IMmVaStrikeAtomPtr		m_spAtmStrike;
+	DOUBLE					m_dHTBRate;
 
 	DATE					m_dtExpiryOV;
 	DATE					m_dtTradingClose;
@@ -30,6 +31,7 @@ struct __MmVaExpAtom
 
 	__MmVaExpAtom()
 		: /*m_dtExpiryMonth(0.), */m_dtExpiry(0.), m_dRate(0.),
+		  m_dHTBRate(BAD_DOUBLE_VALUE),
 		  m_dtExpiryOV(0), m_dtTradingClose(0)
 	{
 	}
@@ -86,6 +88,7 @@ public:
 	//IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryMonth, m_dtExpiryMonth)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, Expiry, m_dtExpiry)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Rate, m_dRate)
+	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, HTBRate, m_dHTBRate)
 	IMPLEMENT_OBJECTREADONLY_PROPERTY(IMmVaStrikeColl*, Strike, m_spStrike)
 	IMPLEMENT_OBJECT_PROPERTY(IMmVaStrikeAtom*, AtmStrike, m_spAtmStrike)
 	STDMETHOD(FindAtmStrike)(DOUBLE UnderlyingSpot);

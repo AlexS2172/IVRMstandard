@@ -1,6 +1,7 @@
 #ifndef _SAGE_CONNECTOR_H
 #define _SAGE_CONNECTOR_H
 
+#include "stdafx.h"
 #include "Trace.h"
 #include "Publisher.h"
 
@@ -11,14 +12,25 @@ class CSageConnector :
 {
 public:
 
-//	DWORD __stdcall Start(void* pParam);
-//
-//	DWORD __stdcall Stop();
-
-
-	CPublisher	m_Publisher;
+	CPublisher	*m_Publisher;
 	DWORD Start();
 	DWORD Stop();
+	DWORD m_nGroupsCount;
+	HRESULT SetGroups(UserGroups& clParams)
+	{
+		m_nGroupsCount = static_cast<DWORD>(clParams.size());
+		if (m_nGroupsCount <= 0) return E_FAIL;
+		
+		m_Publisher = new CPublisher[m_nGroupsCount];
+		if (m_Publisher == NULL) return E_FAIL;
+
+		DWORD dwCounter = 0;
+		for(UGIterator it = clParams.begin(); it != clParams.end(); it++)		
+		{
+			m_Publisher[dwCounter++].SetUserGroup(it->first);
+		}
+		return S_OK;
+	};
 
 
 	// FIX::Application overloads

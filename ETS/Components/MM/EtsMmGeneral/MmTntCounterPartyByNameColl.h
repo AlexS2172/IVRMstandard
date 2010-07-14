@@ -15,7 +15,7 @@ typedef ICollectionOnSTLMapOfInterfacePtrImpl<IMmTntCounterPartyByNameCollDispIm
 // CMmTntCounterPartyByNameColl
 
 class ATL_NO_VTABLE CMmTntCounterPartyByNameColl : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CMmTntCounterPartyByNameColl, &CLSID_MmTntCounterPartyByNameColl>,
 	public ISupportErrorInfoImpl<&IID_IMmTntCounterPartyByNameColl>,
 	public IMmTntCounterPartyByNameCollImpl

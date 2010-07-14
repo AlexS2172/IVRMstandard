@@ -55,8 +55,10 @@ STDMETHODIMP CEtsExpCalColl::GetVegaWeight(DATE dtExpiry, DOUBLE* pdRetVal)
 		if (!pdRetVal)
 			EgLib::CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Invalid argument"));
 
-		LONG nExpiry = static_cast<LONG>(dtExpiry);	// truncate time
-		LONG nToday = CEtsDate::GetCurrentDate();
+		LONG nExpiry = static_cast<LONG>(floor(dtExpiry));	// truncate time
+		DOUBLE dtToday; 
+		::GetNYDateTimeAsDATE(&dtToday);
+		LONG nToday = static_cast<LONG>(floor(dtToday));
 
 		if(nExpiry > nToday)
 		{

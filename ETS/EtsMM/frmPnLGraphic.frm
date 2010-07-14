@@ -1,10 +1,10 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmPnLGraphic 
    Caption         =   "PnL Projections"
    ClientHeight    =   8310
    ClientLeft      =   165
-   ClientTop       =   645
+   ClientTop       =   735
    ClientWidth     =   11880
    Icon            =   "frmPnLGraphic.frx":0000
    LinkTopic       =   "Form1"
@@ -171,6 +171,12 @@ Begin VB.Form frmPnLGraphic
       Begin VB.Menu mnuFileHedgeSummaryView 
          Caption         =   "&Hedge Summary..."
          Shortcut        =   ^H
+      End
+      Begin VB.Menu mnuSep3 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuFileBatchReporting 
+         Caption         =   "Batch Reporting ..."
       End
       Begin VB.Menu mnSep1 
          Caption         =   "-"
@@ -600,6 +606,11 @@ Private Sub mnExerciseScreen_Click()
 End Sub
 
 
+
+Private Sub mnuFileBatchReporting_Click()
+    On Error Resume Next
+    g_frmProjections.ShowData
+End Sub
 
 Private Sub mnuFileClose_Click()
     On Error Resume Next

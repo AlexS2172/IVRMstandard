@@ -207,7 +207,9 @@ public:
 	STDMETHOD(PubPriceUpdate)(IPriceUpdate* Data, long* Result);
 	STDMETHOD(PubUnderlyingUpdate)(IUnderlyingUpdate* Data, long* Result);
 	STDMETHOD(PubManualPriceUpdate)(IManualPriceUpdate* Data, long* Result);
+	STDMETHOD(PubSettingsUpdate)(ISettingsUpdate* Data, long* Result);
 	STDMETHOD(get_IsLogoned)(/*[out, retval]*/ VARIANT_BOOL *pVal);
+	STDMETHOD(put_UserGroup)(/*[in]*/BSTR bsValue);
 
 // ISubManager
 public:
@@ -239,6 +241,8 @@ public:
 
 	STDMETHOD(SubManualPriceUpdate)();
 	STDMETHOD(UnsubManualPriceUpdate)();
+	STDMETHOD(SubSettingsUpdate)();
+	STDMETHOD(UnsubSettingsUpdate)();
 
 	DECLARE_PUBLISH_METHOD(RequestNewOrder,		Order)
 	DECLARE_PUBLISH_METHOD(AlterOrder,			Order)
@@ -257,6 +261,8 @@ public:
 	bool		DecodeSubject(BSTR Subject, MESSAGE_TYPE& Type, ISymbolObject* pSymbolObject);
 
 	HRESULT	SendMessageToTransport(BSTR Subject, MESSAGE_TYPE enType, INetPacking* pPacker, HRESULT& Result);
+
+	_bstr_t g_bstrSubjectPrefix;
 
 private:
 	ISessionPtr			m_Session;
@@ -287,6 +293,7 @@ private:
 	static const wstring m_subjMtActiveFuturesChange;
 	static const wstring m_subjMtFlexOption;
 	static const wstring m_subjMtManualPriceUpdate;
+	static const wstring m_subjMtSettingsUpdate;
 
 };
 

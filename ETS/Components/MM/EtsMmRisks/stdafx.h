@@ -41,10 +41,6 @@
 
 using namespace ATL;
 
-#import "../../../tlb/MsgStruct.tlb" no_namespace named_guids
-#import "..\..\tlb\EtsGeneral.tlb"	no_namespace named_guids
-#import "..\..\tlb\EtsMMGeneral.tlb"	no_namespace named_guids
-//#import "..\..\tlb\ETSPerfObjects.tlb"	no_namespace named_guids
 #import "vsflex8.ocx"					named_guids rename_namespace("VSFLEX") exclude("IVSFlexGrid")
 
 // Please add "EgCommon\include" path to "Tools->Options->VC++ Directories->Include Files" section
@@ -62,7 +58,17 @@ using namespace EgLib;
 #include <OptionCalc\OptionCalc.h>
 #include <ComponentsCommon.h>
 
-#import "MsgStruct.tlb"			no_namespace named_guids
-#import "VADBLayout.tlb"		no_namespace named_guids
-#import "VolatilitySources.tlb"	no_namespace named_guids
-#import "..\..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb" no_namespace named_guids
+#import "../../../tlb/MsgStruct.tlb" no_namespace named_guids
+#import "../../../tlb/VADBLayout.tlb"		no_namespace named_guids
+#import "../../../tlb/VolatilitySources.tlb"	no_namespace named_guids
+#import "..\..\..\..\MarketDataAdapters\Tlb\PriceProviders.tlb" rename("SettlementTypeEnum", "PpSettlementTypeEnum") no_namespace named_guids
+
+#import "..\..\tlb\EtsGeneral.tlb"	no_namespace named_guids
+#import "..\..\tlb\EtsMMGeneral.tlb"	no_namespace named_guids
+
+#import "..\..\tlb\CV.tlb" no_namespace named_guids
+
+#define CV_DATAPROVIDER_BAD_ID	0xFFFFFFFF
+#define CV_DATAPROVIDED_ID		0
+#define CV_DATANOTSUPPORTED (size_t) - 1
+

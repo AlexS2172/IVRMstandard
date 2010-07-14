@@ -14,7 +14,7 @@
 #define	MAX_DBRECONNECTION_TRIES		10
 #define	DBRECONNECTION_DELAY			10
 
-#define TRADES_FILENAME					_T("Logs/SageTrades.log")
+//#define TRADES_FILENAME					_T("Logs/SageTrades.log")
 
 #define TRADES_FILENAME_BEGIN			_T("Logs/STrades")
 #define TRADES_FILENAME_END				_T(".log")
@@ -22,7 +22,7 @@
 #define FAILES_FILENAME_BEGIN			_T("Logs/SFailes")
 #define FAILES_FILENAME_END				_T(".log")
 
-#define STRUCTURE_FILENAME_BEGIN  	    _T("Logs/SageStructure")
+#define STRUCTURE_FILENAME_BEGIN  	    _T("Logs/SStructure")
 #define STRUCTURE_FILENAME_END			_T(".log")
 
 #endif

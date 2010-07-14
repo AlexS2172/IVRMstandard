@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{D76D7128-4A96-11D3-BD95-D296DC2DD072}#1.0#0"; "vsflex7.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmWtdVegaSettings 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Weighted Vega Settings"
@@ -256,6 +256,9 @@ Private Sub SaveData()
     If m_nMaturity <> g_ExpCalendar.Maturity Then
         Err.Clear
         gDBW.usp_WtdVegaMaturity_Save m_nMaturity
+        
+        g_Main.CalculationSettings.Normal = m_nMaturity
+        
         If Err.Number <> 0 Then
             gCmn.ErrorMsgBox Me, "Fail to save weighted vega settings."
             GoTo Ex
@@ -265,7 +268,7 @@ Private Sub SaveData()
 
     With fgData
 
-        For nRow = 1 To .Rows - 1
+        For nRow = 1 To .rows - 1
             Set aExpMonth = .Cell(flexcpData, nRow, 1)
     
             If Not aExpMonth Is Nothing Then
@@ -324,7 +327,7 @@ Private Sub btnOk_Click()
         txtMaturity.Enabled = False
         fgData.Enabled = False
         btnCancel.Enabled = False
-        btnOk.Enabled = False
+        btnOK.Enabled = False
         btnRecalculate.Enabled = False
         
         SaveData
@@ -347,7 +350,7 @@ Private Sub btnRecalculate_Click()
     txtMaturity.Enabled = False
     fgData.Enabled = False
     btnRecalculate.Enabled = False
-    btnOk.Enabled = False
+    btnOK.Enabled = False
 
     pbProgress.Min = 0
     pbProgress.Value = 0
@@ -359,7 +362,7 @@ Private Sub btnRecalculate_Click()
     With fgData
         .Redraw = flexRDNone
 
-        For nRow = 1 To .Rows - 1
+        For nRow = 1 To .rows - 1
             Set aExpMonth = .Cell(flexcpData, nRow, 1)
 
             If Not aExpMonth Is Nothing Then
@@ -390,7 +393,7 @@ Ex:
     fgData.Redraw = flexRDBuffered
     pbProgress.Visible = False
     btnRecalculate.Enabled = True
-    btnOk.Enabled = True
+    btnOK.Enabled = True
     txtMaturity.Enabled = True
     fgData.Enabled = True
 
@@ -503,7 +506,7 @@ Private Sub LoadData()
         .Redraw = flexRDNone
 
         .Cols = 2
-        .Rows = 1
+        .rows = 1
 
         .TextMatrix(0, 0) = "Date"
         .ColDataType(0) = flexDTString
@@ -543,7 +546,7 @@ Private Sub FormatGrid()
     
     With fgData
         .Redraw = flexRDNone
-        .Rows = 1
+        .rows = 1
         .Cols = 10
         
         .AllowBigSelection = False

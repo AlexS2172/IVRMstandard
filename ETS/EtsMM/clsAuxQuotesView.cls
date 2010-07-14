@@ -42,7 +42,6 @@ Public RealTimeConnected As Boolean
 Public SortColOrder As VSFlex7Ctl.SortSettings
 Public SortColKey As Long
 
-Public TradesFilter As Long
 Public OptionsFilter As Long
 
 Public CalcModelVisible As Boolean
@@ -55,6 +54,10 @@ Public IndexOptionsComboVisible As Boolean
 Public UseCustRates As Boolean
 Public IsAmerican As Long
 
+
+Public IsVolaSimulated As Boolean
+Public IsSimulatedFlat As Boolean
+Public bFlatVolaToATM  As Boolean
 
 Private Sub Class_Initialize()
     On Error Resume Next
@@ -283,6 +286,8 @@ Public Sub FormatDivGrid()
     On Error Resume Next
     Dim i&, sComboList$
     Dim aPrProf As EtsGeneralLib.EtsPriceProfileAtom
+    Dim aTrader As EtsGeneralLib.EtsTraderAtom
+    Dim aStrategy As EtsGeneralLib.EtsStrategyAtom
     
     With fgDiv
         m_GridLock(GT_QUOTES_DIVIDENDS).LockRedraw
@@ -296,7 +301,7 @@ Public Sub FormatDivGrid()
         Next
         
         .ColComboList(QDC_TRADES) = "#0;<All>|#1;Today's|#2;OpenPos|#3;NetPos|#7;Manual|#4;Simulated|#5;Today's & Sim|#6;OpenPos & Sim|#8;Manual & Sim"
-        .TextMatrix(1, QDC_TRADES) = TradesFilter
+        .TextMatrix(1, QDC_TRADES) = CStr(QV.TradeFilter.Data(enFtTrades))
         
         .ColComboList(QDC_OPTIONS) = "#0;Index|#1;Futures"
         .TextMatrix(1, QDC_OPTIONS) = OptionsFilter
@@ -306,6 +311,22 @@ Public Sub FormatDivGrid()
         .TextMatrix(1, QDC_STYLE) = "1"
         
         .ColEditMask(QDC_DATE) = "99/99/9999"
+        
+        .TextMatrix(1, QDC_DATECALC) = ClipSeconds(Now)
+        
+        sComboList = "#0;<All>"
+        For Each aTrader In g_Trader
+            sComboList = sComboList & "|#" & Trim$(Str$(aTrader.ID)) & ";" & aTrader.Name
+        Next
+        .ColComboList(QDC_FLT_TRADER) = sComboList
+        .TextMatrix(1, QDC_FLT_TRADER) = IIf(g_CurTraderID <> 0, CStr(g_CurTraderID), CStr(QV.TradeFilter.Data(enFtTrader)))
+        
+        sComboList = "#0;<All>"
+        For Each aStrategy In g_Strategy
+            sComboList = sComboList & "|#" & Trim$(Str$(aStrategy.ID)) & ";" & aStrategy.Name
+        Next
+        .ColComboList(QDC_FLT_STRATEGY) = sComboList
+        .TextMatrix(1, QDC_FLT_STRATEGY) = CStr(QV.TradeFilter.Data(enFtStrategy))
         
         sComboList = ""
         For Each aPrProf In g_PriceProfile
@@ -363,7 +384,7 @@ Public Sub FormatVolGrid()
         .TextMatrix(4, 0) = "ATM"
         .TextMatrix(5, 0) = "-10%"
         .TextMatrix(6, 0) = "-20%"
-        
+               
         .MergeCells = flexMergeFixedOnly
         .MergeRow(0) = True
         .MergeCol(0) = True
@@ -621,11 +642,19 @@ Public Sub AdjustDivsAndRatesVisible()
                     
                 ElseIf i < QDC_DIV Then
                     .ColHidden(i) = False
-                    
+                                    
                 ElseIf i < QDC_RATE Then
-                    .ColHidden(i) = Not (DividendsVisible _
-                            And (Grp.ID = 0 Or Grp.ID <> 0 And (Grp.ContractType = enCtStock Or Grp.ContractType = enCtIndex)) _
-                            And (i <= QDC_FREQ Or i > QDC_FREQ And bValidDivs))
+                    If (i >= QDC_DATECALC And i <= QDC_VOLA_FLAT) Then
+                        If (i = QDC_VOLA_FLAT) Then
+                            .ColHidden(i) = Not IsVolaSimulated
+                        Else
+                            .ColHidden(i) = False
+                        End If
+                    Else
+                        .ColHidden(i) = Not (DividendsVisible _
+                                And (Grp.ID = 0 Or Grp.ID <> 0 And (Grp.ContractType = enCtStock Or Grp.ContractType = enCtIndex)) _
+                                And (i <= QDC_FREQ Or i > QDC_FREQ And bValidDivs))
+                    End If
                 Else
                     .ColHidden(i) = Not RatesVisible
                 End If
@@ -866,47 +895,47 @@ Public Function IsValidDivFreq(ByVal nDivFreq As Long) As Boolean
     IsValidDivFreq = (nDivFreq = 1 Or nDivFreq = 2 Or nDivFreq = 4 Or nDivFreq = 12)
 End Function
 
-Public Function CheckTradeFilter(ByRef aTrd As EtsMmGeneralLib.MmTradeInfoAtom) As Boolean
-    On Error Resume Next
-    Dim bMatched As Boolean
-    
-    bMatched = False
-    
-    If Not aTrd Is Nothing Then
-        bMatched = (TradesFilter = 0)
-        
-        If Not bMatched Then
-            Select Case TradesFilter
-                Case 1 ' Today's
-                    bMatched = (Int(aTrd.TradeDate) = Int(Date) And aTrd.Status <> enTsSimulated)
-
-                Case 2 ' OpenPos
-                    bMatched = (Int(aTrd.TradeDate) < Int(Date) And aTrd.IsPosition <> 0)
-
-                Case 3 ' NetPos
-                    bMatched = (aTrd.Status <> enTsSimulated)
-
-                Case 4 ' Simulated
-                    bMatched = (aTrd.Status = enTsSimulated)
-
-                Case 5 ' Today's & Sim
-                    bMatched = (Int(aTrd.TradeDate) = Int(Date)) 'Or aTrd.Status = enTsSimulated)
-
-                Case 6 ' OpenPos & Sim
-                    bMatched = (Int(aTrd.TradeDate) < Int(Date)) 'And aTrd.IsPosition <> 0 Or aTrd.Status = enTsSimulated)
-
-                Case 7 ' Manual
-                    bMatched = (aTrd.Status = enTsManual)
-            
-                Case 8 ' Manual & Sim
-                    bMatched = (aTrd.Status = enTsManual Or aTrd.Status = enTsSimulated)
-                    
-            End Select
-        End If
-    End If
-
-    CheckTradeFilter = bMatched
-End Function
+'Public Function CheckTradeFilter(ByRef aTrd As EtsGeneralLib.MmTradeInfoAtom) As Boolean
+'    On Error Resume Next
+'    Dim bMatched As Boolean
+'
+'    bMatched = False
+'
+'    If Not aTrd Is Nothing Then
+'        bMatched = (TradesFilter = 0)
+'
+'        If Not bMatched Then
+'            Select Case TradesFilter
+'                Case 1 ' Today's
+'                    bMatched = (Int(aTrd.TradeDate) = Int(Date) And aTrd.Status <> enTsSimulated)
+'
+'                Case 2 ' OpenPos
+'                    bMatched = (Int(aTrd.TradeDate) < Int(Date) And aTrd.IsPosition <> 0)
+'
+'                Case 3 ' NetPos
+'                    bMatched = (aTrd.Status <> enTsSimulated)
+'
+'                Case 4 ' Simulated
+'                    bMatched = (aTrd.Status = enTsSimulated)
+'
+'                Case 5 ' Today's & Sim
+'                    bMatched = (Int(aTrd.TradeDate) = Int(Date)) 'Or aTrd.Status = enTsSimulated)
+'
+'                Case 6 ' OpenPos & Sim
+'                    bMatched = (Int(aTrd.TradeDate) < Int(Date)) 'And aTrd.IsPosition <> 0 Or aTrd.Status = enTsSimulated)
+'
+'                Case 7 ' Manual
+'                    bMatched = (aTrd.Status = enTsManual)
+'
+'                Case 8 ' Manual & Sim
+'                    bMatched = (aTrd.Status = enTsManual Or aTrd.Status = enTsSimulated)
+'
+'            End Select
+'        End If
+'    End If
+'
+'    CheckTradeFilter = bMatched
+'End Function
 
 'Private Sub AppendUndDataSnapshot(ByRef aUnd As EtsMmQuotesLib.MmQvUndAtom, ByRef sDesc$)
 '    On Error Resume Next

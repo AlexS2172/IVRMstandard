@@ -24,7 +24,7 @@ struct __IndexCompAtom
 // CIndexCompAtom
 
 class ATL_NO_VTABLE CIndexCompAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CIndexCompAtom, &CLSID_IndexCompAtom>,
 	public ISupportErrorInfoImpl<&IID_IIndexCompAtom>,
 	public IDispatchImpl<IIndexCompAtom, &IID_IIndexCompAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -33,6 +33,7 @@ class ATL_NO_VTABLE CIndexCompAtom :
 public:
 	CIndexCompAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_INDEXCOMPATOM)
@@ -42,18 +43,24 @@ BEGIN_COM_MAP(CIndexCompAtom)
 	COM_INTERFACE_ENTRY(IIndexCompAtom)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

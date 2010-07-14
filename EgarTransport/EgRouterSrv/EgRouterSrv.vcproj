@@ -4,9 +4,6 @@
 	Version="8.00"
 	Name="EgRouterSrv"
 	ProjectGUID="{DAB9F4F6-228D-4EF5-8E18-C51DD9BA01F7}"
-	SccProjectName="EgarTransport"
-	SccLocalPath=".."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="AtlProj"
 	>
 	<Platforms>

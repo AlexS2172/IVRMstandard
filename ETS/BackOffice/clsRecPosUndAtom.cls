@@ -22,7 +22,7 @@ Public Symbol As String
 
 Private Opt As New clsRecPosOptColl
 Private rsOptions As ADODB.Recordset
-Private Root As New clsRecOptRootColl
+Public Root As New clsRecOptRootColl
 Private rsOptionRoots As ADODB.Recordset
 
 Private Sub Class_Terminate()
@@ -116,6 +116,34 @@ Public Function FindOption(ByVal sOptionRoot As String, ByVal bIsCall As Byte, B
     End If
     
 End Function
+
+Public Sub InitRoot()
+On Error Resume Next
+    Dim aRoot As clsRecOptRootAtom
+    Dim sOptionRoot As String
+    Dim nOptRootID As Long
+    '-----------------------------------------------------'
+    LoadOptionRoots
+    '-----------------------------------------------------'
+    If rsOptionRoots.RecordCount > 0 Then
+        rsOptionRoots.MoveFirst
+        While Not rsOptionRoots.EOF
+            sOptionRoot = gCmn.ReadStr(rsOptionRoots!vcSymbol)
+            nOptRootID = gCmn.ReadLng(rsOptionRoots!iRootID)
+                       
+            If (Not Root Is Nothing) Then
+                Set aRoot = Root.Add(sOptionRoot)
+                
+                If (Not aRoot Is Nothing) Then
+                    aRoot.Symbol = sOptionRoot
+                    aRoot.RootID = nOptRootID
+                End If
+            End If
+
+            rsOptionRoots.MoveNext
+        Wend
+    End If
+End Sub
 
 Private Sub LoadOptionRoots()
     If ID <> 0 And rsOptionRoots Is Nothing Then

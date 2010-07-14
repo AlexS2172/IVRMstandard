@@ -5,9 +5,6 @@
 	Name="EgDebugUtil"
 	ProjectGUID="{9994278C-180F-4D33-B7CC-F39E3CB73CF9}"
 	RootNamespace="EgDebugUtil"
-	SccProjectName="&quot;$/EgCommon/EgDebugUtil&quot;, TAZCAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	>
 	<Platforms>
 		<Platform

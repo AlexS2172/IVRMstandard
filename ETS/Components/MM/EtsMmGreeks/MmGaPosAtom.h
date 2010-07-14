@@ -16,6 +16,8 @@ struct __MmGaPosAtom
 	CComBSTR				m_bstrSymbol;
 	EtsOptionTypeEnum		m_enOptType;
 	DATE					m_dtExpiry;
+	DATE					m_dtExpiryOV;
+	DATE					m_dtTradingClose;
 	DOUBLE					m_dStrike;
 	DOUBLE					m_dVola;
 	LONG					m_nRootID;
@@ -46,7 +48,9 @@ struct __MmGaPosAtom
 		m_nQtyInShares(BAD_LONG_VALUE), m_dDeltaInShares(BAD_DOUBLE_VALUE),
 		m_dDeltaEq(BAD_DOUBLE_VALUE), m_dGammaEq(BAD_DOUBLE_VALUE),
 		m_dGammaInShares(BAD_DOUBLE_VALUE), m_dVegaInShares(BAD_DOUBLE_VALUE),
-		m_dTimeValueInShares(BAD_DOUBLE_VALUE), m_bIsSynth(VARIANT_FALSE), m_dRho(0.0),m_dRhoInShares(0.0)
+		m_dTimeValueInShares(BAD_DOUBLE_VALUE), m_bIsSynth(VARIANT_FALSE), m_dRho(0.0),m_dRhoInShares(0.0),
+		m_dtExpiryOV(0),
+		m_dtTradingClose(0)
 	{
 	}
 
@@ -104,6 +108,8 @@ public:
 	IMPLEMENT_SIMPLE_PROPERTY(EtsContractTypeEnum, ContractType, m_enContractType)
 	IMPLEMENT_SIMPLE_PROPERTY(EtsOptionTypeEnum, OptType, m_enOptType)
 	IMPLEMENT_SIMPLE_PROPERTY(DATE, Expiry, m_dtExpiry)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, ExpiryOV, m_dtExpiryOV)
+	IMPLEMENT_SIMPLE_PROPERTY(DATE, TradingClose, m_dtTradingClose)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Strike, m_dStrike)
 	IMPLEMENT_SIMPLE_PROPERTY(DOUBLE, Vola, m_dVola)
 	IMPLEMENT_SIMPLE_PROPERTY(LONG, RootID, m_nRootID)

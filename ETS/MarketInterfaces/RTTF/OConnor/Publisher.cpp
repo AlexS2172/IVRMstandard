@@ -19,8 +19,26 @@ CPublisher::CPublisher() :
 	TCHAR pTradesFile[256] = { 0 };
     TCHAR pFailesFile[256] = { 0 };
 	TCHAR pFileDate[100] = { 0 };
+	CString sStructureFile;
 
-    _stprintf_s(pFileDate, sizeof(pFileDate), _T("_%2.2i_%2.2i_%4.4i"), st.wDay, st.wMonth, st.wYear);
+	_bstr_t sbsUserGroup;
+	_bstr_t sbsKey = SETTINGS_XML_KEY;
+	_bstr_t sbsVal;
+
+	CXMLParamsHelper XMLParams;
+	XMLParams.LoadXMLParams();
+	XMLParams.GetUserGroup(sbsUserGroup.GetAddress());
+
+	sbsKey += "\\";
+	sbsKey += sbsUserGroup;
+
+	//get prefix for log file
+	XMLParams.GetMainXMLString(sbsKey, "LogNameID", &sbsVal);
+	CString strTradesPrefix = (LPTSTR)sbsUserGroup;
+	if (sbsVal.length() > 0)
+		strTradesPrefix = (LPTSTR)sbsVal;
+
+    _stprintf_s(pFileDate, sizeof(pFileDate), _T("_%s_%2.2i_%2.2i_%4.4i"), strTradesPrefix.GetString(), st.wDay, st.wMonth, st.wYear);
 				
     _tcscpy_s(pTradesFile, sizeof(pTradesFile), TRADES_FILENAME_BEGIN);
 	_tcscat_s(pTradesFile, sizeof(pTradesFile), pFileDate);			
@@ -28,11 +46,13 @@ CPublisher::CPublisher() :
 
     _tcscpy_s(pFailesFile, sizeof(pFailesFile), FAILES_FILENAME_BEGIN);
 	_tcscat_s(pFailesFile, sizeof(pFailesFile), pFileDate);			
-	_tcscat_s(pFailesFile, sizeof(pFailesFile), FAILES_FILENAME_END);	
+	_tcscat_s(pFailesFile, sizeof(pFailesFile), FAILES_FILENAME_END);
+
+	sStructureFile.Format("%s_%s%s", STRUCTURE_FILENAME, strTradesPrefix.GetString(), FAILES_FILENAME_END);
 
 	m_fTradesFile.open( CT2A(pTradesFile), ios::app | ios::out );
     m_fFailesFile.open( CT2A(pFailesFile), ios::app | ios::out );
-	m_fStructFile.open( CT2A(STRUCTURE_FILENAME), ios::app | ios::out);
+	m_fStructFile.open( sStructureFile.GetString(), ios::app | ios::out);
 }
 
 CPublisher::~CPublisher() 
@@ -281,7 +301,8 @@ HRESULT CPublisher::FillTradeUpdate(CClientRecordset& rs, CTradePtr& pTrade)
 		m_spTradeUpdate->UndSymbol = rs[L"vcUnderlyingSymbol"];
 		m_spTradeUpdate->Expiry = rs[L"dtExpiry"];
 		m_spTradeUpdate->ExpiryOV = rs[L"dtExpiryOV"];
-		m_spTradeUpdate->TradingClose = rs[L"dtTradingClose"];
+		double dtTradingClose = rs[L"dtTradingClose"];
+		m_spTradeUpdate->TradingClose = dtTradingClose - floor(dtTradingClose);
 		m_spTradeUpdate->IsCall = rs[L"tiIsCall"];
 		m_spTradeUpdate->Strike = rs[L"fStrike"];
 		m_spTradeUpdate->PriceClose = rs[L"fPriceClose"];

@@ -25,7 +25,7 @@ struct __EtsTraderGroupAtom
 // CEtsTraderGroupAtom
 
 class ATL_NO_VTABLE CEtsTraderGroupAtom : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CEtsTraderGroupAtom, &CLSID_EtsTraderGroupAtom>,
 	public ISupportErrorInfoImpl<&IID_IEtsTraderGroupAtom>,
 	public IDispatchImpl<IEtsTraderGroupAtom, &IID_IEtsTraderGroupAtom, &LIBID_EtsGeneralLib, /*wMajor =*/ 1, /*wMinor =*/ 0>,
@@ -34,6 +34,7 @@ class ATL_NO_VTABLE CEtsTraderGroupAtom :
 public:
 	CEtsTraderGroupAtom()
 	{
+		m_pUnkMarshaler = NULL;
 	}
 
 DECLARE_REGISTRY_RESOURCEID(IDR_ETSTRADERGROUPATOM)
@@ -43,9 +44,11 @@ BEGIN_COM_MAP(CEtsTraderGroupAtom)
 	COM_INTERFACE_ENTRY(IEtsTraderGroupAtom)
 	COM_INTERFACE_ENTRY(IDispatch)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
+	COM_INTERFACE_ENTRY_AGGREGATE(IID_IMarshal, m_pUnkMarshaler.p)
 END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_GET_CONTROLLING_UNKNOWN()
 
 	HRESULT FinalConstruct()
 	{
@@ -59,13 +62,17 @@ END_COM_MAP()
 		{
 			return Error((PTCHAR)EgLib::CComErrorWrapper::ErrorDescription(e), IID_IEtsTraderGroupAtom, e.Error());
 		}
-		return S_OK;
+		return CoCreateFreeThreadedMarshaler(
+			GetControllingUnknown(), &m_pUnkMarshaler.p);
 	}
 	
 	void FinalRelease() 
 	{
 		m_spTrader = NULL;
+		m_pUnkMarshaler.Release();
 	}
+
+	CComPtr<IUnknown> m_pUnkMarshaler;
 
 public:
 

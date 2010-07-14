@@ -25,6 +25,8 @@ STDMETHODIMP CExchColl::Add(LONG Key, BSTR SortKey, IExchAtom* Value, IExchAtom*
 				pNewVal->Release();
 				EgLib::CComErrorWrapper::ThrowError(E_INVALIDARG, _T("Fail to add exchange."));
 			}
+			pNewVal->m_nID      = Key;
+			pNewVal->m_bstrCode = bsSortKey;
 			*pRetVal = pNewVal;
 		}
 		else

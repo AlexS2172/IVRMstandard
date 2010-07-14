@@ -5,9 +5,6 @@
 	Name="ETSManager"
 	ProjectGUID="{5839078E-D296-4475-B330-6A9409F31E6F}"
 	RootNamespace="ETSManager"
-	SccProjectName="SAK"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	Keyword="AtlProj"
 	>
 	<Platforms>

@@ -523,6 +523,25 @@ Begin VB.UserControl ctlMktStruct
       TabIndex        =   16
       Top             =   0
       Width           =   9615
+      Begin ElladaFlatControls.FlatButton btnSurface 
+         Height          =   300
+         Left            =   6360
+         TabIndex        =   86
+         Top             =   1680
+         Width           =   1335
+         _ExtentX        =   2355
+         _ExtentY        =   529
+         BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         Caption         =   "Vola Surfaces"
+      End
       Begin VB.Frame Shape2 
          Appearance      =   0  'Flat
          BackColor       =   &H00FFFFFF&
@@ -567,7 +586,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentY        =   529
          _Version        =   393216
          CustomFormat    =   "MMM,dd yyy hh:mm tt"
-         Format          =   20578305
+         Format          =   50331649
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -693,7 +712,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20578305
+         Format          =   50331649
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -707,11 +726,11 @@ Begin VB.UserControl ctlMktStruct
       End
       Begin ElladaFlatControls.FlatButton btnMarketValues 
          Height          =   300
-         Left            =   4800
+         Left            =   3480
          TabIndex        =   14
          Top             =   1680
-         Width           =   1335
-         _ExtentX        =   2355
+         Width           =   1095
+         _ExtentX        =   1931
          _ExtentY        =   529
          BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
             Name            =   "Arial"
@@ -729,8 +748,8 @@ Begin VB.UserControl ctlMktStruct
          Left            =   120
          TabIndex        =   12
          Top             =   1680
-         Width           =   1335
-         _ExtentX        =   2355
+         Width           =   975
+         _ExtentX        =   1720
          _ExtentY        =   529
          BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
             Name            =   "Arial"
@@ -867,7 +886,7 @@ Begin VB.UserControl ctlMktStruct
             _ExtentY        =   529
             _Version        =   393216
             CustomFormat    =   "MMM,dd yyy hh:mm tt"
-            Format          =   20578307
+            Format          =   50331651
             CurrentDate     =   38974.5416666667
          End
       End
@@ -957,11 +976,11 @@ Begin VB.UserControl ctlMktStruct
       End
       Begin ElladaFlatControls.FlatButton btnExchanges 
          Height          =   300
-         Left            =   1680
+         Left            =   1200
          TabIndex        =   13
          Top             =   1680
-         Width           =   1335
-         _ExtentX        =   2355
+         Width           =   1095
+         _ExtentX        =   1931
          _ExtentY        =   529
          BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
             Name            =   "Arial"
@@ -984,7 +1003,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20578305
+         Format          =   50331649
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -1027,11 +1046,11 @@ Begin VB.UserControl ctlMktStruct
       End
       Begin ElladaFlatControls.FlatButton btnOptionRoots 
          Height          =   300
-         Left            =   3240
+         Left            =   2400
          TabIndex        =   48
          Top             =   1680
-         Width           =   1335
-         _ExtentX        =   2355
+         Width           =   975
+         _ExtentX        =   1720
          _ExtentY        =   529
          Enabled         =   0   'False
          BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -1047,7 +1066,7 @@ Begin VB.UserControl ctlMktStruct
       End
       Begin ElladaFlatControls.FlatButton btnBeta 
          Height          =   300
-         Left            =   6360
+         Left            =   4800
          TabIndex        =   51
          Top             =   1680
          Width           =   1335
@@ -1077,11 +1096,11 @@ Begin VB.UserControl ctlMktStruct
       End
       Begin ElladaFlatControls.FlatButton btnFuturesRoots 
          Height          =   300
-         Left            =   3240
+         Left            =   3480
          TabIndex        =   55
          Top             =   1320
-         Width           =   1335
-         _ExtentX        =   2355
+         Width           =   1095
+         _ExtentX        =   1931
          _ExtentY        =   529
          BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
             Name            =   "Arial"
@@ -1875,6 +1894,12 @@ EH:
     ShowError
 End Sub
 
+Private Sub btnSurface_Click()
+    If ContractCanProceed Then
+        If frmSubSurfaceEditor.Execute(m_Contract.ID, m_Contract.Symbol) Then ContractLoad
+    End If
+End Sub
+
 Private Sub btnSymbLoadIV_Click()
     On Error GoTo EH
     Dim iAnswr As VbMsgBoxResult
@@ -2661,6 +2686,9 @@ Private Sub SetContractType(ByVal v As eContractType)
     
     ' controls customizing
     btnUpdateComposition.Visible = (m_ContractType = GINT_INDEXES)
+    btnFuturesRoots.Visible = (m_ContractType = GINT_INDEXES)
+    btnSurface.Visible = (m_ContractType = GINT_INDEXES Or m_ContractType = GINT_STOCKS)
+    
     
     For i = 0 To 1
         lblDivFreq(i).Visible = (m_ContractType = GINT_STOCKS Or m_ContractType = GINT_INDEXES)
@@ -4406,6 +4434,7 @@ Public Sub OptionPairAdd()
     Dim Opt As New clsOptionPairAtom
     Opt.dExpiry = Date
     Opt.dExpiryOV = Date + CDate("16:00:00")
+    Opt.dTradingClose = CDate("16:00:00")
     If frmMktStrOptionPairEditor.Execute(m_Contract.ID, m_Contract.TypeID, m_Contract.CalendarType, Opt, True) Then GeneralOptionListLoad
     Exit Sub
 EH:
@@ -4438,9 +4467,8 @@ Public Sub OptionPairEdit(bEdit As Boolean)
                 Opt.fStrike = Round(.Fields("fStrike"), 4)
                 Opt.dExpiry = .Fields("dtExpiry")
                 Opt.dExpiryOV = .Fields("dtExpiryOV")
-'                sDateTime = grdOptions.TextMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
+                Opt.dTradingClose = .Fields("dtTradeClose")
                 Opt.dExpiryOV = grdOptions.TextMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
-'                Opt.dExpiryOV = gCmn.FmtDateTime(op.dExpiryOV)
             If m_ContractType <> GINT_FUTURES Then Opt.bCallManual = IIf(.Fields("vcIsFlex") = 0, False, True)
                 Opt.bPutManual = Opt.bCallManual
             End If
@@ -4451,9 +4479,8 @@ Public Sub OptionPairEdit(bEdit As Boolean)
                 Opt.fStrike = Round(.Fields("fStrike"), 4)
                 Opt.dExpiry = .Fields("dtExpiry")
                 Opt.dExpiryOV = .Fields("dtExpiryOV")
-'                Opt.dExpiryOV = grdOptions.ValueMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
                 Opt.dExpiryOV = grdOptions.TextMatrix(grdOptions.Row, OPT_EXPIRYVALUATION)
-'                Opt.dExpiryOV = gCmn.FmtDateTime(op.dExpiryOV)
+                Opt.dTradingClose = .Fields("dtTradeClose")
                 If m_ContractType <> GINT_FUTURES Then Opt.bCallManual = IIf(.Fields("vcIsFlex") = 0, False, True)
                 Opt.bPutManual = Opt.bCallManual
             End If
@@ -4554,7 +4581,7 @@ Private Sub OptionPairRead(ByRef rst As ADODB.Recordset, ByRef op As clsOptionPa
                         
             .dExpiry = DBRead(rst!dtExpiry, 0#)
             .dExpiryOV = DBRead(rst!dtExpiryOV, 0#)
-            .dTradingClose = DBRead(rst!dtTradeClose, 0#)
+            .dTradingClose = ClipDays(DBRead(rst!dtTradeClose, 0#))
             .fStrike = Round(DBRead(rst!fStrike, 0), 4)
             .iPutID = Null
             .sPutSymbol = ""
@@ -4591,7 +4618,7 @@ Private Sub OptionPairRead(ByRef rst As ADODB.Recordset, ByRef op As clsOptionPa
             
             .dExpiry = DBRead(rst!dtExpiry, 0#)
             .dExpiryOV = DBRead(rst!dtExpiryOV, 0#)
-            .dTradingClose = DBRead(rst!dtTradeClose, 0#)
+            .dTradingClose = ClipDays(DBRead(rst!dtTradeClose, 0#))
             .fStrike = Round(DBRead(rst!fStrike, 0), 4)
             .iPutID = rst!iContractID
             .sPutSymbol = DBRead(rst!vcSymbol, "")

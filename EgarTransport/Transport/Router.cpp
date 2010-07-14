@@ -119,8 +119,8 @@ STDMETHODIMP CRouter::get_HostStatistic(/*in*/ BSTR bsHostIP, /*[out, retval]*/ 
 			LONGLONG llLogonTime = Int32x32To64(spHostInfo->GetLogonTime(), 10000000) + 116444736000000000;
 
 			FILETIME ftUTC;
-			ftUTC.dwLowDateTime = (DWORD)llLogonTime;
-			ftUTC.dwHighDateTime = llLogonTime >> 32;
+			ftUTC.dwLowDateTime = DWORD(llLogonTime);
+			ftUTC.dwHighDateTime = static_cast<DWORD>(llLogonTime >> 32);
 			SYSTEMTIME sTime;
 			if(!FileTimeToSystemTime(&ftUTC,&sTime))
 			{
@@ -1997,7 +1997,7 @@ void CRouter::ServiceDo()
 		SetIsStopping(false);
 
 		DWORD dwExtendedErrorCode = 0L;
-		dwErr = m_Driver.Start(this, COINIT_MULTITHREADED, RouterPort, RouterAddr);
+		dwErr = m_Driver.Start(this, COINIT_MULTITHREADED, static_cast<unsigned short>(RouterPort), RouterAddr);
 		if(dwErr != 0)
 		{			
 			CEgLibTraceManager::Trace(LogError,_T("Router"),_T("Router server can't start. Can't start TCP/IP Driver (error: %d, ext: %d)."), dwErr, dwExtendedErrorCode);

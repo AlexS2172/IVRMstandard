@@ -5,10 +5,6 @@
 	Name="EtsMmGreeks"
 	ProjectGUID="{0E7A3B1B-12B1-4757-B46E-0C2B41A31C2F}"
 	RootNamespace="EtsMmGreeks"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>

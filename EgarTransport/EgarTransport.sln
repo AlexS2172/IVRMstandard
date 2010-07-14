@@ -26,33 +26,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EgRouterSrv", "EgRouterSrv\
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 6
-		SccProjectName0 = EgarTransport
-		SccLocalPath0 = .
-		SccProvider0 = MSSCCI:ClearCase
-		CanCheckoutShared = false
-		SccProjectUniqueName1 = EgTpPrx\\EgTpPrx.vcproj
-		SccProjectName1 = \u0022$/ETS/Work/EgTpPrx\u0022,\u0020GBOBAAAA
-		SccLocalPath1 = EgTpPrx
-		CanCheckoutShared = false
-		SccProjectUniqueName2 = RtControl\\RtControl.vcproj
-		SccProjectName2 = \u0022$/ETS/Work/RtControl\u0022,\u0020UTCAAAAA
-		SccLocalPath2 = RtControl
-		CanCheckoutShared = false
-		SccProjectUniqueName3 = TpControl\\TpControl.vcproj
-		SccProjectName3 = \u0022$/ETS/Work/TpControl\u0022,\u0020NLJAAAAA
-		SccLocalPath3 = TpControl
-		CanCheckoutShared = false
-		SccProjectUniqueName4 = Transport\\Transport.vcproj
-		SccProjectName4 = \u0022$/ETS/Work/Transport\u0022,\u0020NJAAAAAA
-		SccLocalPath4 = Transport
-		CanCheckoutShared = false
-		SccProjectUniqueName5 = EgRouterSrv\\EgRouterSrv.vcproj
-		SccLocalPath5 = .
-		CanCheckoutShared = false
-		SccProjectFilePathRelativizedFromConnection5 = EgRouterSrv\\
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32

@@ -19,6 +19,7 @@ import "ocidl.idl";
 		[propget, id(_dispid), helpstring(#_name)] HRESULT _name([in] BSTR PropName, [out, retval] _type* pVal);	\
 		[propput, id(_dispid), helpstring(#_name)] HRESULT _name([in] BSTR PropName, [in] _type newVal);
 	
+
 [
 		uuid(4959EBD0-5E0F-42CD-BDA3-462F4AF45C7A),
 		version(1.0),
@@ -58,6 +59,18 @@ library MSGSTRUCTLib
 		enTeUpdate	= 2
 	}
 	TRADE_ACTION;
+
+	typedef
+	[
+		uuid(EA4DA985-872C-43d1-A88F-D0FF605F34D6),
+		v1_enum,
+	]
+	enum
+	{
+		enGcmTheoreticalVolatility = 0,
+		enGcmImpliedVolatility = 1
+	}
+	GREEKS_CALCULATION_MODE;
 
 	typedef 
 	[
@@ -110,7 +123,13 @@ library MSGSTRUCTLib
 		enUndNoChanges				= 0x00,
 		enUndAggregationUpdate		= 0x01,
 		enUndDividendUpdate			= 0x02,
-		enUndAllTheoCloseUpdate		= 0x04
+		enUndAllTheoCloseUpdate		= 0x04,
+		enUndSettingsUpdate			= 0x08,
+		enHTBRatesUpdated			= 0x10,
+		enGlobalParamsUpdate		= 0x20,
+		enPriceProfileUpdate		= 0x40,
+		enPriceRoundRuleUpdate		= 0x80,
+		enToleranceRangeUpdate		= 0x100
 	}
 	UNDERLYING_UPDATE_STATUS;
 
@@ -317,6 +336,24 @@ library MSGSTRUCTLib
 
 	[
 		object,
+		uuid(EC6B6BAD-D5F5-49A8-84BD-E4F2FC7001E2),
+		dual,
+		nonextensible,
+		helpstring("ISettingsUpdate Interface"),
+		pointer_default(unique)
+	]
+	interface ISettingsUpdate : IDispatch{
+		MSGSTRUCT_PROP_DEF(1, GREEKS_CALCULATION_MODE,		GreeksCalculationMode)
+		MSGSTRUCT_PROP_DEF(2, long,							GreeksCalculationModel)
+		MSGSTRUCT_PROP_DEF(3, long,							GreeksCalculationPrecision)
+		MSGSTRUCT_PROP_DEF(4, long,							UseTheoVolaIfNoBid)
+		MSGSTRUCT_PROP_DEF(5, long,							UseTheoVolaIfBadMarketVola)
+		MSGSTRUCT_PROP_DEF(6, long,							PriceRoundingRule)
+		MSGSTRUCT_PROP_DEF(7, DOUBLE,						PriceTolerance)
+	};
+
+	[
+		object,
 		uuid(DC4D14E4-6513-4E39-8AB8-DEFE2D195FF3),
 		dual,
 		nonextensible,
@@ -455,6 +492,19 @@ library MSGSTRUCTLib
 		MSGSTRUCT_PROP_DEF(9,	double,			DivFreqCust)
 		MSGSTRUCT_PROP_DEF(10,	long,			DivType)
 		MSGSTRUCT_PROP_DEF(11,	double,			Yield)
+
+		// 
+		MSGSTRUCT_PROP_DEF(12,  double,			Skew)
+		MSGSTRUCT_PROP_DEF(13,  double,			Kurt)
+		MSGSTRUCT_PROP_DEF(14,  VARIANT_BOOL,	IsActive)
+		MSGSTRUCT_PROP_DEF(15,  VARIANT_BOOL,	IsHTB)
+		MSGSTRUCT_PROP_DEF(16,  VARIANT_BOOL,	AllowLending)
+		MSGSTRUCT_PROP_DEF(17,  VARIANT_BOOL,	IsHedgeSymbol)
+		MSGSTRUCT_PROP_DEF(18,  double,			SOQ)
+		MSGSTRUCT_PROP_DEF(19,  long,			StkProfile)
+		MSGSTRUCT_PROP_DEF(20,  long,			OptProfile)
+		MSGSTRUCT_PROP_DEF(21,  long,			PrimaryExchange)
+		MSGSTRUCT_PROP_DEF(22,  long,			Region)
 
 		// updated fields
 		MSGSTRUCT_PROP_DEF(90,	UNDERLYING_UPDATE_STATUS,	UpdStatus)
@@ -766,5 +816,13 @@ library MSGSTRUCTLib
 	coclass ManualPriceUpdate
 	{
 		[default] interface IManualPriceUpdate;
+	};
+	[
+		uuid(2B2E7B03-A0A3-471A-8082-A40039C2761D),
+		helpstring("SettingsUpdate Class")
+	]
+	coclass SettingsUpdate
+	{
+		[default] interface ISettingsUpdate;
 	};
 };

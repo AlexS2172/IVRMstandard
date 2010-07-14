@@ -647,10 +647,12 @@ STDMETHODIMP CEtsPriceProfileAtom::GetOptPriceAskForPnL(DOUBLE dPriceBid, DOUBLE
 //
 		else
 		{
-			if(!bZeroAsk){
+			if(!bZeroAsk)
+			{
 				if(m_bUseMidMarketForPnL)
 				{
-					if(bZeroBid && !m_bUseZeroBidRule){
+					if(bZeroBid && !m_bUseZeroBidRule)
+					{
 						dPriceBid = ReplacePrice(dPriceTheo, dPriceLast, dPriceAsk, bUseTheoVola);
 						nPriceStatus |= enRpsBid;
 					}
@@ -658,9 +660,11 @@ STDMETHODIMP CEtsPriceProfileAtom::GetOptPriceAskForPnL(DOUBLE dPriceBid, DOUBLE
 				}
 				else dRetVal = dPriceAsk;
 			}
-			else{
+			else
+			{
 				dPriceAsk = ReplacePrice(dPriceTheo, dPriceLast, dPriceBid, bUseTheoVola);
 				nPriceStatus = enRpsAsk;
+
 				if(!m_bUseMidMarketForPnL)
 					dRetVal = dPriceAsk;
 				else
@@ -676,7 +680,7 @@ STDMETHODIMP CEtsPriceProfileAtom::GetOptPriceAskForPnL(DOUBLE dPriceBid, DOUBLE
 							nPriceStatus |= enRpsBoth;
 						}
 						else
-							dRetVal = (dPriceBid + dPriceAsk) / 2;
+						dRetVal = (dPriceBid + dPriceAsk) / 2;
 					}
 					else
 						dRetVal = (dPriceBid + dPriceAsk) / 2;

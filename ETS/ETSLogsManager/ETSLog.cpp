@@ -192,8 +192,9 @@ STDMETHODIMP CETSLog::LogPerformanceCounters(LogLevelEnum LogLevel)
 				DWORD dwType = 0 ;
 				if(ERROR_SUCCESS == PdhGetFormattedCounterValue(m_hPDHCntCm,PDH_FMT_DOUBLE, &dwType, &counterValue))
 				{
-					sInfo += "\tRAM: \t";
+					sInfo += "RAM: (";
 					sInfo += (LPCSTR)_bstr_t((double)counterValue.doubleValue/0x100000);
+					sInfo += ")\t";
 				}
 			}
 			{
@@ -201,8 +202,9 @@ STDMETHODIMP CETSLog::LogPerformanceCounters(LogLevelEnum LogLevel)
 				DWORD dwType = 0 ;
 				if(ERROR_SUCCESS == PdhGetFormattedCounterValue(m_hPDHCntAm, PDH_FMT_DOUBLE, &dwType, &counterValue))
 				{
+					sInfo += "Committed RAM: (";
 					sInfo += (LPCSTR)_bstr_t((double)counterValue.doubleValue/0x100000);
-					sInfo += "\t";
+					sInfo += ")\t";
 				}
 			}
 			{
@@ -210,8 +212,9 @@ STDMETHODIMP CETSLog::LogPerformanceCounters(LogLevelEnum LogLevel)
 				DWORD dwType = 0 ;
 				if(ERROR_SUCCESS == PdhGetFormattedCounterValue(m_hPDHCntMmPm, PDH_FMT_DOUBLE, &dwType, &counterValue))
 				{
+					sInfo += "ETSMM PrivateMem: (";
 					sInfo += (LPCSTR)_bstr_t((double)counterValue.doubleValue/0x100000);
-					sInfo += "\t";
+					sInfo += ")\t";
 				}
 			}
 			{
@@ -219,8 +222,9 @@ STDMETHODIMP CETSLog::LogPerformanceCounters(LogLevelEnum LogLevel)
 				DWORD dwType = 0 ;
 				if(ERROR_SUCCESS == PdhGetFormattedCounterValue(m_hPDHCntPt,PDH_FMT_DOUBLE, &dwType, &counterValue))
 				{
-					sInfo += "\"CPU: \t";
+					sInfo += "CPU Total: (";
 					sInfo += (LPCSTR)_bstr_t((double)counterValue.doubleValue);
+					sInfo += ")\t";
 				}
 			}
 			{
@@ -228,8 +232,9 @@ STDMETHODIMP CETSLog::LogPerformanceCounters(LogLevelEnum LogLevel)
 				DWORD dwType = 0 ;
 				if(ERROR_SUCCESS == PdhGetFormattedCounterValue(m_hPDHCntMmPt, PDH_FMT_DOUBLE, &dwType, &counterValue))
 				{
+					sInfo += "CPU ETSMM: (";
 					sInfo += (LPCSTR)_bstr_t((double)counterValue.doubleValue);
-					sInfo += "\t";
+					sInfo += ")\t";
 				}
 			}
 

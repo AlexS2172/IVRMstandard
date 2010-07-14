@@ -35,6 +35,7 @@ Public Const PRODUCT_REG_KEY As String = "SOFTWARE\Egar\ETS\"
 Public Const APP_XML_KEY As String = "ETS\BackOffice\"
 Public Const PRODUCT_XML_KEY As String = "ETS\"
 Public Const GROUP_XML_KEY As String = "ETS\Asp\Groups\"
+Public Const APP_MM_XML_KEY As String = "ETS\MarketMaker\"
 
 Public Const GCOLOR_BUTTON_BACK = &HAD9A94
 Public Const GCOLOR_BUTTON_FORE = &H0

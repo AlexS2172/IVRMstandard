@@ -5,10 +5,6 @@
 	Name="EtsMmQuotes"
 	ProjectGUID="{DD56A86A-7C49-4836-B3DF-0DAA50DDDC74}"
 	RootNamespace="EtsMmQuotes"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="AtlProj"
 	>
 	<Platforms>

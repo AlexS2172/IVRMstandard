@@ -62,6 +62,7 @@ library MMWLib
 		DISPID_PubPriceUpdate,
 		DISPID_PubUnderlyingUpdate,
 		DISPID_PubManualPriceUpdate,
+		DISPID_PubSettingsUpdate,
 
 	    // ISubManager
 	    DISPID_SubQuote,
@@ -137,6 +138,8 @@ library MMWLib
 		DISPID_UnsubUnderlyingUpdate,
 		DISPID_UnsubManualPriceUpdate,
 		DISPID_SubManualPriceUpdate,
+		DISPID_UnsubSettingsUpdate,
+		DISPID_SubSettingsUpdate,
 
 	    // _IOnMessages
 	    DISPID_OnQuote,
@@ -175,11 +178,13 @@ library MMWLib
 		DISPID_OnPriceUpdate,
 		DISPID_OnUnderlyingUpdate,
 		DISPID_OnManualPriceUpdate,
+		DISPID_OnSettingsUpdate,
 
 		DISPID_OnLogon,
 		DISPID_OnLogoff,
 
 		DISPID_IsLogoned,
+		DISPID_UserGroup,
 
 	    // IPubManager
 		DISPID_PubDynamicMessage,
@@ -352,7 +357,8 @@ library MMWLib
 		enMtActiveFuturesChange         = 49,
 		enMtFlexOption					= 50,
 		enMtUnderlyingUpdate			= 51,
-		enMtManualPriceUpdate			= 52
+		enMtManualPriceUpdate			= 52,
+		enMtSettingsUpdate				= 53
 	}
 	MESSAGE_TYPE;
 
@@ -384,6 +390,7 @@ library MMWLib
 		HRESULT PubBroadcastMessage([in] IBroadcastMessage* BroadcastMessage, [out, retval] long* Result);
 
 		[propget, id(DISPID_IsLogoned), helpstring("property IsLogoned")] HRESULT IsLogoned([out, retval] VARIANT_BOOL *pVal);
+		[propput, id(DISPID_UserGroup), helpstring("property UserGroup")] HRESULT UserGroup([in] BSTR bsVal);
 				
 		[id(DISPID_PubRequestNewOrder), helpstring("method PubRequestNewOrder")] 
 		HRESULT PubRequestNewOrder([in] IOrder* Order, [out, retval] long* Result);
@@ -423,6 +430,9 @@ library MMWLib
 
 		[id(DISPID_PubManualPriceUpdate), helpstring("method PubManualPriceUpdate")]
 		HRESULT PubManualPriceUpdate([in] IManualPriceUpdate* Data, [out, retval] long* Result);
+
+		[id(DISPID_PubSettingsUpdate), helpstring("method PubSettingsUpdate")]
+		HRESULT PubSettingsUpdate([in] ISettingsUpdate* Data, [out, retval] long* Result);
 	};
 
 	[
@@ -507,6 +517,12 @@ library MMWLib
 
 		[id(DISPID_UnsubManualPriceUpdate), helpstring("method UnsubManualPriceUpdate")]
 		HRESULT UnsubManualPriceUpdate();
+
+		[id(DISPID_SubSettingsUpdate), helpstring("method SubSettingsUpdate")]
+		HRESULT SubSettingsUpdate();
+
+		[id(DISPID_UnsubSettingsUpdate), helpstring("method UnsubSettingsUpdate")]
+		HRESULT UnsubSettingsUpdate();
 	};
 
 	[
@@ -574,6 +590,9 @@ library MMWLib
 
 		[id(DISPID_OnManualPriceUpdate), helpstring("method OnManualPriceUpdate")]
 		HRESULT OnManualPriceUpdate([in] IManualPriceUpdate* Data);
+
+		[id(DISPID_OnSettingsUpdate), helpstring("method OnSettingsUpdate")]
+		HRESULT OnSettingsUpdate([in] ISettingsUpdate* Data);
 	};
 
 	[

@@ -155,21 +155,52 @@ END_COM_MAP()
 	}
 
 	void	_FormatSeries(DATE dtExpiry, CComBSTR& bstrSeries) throw();
+
 	DOUBLE	_AdjustFractionalDigits(DOUBLE dValue, UINT uDigits);
-	void	_GetSyntheticPrice(ISynthRootAtom* pRootAtom, IMmRpUndColl* pUndColl,
-					DOUBLE& dSpotBid, DOUBLE& dSpotAsk, DOUBLE& dSpotLast) throw();
+
+	void	_GetSyntheticPrice(	ISynthRootAtom* pRootAtom, 
+								IMmRpUndColl* pUndColl,
+								DOUBLE& dSpotBid, 
+								DOUBLE& dSpotAsk, 
+								DOUBLE& dSpotLast) throw();
+
 	LONG	_CalcOptionGreeks(EtsCalcModelTypeEnum enCalcModel, IMmRpOptAtom* pOptAtom, 
-						DOUBLE dRate, VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
+						DOUBLE dRate, DOUBLE dHTBRate, VARIANT_BOOL bUseTheoVolatility, VARIANT_BOOL bUseTheoVolaNoBid, 
 						VARIANT_BOOL bUseTheoVolaBadMarket, IMmRpUndColl* pUndColl, DOUBLE dUndPriceTolerance,
-						EtsPriceRoundingRuleEnum enPriceRoundingRule, GREEKS &aGreeks, 
+						EtsPriceRoundingRuleEnum enPriceRoundingRule, GREEKS &aGreeks,
+						ICalculationParametrsPtr spParams,
 						DOUBLE dUndPrice =0.0, EtsOptionTypeEnum*	_penOptType = NULL, 
 						bool useFuture = true, DOUBLE dUndPriceShift = 0.) throw();
-	DOUBLE	_InterpolateRate(DOUBLE dYTE, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw();
+
+	DOUBLE	_InterpolateRate(	DOUBLE dYTE,
+								SAFEARRAY* psaRates, 
+								SAFEARRAY* psaYTEs,
+								ICalculationParametrsPtr spParams) throw();
+
 	void	_GetBasketIndexDividends(REGULAR_DIVIDENDS* pDivs, LONG nMaxCount) throw();
-	void	_GetSyntheticRootBasketDividends(ISynthRootAtomPtr& spSynthRoot, REGULAR_DIVIDENDS* pDivs, 
-										LONG nMaxCount) throw();
-	DOUBLE	_CalcRegularForwardPrice(DOUBLE dSpotPrice, DATE dtExpiryOV, DATE tmCloseTime, DATE dtNow, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw();	
-	DOUBLE	_CalcSyntheticForwardPrice(ISynthRootAtom* pSynthRoot, DOUBLE dSpotPrice, DATE dtExpiryOV, DATE tmCloseTime, DATE dtNow, DOUBLE dForeignRate, SAFEARRAY* psaRates, SAFEARRAY* psaYTEs) throw();
+
+	void	_GetSyntheticRootBasketDividends(	ISynthRootAtomPtr& spSynthRoot, 
+												REGULAR_DIVIDENDS* pDivs, 
+												LONG nMaxCount) throw();
+	
+	DOUBLE	_CalcRegularForwardPrice(	DOUBLE dSpotPrice, 
+										DATE dtExpiryOV, 
+										DATE tmCloseTime, 
+										DATE dtNow, 
+										DOUBLE dForeignRate, 
+										SAFEARRAY* psaRates, 
+										SAFEARRAY* psaYTEs,
+										ICalculationParametrsPtr spParams) throw();	
+
+	DOUBLE	_CalcSyntheticForwardPrice(	ISynthRootAtom* pSynthRoot,
+										DOUBLE dSpotPrice, 
+										DATE dtExpiryOV, 
+										DATE tmCloseTime, 
+										DATE dtNow, 
+										DOUBLE dForeignRate, 
+										SAFEARRAY* psaRates, 
+										SAFEARRAY* psaYTEs,
+										ICalculationParametrsPtr spParams) throw();
 
 public:
 
@@ -208,28 +239,36 @@ public:
 	STDMETHOD(CalcGreeksSummary)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpGreeksSummaryColl** pRetVal);
 
 	STDMETHOD(CalcGreeksByMonth)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket,
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpGreeksByMonthColl** pRetVal);
 
 	STDMETHOD(CalcGreeksByMonthExt)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -237,33 +276,42 @@ public:
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
 					DOUBLE dUndPriceMultiplier,
+					ICalculationParametrs* pParams,
 					IMmRpGreeksByMonthColl** pRetVal);
 
 	STDMETHOD(CalcPnLs)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance, 
 					EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpPnLColl** pRetVal);
 
 	STDMETHOD(CalcRiskMatrix)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
 					IMmRpUndColl* pUndColl,
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpRiskMatrixColl** pRetVal);
 
 	STDMETHOD(CalcPosWithEarlyExercise)(EtsCalcModelTypeEnum enCalcModel, 
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket,
@@ -275,16 +323,20 @@ public:
 					VARIANT_BOOL EAUpComDivs,
 					LONG EADaysToDiv,
 					//IMmRpPosWithEarlyExerciseAtom* pPosWithEarlyExerciseAtom,
+					ICalculationParametrs* pParams,
 					IMmRpPosWithEarlyExerciseAtom** ppRetVal);
 
 	STDMETHOD(CalcMatrixByStock)(DOUBLE dUndPriceTolerance, 
 					EtsPriceRoundingRuleEnum enPriceRoundingRule,
 					IMmRpMatrixByStockAtom* pMatrixByStockAtom,
+					ICalculationParametrs* pParams,
 					IMmRpMatrixByStockAtom** ppRetVal);
 
 	STDMETHOD(CalcSynthetics)(EtsCalcModelTypeEnum enCalcModel,
 					SAFEARRAY** psaRates, 
 					SAFEARRAY** psaYTEs, 
+					SAFEARRAY** psaHTBRates, 
+					SAFEARRAY** psaHTBYTEs, 
 					VARIANT_BOOL bUseTheoVolatility, 
 					VARIANT_BOOL bUseTheoVolaNoBid, 
 					VARIANT_BOOL bUseTheoVolaBadMarket, 
@@ -292,10 +344,12 @@ public:
 					DOUBLE dUndPriceTolerance, 
 					EtsPriceRoundingRuleEnum enPriceRoundingRule,
 					IMmRpSyntheticColl* pSyntheticColl,
+					ICalculationParametrs* pParams,
 					IMmRpSyntheticColl** ppRetVal);
 	STDMETHOD(CalcExercisedStocks)(IMmRpUndColl* pUndColl, 
 					DOUBLE dUndPriceTolerance,
 			        EtsPriceRoundingRuleEnum enPriceRoundingRule,
+					ICalculationParametrs* pParams,
 					IMmRpExercisedStockColl** pRetVal);
 
 	STDMETHOD(CalcRiskMatrixTotals)(IMmRpRiskMatrixColl* pVal);

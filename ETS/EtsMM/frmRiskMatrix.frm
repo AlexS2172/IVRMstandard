@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "Comdlg32.ocx"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmRiskMatrix 
    Caption         =   "Risk Matrix"
@@ -115,7 +115,7 @@ Begin VB.Form frmRiskMatrix
       _ExtentY        =   847
       _Version        =   393216
    End
-   Begin VB.Menu mnuFIle 
+   Begin VB.Menu mnuFile 
       Caption         =   "&File"
       Begin VB.Menu mnuFileNew 
          Caption         =   "&New..."
@@ -206,6 +206,12 @@ Begin VB.Form frmRiskMatrix
          Caption         =   "T&wo Indices Hedge..."
          Enabled         =   0   'False
          Visible         =   0   'False
+      End
+      Begin VB.Menu mnuSepBR1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuFileBatchReporting 
+         Caption         =   "Batch Reporting"
       End
       Begin VB.Menu mnuSeparator2 
          Caption         =   "-"
@@ -306,6 +312,12 @@ Begin VB.Form frmRiskMatrix
       End
       Begin VB.Menu mnuExerciseScreen 
          Caption         =   "Exercise Screen..."
+      End
+      Begin VB.Menu mnuToolsSeparator31 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuReloadGroupsSpectificRatio 
+         Caption         =   "Reload Group Specific Ratio"
       End
       Begin VB.Menu mnuToolsSeparator2 
          Caption         =   "-"
@@ -661,7 +673,7 @@ Private Sub Form_Terminate()
             g_PerformanceLog.LogMmInfo enLogUserAction, "RiskMatrix View Terminate Exit - Not Done", Me.Caption
        Exit Sub
     End If
-    ctlView.ScenarioSave False, False
+    'ctlView.ScenarioSave False, False
     Set aParams = Nothing
     
     ctlView.StopNow
@@ -761,6 +773,11 @@ Public Sub OpenLayout(aStorage As clsSettingsStorage, ByVal sKey As String)
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "OpenLayout Done", Me.Caption
 
+End Sub
+
+Private Sub mnuFileBatchReporting_Click()
+    On Error Resume Next
+    g_frmProjections.ShowData
 End Sub
 
 Private Sub mnuFileClose_Click()
@@ -1065,6 +1082,23 @@ EH:
     If Not g_PerformanceLog Is Nothing Then _
         g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""File->Open"" Exit with an errors. ", Me.Caption
 
+End Sub
+
+Private Sub mnuReloadGroupsSpectificRatio_Click()
+On Error GoTo error_exception
+
+    Dim sFileName As String
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""Manage->Reload Group Specific Ratio"" Enter. ", Me.Caption
+            
+        ctlView.LoadGroupSpecificRatio
+        
+    If Not g_PerformanceLog Is Nothing Then _
+        g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""Manage->Reload Group Specific Ratio"" Exit. ", Me.Caption
+        
+Exit Sub
+error_exception:
+    gCmn.ErrorMsgBox Me, "Fail to Reload Group Specific Ratio: " & Err.Description
 End Sub
 
 Private Sub mnuScnDelete_Click()
@@ -1418,3 +1452,27 @@ Private Sub mnuExerciseScreen_Click()
         g_PerformanceLog.LogMmInfo enLogUserAction, "Menu ""Manage Exercise Screen"" Enter. ", Me.Caption
 
 End Sub
+
+Public Function GroupSpecificRatioFileDialog() As String
+    On Error Resume Next
+
+    GroupSpecificRatioFileDialog = STR_NA
+
+    dlgCommon.Flags = cdlOFNExplorer Or cdlOFNLongNames Or cdlOFNPathMustExist _
+                                     Or cdlOFNHideReadOnly Or cdlOFNFileMustExist
+
+    dlgCommon.CancelError = True
+    dlgCommon.DefaultExt = ".txt"
+    dlgCommon.DialogTitle = "Load Group Ratio file"
+    dlgCommon.FileName = ""
+    dlgCommon.InitDir = g_Params.CurrentUserPrivateFolder
+    dlgCommon.Filter = "Group Specific Ratio File (*.txt)|*.txt|All Files|*.*"
+    dlgCommon.FilterIndex = 1
+
+    dlgCommon.ShowOpen
+    If Err.Number = 0 Then
+        GroupSpecificRatioFileDialog = dlgCommon.FileName
+    End If
+
+End Function
+

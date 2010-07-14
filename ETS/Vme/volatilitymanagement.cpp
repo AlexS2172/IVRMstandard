@@ -79,6 +79,7 @@ void CVolatilityManagement::OnDefaultSurfaceChanged( const _bstr_t& SymbolName, 
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		ATLTRACE( (PTCHAR)CComErrorWrapper::ErrorDescription( e ) );
 	}
 }
@@ -140,6 +141,7 @@ STDMETHODIMP CVolatilityManagement::put_UnderlinePrice(BSTR Symbol, double newVa
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVolatilityManagement, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolatilityManagement", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -190,7 +192,7 @@ STDMETHODIMP CVolatilityManagement::get_Surface(long SurfaceID, EOptType OptType
 	{
 		if( pObject )
 			pObject->Release();
-
+		REPORT_ERR_TO_MAIL (e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVolatilityManagement, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolatilityManagement", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -222,6 +224,7 @@ STDMETHODIMP CVolatilityManagement::get_ActiveSurfaceID(BSTR Symbol, long *pVal)
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVolatilityManagement, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolatilityManagement", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -247,6 +250,7 @@ STDMETHODIMP CVolatilityManagement::put_ActiveSurfaceID(BSTR Symbol, long newVal
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVolatilityManagement, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolatilityManagement", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -267,6 +271,7 @@ STDMETHODIMP CVolatilityManagement::get_DefaultSurfaceID(BSTR Symbol, long *pVal
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL (e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVolatilityManagement, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolatilityManagement", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -300,6 +305,7 @@ STDMETHODIMP CVolatilityManagement::put_DefaultSurfaceID(/*[in]*/BSTR Symbol, /*
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVolatilityManagement, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolatilityManagement", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -335,6 +341,7 @@ STDMETHODIMP CVolatilityManagement::RegisterPublisher()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL(e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVSSymbolVolatility, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolaControl", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}
@@ -362,6 +369,7 @@ STDMETHODIMP CVolatilityManagement::UnregisterPublisher()
 	}
 	catch( const _com_error& e )
 	{
+		REPORT_ERR_TO_MAIL (e)
 		//return Error( (PTCHAR)CComErrorWrapper::ErrorDescription( e ), IID_IVSSymbolVolatility, e.Error() );
 		return CComErrorWrapper::SetError(e, L"VolaControl", L"", __FILE__,__FUNCDNAME__,__LINE__);;
 	}

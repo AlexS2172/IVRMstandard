@@ -5,9 +5,6 @@
 	Name="OptionCalc"
 	ProjectGUID="{1B7E6FEA-E8D0-4D31-B260-63EB3D184C2A}"
 	RootNamespace="OptionCalc"
-	SccProjectName="&quot;$/EgCommon/OptionCalc&quot;, BIIBAAAA"
-	SccLocalPath="."
-	SccProvider="MSSCCI:ClearCase"
 	>
 	<Platforms>
 		<Platform

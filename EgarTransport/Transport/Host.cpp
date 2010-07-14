@@ -579,7 +579,7 @@ STDMETHODIMP CHost::get_Statistic(IHostStatisticData** ppStatistic)
 
 			FILETIME ftUTC;
 			ftUTC.dwLowDateTime = (DWORD)llLogonTime;
-			ftUTC.dwHighDateTime = llLogonTime >> 32;
+			ftUTC.dwHighDateTime = static_cast<DWORD>(llLogonTime >> 32);
 			SYSTEMTIME sTime;
 			if(!FileTimeToSystemTime(&ftUTC,&sTime))
 				throw Error(L"FileTimeToSystemTime failed.", IID_IHost, E_FAIL);

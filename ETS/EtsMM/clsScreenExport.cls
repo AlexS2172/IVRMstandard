@@ -381,6 +381,87 @@ ErrHandler:
     Debug.Print "Wrong fgData value."
 End Function
 
+Public Function SaveToCSV(ByVal sFileName As String, ByVal sFilePath As String, _
+                            ByRef fgVal As VSFlexGrid, _
+                            Optional ByRef fgTot As VSFlexGrid = Null, _
+                            Optional ByRef fgFlt As VSFlexGrid = Null, _
+                            Optional ByVal bSaveAll As Boolean = True) As Boolean
+    On Error Resume Next
+    Dim hFile As Long
+    Dim sReport As String
+
+    SaveToCSV = False
+    
+    hFile = FreeFile
+    If hFile = 0 Then
+        Exit Function
+    End If
+    
+    Kill sFilePath & sFileName
+    Open sFilePath & sFileName For Binary Access Write As #hFile
+    
+    If (Not fgFlt Is Nothing) Then
+         GridToCSV fgFlt, bSaveAll, hFile
+    End If
+    If (Not fgTot Is Nothing) Then
+        GridToCSV fgTot, bSaveAll, hFile
+    End If
+    If (Not fgVal Is Nothing) Then
+        GridToCSV fgVal, bSaveAll, hFile
+    End If
+    
+    Close #hFile
+
+    SaveToCSV = True
+End Function
+
+Private Function GridToCSV(ByRef fgData As VSFlexGrid, ByVal bSaveAll As Boolean, ByVal hFile As Long) As String
+On Error Resume Next
+
+    Dim bFirstRow As Boolean
+    Dim bFirstCol As Boolean
+    Dim bLastCol As Boolean
+    Dim nRow, nCol As Long
+    Dim sReport As String
+    Dim sName As String
+    Dim sDelim As String: sDelim = ","
+    
+        
+    If Not fgData.Rows > 0 Or Not fgData.Cols > 0 Then
+        Exit Function
+    End If
+    
+    'Generate header of table
+    For nCol = 0 To fgData.Cols - 1
+        If (Not fgData.ColHidden(nCol)) Then
+            sReport = sReport & fgData.Cell(flexcpTextDisplay, 0, nCol) & IIf(nCol <> fgData.Cols - 1, sDelim, "")
+        End If
+    Next
+    sReport = sReport & vbCrLf
+    
+    Put #hFile, , sReport
+    
+    'Generate value table
+    For nRow = 1 To fgData.Rows - 1
+        sReport = ""
+        If ((fgData.IsSubtotal(nRow) And fgData.RowOutlineLevel(nRow) = 0) Or bSaveAll Or fgData.Rows <= 2) Then
+            For nCol = 0 To fgData.Cols - 1
+                If (Not fgData.ColHidden(nCol)) Then
+                    sReport = sReport & GetCellTextValueCSV(fgData, nCol, nRow) & IIf(nCol <> fgData.Cols - 1, sDelim, "")
+                End If
+            Next
+        End If
+        sReport = sReport & vbCrLf
+        Put #hFile, , sReport
+    Next
+    
+    GridToCSV = sReport
+    
+End Function
+
+
+
+
 Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
                             ByRef fgVal As VSFlexGrid, _
                             Optional ByRef fgTot As VSFlexGrid = Null, _
@@ -414,23 +495,18 @@ Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String,
     
     Put #hFile, , sHtmlReport
         
-    'sHtmlReport = sHtmlReport & "<Body>"
     sHtmlReport = "<Body>"
     Put #hFile, , sHtmlReport
     
     If (Not fgFlt Is Nothing) Then
-        'sHtmlReport = sHtmlReport & GridToHTML(fgFlt, bSaveAll)
          GridToHTML fgFlt, bSaveAll, hFile
     End If
     If (Not fgTot Is Nothing) Then
-        'sHtmlReport = sHtmlReport & GridToHTML(fgTot, bSaveAll)
         GridToHTML fgTot, bSaveAll, hFile
     End If
     If (Not fgVal Is Nothing) Then
-        'sHtmlReport = sHtmlReport & GridToHTML(fgVal, bSaveAll)
         GridToHTML fgVal, bSaveAll, hFile
     End If
-    'sHtmlReport = sHtmlReport & "</Body></html>"
     sHtmlReport = "</Body></html>"
     Put #hFile, , sHtmlReport
   
@@ -457,27 +533,58 @@ On Error Resume Next
                         GetCellTextValue = "No"
                     End If
                 End If
-                        
-'            Case flexDTDouble, flexDTSingle, flexDTDecimal
-'                Err.Clear
-'                dTmp = CDbl(fgData.TextMatrix(nRow, nCol))
-'                If Err.Number <> 0 Then
-'                    GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
-'                Else
-'                    GetCellTextValue = CStr(Round(dTmp, DECIMAL_PLACES))
-'                End If
-'
-'            Case flexDTLong, flexDTShort
-'                Err.Clear
-'                nTmp = CLng(fgData.TextMatrix(nRow, nCol))
-'                If Err.Number <> 0 Then
-'                    GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
-'                Else
-'                    GetCellTextValue = CStr(nTmp)
-'                End If
-
+                
             Case Else
                 GetCellTextValue = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+        End Select
+
+End Function
+
+Private Function GetCellTextValueCSV(ByRef fgData As VSFlexGrid, ByVal nCol As Long, ByVal nRow As Long) As String
+On Error Resume Next
+        Dim dTmp As Double
+        Dim nTmp As Long
+        Dim dtTmp As Date
+        ' select user friendly cell value
+        Select Case fgData.ColDataType(nCol)
+            Case flexDTBoolean
+                If Len(fgData.ColFormat(nCol)) > 0 Then
+                    GetCellTextValueCSV = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+                Else
+                    If fgData.Cell(flexcpChecked, nRow, nCol) = flexChecked Then
+                        GetCellTextValueCSV = "Yes"
+                    End If
+                    If fgData.Cell(flexcpChecked, nRow, nCol) = flexUnchecked Then
+                        GetCellTextValueCSV = "No"
+                    End If
+                End If
+                        
+            Case flexDTDouble, flexDTSingle, flexDTDecimal
+                Err.Clear
+                dTmp = CDbl(fgData.TextMatrix(nRow, nCol))
+                If Err.Number <> 0 Then
+                    GetCellTextValueCSV = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+                Else
+                    GetCellTextValueCSV = CStr(Round(dTmp, DECIMAL_PLACES))
+                End If
+            Case flexDTDate
+                Err.Clear
+                dtTmp = CDate(fgData.TextMatrix(nRow, nCol))
+                If Err.Number <> 0 Then
+                    GetCellTextValueCSV = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+                Else
+                    GetCellTextValueCSV = Format(dtTmp, "YYYY-DD-MMM HH:MM")
+                End If
+            Case flexDTShort, flexDTLong
+                Err.Clear
+                nTmp = CLng(fgData.TextMatrix(nRow, nCol))
+                If Err.Number <> 0 Then
+                    GetCellTextValueCSV = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
+                Else
+                    GetCellTextValueCSV = Trim(Str(nTmp))
+                End If
+            Case Else
+                GetCellTextValueCSV = CStr(fgData.Cell(flexcpTextDisplay, nRow, nCol))
         End Select
 
 End Function
@@ -523,7 +630,6 @@ On Error Resume Next
             sBoldAgg = ""
         End If
                
-        'sHtmlReport = sHtmlReport & "<tr" & sBoldAgg & " >" & vbCrLf
         sHtmlReport = "<tr" & sBoldAgg & " >" & vbCrLf
         If ((fgData.IsSubtotal(nRow) And fgData.RowOutlineLevel(nRow) = 0) Or bSaveAll Or fgData.Rows <= 2) Then
             For nCol = 0 To fgData.Cols - 1
@@ -537,93 +643,12 @@ On Error Resume Next
         sHtmlReport = sHtmlReport & "</tr>" & vbCrLf
         Put #hFile, , sHtmlReport
     Next
-    'sHtmlReport = sHtmlReport & "</table>"
     sHtmlReport = "</table>"
     Put #hFile, , sHtmlReport
     
     GridToHTML = sHtmlReport
     
 End Function
-
-'--------------------------------------------------------------------------------------------------------------------------
-'Public Function SaveToHTML(ByVal sFileName As String, ByVal sFilePath As String, _
-'                            ByRef fgVal As VSFlexGrid, _
-'                            Optional ByRef fgTot As VSFlexGrid = Null, _
-'                            Optional ByRef fgFlt As VSFlexGrid = Null, _
-'                            Optional ByVal bSaveAll As Boolean = True) As Boolean
-'    On Error Resume Next
-'    Dim hFile As Long
-'
-'    SaveToHTML = False
-'
-'    hFile = FreeFile
-'    If hFile = 0 Then
-'        Exit Function
-'    End If
-'
-'    Kill sFilePath & sFileName
-'    Open sFilePath & sFileName For Binary Access Write As #hFile
-'
-'    Put #hFile, , CStr(HTML_HEADER & vbCrLf)
-'
-'    If Not fgFlt Is Nothing Then GridToHTML hFile, fgFlt, True
-'    If Not fgTot Is Nothing Then GridToHTML hFile, fgTot, True
-'    GridToHTML hFile, fgVal, bSaveAll
-'
-'    Put #hFile, , CStr(HTML_FOOTER)
-'    Close #hFile
-'
-'    SaveToHTML = True
-'
-'End Function
-
-
-'Private Sub GridToHTML(ByVal hFile As Long, ByRef fgData As VSFlexGrid, ByVal bSaveAll As Boolean)
-'    On Error Resume Next
-'    Dim bFirstRow As Boolean
-'    Dim bFirstCol As Boolean
-'    Dim bLastCol As Boolean
-'    Dim nRow, nCol As Long
-'
-'    If Not fgData.Rows > 0 Or Not fgData.Rows > 0 Then
-'        Exit Sub
-'    End If
-'
-'    nRow = 0
-'    While nRow < fgData.Rows And nRow > -1
-'        bFirstRow = CBool(nRow = 0)
-'
-'        For nCol = 0 To fgData.Cols - 1
-'            If Not fgData.ColHidden(nCol) Then
-'
-'                bFirstCol = CBool(nCol = 0)
-'                bLastCol = CBool(nCol = fgData.Cols - 1)
-'
-'                Debug.Print fgData.ColKey(nCol)
-'
-'                Select Case fgData.ColDataType(nCol)
-'                    Case flexDTDate
-'                        If bFirstCol Then Put #hFile, , CStr(" <tr> " & vbCrLf)
-'                        Put #hFile, , CStr(IIf(bFirstRow, "  <td class=xl25>", "  <td class=xl24>") & GetValidXMLText(fgData.Cell(flexcpTextDisplay, nRow, nCol)) & "</td>" & vbCrLf)
-'                        If bLastCol Then Put #hFile, , CStr(" </tr> " & vbCrLf)
-'
-'                    Case Else
-'                        If bFirstCol Then Put #hFile, , CStr(" <tr> " & vbCrLf)
-'                        Put #hFile, , CStr(IIf(bFirstRow, "  <td class=xl25>", "  <td>") & GetValidXMLText(fgData.Cell(flexcpTextDisplay, nRow, nCol)) & "</td>" & vbCrLf)
-'                        If bLastCol Then Put #hFile, , CStr(" </tr> " & vbCrLf)
-'                End Select
-'
-'            End If
-'        Next
-'
-'        If fgData.IsSubtotal(nRow) And Not bSaveAll Then
-'            nRow = fgData.GetNodeRow(nRow, flexNTNextSibling)
-'        Else
-'            nRow = nRow + 1
-'        End If
-'    Wend
-'
-'End Sub
 
 Private Function GetValidXMLText(sStr As String) As String
     On Error Resume Next

@@ -12,18 +12,18 @@ Public Type InterestRateCurve
     RuleType As IrRuleType
     CurveType As Long
     PosThreshold As Currency
-    PointsCount As Long
+'    PointsCount As Long
     
-    ShortRateYTE() As Double
-    ShortRateValue() As Double
-    LongRateYTE() As Double
-    LongRateValue() As Double
-    NeutralRateYTE() As Double
-    NeutralRateValue() As Double
-    HTBRateYTE() As Double
-    HTBRateValue() As Double
-    NeutralHTBRateYTE() As Double
-    NeutralHTBRateValue() As Double
+'    ShortRateDTE() As Long
+'    ShortRateValue() As Double
+'    LongRateDTE() As Long
+'    LongRateValue() As Double
+'    NeutralRateDTE() As Long
+'    NeutralRateValue() As Double
+'    HTBRateDTE() As Long
+'    HTBRateValue() As Double
+'    NeutralHTBRateDTE() As Long
+'    NeutralHTBRateValue() As Double
 End Type
 
 Public g_IRs() As InterestRateCurve
@@ -172,48 +172,6 @@ Public Sub LoadInterestRates()
             g_IRs(nCurveIdx).CurveType = ReadLng(rsCurve!iCurveTypeID)
             g_IRs(nCurveIdx).PosThreshold = ReadCur(rsCurve!mPositionThreshold)
             
-            g_IRs(nCurveIdx).PointsCount = 0&
-            Set rsPoint = gDBW.usp_IRPoint_Get(g_IRs(nCurveIdx).ID)
-            g_IRs(nCurveIdx).PointsCount = rsPoint.RecordCount
-            nPointIdx = g_IRs(nCurveIdx).PointsCount - 1
-            
-            If g_IRs(nCurveIdx).PointsCount > 0 Then
-                ReDim g_IRs(nCurveIdx).ShortRateYTE(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).ShortRateValue(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).LongRateYTE(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).LongRateValue(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).NeutralRateYTE(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).NeutralRateValue(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).HTBRateYTE(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).HTBRateValue(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).NeutralHTBRateYTE(0 To nPointIdx)
-                ReDim g_IRs(nCurveIdx).NeutralHTBRateValue(0 To nPointIdx)
-                nPointIdx = 0
-                
-                While Not rsPoint.EOF
-                    dYTE = GetYears(Date, ReadLng(rsPoint!iNum), ReadLng(rsPoint!iPeriodTypeID))
-                    
-                    g_IRs(nCurveIdx).ShortRateYTE(nPointIdx) = dYTE
-                    g_IRs(nCurveIdx).ShortRateValue(nPointIdx) = ReadDbl(rsPoint!fShortRate)
-                    
-                    g_IRs(nCurveIdx).LongRateYTE(nPointIdx) = dYTE
-                    g_IRs(nCurveIdx).LongRateValue(nPointIdx) = ReadDbl(rsPoint!fLongRate)
-                    
-                    g_IRs(nCurveIdx).NeutralRateYTE(nPointIdx) = dYTE
-                    g_IRs(nCurveIdx).NeutralRateValue(nPointIdx) = ReadDbl(rsPoint!neutralRate)
-                    
-                    g_IRs(nCurveIdx).HTBRateYTE(nPointIdx) = dYTE
-                    g_IRs(nCurveIdx).HTBRateValue(nPointIdx) = ReadDbl(rsPoint!fHTBRate)
-                    
-                    g_IRs(nCurveIdx).NeutralHTBRateYTE(nPointIdx) = dYTE
-                    g_IRs(nCurveIdx).NeutralHTBRateValue(nPointIdx) = (g_IRs(nCurveIdx).HTBRateValue(nPointIdx) + g_IRs(nCurveIdx).LongRateValue(nPointIdx)) / 2#
-                    
-                    nPointIdx = nPointIdx + 1
-                    rsPoint.MoveNext
-                    DoEvents
-                Wend
-            End If
-            
             nCurveIdx = nCurveIdx + 1
             rsCurve.MoveNext
         Wend
@@ -237,51 +195,59 @@ End Sub
 
 Public Function GetShortRate(ByVal dtToday As Date, ByVal dtDate As Date) As Double
     On Error Resume Next
-    
-    If g_IRs(0).PointsCount > 0 Then
-        GetShortRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).ShortRateValue(0), g_IRs(0).ShortRateYTE(0), CDbl(dtDate - dtToday) / 365#)
-    Else
-        GetShortRate = 0
-    End If
+    GetShortRate = 0
+    GetShortRate = g_Main.Rates.GetShortRate(dtToday, dtDate)
 End Function
 
 Public Function GetLongRate(ByVal dtToday As Date, ByVal dtDate As Date) As Double
     On Error Resume Next
     
-    If g_IRs(0).PointsCount > 0 Then
-        GetLongRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).LongRateValue(0), g_IRs(0).LongRateYTE(0), CDbl(dtDate - dtToday) / 365#)
-    Else
-        GetLongRate = 0
-    End If
+    GetLongRate = 0
+    GetLongRate = g_Main.Rates.GetLongRate(dtToday, dtDate)
 End Function
 
 Public Function GetNeutralRate(ByVal dtToday As Date, ByVal dtDate As Date) As Double
     On Error Resume Next
     
-    If g_IRs(0).PointsCount > 0 Then
-        GetNeutralRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).NeutralRateValue(0), g_IRs(0).NeutralRateYTE(0), CDbl(dtDate - dtToday) / 365#)
-    Else
-        GetNeutralRate = 0
-    End If
+    GetNeutralRate = 0
+    GetNeutralRate = g_Main.Rates.GetNeutralRate(dtToday, dtDate)
 End Function
 
-Public Function GetHTBRate(ByVal dtToday As Date, ByVal dtDate As Date) As Double
+Public Function IsHTBRatesExist(ByVal ID As Long, Optional ByVal bShowEventLog As Boolean = True) As Boolean
     On Error Resume Next
+    IsHTBRatesExist = False
     
-    If g_IRs(0).PointsCount > 0 Then
-        GetHTBRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).HTBRateValue(0), g_IRs(0).HTBRateYTE(0), CDbl(dtDate - dtToday) / 365#)
-    Else
-        GetHTBRate = 0
+    Dim aUnd As EtsGeneralLib.UndAtom
+    Set aUnd = g_UnderlyingAll(ID)
+    
+    If aUnd Is Nothing Then Exit Function
+    If Not aUnd.IsHTB Then Exit Function
+    
+    If Not aUnd.HTBRates Is Nothing Then
+        If aUnd.HTBRates.Count > 0 Then IsHTBRatesExist = True
     End If
+    
+    If Not IsHTBRatesExist And bShowEventLog Then _
+        LogEvent EVENT_ERROR, "Can't find HTB rates for underlying " & aUnd.Symbol & "."
 End Function
 
-Public Function GetNeutralHTBRate(ByVal dtToday As Date, ByVal dtDate As Date) As Double
+
+Public Function GetHTBRate(ByVal ID As Long, ByVal dtToday As Date, ByVal dtDate As Date) As Double
     On Error Resume Next
+    GetHTBRate = BAD_DOUBLE_VALUE
     
-    If g_IRs(0).PointsCount > 0 Then
-        GetNeutralHTBRate = InterpolateRates2(g_IRs(0).PointsCount, g_IRs(0).NeutralHTBRateValue(0), g_IRs(0).NeutralHTBRateYTE(0), CDbl(dtDate - dtToday) / 365#)
+    Dim aUnd As EtsGeneralLib.UndAtom
+    Set aUnd = g_UnderlyingAll(ID)
+
+    If aUnd Is Nothing Then Exit Function
+    If aUnd.HTBRates Is Nothing Then Exit Function
+    If aUnd.HTBRates.Count = 0 Then Exit Function
+    
+    If aUnd.IsAllowLending Then
+        GetHTBRate = IIf(aUnd.UndPosForRates <= 0, aUnd.HTBRates.GetShortRate(dtToday, dtDate), _
+                                                  aUnd.HTBRates.GetLongRate(dtToday, dtDate))
     Else
-        GetNeutralHTBRate = 0
+        If aUnd.UndPosForRates <= 0 Then GetHTBRate = aUnd.HTBRates.GetShortRate(dtToday, dtDate)
     End If
 End Function
 
@@ -313,6 +279,21 @@ Public Sub FixGreeks(aGreeks As GreeksData)
     FixBadDouble aGreeks.dDeltaTheta
     FixBadDouble aGreeks.dGammaVega
     FixBadDouble aGreeks.dGammaTheta
+End Sub
+
+Public Sub ClearGreeks(aGreeks As GreeksData)
+    On Error Resume Next
+    
+    aGreeks.dAlpha = 0#
+    aGreeks.dDelta = 0#
+    aGreeks.dGamma = 0#
+    aGreeks.dVega = 0#
+    aGreeks.dTheta = 0#
+    aGreeks.dRho = 0#
+    aGreeks.dDeltaVega = 0#
+    aGreeks.dDeltaTheta = 0#
+    aGreeks.dGammaVega = 0#
+    aGreeks.dGammaTheta = 0#
 End Sub
 
 ' fix INF & NAN values
