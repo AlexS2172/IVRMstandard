@@ -1,0 +1,48 @@
+namespace IVRMFields {
+	static const CORBA::Short FIELD_SYMBOL				= 291;
+	static const CORBA::Short FIELD_BASE_SYMBOL			= 292;
+	static const CORBA::Short FIELD_SYMBOL_TYPE			= 293;
+	static const CORBA::Short FIELD_BASE_SYMBOL_TYPE	= 294;
+	static const CORBA::Short FIELD_IV					= DDS::FIELD_IV;
+	static const CORBA::Short FIELD_DELTA				= DDS::FIELD_DELTA;
+	static const CORBA::Short FIELD_VEGA				= DDS::FIELD_VEGA;
+	static const CORBA::Short FIELD_GAMMA				= DDS::FIELD_GAMMA;
+	static const CORBA::Short FIELD_THETA				= DDS::FIELD_THETA;
+	static const CORBA::Short FIELD_RHO					= DDS::FIELD_RHO;
+	static const CORBA::Short FIELD_THEO_PRICE			= 282;
+	static const CORBA::Short FIELD_CONTRACT_PRICE		= 283;
+	static const CORBA::Short FIELD_BASECONTRACT_PRICE	= 284;
+	static const CORBA::Short FIELD_VOLGA				= 285;
+	static const CORBA::Short FIELD_DELTA_VEGA			= 286;
+	static const CORBA::Short FIELD_DELTA_THETA			= 287;
+	static const CORBA::Short FIELD_GAMMA_VEGA			= 288;
+	static const CORBA::Short FIELD_GAMMA_THETA			= 289;
+	static const CORBA::Short FIELD_THEO_VOLA			= 290;
+	static const CORBA::Short FIELD_BID					= DDS::FIELD_BID;
+	static const CORBA::Short FIELD_BID_DATE			= DDS::FIELD_BID_DATE;
+	static const CORBA::Short FIELD_BID_EXCHANGE		= DDS::FIELD_BID_EXCHANGE;
+	static const CORBA::Short FIELD_BID_SIZE			= DDS::FIELD_BID_SIZE;
+	static const CORBA::Short FIELD_ASK					= DDS::FIELD_ASK;
+	static const CORBA::Short FIELD_ASK_DATE			= DDS::FIELD_ASK_DATE;
+	static const CORBA::Short FIELD_ASK_EXCHANGE		= DDS::FIELD_ASK_EXCHANGE;
+	static const CORBA::Short FIELD_ASK_SIZE			= DDS::FIELD_ASK_SIZE;
+	static const CORBA::Short FIELD_LAST				= DDS::FIELD_LAST;
+	static const CORBA::Short FIELD_LAST_DATE			= DDS::FIELD_LAST_DATE;
+	static const CORBA::Short FIELD_VOLUME				= DDS::FIELD_VOLUME;
+	static const CORBA::Short FIELD_UPDATE_DATE			= 295;
+	static const CORBA::Short FIELD_THEO_PRICE_BID			= 299;
+	static const CORBA::Short FIELD_THEO_PRICE_ASK			= 300;
+	static const CORBA::Short FIELD_CONTRACT_PRICE_BID		= 301;
+	static const CORBA::Short FIELD_CONTRACT_PRICE_ASK		= 302;
+	static const CORBA::Short FIELD_BASECONTRACT_PRICE_BID	= 303;
+	static const CORBA::Short FIELD_BASECONTRACT_PRICE_ASK	= 304;
+	static const CORBA::Short FIELD_INTRINSIC_VALUE			= 305;
+};
+
+namespace IvRmTables{
+	static const long IVRM_ANALYTICS = 35;
+	static const long IVRM_OPTION_QUOTE = DDS::T_OPTION_QUOTE;
+	static const long IVRM_EQUITY_QUOTE = DDS::T_EQUITY_QUOTE;
+	static const long IVRM_FUTURE_QUOTE = DDS::T_FUTURE_QUOTE;
+	static const long IVRM_FUTURE_OPTION_QUOTE = DDS::T_DIRECT_FUTURE_OPTION_QUOTE;
+};
