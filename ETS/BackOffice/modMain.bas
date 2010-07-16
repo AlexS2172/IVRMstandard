@@ -37,6 +37,9 @@ Public Const PRODUCT_XML_KEY As String = "ETS\"
 Public Const GROUP_XML_KEY As String = "ETS\Asp\Groups\"
 Public Const APP_MM_XML_KEY As String = "ETS\MarketMaker\"
 
+Public Const GENERAL_SETTINGS As String = "ETS\Asp\GeneralSettings\"
+
+
 Public Const GCOLOR_BUTTON_BACK = &HAD9A94
 Public Const GCOLOR_BUTTON_FORE = &H0
 Public Const GCOLOR_BUTTON_HOVER_BACK = &HCEBAB5

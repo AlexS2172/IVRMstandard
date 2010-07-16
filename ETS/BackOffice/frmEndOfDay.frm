@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{0D452EE1-E08F-101A-852E-02608C4D0BB4}#2.0#0"; "FM20.DLL"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
 Object = "{E5B04F18-C63E-465D-B0C6-E598BBF429FE}#2.0#0"; "ElladaFlatControls.ocx"
@@ -3597,8 +3597,8 @@ Private Sub OpenLogFile()
     Dim sPath$, nLen#
     On Error Resume Next
     Dim sStringFileName As String
-    sStringFileName = "EtsBO_EndOfDay_" + Format$(Now, "YYYYMM_DD_HHMM") + ".log"
-    sPath = MakeCommonFilePath("Logs", sStringFileName, True)
+    sStringFileName = "ivrm_bo_eod_" + Format$(Now, "YYYYMM_DD_HHMM") + ".log"
+    sPath = MakeCommonFilePath("back_office", sStringFileName, True, True)
     
     m_hLog = FreeFile
     nLen = FileLen(sPath)

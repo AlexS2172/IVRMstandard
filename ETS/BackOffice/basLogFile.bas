@@ -62,7 +62,7 @@ End Sub
 '
 Public Function LogFile() As String
     On Error Resume Next
-    LogFile = MakeCommonFilePath("Logs", "Debug.log", True)
+    LogFile = MakeCommonFilePath("back_office", "Debug.log", True, True)
 End Function
 
 '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -17,6 +17,7 @@ public:
 	virtual long GetLogLifetime() = 0;
 	virtual long curve_interpolation_type() = 0;
 	virtual long curve_extrapolation_type() = 0;
+	virtual std::string GetLogDirectory() = 0;
 };
 //---------------------------------------------------------------//
 class CXmlSettings: public CSettings
@@ -39,6 +40,7 @@ public:
 	long GetLogLifetime();
 	long curve_interpolation_type();
 	long curve_extrapolation_type();
+	std::string GetLogDirectory();
 };
 typedef boost::shared_ptr<CSettings>	CSettingsPtr;
 //---------------------------------------------------------------//

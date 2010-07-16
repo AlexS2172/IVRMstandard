@@ -74,6 +74,7 @@ using namespace stdext;
 #include <ORBInit.h>
 #include "CSwrapper.h"
 #include "Settings.h"
+#include "IniReader.h"
 #include "ProviderCommon.h"
 
 #include <eh.h>

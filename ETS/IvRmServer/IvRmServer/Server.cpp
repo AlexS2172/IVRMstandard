@@ -166,10 +166,10 @@ CServer::Initialiaze() {
 		hr = DispEventAdvise(m_spMain);
 		if(FAILED(hr))
 			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to DispEventAdvise.");	
-
-		hr = m_spMain->SetWorkingMode(enWmServer);
-		if(FAILED(hr))
-			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to SetWorkingMode.");	
+			
+		hr = m_spMain->SetLogDirectory(_bstr_t(m_spSettings->GetLogDirectory().c_str()));
+		if (FAILED(hr))
+			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to set LogDirectory for core.");	
 
 		hr = m_spMain->SetLogLevel(m_spSettings->GetLogLevel());
 		if(FAILED(hr))
@@ -179,6 +179,10 @@ CServer::Initialiaze() {
 		if(FAILED(hr))
 			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to read log lifetime from configuration file.");	
 
+		hr = m_spMain->SetWorkingMode(enWmServer);
+		if(FAILED(hr))
+			utils::ThrowErrorNoSetErrorInfo(hr, L"Failed to SetWorkingMode.");
+			
 		BSTR bsDBConnectionString;
 		m_spSettings->GetDBConnection(&bsDBConnectionString);
 		
@@ -268,6 +272,9 @@ CServer::Initialiaze() {
 		};
 	}
 	catch (_com_error e) {
+	
+		std::cout<<"ComError: " << e.Description();
+	
 		LOG4CPLUS_ERROR(CServer::server_logger(), 
 		"_com_error occured while initialize server: " 
 		<< e.Description());

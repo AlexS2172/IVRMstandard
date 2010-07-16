@@ -23,18 +23,23 @@ namespace ActivFeedSettings
 
 			m_strUserName = szBufferName;
 
-			/*CEgRegKey regUserKey;
-			if(ERROR_SUCCESS == regUserKey.Open(HKEY_LOCAL_MACHINE, ASP_SETTINGS_ROOT, KEY_READ))
-			{
-				_bstr_t strSression;
-				if(ERROR_SUCCESS == regUserKey.QueryValue(strSression, szBufferName))
-				{
-					m_strSessionId = (LPCSTR)strSression;
-					m_spSettingsManager->Initialize(m_strSessionId);
-				}   
-			}*/
 			m_strSessionId = m_strUserName;
 			m_spSettingsManager->Initialize(m_strSessionId);
+			
+			if(!EgLib::CEgLibTraceManager::g_spTrace)
+				EgLib::CEgLibTraceManager::g_spTrace = EgLib::CEgLibTraceManagerPtr(static_cast<EgLib::CEgLibTraceManager*>(new Trace::CEgHyprFeedTrace));
+						
+			CDictionaryValue val_log_directory = m_spSettingsManager->GetSettings(_T("LogDirectory"));
+			if (val_log_directory.length()) {
+				if (EgLib::CEgLibTraceManager::g_spTrace != NULL) {
+
+					std::string log_directory = val_log_directory + "\\" + m_strUserName;
+
+					EgLib::CEgLibTraceManager::g_spTrace->SetPathType(EgLib::CEgLibTraceManager::enAbsolute);
+					EgLib::CEgLibTraceManager::g_spTrace->SetFilePath(_bstr_t(log_directory.c_str()));						
+				};
+			};
+			
 			EgLib::CEgLibTraceManager::Trace(LogInfo, __FUNCTION__ ,_T("Using session ID: %s"), m_strSessionId.c_str() );
 		}
 
@@ -71,22 +76,19 @@ namespace ActivFeedSettings
 	void CCustomerInfo::Initialize()
 	{
 		CAutoLock lock(m_csInitializeLock);
-		if(!EgLib::CEgLibTraceManager::g_spTrace)
-			EgLib::CEgLibTraceManager::g_spTrace = EgLib::CEgLibTraceManagerPtr(static_cast<EgLib::CEgLibTraceManager*>(new Trace::CEgHyprFeedTrace));
 
 		if(!ActivFeedSettings::g_spUserSettings)
 		{
 			ActivFeedSettings::g_spUserSettings = ActivFeedSettings::UserSettingsPtr (new ActivFeedSettings::CCustomerInfo);
 			if(ActivFeedSettings::g_spUserSettings != NULL)
-			{
+			{					 
 				CDictionaryValue valLogLevel = g_spUserSettings->Settings->GetSettings(_T("LogLevel"));
-				if(valLogLevel.length())
-				{
+				if(valLogLevel.length()) {
 					long lLogLevel = atol(valLogLevel.c_str());
-					if(lLogLevel && EgLib::CEgLibTraceManager::g_spTrace!=NULL)
-					   EgLib::CEgLibTraceManager::g_spTrace->MinLogLevel = lLogLevel;
-				}
-
+					if(lLogLevel && EgLib::CEgLibTraceManager::g_spTrace!=NULL) {
+						EgLib::CEgLibTraceManager::g_spTrace->MinLogLevel = lLogLevel;
+					}
+				};
 			}
 		}
 	}

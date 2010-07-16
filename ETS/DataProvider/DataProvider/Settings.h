@@ -18,17 +18,19 @@ public:
 	std::string		m_Password;
 	std::string		m_ServiceLocationINI;
 	std::string		m_DBConnectionString;
-
+		
 public:
 	typedef	CSettings*			pointer;
 
 	bool						LoadSettings();
 	ORBParametersList&			GetORBSettings();
 	AgentApplication::Settings&	GetACTIVSettings();
-
+	
+	static 
+	std::string	GetConfigFileName();
+	
 private:
 	ORBParametersList			m_ORBSettings;
 	AgentApplication::Settings	m_ACTIVSettings;
 	std::string GetParameter(std::string file, std::string section, std::string key);
-	std::string GetConfigFileName();
 };

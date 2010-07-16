@@ -2194,6 +2194,9 @@ library EtsGeneralLib
 
 		[id(93), helpstring("SetLogLifetime")]
 		HRESULT	SetLogLifetime([in] LONG Lifetime);
+		
+		[id(94), helpstring("SetLogDirectory")]
+		HRESULT SetLogDirectory([in] BSTR directory);
 	};
 
 	/////////////////////////////////////////////////////////////////////////////

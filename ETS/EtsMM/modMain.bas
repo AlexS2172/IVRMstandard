@@ -8,6 +8,7 @@ Public Const PRODUCT_REG_KEY As String = "SOFTWARE\Egar\ETS\"
 Public Const APP_XML_KEY As String = "ETS\MarketMaker\"
 Public Const PRODUCT_XML_KEY As String = "ETS\"
 Public Const GROUP_XML_KEY As String = "ETS\Asp\Groups\"
+Public Const GENERAL_SETTINGS As String = "ETS\Asp\GeneralSettings\"
 
 Public Const DATA_SHAPSHOT_FILENAME$ = "EtsMM_DataShapshot"
 Public Const DB_VERSION_COMPATIBLE_MAJOR& = 4
@@ -238,8 +239,12 @@ Sub Main()
     g_Params.LoadSettings
     
     If (Not g_Main Is Nothing) Then
+        g_Main.SetLogDirectory g_Params.LogDirectory
         g_Main.SetLogLevel g_lMinLogLevel
         g_Main.SetLogLifetime g_lLogLifetime
+        
+         g_Main.SetWorkingMode enWmClient
+        
         g_Main.CalculationSettings.CurveExtrapolationType = g_Params.CurveExtrapolationType
         g_Main.CalculationSettings.CurveInterpolationType = g_Params.CurveInterpolationType
     End If
@@ -317,7 +322,8 @@ Sub Main()
 
     If g_Params.LogAdvancedInfo Then
         Set g_PerformanceLog = New clsPerformanceLog
-        If Not g_PerformanceLog.Init("EtsMMStd_PerfLog") Then
+        
+        If Not g_PerformanceLog.Init("ivrm_std", g_Params.LogDirectory) Then
             Set g_PerformanceLog = Nothing
         End If
         
@@ -1524,9 +1530,7 @@ End Sub
 Private Sub CreateGlobalCollections()
     On Error GoTo EH
     Set g_Main = New EtsMain
-    
-    g_Main.SetWorkingMode enWmClient
-    
+        
     Set g_Trader = g_Main.Trader
     Set g_TraderGroup = g_Main.TraderGroup
     Set g_Strategy = g_Main.Strategy

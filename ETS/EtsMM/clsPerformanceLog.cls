@@ -17,14 +17,23 @@ Option Explicit
 Private m_objEtsLog As CETSLog
 
 
-Public Function Init(ByVal sFileName As String)
+Public Function Init(ByVal file_name As String, ByVal directory As String)
     On Error GoTo EH
     
     Set m_objEtsLog = New CETSLog
     Init = True
-    m_objEtsLog.FileName = Trim$(sFileName)
+        
+    If (Len(directory) > 0) Then
+        m_objEtsLog.SetFilePathType enAbsolute
+        m_objEtsLog.FileName = Trim$(file_name)
+        m_objEtsLog.FilePath = Trim$(directory)
+    Else
+        m_objEtsLog.FileName = Trim$(file_name)
+        m_objEtsLog.SetFilePathType enRelativeMyDocuments
+    End If
+    
     m_objEtsLog.MinLogLevel = g_lMinLogLevel
-
+    
     Clear
     
     Exit Function

@@ -266,6 +266,7 @@ Public GroupSpecificRatioFile As String
 Public StockShiftFile As String
 Public CurveInterpolationType As Long
 Public CurveExtrapolationType As Long
+Public LogDirectory As String
 
 Public Property Get RealtimeCalculateCV() As Boolean
 On Error Resume Next
@@ -837,8 +838,13 @@ Public Sub LoadSettings()
         
     CurveInterpolationType = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CurveInterpolationType", 1)
     CurveExtrapolationType = g_aUserXMLParams.GetLongValue(APP_XML_KEY & "Settings", "CurveExtrapolationType", 1)
-        
+    
     UserName = CurrentNtUserName
+    
+    LogDirectory = g_aMainXMLParams.GetStringValue(GENERAL_SETTINGS, "LogDirectory", "")
+    If (Len(LogDirectory) > 0) Then
+        LogDirectory = LogDirectory & "\" & UserName
+    End If
     
 EH:
     gCmn.ErrorHandler "Fail to load application settings."

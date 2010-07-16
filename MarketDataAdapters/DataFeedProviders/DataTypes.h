@@ -13,6 +13,7 @@
 #define LOG_LIFETIME		"LogLifetime"
 #define LOG_LEVEL			"LogLevel"
 #define PULL_TIMEOUT		"PullTimeout"
+#define LOG_DIRECTORY		"LogDirectory"
 #define TRACEINFO(a,b)		//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,a,b)
 #define TRACEERROR(a,b)		//EgLib::CEgLibTraceManager::Trace(EgLib::LogError,a,b)
 #define TRACEWARNING(a,b)	//EgLib::CEgLibTraceManager::Trace(EgLib::LogWarning,a,b)

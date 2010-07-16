@@ -80,6 +80,18 @@ public:
 	HRESULT FinalConstruct()
 	{
 		CDataFeedSettings::Initialize();
+
+		if (EgLib::CEgLibTraceManager::g_spTrace == NULL) {
+			EgLib::CEgLibTraceManager::g_spTrace = 
+				EgLib::CEgLibTraceManagerPtr(static_cast<EgLib::CEgLibTraceManager*>(new CEgTrace));
+				
+			if (CDataFeedSettings::log_directory.length()) {
+				std::string my_log_directory = CDataFeedSettings::log_directory + "\\" + CDataFeedSettings::GetUserName();
+				EgLib::CEgLibTraceManager::g_spTrace->SetPathType(EgLib::CEgLibTraceManager::enAbsolute);
+				EgLib::CEgLibTraceManager::g_spTrace->SetFilePath(_bstr_t(my_log_directory.c_str()));									
+			};
+		};
+		
 		CFieldCollections::Initialize();
 
 		m_gateway = CDataFeedGateway::pointer(new CDataFeedGateway(this));
@@ -88,10 +100,6 @@ public:
 			m_gateway->InitCorba();
 			m_gateway->StartPulling();
 		};
-
-		if (EgLib::CEgLibTraceManager::g_spTrace == NULL)
-			EgLib::CEgLibTraceManager::g_spTrace = 
-				EgLib::CEgLibTraceManagerPtr(static_cast<EgLib::CEgLibTraceManager*>(new CEgTrace));
 
 		EgLib::CEgLibTraceManager::g_spTrace->SetMinLogLevel(CDataFeedSettings::log_level);
 		EgLib::CEgLibTraceManager::g_spTrace->SetLogLifeTime(CDataFeedSettings::log_lifetime);

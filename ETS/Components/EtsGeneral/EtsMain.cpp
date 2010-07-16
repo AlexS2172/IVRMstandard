@@ -1612,13 +1612,12 @@ STDMETHODIMP CEtsMain::LoadContracts(ITicker* Asset)
 };
 //---------------------------------------------------------------------------------------------//
 STDMETHODIMP 
-CEtsMain::CalculateUpdatedContracts(SAFEARRAY** pRetVal){
+CEtsMain::CalculateUpdatedContracts(SAFEARRAY** pRetVal) {
 
 	if( !pRetVal ) 
 		return E_POINTER;
 	
-
-	if( *pRetVal ){
+	if( *pRetVal ) {
 		::SafeArrayDestroy(*pRetVal);
 		*pRetVal = NULL;
 	};
@@ -1645,10 +1644,8 @@ CEtsMain::CalculateUpdatedContracts(SAFEARRAY** pRetVal){
 	
 	contracts.clear();
 	
-	
-
 	return S_OK;
-}
+};
 //---------------------------------------------------------------------------------------------//
 //TODO: remove this function
 STDMETHODIMP CEtsMain::DoCalc(SAFEARRAY** pParams, SAFEARRAY** pRetVal){
@@ -1656,30 +1653,28 @@ STDMETHODIMP CEtsMain::DoCalc(SAFEARRAY** pParams, SAFEARRAY** pRetVal){
 };
 //----------------------------------------------------------------------------------------------------------//
 //setup working mode for general
-STDMETHODIMP CEtsMain::SetWorkingMode(WorkingModeEnum enMode)
-{
+STDMETHODIMP 
+CEtsMain::SetWorkingMode(WorkingModeEnum enMode) {
 	HRESULT hr = S_OK;
-	try
-	{
+	try	{
 		m_enWorkingMode = enMode;
 		if (enMode == enWmClient)
 			m_spContractsCache->Connect();
 	}
-	catch (_com_error& e)
-	{
-		e.Description();
+	catch (_com_error& err)	{
+		TRACE_COM_ERROR(err);
 		hr = E_FAIL;
 	}
 	return hr;
 };
 //----------------------------------------------------------------------------------------------------------//
 //setup log level for library
-STDMETHODIMP CEtsMain::SetLogLevel(LONG lLevel)
-{
+STDMETHODIMP 
+CEtsMain::SetLogLevel(LONG lLevel) {
 	HRESULT hr = S_OK;
-	try
-	{
-		if(EgLib::CEgLibTraceManager::g_spTrace != NULL){
+	try	{
+	
+		if(EgLib::CEgLibTraceManager::g_spTrace != NULL) {
 			EgLib::CEgLibTraceManager::g_spTrace->MinLogLevel = lLevel;
 
 			std::string logInfo;
@@ -1688,24 +1683,56 @@ STDMETHODIMP CEtsMain::SetLogLevel(LONG lLevel)
 			TRACE_SYSTEM(_T("LogLevel = %s"), logInfo.c_str());
 		}
 	}
-	catch (_com_error& err){
+	catch (_com_error& err) {
 		TRACE_COM_ERROR(err);
 		hr = E_FAIL;
 	}
-	catch (...){
+	catch (...) {
 		TRACE_UNKNOWN_ERROR();
 		hr = E_FAIL;
-	}
+	};
 	return hr;
 };
 //----------------------------------------------------------------------------------------------------------//
-//setup log level for library
-STDMETHODIMP CEtsMain::SetLogLifetime(LONG Lifetime)
-{
+/*setup log directory another from MyDocuments*/
+STDMETHODIMP
+CEtsMain::SetLogDirectory(BSTR directory) {
 	HRESULT hr = S_OK;
-	try
-	{
-		if(EgLib::CEgLibTraceManager::g_spTrace != NULL){
+	try {
+	
+		_bstr_t log_directory(directory);
+		
+		if (EgLib::CEgLibTraceManager::g_spTrace != NULL) {
+		
+			if (log_directory.length() > 0) {
+								
+				EgLib::CEgLibTraceManager::g_spTrace->SetPathType(EgLib::CEgLibTraceManager::enAbsolute);
+				EgLib::CEgLibTraceManager::g_spTrace->SetFilePath(log_directory);
+				
+				TRACE_SYSTEM(_T("New Log Directory is: %s"), (char*)log_directory);
+			};
+		};
+	}
+	catch (_com_error err) {
+		TRACE_COM_ERROR(err);
+		hr = E_FAIL;
+	}
+	catch (...) {
+		TRACE_UNKNOWN_ERROR();
+		hr = E_FAIL;	
+	};
+	return hr;
+};	
+//----------------------------------------------------------------------------------------------------------//
+//setup log level for library
+STDMETHODIMP 
+CEtsMain::SetLogLifetime(LONG Lifetime) {
+	HRESULT hr = S_OK;
+	
+	try	{
+	
+		if(EgLib::CEgLibTraceManager::g_spTrace != NULL) {
+		
 			EgLib::CEgLibTraceManager::g_spTrace->LogLifetime = Lifetime;			
 
 			std::string logInfo;
@@ -1714,14 +1741,14 @@ STDMETHODIMP CEtsMain::SetLogLifetime(LONG Lifetime)
 			TRACE_SYSTEM(_T("LogLifetime = %s"), logInfo.c_str());
 		}
 	}
-	catch (_com_error& err){
+	catch (_com_error& err) {
 		TRACE_COM_ERROR(err);
 		hr = E_FAIL;
 	}
-	catch (...){
+	catch (...) {
 		TRACE_UNKNOWN_ERROR();
 		hr = E_FAIL;
-	}
+	};
 	return hr;
 };
 //----------------------------------------------------------------------------------------------------------//
@@ -1733,10 +1760,10 @@ STDMETHODIMP CEtsMain::CreateFlexContract(LONG					AssetID,
 										  DATE					TradingClose,
 										  DATE					SettlementValueTime,
 										  ExerciseStyleEnum		ExerciseStyle,
-										  IContract** pRetVal){
+										  IContract** pRetVal) {
 
 	HRESULT hr = S_OK;
-	try{
+	try {
 
 		IContractPtr spRet = NULL;
 

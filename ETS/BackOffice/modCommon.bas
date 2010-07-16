@@ -161,7 +161,7 @@ Public Const SW_SHOWMINIMIZED As Long = 2
 Public Const SW_MAXIMIZE As Long = 3
 Public Const SW_MINIMIZE As Long = 6
 
-Public Declare Function SetWindowPos Lib "user32" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
+Public Declare Function SetWindowPos Lib "user32" (ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
 
 Public Const TIME_ZONE_ID_INVALID As Long = &HFFFFFFFF
 Public Const TIME_ZONE_ID_UNKNOWN As Long = 0
@@ -240,7 +240,7 @@ Private Type CLSIdType
 End Type
 Public Type POINTAPI
     X As Long
-    Y As Long
+    y As Long
 End Type
 
 Public Type RECT
@@ -565,7 +565,7 @@ Public Type CREATESTRUCT
     hWndParent As Long
     cy As Long
     cx As Long
-    Y As Long
+    y As Long
     X As Long
     style As Long
     lpszName As String
@@ -583,9 +583,9 @@ End Type
 Public Declare Sub InitCommonControls Lib "comctl32" ()
 Public Declare Function InitCommonControlsEx Lib "comctl32" (Init As InitCommonControlsExType) As Boolean
 
-Public Declare Function CreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
+Public Declare Function CreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal X As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
 Public Declare Function DestroyWindow Lib "user32" (ByVal hWnd As Long) As Long
-Public Declare Function MoveWindow Lib "user32" (ByVal hWnd As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal bRepaint As Long) As Long
+Public Declare Function MoveWindow Lib "user32" (ByVal hWnd As Long, ByVal X As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal bRepaint As Long) As Long
 
 Public Const WM_USER& = &H400
 Public Const IPM_CLEARADDRESS& = (WM_USER + 100)
@@ -1314,11 +1314,11 @@ Public Function FixDbString(ByVal sString As String) As String
 End Function
 
 Public Function CalendarExpiry(ByVal Expiry As Date, Optional ByVal CalendarType As eCalendarType = CALENDAR_THIRD_SATURDAY) As Date
-Dim Y As Integer
+Dim y As Integer
 Dim m As Integer
 Dim d1 As Date
 Dim D As Integer
-    Y = Year(Expiry)
+    y = Year(Expiry)
     m = Month(Expiry)
     Select Case CalendarType
     Case CALENDAR_THIRD_SATURDAY '1
@@ -1330,7 +1330,7 @@ Dim D As Integer
     Case Else
         D = 22
     End Select
-    d1 = DateSerial(Y, m, 1)
+    d1 = DateSerial(y, m, 1)
     CalendarExpiry = d1 + D - Weekday(d1, vbSaturday)
 End Function
 
@@ -1392,9 +1392,13 @@ Public Function IsValidTicker(ByVal sTicker$) As Boolean
     Next
 End Function
 
-Public Function MakeCommonFilePath$(ByVal sSubPath$, ByRef sFileName$, ByVal bPrivatePathCheckWriteAccess As Boolean)
+Public Function MakeCommonFilePath$(ByVal sSubPath$, _
+                                    ByRef sFileName$, _
+                                    ByVal bPrivatePathCheckWriteAccess As Boolean, _
+                                    Optional ByVal for_logs As Boolean = False)
     On Error Resume Next
     Dim sPath$, nFile#, bUseDefault As Boolean
+    Dim log_directory As String
     
     bUseDefault = True
     
@@ -1402,8 +1406,13 @@ Public Function MakeCommonFilePath$(ByVal sSubPath$, ByRef sFileName$, ByVal bPr
     
     If Len(g_Params.CurrentUserPrivateFolder) > 0 Then
         
-        CheckAndCreateFolder g_Params.CurrentUserPrivateFolder & sSubPath
-        sPath = g_Params.CurrentUserPrivateFolder & sSubPath & sFileName
+        If (for_logs And Len(g_Params.LogDirectory) > 0) Then
+            CheckAndCreateFolder g_Params.LogDirectory & sSubPath
+            sPath = g_Params.LogDirectory & sSubPath & sFileName
+        Else
+            CheckAndCreateFolder g_Params.CurrentUserPrivateFolder & sSubPath
+            sPath = g_Params.CurrentUserPrivateFolder & sSubPath & sFileName
+        End If
         
         If Len(sFileName) > 0 Then
             ' check current user file availability

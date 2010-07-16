@@ -69,53 +69,48 @@ CCorbaApplication::~CCorbaApplication()
 	}
 }
 //--------------------------------------------------------------------------------//
-void CCorbaApplication::Run(const ORBParametersList& orbParameters, const std::string& objectName)
-{
-	try{
-		if (IsStarted()){
-			throw std::runtime_error("Server already started");
-		}
+void 
+CCorbaApplication::Run(const ORBParametersList& orbParameters, const std::string& objectName) {
+
+	try {
 	
-		int			argc		= __argc;
-		TCHAR**	argv		= __targv;
-
-		int orbArgc = argc + static_cast<int>(2*orbParameters.size());
-		char** orbArgv = new char*[orbArgc];
-		memcpy(orbArgv,argv,sizeof(char*)*argc);
-
-		int paramIndex = argc;
-		for (ORBParametersList::const_iterator paramIter = orbParameters.begin(); paramIter != orbParameters.end(); ++paramIter)
-		{
-			const ORBParameter& orbParam = *paramIter;
-			orbArgv[paramIndex++]	= const_cast<char*>(orbParam.first.c_str());
-			orbArgv[paramIndex++]	= const_cast<char*>(orbParam.second.c_str());
-		}
+		if (IsStarted()) {
+			throw std::runtime_error("Server already started");
+		};
 
 		PreORBInit(objectName);
 		
-		int ORBrefCount;
-		m_pImpl->m_orb = ORBInit::GetORB(orbArgc, orbArgv, &ORBrefCount);
-
-		delete[] orbArgv;
+		int		ORBrefCount = 0;
+		char**	args = 0;
+		int		args_count = 0;
+		
+		IniReader config_reader(CSettings::GetConfigFileName());
+		
+		CorbaSettings orb_settings("ORB");
+		config_reader.read_section(orb_settings);
+		
+		orb_settings.get_orb_args(args, args_count);
+		
+		m_pImpl->m_orb = CORBA::ORB_init(args_count, args);
 
 		PostORBInit(objectName);
 
 		m_pImpl->Run();
 
-	}catch(CORBA::SystemException& e) {
-		LOG_EXCEPTION;
-		throw std::runtime_error(CCorbaErrorHelper::ToString(e));
-	}catch(CORBA::Exception& e){
-		LOG_EXCEPTION;
-		throw std::runtime_error(CCorbaErrorHelper::ToString(e));
-	}catch(omniORB::fatalException& fe) {
-		LOG_EXCEPTION;
-		throw std::runtime_error(CCorbaErrorHelper::ToString(fe));
-	}catch(...){
-		LOG_EXCEPTION;
-		throw;
 	}
-}
+	catch(CORBA::SystemException& e) {
+		LOG4CPLUS_ERROR(ProviderLog, CCorbaErrorHelper::ToString(e))
+	}
+	catch(CORBA::Exception& e) {
+		LOG4CPLUS_ERROR(ProviderLog, CCorbaErrorHelper::ToString(e))
+	}
+	catch(omniORB::fatalException& e) {
+		LOG4CPLUS_ERROR(ProviderLog, CCorbaErrorHelper::ToString(e))
+	}
+	catch(...) {
+		LOG4CPLUS_ERROR(ProviderLog, "Unknown exception occured while CorbaApplication::Run()");
+	}
+};
 //--------------------------------------------------------------------------------//
 bool CCorbaApplication::IsStopping()
 {

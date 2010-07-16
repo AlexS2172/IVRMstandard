@@ -220,6 +220,7 @@ Public m_bExecProjectionsForAll As Boolean
 Public UseTTE As Boolean
 Private m_hedgeSymbol As String
 Private m_userGroup As String
+Public LogDirectory As String
 
 Public Property Get CalcModel() As EtsGeneralLib.EtsCalcModelTypeEnum
     CalcModel = m_CalcModel
@@ -681,6 +682,11 @@ Public Sub LoadSettings()
     UserName = CurrentNtUserName
     
     HedgeSymbol = g_aMainXMLParams.GetStringValue(GROUP_XML_KEY & sUserGroup, "HedgeSymbol", "")
+    
+    LogDirectory = g_aMainXMLParams.GetStringValue(GENERAL_SETTINGS, "LogDirectory", "")
+    If (Len(LogDirectory) > 0) Then
+        LogDirectory = LogDirectory & "\" & UserName
+    End If
     
     Exit Sub
 EH:

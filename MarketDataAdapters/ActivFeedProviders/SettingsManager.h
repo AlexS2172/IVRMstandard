@@ -253,24 +253,24 @@ namespace ActivFeedSettings
 				spDocument->setProperty(_bstr_t(L"SelectionLanguage"), _variant_t(_bstr_t(L"XPath")));
 				spDocument->load(bsFilePath);
 				
-				EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading Default settings");
+				//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading Default settings");
 				InitializeProperties(spDocument->selectNodes(L"./Settings/Sessions/Session [@name=\"Default\"]/*"));
 
 				_bstr_t bsSession  = L"./Settings/Sessions/Session [@name=\"";
 						bsSession += sSessionName.c_str();
 						bsSession += L"\"]/*";
 	
-				EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading %s session settings", sSessionName.c_str());
+				//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading %s session settings", sSessionName.c_str());
 				InitializeProperties(spDocument->selectNodes(bsSession));
 
-				EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading Stock exchanges");
+				//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading Stock exchanges");
 				InitializeExchanges(spDocument->selectNodes(L"./Settings/Exchanges/Exchange[@type=\"Stock\"]"),  CExchangeKey::enExchangeStock);
-				EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading Option exchanges");
+				//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::Initialize", "Reading Option exchanges");
 				InitializeExchanges(spDocument->selectNodes(L"./Settings/Exchanges/Exchange[@type=\"Option\"]"), CExchangeKey::enExchangeOption);
 			}
-			catch (_com_error& e)
+			catch (_com_error e)
 			{
-				EgLib::CEgLibTraceManager::Trace(EgLib::LogError,"CSettingsManager::Initialize","Com Exception:%d %s", e.Error(), (LPCSTR)e.Description());
+				//EgLib::CEgLibTraceManager::Trace(EgLib::LogError,"CSettingsManager::Initialize","Com Exception:%d %s", e.Error(), (LPCSTR)e.Description());
 			}
 			CoUninitialize();
 		}
@@ -290,13 +290,13 @@ namespace ActivFeedSettings
 				MSXML2::IXMLDOMNodePtr spValue =   spAttributes->getNamedItem(L"value");
 				if(spName!=NULL && spValue!=NULL)
 				{
-					EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeProperties","[%s] = %s",(LPCSTR)spName->text,(LPCSTR)spValue->text);
+					//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeProperties","[%s] = %s",(LPCSTR)spName->text,(LPCSTR)spValue->text);
 					m_Settings.SetValue(CDictionaryKey((LPCSTR)spName->text), CDictionaryValue((LPCSTR)spValue->text));
 				}
 			}
 		}
-		else
-			EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeProperties","No settings definition found");
+		//else
+		//	EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeProperties","No settings definition found");
 
 		return true;
 	}
@@ -317,7 +317,7 @@ namespace ActivFeedSettings
 					MSXML2::IXMLDOMNodePtr spRegion =   spAttributes->getNamedItem(L"region");
 					if(spActiv!=NULL && spEgar!=NULL)
 					{
-						EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeExchanges","Activ [%s] = Egar [%s]",(LPCSTR)spActiv->text,(LPCSTR)spEgar->text);
+						//EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeExchanges","Activ [%s] = Egar [%s]",(LPCSTR)spActiv->text,(LPCSTR)spEgar->text);
 						CExchangeKey keyEgar ((LPCSTR)spEgar->text, enType, spRegion == NULL ? "USA" : (LPCSTR)spRegion->text);
 						CExchangeKey keyActiv((LPCSTR)spActiv->text, enType, spRegion == NULL ? "USA" : (LPCSTR)spRegion->text);
 						CDictionaryValue valueEgar((LPCSTR)spEgar->text);
@@ -330,12 +330,12 @@ namespace ActivFeedSettings
 					}
 				}
 			}
-			catch (_com_error& e)
+			catch (_com_error e)
 			{
-				EgLib::CEgLibTraceManager::Trace(EgLib::LogError,"CSettingsManager::InitializeExchanges", "Com Exception:%d %s", e.Error(), (LPCSTR)e.Description());
+				//EgLib::CEgLibTraceManager::Trace(EgLib::LogError,"CSettingsManager::InitializeExchanges", "Com Exception:%d %s", e.Error(), (LPCSTR)e.Description());
 			}
 		}
-		else
-			EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeExchanges","No stock exchange definition found");
+		//else
+		//	EgLib::CEgLibTraceManager::Trace(EgLib::LogInfoExt,"CSettingsManager::InitializeExchanges","No stock exchange definition found");
 	}
 };

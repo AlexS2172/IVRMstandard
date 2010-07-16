@@ -586,7 +586,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentY        =   529
          _Version        =   393216
          CustomFormat    =   "MMM,dd yyy hh:mm tt"
-         Format          =   50331649
+         Format          =   20381697
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -712,7 +712,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   50331649
+         Format          =   20381697
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -886,7 +886,7 @@ Begin VB.UserControl ctlMktStruct
             _ExtentY        =   529
             _Version        =   393216
             CustomFormat    =   "MMM,dd yyy hh:mm tt"
-            Format          =   50331651
+            Format          =   20381699
             CurrentDate     =   38974.5416666667
          End
       End
@@ -1003,7 +1003,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   50331649
+         Format          =   20381697
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
@@ -1674,7 +1674,7 @@ Private Enum GridColumns
 End Enum
 
 Private Enum RootGridColumns
-    ROOT_SYMBOL = 0
+    root_symbol = 0
     ROOT_NAME = 1
     ROOT_IMPORTID = 2
     ROOT_FUTCONTRACTSIZE = 3
@@ -2146,7 +2146,7 @@ Private Sub AddRow()
              nRow = .Rows - 1
             .RowData(nRow) = aRoot
                     
-            .TextMatrix(nRow, ROOT_SYMBOL) = aRoot.Symbol
+            .TextMatrix(nRow, root_symbol) = aRoot.Symbol
             .TextMatrix(nRow, ROOT_NAME) = aRoot.Name
             .TextMatrix(nRow, ROOT_IMPORTID) = aRoot.ExportSymbol
             .TextMatrix(nRow, ROOT_FUTCONTRACTSIZE) = aRoot.FutureLotSize
@@ -2154,7 +2154,7 @@ Private Sub AddRow()
             .TextMatrix(nRow, ROOT_OPTCONTRACTSIZE) = aRoot.OptionLotSize
             .Cell(flexcpAlignment, nRow, ROOT_OPTCONTRACTSIZE) = flexAlignRightCenter
             
-            .Select nRow, ROOT_SYMBOL
+            .Select nRow, root_symbol
             .EditCell
         End With
         
@@ -2272,7 +2272,7 @@ Dim b As Boolean
             Set aRoot = .RowData(Row)
             If Not aRoot Is Nothing Then
         
-                If Col = ROOT_SYMBOL Then
+                If Col = root_symbol Then
                     aRoot.Symbol = sValue
                     m_Roots.Remove (m_sCurrentOriginalText)
                     m_Roots.Add sValue, aRoot
@@ -2330,7 +2330,7 @@ Dim aMsgBox As New frmMyMsgBox
         If Row > 1 Then
             Set aRoot = .RowData(Row)
 
-            If Col = ROOT_SYMBOL Then
+            If Col = root_symbol Then
                 'Set aRoot = .RowData(Row)
                 If Not aRoot Is Nothing Then
                     If aRoot.Symbol <> .EditText And IsSymbolExists(.EditText) Then
@@ -3504,7 +3504,7 @@ Private Function LoadFutureRoots() As Boolean
                         
             .RowData(nRow) = aRoot
                     
-            .TextMatrix(nRow, ROOT_SYMBOL) = aRoot.Symbol
+            .TextMatrix(nRow, root_symbol) = aRoot.Symbol
             .TextMatrix(nRow, ROOT_NAME) = aRoot.Name
             .TextMatrix(nRow, ROOT_IMPORTID) = aRoot.ExportSymbol
             .TextMatrix(nRow, ROOT_FUTCONTRACTSIZE) = aRoot.FutureLotSize
@@ -4363,7 +4363,7 @@ Private Sub FormatRootGrid()
         .MergeCells = flexMergeFixedOnly
         .MergeRow(0) = True
         .MergeRow(1) = True
-        .MergeCol(ROOT_SYMBOL) = True
+        .MergeCol(root_symbol) = True
         .MergeCol(ROOT_NAME) = True
         .MergeCol(ROOT_IMPORTID) = True
         .MergeCol(ROOT_FUTCONTRACTSIZE) = True
@@ -4386,7 +4386,7 @@ Private Sub FormatRootGrid()
         .ColHidden(ROOT_HIDDENCOLUMN) = True
         '.ColHidden(IC_HIDDENCOLUMN) = False
         
-        .ColWidth(ROOT_SYMBOL) = 1000
+        .ColWidth(root_symbol) = 1000
         .ColWidth(ROOT_NAME) = 1000
         .ColWidth(ROOT_IMPORTID) = 1000
         .ColWidth(ROOT_FUTCONTRACTSIZE) = 1500

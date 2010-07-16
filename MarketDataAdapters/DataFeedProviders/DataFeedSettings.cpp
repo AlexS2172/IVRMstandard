@@ -13,6 +13,7 @@ int CDataFeedSettings::m_attempts = 10;
 long CDataFeedSettings::log_lifetime = 2;
 long CDataFeedSettings::log_level = 2;
 long CDataFeedSettings::pull_timeout = 1000;
+std::string CDataFeedSettings::log_directory = "";
 
 bool CDataFeedSettings::UseXML = false;
 
@@ -32,6 +33,14 @@ std::string CDataFeedSettings::GetProcessPath()
 	throw std::runtime_error("Can't get process path");
 }
 
+/*static*/
+std::string
+CDataFeedSettings::GetUserName() {
+	TCHAR buffer[MAX_PATH];
+	DWORD buffer_size = MAX_PATH;
+	::GetUserName(buffer, &buffer_size);
+	return std::string(buffer);
+};
 
 std::string CDataFeedSettings::GetProcessFilename()
 {
@@ -65,12 +74,9 @@ void CDataFeedSettings::Initialize()
 				spDocument->resolveExternals = VARIANT_FALSE;
 				spDocument->setProperty(_bstr_t(L"SelectionLanguage"), _variant_t(_bstr_t(L"XPath")));
 				spDocument->load(bsFilePath);
-				TCHAR szBufferName[MAX_PATH];
-				DWORD dwSize = MAX_PATH;
-				::GetUserName(szBufferName, &dwSize);
 
-				std::string strUserName = szBufferName;
-				TRACEINFO(__FUNCTION__, strUserName.c_str());
+				std::string strUserName = GetUserName();
+				
 				_bstr_t bsSession  = L"./Settings/Sessions/Session [@name=\"";
 				bsSession += strUserName.c_str();
 				bsSession += L"\"]/*";
@@ -92,6 +98,8 @@ void CDataFeedSettings::Initialize()
 								CDataFeedSettings::log_lifetime = atol(spValue->text);
 							if (spName->text == _bstr_t(LOG_LEVEL))
 								CDataFeedSettings::log_level = atol(spValue->text);
+							if (spName->text == _bstr_t(LOG_DIRECTORY))
+								CDataFeedSettings::log_directory = spValue->text;
 							if (spName->text == _bstr_t(PULL_TIMEOUT))
 								CDataFeedSettings::pull_timeout = atol(spValue->text);
 							if (spName->text == _bstr_t(REMOTEOBJECT_NODE))
@@ -114,45 +122,45 @@ void CDataFeedSettings::Initialize()
 					}
 				}
 			}
-			else
-			{
-				try
-				{
+			//else
+			//{
+			//	try
+			//	{
 
-					std::ostringstream oss;
-					std::string val = GetProcessPath() + GetProcessFilename() + _T(".ini");
-					EgLib::CEgLibTraceManager::Trace(EgLib::LogInfo,__FUNCTION__,  val.c_str());
-					VS::CIniFileParser Ini(val);
-					Ini.ReadRequiredParameter(_T("MAIN"),_T(PROVIDER_NODE),CDataFeedSettings::m_provider);
-					Ini.ReadRequiredParameter(_T("MAIN"),_T(REMOTEOBJECT_NODE),CDataFeedSettings::m_remoteObj);
-					Ini.ReadRequiredParameter(_T("MAIN"),_T(USERNAME_NODE),CDataFeedSettings::m_userName);
-					Ini.ReadRequiredParameter(_T("MAIN"),_T(PASSWORD_NODE),CDataFeedSettings::m_password);
-					Ini.ReadRequiredParameter(_T("MAIN"),_T(COMPRESSION_NODE),val);
-					CDataFeedSettings::m_compression = (val == _T("0"))?DDS::COMPRESS_NONE:DDS::COMPRESS_ZIP;
-					Ini.ReadRequiredParameter(_T("MAIN"),_T(SERVERTIMEOUT_NODE),val);
-					CDataFeedSettings::m_serverTimeout = atol(val.c_str());
-					Ini.ReadRequiredParameter(_T("ORB"),_T(SERVERENDPOINT_NODE),CDataFeedSettings::m_endpoint);
-					if (Ini.ReadOptionalParameter(_T("ORB"),_T(ORBTRACELEVEL_NODE),val))
-						CDataFeedSettings::m_ORBTraceLevel = val;
-					if (Ini.ReadOptionalParameter(_T("MAIN"),_T(ATTEMPTS_NODE),val))
-						CDataFeedSettings::m_attempts = atol(val.c_str());
-					oss << "Provider: " << CDataFeedSettings::m_provider << "; ";
-					oss << "RemoteObject: " << CDataFeedSettings::m_remoteObj << "; ";
-					oss << "UserName: " << CDataFeedSettings::m_userName << "; ";
-					oss << "Password: " << CDataFeedSettings::m_password << "; ";
-					oss << "Compression: " << CDataFeedSettings::m_compression << "; ";
-					oss << "ServerTimeout: " << CDataFeedSettings::m_serverTimeout << "; ";
-					oss << "ORBTraceLeve: " << CDataFeedSettings::m_ORBTraceLevel << "; ";
-					oss << "Endpoint: " << CDataFeedSettings::m_endpoint << "; ";
-					oss << "Attempts: " << val << "; ";
+			//		std::ostringstream oss;
+			//		std::string val = GetProcessPath() + GetProcessFilename() + _T(".ini");
+			//		EgLib::CEgLibTraceManager::Trace(EgLib::LogInfo,__FUNCTION__,  val.c_str());
+			//		VS::CIniFileParser Ini(val);
+			//		Ini.ReadRequiredParameter(_T("MAIN"),_T(PROVIDER_NODE),CDataFeedSettings::m_provider);
+			//		Ini.ReadRequiredParameter(_T("MAIN"),_T(REMOTEOBJECT_NODE),CDataFeedSettings::m_remoteObj);
+			//		Ini.ReadRequiredParameter(_T("MAIN"),_T(USERNAME_NODE),CDataFeedSettings::m_userName);
+			//		Ini.ReadRequiredParameter(_T("MAIN"),_T(PASSWORD_NODE),CDataFeedSettings::m_password);
+			//		Ini.ReadRequiredParameter(_T("MAIN"),_T(COMPRESSION_NODE),val);
+			//		CDataFeedSettings::m_compression = (val == _T("0"))?DDS::COMPRESS_NONE:DDS::COMPRESS_ZIP;
+			//		Ini.ReadRequiredParameter(_T("MAIN"),_T(SERVERTIMEOUT_NODE),val);
+			//		CDataFeedSettings::m_serverTimeout = atol(val.c_str());
+			//		Ini.ReadRequiredParameter(_T("ORB"),_T(SERVERENDPOINT_NODE),CDataFeedSettings::m_endpoint);
+			//		if (Ini.ReadOptionalParameter(_T("ORB"),_T(ORBTRACELEVEL_NODE),val))
+			//			CDataFeedSettings::m_ORBTraceLevel = val;
+			//		if (Ini.ReadOptionalParameter(_T("MAIN"),_T(ATTEMPTS_NODE),val))
+			//			CDataFeedSettings::m_attempts = atol(val.c_str());
+			//		oss << "Provider: " << CDataFeedSettings::m_provider << "; ";
+			//		oss << "RemoteObject: " << CDataFeedSettings::m_remoteObj << "; ";
+			//		oss << "UserName: " << CDataFeedSettings::m_userName << "; ";
+			//		oss << "Password: " << CDataFeedSettings::m_password << "; ";
+			//		oss << "Compression: " << CDataFeedSettings::m_compression << "; ";
+			//		oss << "ServerTimeout: " << CDataFeedSettings::m_serverTimeout << "; ";
+			//		oss << "ORBTraceLeve: " << CDataFeedSettings::m_ORBTraceLevel << "; ";
+			//		oss << "Endpoint: " << CDataFeedSettings::m_endpoint << "; ";
+			//		oss << "Attempts: " << val << "; ";
 
-					EgLib::CEgLibTraceManager::Trace(EgLib::LogInfo,__FUNCTION__,  oss.str().c_str());
-				}
-				catch (...)
-				{
-					TRACE_UNKNOWN_ERROR();
-					EgLib::CEgLibTraceManager::Trace(EgLib::LogError,__FUNCTION__,  "Error while reading parameters from ini-file!");
-				}
-			}
+			//		EgLib::CEgLibTraceManager::Trace(EgLib::LogInfo,__FUNCTION__,  oss.str().c_str());
+			//	}
+			//	catch (...)
+			//	{
+			//		TRACE_UNKNOWN_ERROR();
+			//		EgLib::CEgLibTraceManager::Trace(EgLib::LogError,__FUNCTION__,  "Error while reading parameters from ini-file!");
+			//	}
+			//}
 		}
 }

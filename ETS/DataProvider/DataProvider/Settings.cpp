@@ -9,12 +9,13 @@ CSettings::~CSettings(void)
 {
 }
 //----------------------------------------------------------------//
+/*static*/
 std::string 
-CSettings::GetConfigFileName()
-{
+CSettings::GetConfigFileName() {
+
 	TCHAR szBuf[1024] = {0};
-	if(GetModuleFileName(NULL, szBuf, sizeof(szBuf)))
-	{
+	
+	if(GetModuleFileName(NULL, szBuf, sizeof(szBuf))) {
 		TCHAR szDrive[8] = {0};
 		TCHAR szDir[512] = {0};
 		TCHAR szName[128] = {0};
@@ -23,9 +24,9 @@ CSettings::GetConfigFileName()
 		std::string strDrive = szDrive;
 		std::string strDir = szDir;
 		return strDrive + strDir + strName + std::string(".ini");
-	}
+	};
 	return std::string("");	
-}
+};
 //----------------------------------------------------------------//
 std::string 
 CSettings::GetParameter(std::string file, std::string section, std::string key)
@@ -47,25 +48,27 @@ CSettings::GetParameter(std::string file, std::string section, std::string key)
 	return strValue;
 };
 //----------------------------------------------------------------//
-bool CSettings::LoadSettings()
-{
-	
+bool 
+CSettings::LoadSettings() {
+
 	std::string fileName = GetConfigFileName();
+	
 	LOG4CPLUS_INFO(ProviderLog, _T("ConfigurationFile: ") << fileName.c_str());
 
-	if (fileName.length() > 0){
-
-		std::string sValue = GetParameter(fileName, "ORB", "ORBEndPoint");
-
-		//ORB Configuration Params Initialization
-		m_ORBSettings.push_back(std::make_pair<>(_T("-ORBendPoint"), GetParameter(fileName, "ORB", "ORBEndPoint")));
-		m_ORBSettings.push_back(std::make_pair<>(_T("-ORBtraceLevel"), GetParameter(fileName, "ORB", "ORBLogLevel")));
+	if (fileName.length() > 0) {
 		
-		//Activ Configuration Params Initialization
-		m_UserID = GetParameter(fileName, "ACTIV", "UserID");
-		m_Password = GetParameter(fileName, "ACTIV", "Password");
-		m_ServiceLocationINI = GetParameter(fileName, "ACTIV", "ServiceLocationINI");
-		m_DBConnectionString = GetParameter(fileName, "DATABASE", "ConnectionString");
+		IniReader config_reader(fileName);
+		
+		IniReader::Section activ_settings("ACTIV");
+		config_reader.read_section(activ_settings);
+		
+		activ_settings.get_value("UserID", m_UserID, "");
+		activ_settings.get_value("Password", m_Password, "");
+		activ_settings.get_value("ServiceLocationINI", m_ServiceLocationINI, "");
+		
+		IniReader::Section db_settings("DATABASE");
+		config_reader.read_section(db_settings);
+		db_settings.get_value("ConnectionString", m_DBConnectionString, "");
 
 		m_ACTIVSettings.m_enableUiService = false;
 		m_ACTIVSettings.m_createSystemLog = false;

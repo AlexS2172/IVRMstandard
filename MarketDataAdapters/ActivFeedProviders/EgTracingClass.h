@@ -8,7 +8,7 @@ namespace Trace
 		CEgHyprFeedTrace(void)
 			:EgLib::CEgLibTraceManager(EgLib::CEgLibTraceManager::enRelativeMyDocuments, _T("ETS\\Logs"))
 		{
-			EgLib::CEgLibTraceManager::FileName = L"ActivFeed";
+			EgLib::CEgLibTraceManager::FileName = L"ivrm_activ_feed";
 		}
 
 		virtual ~CEgHyprFeedTrace(void)

@@ -11,11 +11,10 @@
 #include "Messenger.h"
 
 
-log4cplus::Logger ProviderLog = log4cplus::Logger::getInstance("log4cplusDataProvider");
-log4cplus::Logger CorbaLog = log4cplus::Logger::getInstance("log4cplusDataProviderCorba");
+log4cplus::Logger ProviderLog	= log4cplus::Logger::getInstance("log4cplusDataProvider");
+log4cplus::Logger CorbaLog		= log4cplus::Logger::getInstance("log4cplusDataProviderCorba");
 
-void InitializeLogger();
-void InitializeCorbaLogger();
+void initilize_logger(log4cplus::Logger& my_logger, IniReader::Section& settings);
 
 CDatabaseImpl::pointer CDataBase::m_dbImpl = 0;
 
@@ -27,9 +26,16 @@ int _tmain(int argc, _TCHAR* argv[])
 		if(FAILED(hrStatus))
 			utils::ThrowErrorNoSetErrorInfo(hrStatus, L"Failed to DispEventAdvise.");
 
-		InitializeLogger();
-		InitializeCorbaLogger();
-
+		IniReader config_reader(CSettings::GetConfigFileName());
+		
+		IniReader::Section provider_log_settings("PROVIDER_LOG");
+		config_reader.read_section(provider_log_settings);		
+		initilize_logger(ProviderLog, provider_log_settings);
+		
+		IniReader::Section corba_log_settings("CORBA_LOG");
+		config_reader.read_section(corba_log_settings);
+		initilize_logger(CorbaLog, corba_log_settings);
+				
 		CSettings::pointer userSettings = CSettings::pointer(new CSettings());
 		if (!userSettings->LoadSettings()){
 			std::cout<<"Fail to read settings.";
@@ -65,23 +71,35 @@ int _tmain(int argc, _TCHAR* argv[])
 	return 0;
 }
 
-void InitializeLogger(){
-	using namespace log4cplus;
-	ProviderLog.removeAllAppenders();
-	std::string logPattern = "%D{%c} [%t] [%p]: %m%n";
-	SharedAppenderPtr RMainFileApp(new RollingFileAppender("DataProvider.log", 100*1024*1024, 3));
-	RMainFileApp->setName(_T("RMainQueueFileApp"));
-	RMainFileApp->setLayout( std::auto_ptr<Layout>(new PatternLayout(logPattern)) );
-	ProviderLog.addAppender(RMainFileApp);
-};
+void 
+initilize_logger(log4cplus::Logger& my_logger, IniReader::Section& section) {
 
-void InitializeCorbaLogger(){
 	using namespace log4cplus;
-	CorbaLog.removeAllAppenders();
-	std::string logPattern = "%D{%c} [%t] [%p]: %m%n";
-	SharedAppenderPtr RMainFileApp(new RollingFileAppender("DataProviderCorba.log"));
-	RMainFileApp->setName(_T("RMainQueueFileApp1"));
-	RMainFileApp->setLayout( std::auto_ptr<Layout>(new PatternLayout(logPattern)) );
-	CorbaLog.addAppender(RMainFileApp);
-};
+	
+	my_logger.removeAllAppenders();
 
+	std::string log_pattern;
+	section.get_value("LOG_PATTERN", log_pattern, "%D{%c} [%t] [%p]: %m%n");
+
+	std::string log_file_name;
+	section.get_value("LOG_FILE_NAME", log_file_name, "provider.log");
+
+	long log_parts;
+	section.get_value("LOG_PARTS", log_parts, 3);
+
+	long log_file_size;
+	section.get_value("LOG_FILE_SIZE", log_file_size, 100);
+
+	long log_level;
+	section.get_value("LOG_LEVEL", log_level, long(log4cplus::FATAL_LOG_LEVEL));
+
+	SharedAppenderPtr appender(new RollingFileAppender(	log_file_name, 
+														log_file_size * 1024 * 1024, 
+														log_parts));
+	appender->setName(_T("log_appender"));
+	appender->setLayout(std::auto_ptr<Layout>(new PatternLayout(log_pattern)));
+	my_logger.setLogLevel(LogLevel(log_level));
+	my_logger.addAppender(appender);
+
+	LOG4CPLUS_INFO(my_logger, _T("logger initialized"));
+};

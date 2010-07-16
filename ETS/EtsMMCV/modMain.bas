@@ -9,6 +9,7 @@ Public Const PRODUCT_REG_KEY As String = "SOFTWARE\Egar\ETS\"
 Public Const APP_XML_KEY As String = "ETS\MarketMaker\"
 Public Const PRODUCT_XML_KEY As String = "ETS\"
 Public Const GROUP_XML_KEY As String = "ETS\Asp\Groups\"
+Public Const GENERAL_SETTINGS As String = "ETS\Asp\GeneralSettings\"
 
 Public Const DATA_SHAPSHOT_FILENAME$ = "EtsMM_DataShapshot"
 Public Const DB_VERSION_COMPATIBLE_MAJOR& = 6
@@ -216,7 +217,9 @@ Sub Main()
     g_Params.LoadSettings
     
     If (Not g_Main Is Nothing) Then
+        g_Main.SetLogDirectory g_Params.LogDirectory
         g_Main.SetLogLevel g_lMinLogLevel
+        g_Main.SetWorkingMode enWmClient
     End If
     
     Set g_frmProjectionsCV = New frmBatchCapability
@@ -263,7 +266,7 @@ Sub Main()
     
     If g_Params.LogAdvancedInfo Then
         Set g_PerformanceLog = New clsPerformanceLog
-        If Not g_PerformanceLog.Init("EtsMMCv_PerfLog") Then
+        If Not g_PerformanceLog.Init("ivrm_cv", g_Params.LogDirectory) Then
             Set g_PerformanceLog = Nothing
         End If
         
@@ -1336,9 +1339,7 @@ End Sub
 Private Sub CreateGlobalCollections()
     On Error GoTo EH
     Set g_Main = New EtsMain
-    
-    g_Main.SetWorkingMode enWmClient
-    
+        
     Set g_InVisibleOptRoots = New Collection
     
     Set g_Trader = g_Main.Trader

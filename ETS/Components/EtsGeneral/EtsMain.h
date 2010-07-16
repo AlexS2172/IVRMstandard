@@ -99,70 +99,92 @@ public:
 		{
 			EgLib::CEgLibTraceManager::g_spTrace = EgLib::CEgLibTraceManagerPtr(static_cast<EgLib::CEgLibTraceManager*>(new CEgTrace));
 
-			_CHK(CComObject<CEtsTraderColl>::CreateInstance(&m_pTraderColl), _T("Fail to create Traders Collection."));
+			_CHK(CComObject<CEtsTraderColl>::CreateInstance(&m_pTraderColl),
+			_T("Fail to create Traders Collection."));
 			m_spTraderColl.Attach(m_pTraderColl, TRUE);
 
-			_CHK(CComObject<CEtsTraderGroupColl>::CreateInstance(&m_pTraderGroup), _T("Fail to create Trader Groups Collection."));
+			_CHK(CComObject<CEtsTraderGroupColl>::CreateInstance(&m_pTraderGroup), 
+			_T("Fail to create Trader Groups Collection."));
 			m_spTraderGroup.Attach(m_pTraderGroup, TRUE);
 
-			_CHK(CComObject<CEtsStrategyColl>::CreateInstance(&m_pStrategy), _T("Fail to create Strategy Collection."));
+			_CHK(CComObject<CEtsStrategyColl>::CreateInstance(&m_pStrategy), 
+			_T("Fail to create Strategy Collection."));
 			m_spStrategy.Attach(m_pStrategy, TRUE);
 
-			_CHK(CComObject<CEtsBrokerColl>::CreateInstance(&m_pBroker), _T("Fail to create Brokers Collection."));
+			_CHK(CComObject<CEtsBrokerColl>::CreateInstance(&m_pBroker), 
+			_T("Fail to create Brokers Collection."));
 			m_spBroker.Attach(m_pBroker, TRUE);
 
-			_CHK(CComObject<CEtsBrokerColl>::CreateInstance(&m_pClearingBroker), _T("Fail to create Clearing Brokers Collection."));
+			_CHK(CComObject<CEtsBrokerColl>::CreateInstance(&m_pClearingBroker), 
+			_T("Fail to create Clearing Brokers Collection.")); 
 			m_spClearingBroker.Attach(m_pClearingBroker, TRUE);
-
-			_CHK(CComObject<CUndColl>::CreateInstance(&m_pUnderlying), _T("Fail to create Underliengs Collection."));
+			
+			_CHK(CComObject<CUndColl>::CreateInstance(&m_pUnderlying), 
+			_T("Fail to create Underliengs Collection."));								
 			m_spUnderlying.Attach(m_pUnderlying, TRUE);
 
-			_CHK(CComObject<CUndColl>::CreateInstance(&m_pStock), _T("Fail to create Stocks Collection."));
+			_CHK(CComObject<CUndColl>::CreateInstance(&m_pStock), 
+			_T("Fail to create Stocks Collection."));
 			m_spStock.Attach(m_pStock, TRUE);
 
-			_CHK(CComObject<CUndColl>::CreateInstance(&m_pUnderlyingAll), _T("Fail to create All Underliengs Collection."));
+			_CHK(CComObject<CUndColl>::CreateInstance(&m_pUnderlyingAll), 
+			_T("Fail to create All Underliengs Collection."));
 			m_spUnderlyingAll.Attach(m_pUnderlyingAll, TRUE);
 
-			_CHK(CComObject<CEtsUndGroupColl>::CreateInstance(&m_pUnderlyingGroup), _T("Fail to create  Underliengs Groups Collection."));
+			_CHK(CComObject<CEtsUndGroupColl>::CreateInstance(&m_pUnderlyingGroup), 
+			_T("Fail to create  Underliengs Groups Collection."));		
 			m_spUnderlyingGroup.Attach(m_pUnderlyingGroup, TRUE);
 
-			_CHK(CComObject<CEtsOptRootByNameColl>::CreateInstance(&m_pOptRootByName), _T("Fail to create  Option Root By Name Collection."));
+			_CHK(CComObject<CEtsOptRootByNameColl>::CreateInstance(&m_pOptRootByName), 
+			_T("Fail to create  Option Root By Name Collection."));
 			m_spOptRootByName.Attach(m_pOptRootByName, TRUE);
 
-			_CHK(CComObject<CEtsContractColl>::CreateInstance(&m_pContractAll), _T("Fail to create  All Contracts Collection."));
+			_CHK(CComObject<CEtsContractColl>::CreateInstance(&m_pContractAll), 
+			_T("Fail to create  All Contracts Collection."));
 			m_spContractAll.Attach(m_pContractAll, TRUE);
 
-			_CHK(CComObject<CEtsContractColl>::CreateInstance(&m_pContract), _T("Fail to create Contracts Collection."));
+			_CHK(CComObject<CEtsContractColl>::CreateInstance(&m_pContract), 
+			_T("Fail to create Contracts Collection."));
 			m_spContract.Attach(m_pContract, TRUE);
 
-			_CHK(CComObject<CEtsPriceProfileColl>::CreateInstance(&m_pPriceProfile), _T("Fail to create Price Profile Collection."));
+			_CHK(CComObject<CEtsPriceProfileColl>::CreateInstance(&m_pPriceProfile), 
+			_T("Fail to create Price Profile Collection."));
 			m_spPriceProfile.Attach(m_pPriceProfile, TRUE);
 
-			_CHK(CComObject<CEtsExpCalColl>::CreateInstance(&m_pExpCalendar), _T("Fail to create Expiration Calendar Collection."));
+			_CHK(CComObject<CEtsExpCalColl>::CreateInstance(&m_pExpCalendar), 
+			_T("Fail to create Expiration Calendar Collection."));
 			m_spExpCalendar.Attach(m_pExpCalendar, TRUE);
 
-			_CHK(CComObject<CExchColl>::CreateInstance(&m_pExhc), _T("Fail to create Exchanges Collection."));
+			_CHK(CComObject<CExchColl>::CreateInstance(&m_pExhc), 
+			_T("Fail to create Exchanges Collection."));
 			m_spExhc.Attach(m_pExhc, TRUE);
 
-			_CHK(CComObject<CEtsRateColl>::CreateInstance(&m_pRates), _T("Fail to create Rates Collection."));
+			_CHK(CComObject<CEtsRateColl>::CreateInstance(&m_pRates), 
+			_T("Fail to create Rates Collection."));
 			m_spRates.Attach(m_pRates, TRUE);
 
-			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pIndex), _T("Fail to create Indices Collection."));
+			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pIndex), 
+			_T("Fail to create Indices Collection."));
 			m_spIndex.Attach(m_pIndex, TRUE);
 
-			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pBasketIndex), _T("Fail to create Basket Indices Collection."));
+			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pBasketIndex), 
+			_T("Fail to create Basket Indices Collection."));
 			m_spBasketIndex.Attach(m_pBasketIndex, TRUE);
 
-			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pHedgeSymbols), _T("Fail to create Hedge Symbols Collection."));
+			_CHK(CComObject<CIndexColl>::CreateInstance(&m_pHedgeSymbols), 
+			_T("Fail to create Hedge Symbols Collection."));
 			m_spHedgeSymbols.Attach(m_pHedgeSymbols, TRUE);
 
-			_CHK(CComObject<CEtsHolidayAtom>::CreateInstance(&m_pHolidays), _T("Fail to create Holidays Atom."));
+			_CHK(CComObject<CEtsHolidayAtom>::CreateInstance(&m_pHolidays), 
+			_T("Fail to create Holidays Atom."));
 			m_spHolidays.Attach(m_pHolidays, TRUE);
 
-			_CHK(CComObject<CCalculationParametrsAtom>::CreateInstance(&m_pCalculationParametrs), _T("Fail to create Calculation Parametrs Atom."));
+			_CHK(CComObject<CCalculationParametrsAtom>::CreateInstance(&m_pCalculationParametrs), 
+			_T("Fail to create Calculation Parametrs Atom."));
 			m_spCalculationParametrs.Attach(m_pCalculationParametrs, TRUE);
 
-			_CHK(CComObject<CCalculationSettingsAtom>::CreateInstance(&m_pCalculationSettings), _T("Fail to create Calculation Settings Atom."));
+			_CHK(CComObject<CCalculationSettingsAtom>::CreateInstance(&m_pCalculationSettings), 
+			_T("Fail to create Calculation Settings Atom."));
 			m_spCalculationSettings.Attach(m_pCalculationSettings, TRUE);
 
 			m_spContractsCache = CContractsCachePtr(new CContractsCache());
@@ -371,8 +393,10 @@ public:
 	STDMETHOD(CalculateUpdatedContracts)(SAFEARRAY** pRetVal);
 	STDMETHOD(ReloadDividends)(LONG lAssetID);
 	STDMETHOD(LoadContracts)(ITicker* Asset);
+	
 	STDMETHOD(SetLogLevel)(LONG llevel);
 	STDMETHOD(SetLogLifetime)(LONG Lifetime);
+	STDMETHOD(SetLogDirectory)(BSTR directory);
 
 	STDMETHOD(CreateFlexContract)(	/*[in]*/ LONG					AssetID,
 									/*[in]*/ DATE					Expiration,

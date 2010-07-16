@@ -55,6 +55,9 @@ Public DoNotCheckDbVersion As Boolean
 Public ExchangeRate As Double
 Public SECFees As Double
 Public CustodianDesc As String
+
+Public LogDirectory As String
+
 Private m_hResource As Long
 Private m_CVEnabled As Boolean
 
@@ -151,6 +154,11 @@ Public Sub LoadSettings()
         lngStringLen = LoadString(m_hResource, 1003, strString, Len(strString))
         If lngStringLen <> 0 Then m_sAppCopyright = Left(strString, lngStringLen)
 
+    End If
+    
+    LogDirectory = g_aMainXMLParams.GetStringValue(GENERAL_SETTINGS, "LogDirectory", "")
+    If (Len(LogDirectory) > 0) Then
+        LogDirectory = LogDirectory & "\" & sUserName
     End If
     
     Exit Sub

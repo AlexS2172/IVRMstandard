@@ -53,6 +53,37 @@ CXmlSettings::curve_extrapolation_type(){
 	return 1L;
 };
 //------------------------------------------------------------------//
+/*@return log directory*/
+/*virtual*/
+std::string
+CXmlSettings::GetLogDirectory() {
+	try {
+		const	_bstr_t bstrSector = _bstr_t(TEXT("ETS\\Asp\\GeneralSettings"));
+		const	_bstr_t bstrKey = _bstr_t(TEXT("LogDirectory"));
+		_bstr_t bsXmlValue("");
+
+		m_xmlParams.GetMainXMLString(bstrSector, bstrKey, &bsXmlValue);
+		
+		if (bsXmlValue.length() > 0) {
+
+			TCHAR user_name[128] = {0};
+			DWORD user_name_length = 128;
+
+			::GetUserName(user_name, &user_name_length);
+
+			bsXmlValue = bsXmlValue + _bstr_t("\\") + _bstr_t(user_name);
+			
+			return (char*)bsXmlValue;
+		};
+		
+		return std::string("");
+	}
+	catch (...) {
+		ATLASSERT(false);
+	};
+	return std::string("");
+};
+//------------------------------------------------------------------//
 /*@return the value of extrapolation type
 @default value is (1) - FLAT_FORWARD_INTERPOLATION*/
 

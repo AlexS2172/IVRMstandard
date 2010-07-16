@@ -20,4 +20,6 @@ public:
 	static long log_lifetime;
 	static long log_level;
 	static long pull_timeout;
+	static std::string log_directory;
+	static std::string GetUserName();
 };
