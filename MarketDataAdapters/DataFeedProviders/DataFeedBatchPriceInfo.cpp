@@ -216,27 +216,43 @@ STDMETHODIMP CDataFeedBatchPriceInfo::SubscribeMultipleQuotes(SAFEARRAY** Params
 
 	if (Params == NULL) 
 		return E_POINTER;
-
-	if (m_gateway){
-		QuoteUpdateParams* pvData = NULL;
-		if( SUCCEEDED( hrStatus = ::SafeArrayAccessData(*Params, (void**)&pvData) ) )
-		{
-			long lLBound = 0;
-			long lUBound = 0;
-			HRESULT hRes = SafeArrayGetLBound(*Params, 1L, &lLBound);
-			hRes = SafeArrayGetUBound(*Params, 1L, &lUBound);
-			long lArraySize = lUBound - lLBound + 1;
-			if(lArraySize)
-			{	
-				CRequestCollPtr spRequest = CRequestCollPtr(new CRequestColl);
-				for(int i = 0; i< lArraySize; ++i){
-					CRequestKeyPtr spRequestAtom = m_gateway->ConvertRequest(&pvData[i]);
-					spRequest->push_back(spRequestAtom);
+	
+	try {
+	
+		if (m_gateway) {
+			
+			TRACE_INFO(_T("enter: [%s]"), _T("SubscribeMultipleQuotes"));
+			
+			QuoteUpdateParams* pvData = NULL;
+			
+			if( SUCCEEDED(hrStatus = ::SafeArrayAccessData(*Params, (void**)&pvData))) {
+						
+				long array_size = (*Params)->rgsabound[0].cElements;
+				
+				if(array_size) {
+					
+					CRequestCollPtr spRequest = CRequestCollPtr(new CRequestColl);
+					
+					for(int i = 0; i < array_size; i++) {
+					
+						CRequestKeyPtr spRequestAtom = m_gateway->ConvertRequest(&pvData[i]);
+						
+						spRequest->push_back(spRequestAtom);
+						
+						TRACE_INFO(_T("subscribtion request for: [%s]"), spRequestAtom->Symbol.c_str());
+					}			
+					
+					m_gateway->AddTask(new CSubscribeMultiple(m_gateway, spRequest, enQuotesResponse));
 				}
-				m_gateway->AddTask(new CSubscribeMultiple(m_gateway, spRequest, enQuotesResponse));
+				::SafeArrayUnaccessData(*Params);
 			}
-			::SafeArrayUnaccessData(*Params);
 		}
+	}
+	catch(_com_error& err) {
+		TRACE_COM_ERROR(err);
+	}
+	catch (...) {
+		TRACE_UNKNOWN_ERROR();
 	}
 	return hrStatus;
 }

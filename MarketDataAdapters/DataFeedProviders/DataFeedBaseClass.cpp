@@ -731,7 +731,11 @@ UINT WINAPI CDataFeedGateway::PullingThread(LPVOID pData)
 bool
 CDataFeedGateway::AddTask(CTaskInterface::pointer newTask)
 {
-	return  (0 != m_ThreadPool.QueueRequest(newTask));
+	if (newTask) return (0 != m_ThreadPool.QueueRequest(newTask));
+	
+	TRACE_ERROR(_T("invalid pointer of task [%s]"), _T("NULL"));
+	
+	return false;
 };
 //----------------------------------------------------------------------------------------//
 long	
@@ -771,29 +775,44 @@ CDataFeedGateway::Subscribe(CRequestKeyPtr& spRequest, ResponseTypeEnum type)
 long	
 CDataFeedGateway::SubscribeMultiple(CRequestColl& request, ResponseTypeEnum type)
 {
-	CResponsePtr spResponse;
-	CRequestColl::iterator it = request.begin();
-	CRequestColl::iterator itEnd = request.end();
-	CRequestColl newRequest;
+	
+	try {
+		
+		CRequestColl newRequest;
+		CResponsePtr spResponse;
+		CRequestColl::iterator it = request.begin();
+		CRequestColl::iterator itEnd = request.end();
 
-	for (; it != itEnd; it++){
-		if (!GetResponse(*it, type, spResponse))
-			newRequest.push_back(*it);
-		else{
-			if (m_client){
-				if (enQuotesResponse == type)
-					m_client->OnSubscribed(*it);
-				else if (enRisksResponse == type)
-					m_client->OnSubscribedRisks(*it);
+		for (; it != itEnd; it++){
+			if (!GetResponse(*it, type, spResponse))
+				newRequest.push_back(*it);
+			else{
+				if (m_client){
+					if (enQuotesResponse == type)
+						m_client->OnSubscribed(*it);
+					else if (enRisksResponse == type)
+						m_client->OnSubscribedRisks(*it);
+				}
 			}
 		}
+		
+		try {
+			if (enRisksResponse == type) {
+				return SubscribeRisksMultiple(newRequest);
+			}
+			else if (enQuotesResponse == type) {
+				return SubscribeQuoteMultiple(newRequest);
+			}
+		}
+		catch (...) {
+			TRACE_ERROR(_T("unknown exception occured while: [%s]"), _T("calling subscribe"));
+			return -1L;
+		}
 	}
-
-	if (enRisksResponse == type)
-		return SubscribeRisksMultiple(newRequest);
-	else if (enQuotesResponse == type)
-		return SubscribeQuoteMultiple(newRequest);
-	
+	catch (...) {
+		TRACE_ERROR(_T("unknown exception occured while: [%s]"), _T("subscribe multiple"));
+		return -1L;
+	}		
 	return static_cast<long>(1);
 };
 //----------------------------------------------------------------------------------------//
@@ -870,6 +889,7 @@ CDataFeedGateway::RequestQuote(CRequestKeyPtr& request, CResponsePtr& response)
 long	
 CDataFeedGateway::SubscribeQuoteMultiple(CRequestColl& request)
 {
+
 	CORBA::Short retResult = DDS::S_ERR_NOERROR;
 	
 	CRequestColl::iterator it = request.begin();
@@ -880,74 +900,126 @@ CDataFeedGateway::SubscribeQuoteMultiple(CRequestColl& request)
 	CRequestColl futures;
 	CRequestColl future_options;
 
-	for ( ;it != itEnd; it++){
-		if ((*it)->Type == enOPT){
-			options.push_back(*it);
+	try {
+	
+		for ( ;it != itEnd; it++) {
+		
+			if ((*it)->Type == enOPT) {
+				options.push_back(*it);
+			}
+			else if ((*it)->Type == enSTK || (*it)->Type == enIDX) {
+				equitys.push_back(*it);
+			}
+			else if ((*it)->Type == enFUT) {
+				futures.push_back(*it);
+			}
+			else if ((*it)->Type == enFOP) {
+				future_options.push_back(*it);
+			}
+			else {
+			
+				TRACE_ERROR(_T("request not supported"), _T("unknown type"));
+				
+				m_client->OnError(*it, std::string("Request not supported."), 501, enSubscribeQuote);
+			}
 		}
-		else if ((*it)->Type == enSTK || (*it)->Type == enIDX){
-			equitys.push_back(*it);
-		}
-		else if ((*it)->Type == enFUT){
-			futures.push_back(*it);
-		}
-		else if ((*it)->Type == enFOP){
-			future_options.push_back(*it);
-		}
-		else {
-			m_client->OnError(*it, std::string("Request not supported."), 501, enSubscribeQuote);
-		}
-	};
-
-	if (!equitys.empty()){
+	}
+	catch (...) {
+		TRACE_ERROR(_T("unknown error occurred while fill request containers[%s]"), _T("requests not processed"));
+		return -1L;
+	}
+	
+	if (!equitys.empty()) {
+	
 		CORBA::Any providerAnySymbols;
 
 		//pack request collection to IVDataFeed structures
-		PackRequestToAny(&providerAnySymbols, equitys);
+		
+		PackRequestToAny(providerAnySymbols, equitys);
 
 		//subscribe group of symbols from DataFeed
 		try {
 			retResult = __dataManager->SubscribeGroup(providerAnySymbols, DDS::STOCK_SYMBOL, DFFields::T_EQUITY_QUOTE);
 		}
-		catch (...){TRACE_UNKNOWN_ERROR();}
-	}
-
-	if (!options.empty()){
-		CORBA::Any providerAnySymbols;
-
-		//pack request collection to IVDataFeed structures
-		PackRequestToAny(&providerAnySymbols, options);
-
-		//subscribe group of symbols from DataFeed
-		try {
-			retResult = __dataManager->SubscribeGroup(providerAnySymbols, DDS::OPTION_SYMBOL, DFFields::T_OPTION_QUOTE);
+		catch (...) {
+			TRACE_UNKNOWN_ERROR();
 		}
-		catch (...){TRACE_UNKNOWN_ERROR();}
 	}
 
-	if (!futures.empty()){
+	if (!options.empty()) {
+		
+		unsigned long request_size = static_cast<unsigned long>(options.size());
+		
+		CRequestColl request_part;
+		
+		request_part.reserve(10000);
+		
+		bool send_part = false;
+		
+		for (unsigned long i = 0; i < request_size; i++) {
+			
+			request_part.push_back(options[i]);
+			
+			if ((i + 1) % 3000) {
+				send_part = true;	
+			}
+			else if (i + 1 == request_size) {
+				send_part = true;
+			}
+			else {
+				send_part = false;
+			}
+			
+			if (send_part) {
+					
+				CORBA::Any providerAnySymbols;
+
+				//pack request collection to IVDataFeed structures
+				PackRequestToAny(providerAnySymbols, request_part);
+
+				//subscribe group of symbols from DataFeed
+				try {
+					retResult = __dataManager->SubscribeGroup(providerAnySymbols, DDS::OPTION_SYMBOL, DFFields::T_OPTION_QUOTE);
+				}
+				catch (...) {
+					TRACE_UNKNOWN_ERROR();
+				}
+				
+				request_part.clear();
+			}
+		}
+	}
+
+	if (!futures.empty()) {
+	
 		CORBA::Any providerAnySymbols;
 
 		//pack request collection to IVDataFeed structures
-		PackRequestToAny(&providerAnySymbols, futures);
+		PackRequestToAny(providerAnySymbols, futures);
 
 		//subscribe group of symbols from DataFeed
 		try {
 			retResult = __dataManager->SubscribeGroup(providerAnySymbols, DDS::OPTION_SYMBOL, DFFields::T_FUTURE_QUOTE);
 		}
-		catch (...){TRACE_UNKNOWN_ERROR();}
+		catch (...) {
+			TRACE_UNKNOWN_ERROR();
+		}
 	}
 
-	if (!future_options.empty()){
+	if (!future_options.empty()) {
+	
 		CORBA::Any providerAnySymbols;
 
 		//pack request collection to IVDataFeed structures
-		PackRequestToAny(&providerAnySymbols, future_options);
+		PackRequestToAny(providerAnySymbols, future_options);
 
 		//subscribe group of symbols from DataFeed
 		try {
 			retResult = __dataManager->SubscribeGroup(providerAnySymbols, DDS::OPTION_SYMBOL, DFFields::T_FUTURE_OPTION_QUOTE);
 		}
-		catch (...){TRACE_UNKNOWN_ERROR();}
+		catch (...) {
+			TRACE_UNKNOWN_ERROR();
+		}
 	}
 
 	return static_cast<long>(retResult);	
@@ -1055,25 +1127,30 @@ CDataFeedGateway::SubscribeRisks(CRequestKeyPtr& request)
 };
 //----------------------------------------------------------------------------------------//
 void	
-CDataFeedGateway::PackRequestToAny(CORBA::Any* anyMsg, const CRequestColl& request)
+CDataFeedGateway::PackRequestToAny(CORBA::Any& anyMsg, const CRequestColl& request)
 {
-	if (!request.empty())
-	{	
-		const CORBA::ULong listSize = static_cast<CORBA::ULong>(request.size());
+	try {
+		if (!request.empty()) {	
+		
+			const CORBA::ULong listSize = static_cast<CORBA::ULong>(request.size());
 
-		char** corbaSymbolList	= new char*[listSize];
-		char** pCurrentSymbol	= corbaSymbolList;
+			char** corbaSymbolList	= new char*[listSize];
+			char** pCurrentSymbol	= corbaSymbolList;
 
-		for (CRequestColl::const_iterator it = request.begin(); it != request.end(); ++it)
-		{
-			const CRequestKeyPtr& spRequest = *it;
-			*pCurrentSymbol++ = const_cast<char*>(spRequest->Symbol.c_str());
+			for (CRequestColl::const_iterator it = request.begin(); it != request.end(); it++)
+			{
+				const CRequestKeyPtr& spRequest = *it;
+				*pCurrentSymbol++ = const_cast<char*>(spRequest->Symbol.c_str());
+			}
+
+			DDS::SymbolsGroup symbolsGroup(listSize, corbaSymbolList, 0);
+			anyMsg <<= symbolsGroup;
+
+			delete[] corbaSymbolList;
 		}
-
-		DDS::SymbolsGroup symbolsGroup(listSize, corbaSymbolList, 0);
-		*anyMsg <<= symbolsGroup;
-
-		delete[] corbaSymbolList;
+	}
+	catch (...) {
+		TRACE_ERROR(_T("unknown exception occurred while packing request to type ANY"), _T("critical error"));
 	}
 };
 //----------------------------------------------------------------------------------------//
@@ -1140,8 +1217,9 @@ void CSubscribeSingle::DoTask()
 //----------------------------------------------------------------------------------------//
 void CSubscribeMultiple::DoTask()
 {
-	if (m_gateway)
+	if (m_gateway) {
 		m_gateway->SubscribeMultiple(*m_spRequest, m_enType);
+	}
 };
 //----------------------------------------------------------------------------------------//
 void CRequestSingle::DoTask()

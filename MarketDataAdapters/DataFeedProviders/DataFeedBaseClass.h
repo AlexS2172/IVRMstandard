@@ -60,7 +60,7 @@ public:
 	void	CopyRequestToVariant(CRequestKeyPtr& spRequest, CComVariant& varRequest);
 	void	ProcessDataFeedResponse(const VS::CResponseRecord& response, long messageType);
 	bool	IsBadRequest(CRequestKeyPtr& request);
-	void	PackRequestToAny(CORBA::Any* anyMsg, const CRequestColl& request);
+	void	PackRequestToAny(CORBA::Any& anyMsg, const CRequestColl& request);
 
 public:
 	CDataFeedGateway(CGatewayNotify* client);

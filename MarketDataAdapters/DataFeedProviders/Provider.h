@@ -286,15 +286,22 @@ public:
 		::CoUninitialize();
 	}
 
-	void Execute(RequestType dw, void*, OVERLAPPED*) throw()
+	void Execute(RequestType dw, void*, OVERLAPPED*)
 	{
 		CTaskInterface::pointer pTask = reinterpret_cast<CTaskInterface::pointer>(dw);
-		try
-		{
-			pTask->DoTask();
+		
+		try	{
+			if (pTask)
+				pTask->DoTask();
+				
+			else throw std::runtime_error("invalid pointer of task.");
+			
 		}
-		catch (...)
-		{
+		catch (std::runtime_error err) {
+			TRACE_ERROR(_T("runtime error: [%s]"), _T(err.what()));
+			throw err;
+		}
+		catch (...) {
 			TRACE_UNKNOWN_ERROR();
 		}
 		delete pTask;
