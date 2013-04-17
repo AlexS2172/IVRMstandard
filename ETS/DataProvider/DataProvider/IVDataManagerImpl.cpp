@@ -522,14 +522,16 @@ CIVDataManagerImpl::Subscribe(const char* Symbol, CORBA::Short sumbol_type, CORB
 	return CORBA::Short(DDS::S_ERR_NOT_FOUND);
 }
 //--------------------------------------------------------------------------------------//
-CORBA::Short		
-CIVDataManagerImpl::SubscribeGroup(const CORBA::Any& group, CORBA::Short symbol_type, CORBA::Short type)
+CORBA::Short CIVDataManagerImpl::SubscribeGroup(const CORBA::Any& group, CORBA::Short symbol_type, CORBA::Short type)
 {
+	LOG4CPLUS_INFO(ProviderLog, "Incoming request: Subscribe group");
 
 	SymbolListPtr symbolList = ExtractSymbolList(group);
 
 	if (!symbolList->empty())
 	{	
+		LOG4CPLUS_INFO(ProviderLog, "Subscribe group request contain " << symbolList->size() << " symbols");
+
 		CQuoteVector response;
 		CRequestVector request;
 		request.reserve(symbolList->size());
@@ -548,7 +550,11 @@ CIVDataManagerImpl::SubscribeGroup(const CORBA::Any& group, CORBA::Short symbol_
 		if (CProviderSingleton::GetProvider()->SubscribeMultiple(request))
 			return CORBA::Short(DDS::S_ERR_NOERROR);
 	}
-	
+	else
+	{
+		LOG4CPLUS_WARN(ProviderLog, "Subscribe group request contain no symbols");
+	}
+		
 	return CORBA::Short(DDS::S_ERR_NOT_FOUND);
 }
 //--------------------------------------------------------------------------------------//

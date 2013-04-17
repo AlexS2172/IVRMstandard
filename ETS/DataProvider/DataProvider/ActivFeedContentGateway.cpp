@@ -19,7 +19,8 @@ UINT CActivFeedContentGateway::Run()
 				if (WAIT_TIMEOUT == WaitForSingleObject(m_hOnReconnectionEvent, 5000))
 				{
 					LOG4CPLUS_INFO(ProviderLog, _T("Reconnection started."));
-					if (m_client) m_client->Connect();
+					if (m_client) 
+						m_client->Connect();
 				}
 				else
 					break;
@@ -32,7 +33,7 @@ UINT CActivFeedContentGateway::Run()
 //------------------------------------------------------------------------------------------------------//
 StatusCode CActivFeedContentGateway::OnBreak(HeapMessage &breakMessage)
 {
-	LOG4CPLUS_INFO(ProviderLog, _T("Connection has broken..."));
+	LOG4CPLUS_ERROR(ProviderLog, _T("Connection has broken."));
 
 	SetEvent(m_hOnBreakEvent);
 
@@ -54,7 +55,9 @@ StatusCode CActivFeedContentGateway::OnDisconnect(HeapMessage &disconnectMessage
 //------------------------------------------------------------------------------------------------------//
 StatusCode CActivFeedContentGateway::OnConnectFailed(HeapMessage &connectFailMessage)
 {
-	LOG4CPLUS_INFO(ProviderLog, _T("Connection failed."));
+	StatusCode statusCode = connectFailMessage.GetStatusCode();
+	
+	LOG4CPLUS_ERROR(ProviderLog, "Connection failed. StatusCode=" << statusCode << " (" << StatusCodeToString(statusCode) << ")");
 
 	ACTIV_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, ContentGatewayClient::OnConnectFailed(connectFailMessage));
 
@@ -670,14 +673,14 @@ void CActivFeedContentGateway::UpdateField(const FieldListValidator::Field& file
 	}
 }
 //------------------------------------------------------------------------------------------------------//
-void CActivFeedContentGateway::OnRecordUpdate( Activ::HeapMessage &update )
+void CActivFeedContentGateway::OnRecordUpdate(Activ::HeapMessage &update)
 {
 	CAutoLock lock1(m_RequestLock);
 	CAutoLock lock2(m_QuoteLock);
 
 	RecordUpdate recordUpdate;
 
-	if( !IsValidResponse(update) )
+	if (!IsValidResponse(update))
 		return;
 
 	RequestIdPtr spRequestID(new RequestId(update.GetRequestId()));
@@ -689,8 +692,7 @@ void CActivFeedContentGateway::OnRecordUpdate( Activ::HeapMessage &update )
 	if ((STATUS_CODE_SUCCESS == RecordUpdateHelper::Deserialize(*this, update, recordUpdate)) &&
 		(STATUS_CODE_SUCCESS == fieldListValidator.Initialize(recordUpdate.m_fieldData)) )
 	{
-		if (GetRequest(recordUpdate.m_requestKey.m_symbol, spRequestID, spRequest) || 
-			GetRequest("", spRequestID, spRequest))
+		if (GetRequest(recordUpdate.m_requestKey.m_symbol, spRequestID, spRequest) || GetRequest("", spRequestID, spRequest))
 		{
 
 			GetQuote(spRequest, spQuote);
@@ -1352,21 +1354,23 @@ CActivFeedContentGateway::Filter(CRequestVector& request, InstrumentTypeEnum typ
 	CRequestVector::iterator it = request.begin();
 	CRequestVector::iterator itEnd = request.end();
 
-	for (; it != itEnd; it++){
-		if ((*it)->Type == type){
-			
+	for (; it != itEnd; it++)
+	{
+		if ((*it)->Type == type)
+		{
 			QuoteAtomPtr spQuote;
-			if (!GetQuote(*it, spQuote)){ //check if already requested 
+			
+			if (!GetQuote(*it, spQuote)) //check if already requested 
+			{ 
 				result.push_back(*it);
 
-				LOG4CPLUS_INFO(ProviderLog,
-							_T("Process multiple request: ")<<(*it)->Symbol << 
-							_T("\tType:")<<_T((*it)->Type));
+				LOG4CPLUS_DEBUG(ProviderLog, "Process multiple request: " << (*it)->Symbol << "\tType:" << (*it)->Type);
 			}
+			
 			response.push_back(spQuote);
 		}
-	};
-};
+	}
+}
 //------------------------------------------------------------------------------------------------------//
 StatusCode		
 CActivFeedContentGateway::RequestMultiple(CRequestVector& request, CQuoteVector& response)
@@ -1626,10 +1630,8 @@ CActivFeedContentGateway::Subscribe(QuoteRequestPtr& spRequest)
 	if (!IsSubscribed(spRequest))
 	{
 
-		LOG4CPLUS_INFO(ProviderLog, _T("Subscribe: ")<<spRequest->Symbol << 
-					_T("\tType:")<<_T(spRequest->Type));
+		LOG4CPLUS_DEBUG(ProviderLog, "Subscribe: " << spRequest->Symbol << ", Type:" << spRequest->Type);
 			
-
 		GetQuote(spRequest, spQuote);
 
 		if (spRequest->Type == enSTK)
@@ -2125,8 +2127,6 @@ bool CActivFeedContentGateway::IsSubscribed(QuoteRequestPtr& spRequest)
 //------------------------------------------------------------------------------------------------------//
 bool CActivFeedContentGateway::GetUpdates(CQuoteVector& quotes)
 {
-	LOG4CPLUS_INFO(ProviderLog, _T("Getting updates."));
-
 	bool	bQuotesUpdated = false;
 
 	try 
@@ -2158,26 +2158,25 @@ bool CActivFeedContentGateway::GetUpdates(CQuoteVector& quotes)
 				//itr->second->m_spResponse->AskSize = (200 + m_nUpdate );
 				//itr->second->m_spResponse->Volume = (300 + m_nUpdate );
 
-
-				LOG4CPLUS_INFO(ProviderLog, _T("Symbol: ") << itr->second->m_spRequest->Symbol <<
-											_T("\tType: ") << itr->second->m_spRequest->Type<<
-											_T("\tBid:") <<	itr->second->m_spResponse->BidPrice<<
-											_T("\tAsk:") << itr->second->m_spResponse->AskPrice<<
-											_T("\tLast:") << itr->second->m_spResponse->LastPrice<<
-											_T("\tBidSize:")<< itr->second->m_spResponse->BidSize<<
-											_T("\tAskSize:")<< itr->second->m_spResponse->AskSize<<
-											_T("\tVolume:")<< itr->second->m_spResponse->Volume);
-			}
-
-			
-		};
+				LOG4CPLUS_DEBUG(ProviderLog, _T("Symbol: ") << itr->second->m_spRequest->Symbol <<
+												_T("\tType: ") << itr->second->m_spRequest->Type<<
+												_T("\tBid:") <<	itr->second->m_spResponse->BidPrice<<
+												_T("\tAsk:") << itr->second->m_spResponse->AskPrice<<
+												_T("\tLast:") << itr->second->m_spResponse->LastPrice<<
+												_T("\tBidSize:")<< itr->second->m_spResponse->BidSize<<
+												_T("\tAskSize:")<< itr->second->m_spResponse->AskSize<<
+												_T("\tVolume:")<< itr->second->m_spResponse->Volume);
+			}			
+		}
 	}
 	catch (...)
 	{
 		LOG4CPLUS_ERROR(ProviderLog, _T("Unknwn exception while GettingUpdates()"));
 		return false;
 	}
-	LOG4CPLUS_INFO(ProviderLog, _T("Updated quotes count: ") << static_cast<long>(quotes.size()));
+	
+	LOG4CPLUS_INFO(ProviderLog, "GetUpdates requested " << static_cast<long>(quotes.size()) << " records");
+	
 	return bQuotesUpdated;
 };
 //------------------------------------------------------------------------------------------------------//

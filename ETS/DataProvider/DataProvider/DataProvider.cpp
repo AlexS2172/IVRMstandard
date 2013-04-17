@@ -31,7 +31,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		IniReader::Section provider_log_settings("PROVIDER_LOG");
 		config_reader.read_section(provider_log_settings);		
 		initilize_logger(ProviderLog, provider_log_settings);
-		
+			
 		IniReader::Section corba_log_settings("CORBA_LOG");
 		config_reader.read_section(corba_log_settings);
 		initilize_logger(CorbaLog, corba_log_settings);
