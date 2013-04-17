@@ -79,16 +79,16 @@ public:
 	virtual void onMessage(const FIX42::ExecutionReport& message, const FIX::SessionID& sessionID);
 
 private:
-	boost::shared_ptr<FIX::SocketInitiator> m_pInitiator;
-	boost::shared_ptr<FIX::SocketAcceptor>  m_pAcceptor;
 
-	boost::shared_ptr<FIX::SessionSettings>	m_pSettings;
+	void checkAndCorrectEquityAssetSymbol(std::string &symbol);
+	
+	boost::shared_ptr<FIX::SocketInitiator>		m_pInitiator;
+	boost::shared_ptr<FIX::SocketAcceptor>		m_pAcceptor;
+	boost::shared_ptr<FIX::SessionSettings>		m_pSettings;
 	boost::shared_ptr<FIX::FileStoreFactory>	m_pStoreFactory;
 	boost::shared_ptr<FIX::FileLogFactory>		m_pLogFactory;
-	bool										m_bFilterOutFutureTrades;
-
-
-
+	
+	bool	m_bFilterOutFutureTrades;
 };
 
 #endif //_SAGE_CONNECTOR_H
