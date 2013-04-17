@@ -185,108 +185,70 @@
 	</References>
 	<Files>
 		<Filter
-			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			Name="Resource Files"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-			<File
-				RelativePath=".\Cache.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Controller.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\FilterManager.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\IVRMFilter.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\IvRmServer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Messenger.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\SeException.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Server.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Settings.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\stdafx.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\TradesCache.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\ETSXMLParams\Helper\XMLParamsHelper.cpp"
-				>
-			</File>
+		</Filter>
+		<Filter
+			Name="DataBrokerInterfaces"
+			>
 			<Filter
-				Name="STUB"
+				Name="Source"
 				>
 				<File
-					RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivcp410DynSK.cpp"
+					RelativePath=".\DataBrokerFilter.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivcp410SK.cpp"
+					RelativePath=".\DataBrokerTransmitter.cpp"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Headers"
+				>
+				<File
+					RelativePath=".\DataBrokerAbstractTransmitter.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivdataservice410DynSK.cpp"
+					RelativePath=".\DataBrokerFilter.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivdataservice410SK.cpp"
+					RelativePath=".\DataBrokerTableDefinition.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\..\..\IVService\JITSearchEngine\Idl\se410DynSK.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\..\..\IVService\JITSearchEngine\Idl\se410SK.cpp"
+					RelativePath=".\DataBrokerTransmitter.h"
 					>
 				</File>
 			</Filter>
 		</Filter>
 		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			Name="Utilities"
 			>
+			<File
+				RelativePath=".\SeException.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SeException.h"
+				>
+			</File>
+			<File
+				RelativePath=".\StopWatch.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="TransportInterface"
+			>
+			<File
+				RelativePath=".\Cache.cpp"
+				>
+			</File>
 			<File
 				RelativePath=".\Cache.h"
 				>
@@ -296,19 +258,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Controller.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Controller.h"
 				>
 			</File>
 			<File
-				RelativePath=".\FilterManager.h"
-				>
-			</File>
-			<File
-				RelativePath=".\IvRmFields.h"
-				>
-			</File>
-			<File
-				RelativePath=".\IVRMFilter.h"
+				RelativePath=".\Messenger.cpp"
 				>
 			</File>
 			<File
@@ -316,35 +274,133 @@
 				>
 			</File>
 			<File
-				RelativePath=".\SeException.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Server.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Settings.h"
-				>
-			</File>
-			<File
-				RelativePath=".\stdafx.h"
+				RelativePath=".\TradesCache.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\TradesCache.h"
 				>
 			</File>
-			<File
-				RelativePath="..\..\ETSXMLParams\Helper\XMLParamsHelper.h"
-				>
-			</File>
 		</Filter>
 		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			Name="Application"
 			>
+			<Filter
+				Name="Source Files"
+				Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+				UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+				>
+				<File
+					RelativePath=".\IvRmServer.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Server.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Settings.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\stdafx.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="1"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="1"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\..\ETSXMLParams\Helper\XMLParamsHelper.cpp"
+					>
+				</File>
+				<Filter
+					Name="STUB"
+					>
+					<File
+						RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivcp410DynSK.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivcp410SK.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivdataservice410DynSK.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\..\IVService\IVServer\VolatilityServer_3_0_0_8\Idl\ivdataservice410SK.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\..\IVService\JITSearchEngine\Idl\se410DynSK.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\..\IVService\JITSearchEngine\Idl\se410SK.cpp"
+						>
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Header Files"
+				Filter="h;hpp;hxx;hm;inl;inc;xsd"
+				UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+				>
+				<File
+					RelativePath=".\ApplicationConfiguration.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Server.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Settings.h"
+					>
+				</File>
+				<File
+					RelativePath=".\stdafx.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\ETSXMLParams\Helper\XMLParamsHelper.h"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Corba"
+			>
+			<Filter
+				Name="Headers"
+				>
+				<File
+					RelativePath=".\Corba.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Source"
+				>
+				<File
+					RelativePath=".\Corba.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"

@@ -13,12 +13,12 @@ CSettings::~CSettings(void)
 CXmlSettings::CXmlSettings(void):m_xmlParams()
 {
 	m_xmlParams.LoadXMLParams();
-};
+}
 //------------------------------------------------------------------//
 CXmlSettings::~CXmlSettings(void)
 {
 
-};
+}
 //------------------------------------------------------------------//
 void CXmlSettings::GetDBConnection(BSTR *bsConnect)
 {
@@ -30,15 +30,16 @@ void CXmlSettings::GetDBConnection(BSTR *bsConnect)
 	{
 		ATLASSERT(false);
 	}
-};
+}
 //------------------------------------------------------------------//
 /*@return the value of interpolation type
 @default value is (1) - FLAT_EXTRAPOLATION*/
 
 /*virtual*/
-long
-CXmlSettings::curve_extrapolation_type(){
-	try{
+long CXmlSettings::curve_extrapolation_type()
+{
+	try
+	{
 		const	_bstr_t bstrSector = _bstr_t(TEXT("ETS\\MarketMaker\\Settings"));
 		const	_bstr_t bstrKey = _bstr_t(TEXT("CurveExtrapolationType"));
 		long	lReturn = 0;
@@ -47,17 +48,19 @@ CXmlSettings::curve_extrapolation_type(){
 
 		return lReturn;	
 	}
-	catch(...){
+	catch(...)
+	{
 		ATLASSERT(false);
-	};
+	}
 	return 1L;
-};
+}
 //------------------------------------------------------------------//
 /*@return log directory*/
 /*virtual*/
-std::string
-CXmlSettings::GetLogDirectory() {
-	try {
+std::string	CXmlSettings::GetLogDirectory() 
+{
+	try 
+	{
 		const	_bstr_t bstrSector = _bstr_t(TEXT("ETS\\Asp\\GeneralSettings"));
 		const	_bstr_t bstrKey = _bstr_t(TEXT("LogDirectory"));
 		_bstr_t bsXmlValue("");
@@ -78,11 +81,13 @@ CXmlSettings::GetLogDirectory() {
 		
 		return std::string("");
 	}
-	catch (...) {
+	catch (...) 
+	{
 		ATLASSERT(false);
-	};
+	}
+	
 	return std::string("");
-};
+}
 //------------------------------------------------------------------//
 /*@return the value of extrapolation type
 @default value is (1) - FLAT_FORWARD_INTERPOLATION*/

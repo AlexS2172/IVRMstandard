@@ -1,31 +1,59 @@
-// IvRmServer.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
 #include "Server.h"
 
-CServer* server = 0;
+#include <iostream>
 
-BOOL 
-console_ctrl_handler(DWORD ctrl_id){
-	if (server){
-		delete server;
-	};
+CServer* theApplication = NULL;
+
+BOOL ConsoleApplicationHandler(DWORD ctrl_id)
+{
+	std::cout << "Application has been interrupted externaly.\n";
+
+	if (theApplication != NULL)
+	{
+		try
+		{
+				std::cout << "Stopping application ...\t";
+				theApplication->Stop(true, 10000);			
+				delete theApplication;
+	
+				std::cout << "...[ OK ]\n";
+		}
+		catch(...)
+		{	
+			std::cout << "...[ FAILED ]\n";
+		}	
+	}
+
 	return FALSE;
 };
  
 int _tmain(int argc, _TCHAR* argv[]) {
 
-	SetConsoleCtrlHandler((PHANDLER_ROUTINE)console_ctrl_handler, TRUE);
+	std::cout << "======= IVolatility Analytical Data Server =======\n"; 
+	
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleApplicationHandler, TRUE);
 
 	::CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
-	server = new CServer;
-	server->Start();
+	theApplication = new CServer;
+	
+	if (theApplication == NULL)
+	{
+		std::cout << "Failed while creating application. Abnormal termination!\n";
+		return -1;
+	}
+	
+	theApplication->Start();
+
+	std::cout << "Press Ctrl-C for exit.\n\n\n"; 
 	
 	Sleep(INFINITE);
 	
 	::CoUninitialize();
+	
+	std::cout << "======= Exit =======.\n"; 
+
 	return 0;
 }
 

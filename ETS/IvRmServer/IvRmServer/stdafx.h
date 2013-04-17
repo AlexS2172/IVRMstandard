@@ -99,7 +99,6 @@ using namespace IvRmCore;
 
 #include <eh.h>
 #include "SeException.h"
-#include "IvRmFields.h"
 
 #include <ATLComTime.h>
 
@@ -139,8 +138,7 @@ using namespace IvRmCore;
 #define TRACE_UNKNOWN_ERROR(TYPE, LOG, DEV_TEXT)	\
 	TRACE_EXECUTION(TYPE, LOG, DEV_TEXT)			\
 //------------------------------------------------------------//
-long 
-get_configuration_file_name(std::string& file_name);
+long get_configuration_file_name(std::string& file_name);
 //------------------------------------------------------------//
 std::string 
 ToString(const CORBA::SystemException& e);
