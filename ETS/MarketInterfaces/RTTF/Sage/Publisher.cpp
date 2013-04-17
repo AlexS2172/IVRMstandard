@@ -475,12 +475,13 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 
 	do
 	{
-		if(m_pConnection==NULL)
+		if (m_pConnection==NULL)
 		{
 			Reconnect();
-			if(m_pConnection==NULL)
+			
+			if (m_pConnection==NULL)
 			{
-				if(!--dwTries)
+				if (!--dwTries)
 				{
 					FlushTrade(pTrade);
 					BroadcastError(ERROR_REMOTE_STORAGE_NOT_ACTIVE, "Unable to open the database connection");
@@ -598,11 +599,13 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 						else 
 							sp << CDBNull();
 
+						// execute SQL command
 						rs.Open (sp);
-						if(rs.IsEOF())
+						
+						// if nothing has been returned then fail operation
+						if (rs.IsEOF())
 						{
 							rs.Close();
-
 							_com_issue_error( E_FAIL );
 						}                        
 
@@ -611,58 +614,60 @@ DWORD CPublisher::StoreInDatabase(const CTradePtr& pTrade)
 						lStructureMissed = rs[L"iStructureMissed"];
 						rs.Close();
 
-						if ( lMaxSeqNum == -1 
-							&& lMinSeqNum == -1 
-							&& lStructureMissed == -1) // unknown error
+						if ( lMaxSeqNum == -1 && lMinSeqNum == -1 && lStructureMissed == -1) // unknown error
 							_com_issue_error( E_FAIL );
-						else
-							if ( lMaxSeqNum == -1 && lStructureMissed == -1 ) //trade already exists
+							
+						if ( lMaxSeqNum == -1 && lStructureMissed == -1 ) //trade already exists
+						{
+							dwRes = ERROR_ALREADY_EXISTS;                            
+							
+							if (ReProcessTrade(pTrade, lMinSeqNum) == ERROR_SUCCESS)
 							{
-								dwRes = ERROR_ALREADY_EXISTS;                            
-								if ( ReProcessTrade(pTrade, lMinSeqNum) == ERROR_SUCCESS )
-									dwRes = ERROR_SUCCESS;                            
-								break;
-							}
+								dwRes = ERROR_SUCCESS;
+							}	                            
+							
+							break;
+						}
 
-							CTracer::Trace(_T("Trade '%s' stored in database '%s'."), 
-											pTrade->sExecID.c_str(), 
+						CTracer::Trace(_T("Trade '%s' stored in database '%s'."), 
+										pTrade->sExecID.c_str(), 
+										(LPCTSTR)m_bsConnStringLabel);
+
+						InterlockedIncrement((LPLONG)&m_dwDBStored);
+
+						CStoredProc<> sp_get(*m_pConnection.get(), L"usp_TradeSeq_Get");
+						sp_get << (int)lMaxSeqNum;
+						sp_get << (int)lMaxSeqNum;
+						sp_get << CDBNull();
+						sp_get << (unsigned char)1;
+
+						rs.Open (sp_get);
+
+						if(rs.IsEOF())
+						{
+							CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist in '%s'."),
+											pTrade->sExecID.c_str(),
 											(LPCTSTR)m_bsConnStringLabel);
-
-							InterlockedIncrement((LPLONG)&m_dwDBStored);
-
-							CStoredProc<> sp_get(*m_pConnection.get(), L"usp_TradeSeq_Get");
-							sp_get << (int)lMaxSeqNum;
-							sp_get << (int)lMaxSeqNum;
-							sp_get << CDBNull();
-							sp_get << (unsigned char)1;
-
-							rs.Open (sp_get);
-
-							if(rs.IsEOF())
+							dwRes = ERROR_NO_DATA_DETECTED;
+						}
+						else
+						{
+							HRESULT hRes;
+							if(FAILED(hRes = FillTradeUpdate(rs, pTrade)))
+							{
+								CTracer::Trace(_T("Failed to fill TradeUpdate message."));
+								dwRes = ERROR_INVALID_PARAMETER;
+							}
+							else if(hRes == S_FALSE)
 							{
 								CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist in '%s'."),
 												pTrade->sExecID.c_str(),
 												(LPCTSTR)m_bsConnStringLabel);
 								dwRes = ERROR_NO_DATA_DETECTED;
 							}
-							else
-							{
-								HRESULT hRes;
-								if(FAILED(hRes = FillTradeUpdate(rs, pTrade)))
-								{
-									CTracer::Trace(_T("Failed to fill TradeUpdate message."));
-									dwRes = ERROR_INVALID_PARAMETER;
-								}
-								else if(hRes == S_FALSE)
-								{
-									CTracer::Trace(_T("Failed to retrieve trade from database - trade with ExecID '%s' does not exist in '%s'."),
-													pTrade->sExecID.c_str(),
-													(LPCTSTR)m_bsConnStringLabel);
-									dwRes = ERROR_NO_DATA_DETECTED;
-								}
-							}
+						}
 
-							break;
+						break;
 					}
 
 				case FIX::ExecTransType_CANCEL:
