@@ -571,6 +571,7 @@ void CSageConnector::onMessage(const FIX41::ExecutionReport& message, const FIX:
 		FIX::Session::sendToTarget(rejectMessage, sessionID);
 	}
 }
+
 void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX::SessionID& sessionID)
 {
 	char szBuf[2048];
@@ -658,6 +659,13 @@ void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX:
 			pTrade->sSymbol += "/";
 			pTrade->sSymbol += symbolSfx;
 		}
+		else
+		{
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// Here is a hack due some FIX servers do not send underlying asset class 
+			// in tag 312 but add it into tag 311 using '.' symbol
+			checkAndCorrectEquityAssetSymbol(pTrade->sUnderlying);
+		}		
 
 
 		FIX::Side side;
@@ -759,11 +767,20 @@ void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX:
 				if(message.isSetField(undSymbol))
 				{
 					pTrade->sUnderlying = message.getField(undSymbol).getString();
-					FIX::UnderlyingSymbolSfx undSymbolSfx;
+					
+										
+					FIX::UnderlyingSymbolSfx undSymbolSfx;					
 					if(message.isSetField(undSymbolSfx))
 					{
 						pTrade->sUnderlying += "/";
 						pTrade->sUnderlying += message.getField(undSymbolSfx).getString();
+					}
+					else
+					{
+						// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+						// Here is a hack due some FIX servers do not send underlying asset class 
+						// in tag 312 but add it into tag 311 using '.' symbol
+						checkAndCorrectEquityAssetSymbol(pTrade->sUnderlying);
 					}
 				}
 			}
@@ -876,5 +893,33 @@ void CSageConnector::onMessage(const FIX42::ExecutionReport& message, const FIX:
 		rejectMessage.getHeader().set(FIX42::Reject::MsgType());
 		rejectMessage.reverseRoute(message);
 		FIX::Session::sendToTarget(rejectMessage, sessionID);
+	}
+}
+
+void CSageConnector::checkAndCorrectEquityAssetSymbol(std::string &symbol)
+{
+	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	// Here is a hack due some FIX servers do not send underlying asset class 
+	// in tag 65 but add it into tag 55 using '.' or ' ' symbols
+	size_t dotPosition = symbol.find('.');					
+	size_t spacePosition = symbol.find(' ');
+
+	if (dotPosition != string::npos && spacePosition != string::npos)			
+	{
+		CTracer::Trace(_T("ERROR!!! Base asset symbol '%s' has absolutely unaccepteble format. "
+							"Dot and space letters are both in place. Contact broker why it happened"), 
+							symbol.c_str());		
+	}
+	else
+	{	
+		// either dot or space will be replaced for slash
+		size_t replacePosition = (dotPosition != string::npos) ? dotPosition : spacePosition;
+
+		CTracer::Trace(_T("WARNING!!! Base asset symbol '%s' has formated worng. "
+			"Hack code will be applied. Dot/space will be replaced for slash"),
+			symbol.c_str());
+
+		symbol[replacePosition] = '/';
+		
 	}
 }
