@@ -7,11 +7,29 @@ Begin VB.UserControl ctlReportsView
    ClientLeft      =   0
    ClientTop       =   0
    ClientWidth     =   8520
+   BeginProperty Font 
+      Name            =   "Arial"
+      Size            =   8.25
+      Charset         =   204
+      Weight          =   400
+      Underline       =   0   'False
+      Italic          =   0   'False
+      Strikethrough   =   0   'False
+   EndProperty
    KeyPreview      =   -1  'True
    ScaleHeight     =   7095
    ScaleWidth      =   8520
    Begin VB.PictureBox picNav 
       BorderStyle     =   0  'None
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   204
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       Height          =   375
       Left            =   0
       ScaleHeight     =   375
@@ -21,6 +39,15 @@ Begin VB.UserControl ctlReportsView
       Top             =   600
       Width           =   6975
       Begin VB.ComboBox cbxZoom 
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   315
          Left            =   3900
          Style           =   2  'Dropdown List
@@ -29,6 +56,15 @@ Begin VB.UserControl ctlReportsView
          Width           =   1575
       End
       Begin VB.CommandButton btnNav 
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   300
          Index           =   4
          Left            =   2760
@@ -40,6 +76,15 @@ Begin VB.UserControl ctlReportsView
          Width           =   375
       End
       Begin VB.CommandButton btnNav 
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   300
          Index           =   3
          Left            =   2340
@@ -51,6 +96,15 @@ Begin VB.UserControl ctlReportsView
          Width           =   375
       End
       Begin VB.CommandButton btnNav 
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   300
          Index           =   2
          Left            =   480
@@ -62,6 +116,15 @@ Begin VB.UserControl ctlReportsView
          Width           =   375
       End
       Begin VB.CommandButton btnNav 
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   300
          Index           =   1
          Left            =   60
@@ -75,6 +138,15 @@ Begin VB.UserControl ctlReportsView
       Begin VB.Label lblZoom 
          Alignment       =   1  'Right Justify
          Caption         =   "Zoom :"
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   315
          Left            =   3180
          TabIndex        =   10
@@ -84,6 +156,15 @@ Begin VB.UserControl ctlReportsView
       Begin VB.Label lblPage 
          Alignment       =   2  'Center
          Caption         =   "Page 1 of 1"
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   8.25
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   315
          Left            =   900
          TabIndex        =   9
@@ -205,8 +286,8 @@ Begin VB.UserControl ctlReportsView
       MousePointer    =   0
       BackColor       =   -2147483643
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-         Name            =   "MS Sans Serif"
-         Size            =   9.75
+         Name            =   "Courier New"
+         Size            =   8.25
          Charset         =   204
          Weight          =   400
          Underline       =   0   'False

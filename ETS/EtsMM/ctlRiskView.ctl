@@ -20,7 +20,7 @@ Begin VB.UserControl ctlRiskView
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   48234499
+      Format          =   61145091
       CurrentDate     =   38910
    End
    Begin VB.Timer tmrUndCalc 
@@ -833,11 +833,23 @@ Private Function PositionsLoad() As Boolean
     Set m_Aux.RiskView.TradesCache = g_TradeChannel.TradeChannel
        
     If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogDebug, "Started Positions Loading.", m_frmOwner.GetCaption
-                
+                    g_PerformanceLog.LogMmInfo enLogInformation, "Started Positions Loading.", m_frmOwner.GetCaption
+            
+    If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogDebug, "Call TradeChannel.UpdateManualActivePrices", m_frmOwner.GetCaption
+    
     g_TradeChannel.TradeChannel.UpdateManualActivePrices
     
+    If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogDebug, "Done TradeChannel.UpdateManualActivePrices", m_frmOwner.GetCaption
+    
+    If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogDebug, "Call RiskView.LoadPositions", m_frmOwner.GetCaption
+    
     m_Aux.RiskView.LoadPositions m_Aux.FilterData
+        
+    If Not g_PerformanceLog Is Nothing Then _
+                    g_PerformanceLog.LogMmInfo enLogDebug, "Done RiskView.LoadPositions", m_frmOwner.GetCaption
         
     m_bIsInitialized = True
     
@@ -847,7 +859,7 @@ Private Function PositionsLoad() As Boolean
     
     PositionsLoad = m_bDataLoad
     If Not g_PerformanceLog Is Nothing Then _
-                    g_PerformanceLog.LogMmInfo enLogDebug, "Finished Data Loading. Duration " & GetTickCount - nStart & " ms", m_frmOwner.GetCaption
+                    g_PerformanceLog.LogMmInfo enLogInformation, "Finished Data Loading. Duration " & GetTickCount - nStart & " ms", m_frmOwner.GetCaption
 Ex:
     On Error Resume Next
     m_bInProc = False
@@ -2941,7 +2953,7 @@ Private Sub tmrShow_Timer()
             End If
         End If
         
-        m_Aux.RealTime = False
+        'm_Aux.RealTime = False
         
         If m_bTmrUndCalcNow Then
             If Not g_PerformanceLog Is Nothing Then _

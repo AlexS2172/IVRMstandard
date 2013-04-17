@@ -3285,14 +3285,18 @@ ExitFor:
         Next
         .Cell(flexcpFontBold, nPriceRow, 1, nPriceRow, .Cols - 1) = True
 
+        ' Fill projection table with values
+        nValueRows = 4 'values that displayed in the table (p&l, delta, gamma etc)
         For i = 0 To 2
             If UBound(m_Res, 2) >= i Then
                 With fgVal
-                    .rows = .rows + 3
-                    nDeltaRow = 3 * i + 1
-                    nGammaRow = 3 * i + 2
-                    nVegaRow = 3 * i + 3
+                    .rows = .rows + nValueRows
+                    nPnLRow = nValueRows * i + 1
+                    nDeltaRow = nValueRows * i + 2
+                    nGammaRow = nValueRows * i + 3
+                    nVegaRow = nValueRows * i + 4
                     
+                    .TextMatrix(nPnLRow, 0) = "PnL"
                     .TextMatrix(nDeltaRow, 0) = "Delta"
                     .TextMatrix(nGammaRow, 0) = "$Gamma"
                     .TextMatrix(nVegaRow, 0) = "Vega $Exp"
@@ -3301,6 +3305,7 @@ ExitFor:
                         .ColDataType(nCol) = flexDTDouble
                         nValCol = (nCol - 1) * CNT_COEF
                         
+                        .TextMatrix(nPnLRow, nCol) = IIf(m_Res(nValCol, i).PnL > BAD_DOUBLE_VALUE, Format(Round(m_Res(nValCol, i).PnL), "#,##0"), STR_NA)
                         .TextMatrix(nDeltaRow, nCol) = IIf(m_Res(nValCol, i).NetDelta > BAD_DOUBLE_VALUE, Format(Round(m_Res(nValCol, i).NetDelta), "#,##0"), STR_NA)
                         .TextMatrix(nGammaRow, nCol) = IIf(m_Res(nValCol, i).NetGamma > BAD_DOUBLE_VALUE, Format(Round(m_Res(nValCol, i).NetGamma), "#,##0"), STR_NA)
                         .TextMatrix(nVegaRow, nCol) = IIf(m_Res(nValCol, i).Vega > BAD_DOUBLE_VALUE, Format(Round(m_Res(nValCol, i).Vega), "#,##0"), STR_NA)
@@ -3309,7 +3314,7 @@ ExitFor:
                 End With
                 
                 nBackColor = IIf(nBackColor = &HEEEEEE, &HFFFFFF, &HEEEEEE)
-                .Cell(flexcpBackColor, nDeltaRow, 0, nVegaRow, .Cols - 1) = nBackColor
+                .Cell(flexcpBackColor, nPnLRow, 0, nPnLRow + nValueRows - 1, .Cols - 1) = nBackColor
             End If
         Next i
         
@@ -3329,7 +3334,6 @@ ExitFor:
     m_bRecalc = False
   
     AdjustState
-    
 End Sub
 
 Private Sub ClearValGrid(ByVal bAutosize As Boolean)

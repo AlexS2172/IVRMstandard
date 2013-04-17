@@ -20,7 +20,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentX        =   4048
       _ExtentY        =   450
       _Version        =   393216
-      Format          =   48496641
+      Format          =   61407233
       CurrentDate     =   39547
    End
    Begin VB.Timer tmrPriceProviderIdle 
@@ -423,7 +423,7 @@ Begin VB.UserControl ctlQuotesViewSingle
       _ExtentY        =   450
       _Version        =   393216
       CustomFormat    =   "MM/d/yyyy hh:mm tt"
-      Format          =   48431107
+      Format          =   61407235
       CurrentDate     =   38517
    End
    Begin VB.Timer tmrRealTime 
