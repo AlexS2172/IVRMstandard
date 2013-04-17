@@ -1,5 +1,19 @@
 #pragma once
 //--------------------------------------------------------------------------------------------------------//
+#define FOCL_THROW_EXCEPTION(exception, description) \
+			{ \
+				std::ostringstream buffer; \
+				buffer << description << " (" << __FILE__ << ":" << __LINE__ << ")"; \
+				throw exception(buffer.str()); \
+			}
+
+#define FOCL_THROW_HANDLED_EXCEPTION_(exception, description, source) \
+			{ \
+				std::ostringstream buffer; \
+				buffer << description << " (" << __FILE__ << ":" << __LINE__ << ")"; \
+				throw exception(buffer.str(), source); \
+			}
+							
 namespace IvRmCore
 {
 	namespace IvRmException
@@ -23,7 +37,7 @@ namespace IvRmCore
 
 				virtual std::string toString() const
 				{
-					return ((bool)__source) ? __source->toString() + "\n" + __description : __description;
+					return ((bool)__source) ? __source->toString() + "\n\t" + __description : __description;
 				};
 
 				virtual std::string getDescription() const
@@ -38,34 +52,72 @@ namespace IvRmCore
 
 			ExceptionData::pointer data;
 
-			AbstractException(const AbstractException& rmexception){
-				data = rmexception.data;
-			};
+			AbstractException(const AbstractException& exception)
+			{
+				data = exception.data;
+			}
 
 			AbstractException(std::string description)
 			{
-				if (!(bool)data)
+				if (data == NULL)
 					data = ExceptionData::pointer(new ExceptionData(description));
-			};
+			}
 
 			AbstractException(std::string description, const AbstractException& source)
 			{
-				if (!(bool)data)
+				if (data == NULL)
 					data = ExceptionData::pointer(new ExceptionData(description, source.data));
-			};
+			}
 
 			virtual ~AbstractException() 
 			{
-			};
+			}
 
 			virtual std::string toString() const
 			{
 				return ((bool)data) ? data->toString() : "";
-			};
+			}
 
 			std::string getDescription() const
 			{
 				return ((bool)data) ? data->getDescription() : "";
+			}
+		};
+		//--------------------------------------------------------------------------------------------------------//
+		class GeneralCacheException : public AbstractException
+		{
+		public:
+			GeneralCacheException(const std::string& description)
+				: AbstractException(description)
+			{
+							
+			}
+			GeneralCacheException(const std::string& description, const AbstractException& source)
+				: AbstractException(description, source)
+			{
+			
+			}			
+			virtual ~GeneralCacheException()
+			{
+			
+			}
+		};
+		//--------------------------------------------------------------------------------------------------------//
+		class ContractNotFound: public AbstractException
+		{
+		public:
+			ContractNotFound(std::string description)
+				:AbstractException(description)
+			{
+			}
+
+			ContractNotFound(std::string description, const AbstractException& source)
+				:AbstractException(description, source)
+			{
+			}
+
+			virtual ~ContractNotFound() 
+			{
 			};
 		};
 		//--------------------------------------------------------------------------------------------------------//
