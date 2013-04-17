@@ -185,6 +185,8 @@ END_CONNECTION_POINT_MAP()
 	{
 		try
 		{
+			TRACE_INFO("MmRiskViev %x is being created", (long)(this));
+					
 			__Realtime = __RealtimeCalculateCv = false;
 
 			m_spCvRTContext = NULL;
@@ -210,8 +212,12 @@ END_CONNECTION_POINT_MAP()
 		}
 		catch (_com_error& e)
 		{
+			TRACE_COM_ERROR_EX(e, "Failed to create MmRiskViewObject", "");
 			return Error((PTCHAR)CComErrorWrapper::ErrorDescription(e), IID_IMmRiskView, e.Error());
 		}
+
+		TRACE_INFO("MmRiskViev %x is created", (long)(this));
+
 		return S_OK;
 	}
 	

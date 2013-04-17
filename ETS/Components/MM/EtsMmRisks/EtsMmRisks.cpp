@@ -13,10 +13,17 @@ public :
 
 CEtsMmRisksModule _AtlModule;
 
-
 // DLL Entry Point
 extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
-{
+{	
+	if (EgLib::CEgLibTraceManager::g_spTrace == NULL)
+	{
+		EgLib::CEgLibTraceManager::g_spTrace = EgLib::CEgLibTraceManagerPtr(static_cast<EgLib::CEgLibTraceManager*>
+								(new EgLib::CEgLibTraceManager(EgLib::CEgLibTraceManager::enRelativeMyDocuments, _T("core"))));
+								
+		EgLib::CEgLibTraceManager::g_spTrace->FileName = L"ivrm_riskview";										
+	}
+									
 	hInstance;
     return _AtlModule.DllMain(dwReason, lpReserved); 
 }

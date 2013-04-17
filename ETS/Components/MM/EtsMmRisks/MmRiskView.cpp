@@ -559,6 +559,8 @@ STDMETHODIMP CMmRiskView::LoadPositions(IN IEtsFilterData* spFilter)
 {
 	try
 	{	
+		TRACE_INFO("LOADING POSITION: Object %x", (long)(this));
+		
 		if (spFilter && static_cast<bool>(m_spEtsMain))
 		{
 			
@@ -566,7 +568,9 @@ STDMETHODIMP CMmRiskView::LoadPositions(IN IEtsFilterData* spFilter)
 
 			if (static_cast<bool>(m_spTradesCache))
 			{
-				_CHK(m_spTradesCache->get_Trd(&spTrades), _T("Fail to get trades coll from trade channel."));
+				
+				_CHK(m_spTradesCache->get_Trd(&spTrades), _T("Fail to get trades coll from trade cache."));
+				TRACE_INFO("Reading trades from trade cache has done", "");
 
 				if (static_cast<bool>(spTrades))
 				{
@@ -585,24 +589,37 @@ STDMETHODIMP CMmRiskView::LoadPositions(IN IEtsFilterData* spFilter)
 														&spFiltredTrades), 
 														_T("Fail to filter trades coll."));
 
-						return PositionsLoad(spFiltredTrades);
+						TRACE_INFO("Filter has been applyed for trades", "");
+
+						_CHK(PositionsLoad(spFiltredTrades));
+						
 					}
 				}
 			}
 		}
+		else
+		{
+			TRACE_WARNING("exit without any actual work done cause filter has not been defined", "");
+		}
 	}
 	catch (_com_error& err)
 	{
-		return 
-			Error((PTCHAR)CComErrorWrapper::ErrorDescription(err), __uuidof(IMmRiskView), err.Error());
+		TRACE_COM_ERROR_EX(err, "MmRiskView::LoadPosition failed" , "COM ERROR");
+		return Error((PTCHAR)CComErrorWrapper::ErrorDescription(err), __uuidof(IMmRiskView), err.Error());
 	}
 	catch (...)
 	{
 		HRESULT _hr = HRESULT_FROM_WIN32(::GetLastError());
-		if(SUCCEEDED(_hr)) _hr = E_FAIL;
-		return 
-			Error((PTCHAR)"An exception occurred while trying to LoadPositions()", __uuidof(IMmRiskView), _hr);
+		
+		if(SUCCEEDED(_hr)) 
+			_hr = E_FAIL;
+		
+		TRACE_UNKNOWN_ERROR();
+	
+		return Error((PTCHAR)"An exception occurred while trying to LoadPositions()", __uuidof(IMmRiskView), _hr);
 	}
+
+	TRACE_INFO("POSITIONS HAS BEEN LOADED: Object %x", (long)(this));
 	return S_OK;
 };
 //-----------------------------------------------------------------------------------------------------//
@@ -612,25 +629,37 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 	HRESULT hr = S_OK;
 	m_bIsStopped = VARIANT_FALSE;
 
-	if(!pTradesColl)
+	if (!pTradesColl)
+	{
+		TRACE_ERROR("invalid parameter. trades colltion is null", "");
 		return E_POINTER;
+	}
+	
 	try
 	{
+		if (!m_Connection.IsOpened())
+		{
+			TRACE_INFO("Database connection is not initialized.", "");
+			CComBSTR		bsConnectionString;
 
-		CComBSTR	bsConnectionString;
-		m_spEtsMain->get_DatabaseString(&bsConnectionString);
+			TRACE_INFO("Get connection string.", "");
+			m_spEtsMain->get_DatabaseString(&bsConnectionString);
 
-		if(!m_Connection.IsOpened())
+			TRACE_INFO("Open database connection.", "");
 			m_Connection.Open((BSTR)bsConnectionString, 10, 120, 300, 300);
-
-		//save all data to db
+		}
+		
 		if(m_Connection.IsOpened())
 		{
 			CStoredProc<CClientRecordset> rs(m_Connection, L"usp_MmManualPrice_Get");
+
+			TRACE_INFO("Request manual prices.", "");
 			rs.Open();
 			
 			m_mapManualPrice.clear();
 			long lTotalCount = rs.GetRecordCount();
+
+			TRACE_INFO("Manual prices has been loaded from database for %d contracts.", lTotalCount);
 
 			if(lTotalCount)
 			{
@@ -641,10 +670,14 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 					m_mapManualPrice[lID] =dPrice;
 				}
 			}
+
+			TRACE_INFO("Manual prices has been updated in the object cache.", lTotalCount);
 		}
 
 		//-----------------------------------------------------//
-		if (m_spCvRTContext){
+		if (m_spCvRTContext)
+		{
+			TRACE_INFO("Procees custom variable.", "");
 
 			IcvDataProviderPtr	cvGrpDataProvider = NULL;
 			LPSAFEARRAY psaSysVars = NULL;
@@ -694,36 +727,53 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 		long lCurrentProgress = -1;
 		long lProcessed       = 0;
 		long lTotal           = spTrades->Count;
+
 		if(lTotal && SUCCEEDED(spTrades->raw_ResetTradesPosition()))
 		{
 			VARIANT_BOOL bIsLast = VARIANT_FALSE;
 
-			while(!bIsLast)
+			TRACE_INFO("Calculate positions from trades.", "");
+			clock_t start = clock();
+			
+			while (!bIsLast)
 			{
 				IMmTradeInfoAtomPtr spTradeAtom = spTrades->TradeAtCurrentPosition;
-				if(spTradeAtom)
+				if (spTradeAtom)
 				{
 					long lTradeId     = spTradeAtom->TradeID;
 					long lContractId  = spTradeAtom->ContractID;
 					long lUndID       = spTradeAtom->UndID;
 
 					IMmRvUndAtomPtr spUndAtom = m_pUnd->GetUnderlying(lUndID);
-					if(spUndAtom == NULL)
+					
+					if (spUndAtom == NULL)
+					{
+						TRACE_DEBUG("Create underlying id=%d", lUndID);
 						spUndAtom = _AddNewUnderlying(spTradeAtom->Und);
-
+					}
+					
 					CMmRvUndAtom* pUndAtom = dynamic_cast<CMmRvUndAtom*>(spUndAtom.GetInterfacePtr());
 					IMmRvPosAtomPtr spPosAtom = pUndAtom->m_pPos->GetPosition(lContractId);
-					if(spPosAtom == NULL)
+					
+					if (spPosAtom == NULL)
 					{
-						spPosAtom = _AddNewPosition(spTradeAtom, spUndAtom , -1 );
+						TRACE_DEBUG("Create contract position id=%d", lContractId);
+						spPosAtom = _AddNewPosition(spTradeAtom, spUndAtom , -1);
 					}
-					_AddNewTradeToPosition(spUndAtom, spPosAtom,spTradeAtom);					
-					if(m_bIsStopped)
+					
+					TRACE_DEBUG("Add trade id=%d to contract position id=%d", lTradeId, lContractId);
+					_AddNewTradeToPosition(spUndAtom, spPosAtom, spTradeAtom);					
+					
+					if (m_bIsStopped)
+					{
+						TRACE_INFO("The object %h got stopped flag process is gonna be interuppted", (long)(this));
 						break;
+					}
 				}
 				double dPercent = 100.* double(lProcessed)/lTotal;
 				long lPercent = static_cast<long>(dPercent);
-				if(lPercent != lCurrentProgress)
+				
+				if (lPercent != lCurrentProgress)
 				{
 					lCurrentProgress = lPercent;
 					Fire_Progress(L"Trades Data Loading", lCurrentProgress);
@@ -731,12 +781,18 @@ STDMETHODIMP CMmRiskView::PositionsLoad(IMmTradeInfoColl* pTradesColl)
 				lProcessed++;
 				spTrades->MoveNextTrade(&bIsLast);
 			}
+
+			clock_t finish = clock();
+			TRACE_INFO("Positions have beed calculated. (elapsed: %d ms)", finish - start);
+
 		}
 	}
 	catch (_com_error& err) 
 	{
+		TRACE_COM_ERROR_EX(err, "", "");
 		hr = Error((PTCHAR)CComErrorWrapper::ErrorDescription(err), __uuidof(IMmRiskView), err.Error());
 	}
+	
 	return hr;
 }
 

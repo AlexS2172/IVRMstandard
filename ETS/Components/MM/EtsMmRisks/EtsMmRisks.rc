@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,139,0
- PRODUCTVERSION 1,1,139,0
+ FILEVERSION 1,1,139,2
+ PRODUCTVERSION 1,1,139,2
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,12 +70,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "EGAR Technology, Inc."
-            VALUE "FileVersion", "1, 1,139, 0"
+            VALUE "FileVersion", "1, 1, 139, 2"
             VALUE "InternalName", "EtsMmRisks.dll"
             VALUE "LegalCopyright", "© EGAR Technology Inc. All rights reserved."
             VALUE "OriginalFilename", "EtsMmRisks.dll"
             VALUE "ProductName", "Equity Trading System"
-            VALUE "ProductVersion", "1, 1,139, 0"
+            VALUE "ProductVersion", "1, 1, 139, 2"
         END
     END
     BLOCK "VarFileInfo"
@@ -102,10 +102,10 @@ IDR_MMRVUNDCOLL         REGISTRY                "MmRvUndColl.rgs"
 IDR_MMRVGRPATOM         REGISTRY                "MmRvGrpAtom.rgs"
 IDR_MMRVREQATOM         REGISTRY                "MmRvReqAtom.rgs"
 IDR_MMRVREQCOLL         REGISTRY                "MmRvReqColl.rgs"
-IDR_MMRVROWDATA		REGISTRY		"MmRvRowData.rgs"
-IDR_MMRISKVIEW		REGISTRY		"MmRiskView.rgs"
-IDR_RVMMQUOTEATOM	REGISTRY		"RvMmQuoteAtom.rgs"
-IDR_MMRVPRICE		REGISTRY		"MmRvPrice.rgs"
+IDR_MMRVROWDATA         REGISTRY                "MmRvRowData.rgs"
+IDR_MMRISKVIEW          REGISTRY                "MmRiskView.rgs"
+IDR_RVMMQUOTEATOM       REGISTRY                "RvMmQuoteAtom.rgs"
+IDR_MMRVPRICE           REGISTRY                "MmRvPrice.rgs"
 IDR_MMRVEXPTOTALATOM    REGISTRY                "MmRvExpTotalAtom.rgs"
 IDR_MMRVEXPCOLL         REGISTRY                "MmRvExpColl.rgs"
 IDR_MMRVEXPATOM         REGISTRY                "MmRvExpAtom.rgs"

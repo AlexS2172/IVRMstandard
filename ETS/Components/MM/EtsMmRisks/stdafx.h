@@ -34,7 +34,6 @@
 // turns off ATL's hiding of some common and often safely ignored warning messages
 #define _ATL_ALL_WARNINGS
 
-
 #include "resource.h"
 #include <atlbase.h>
 #include <atlcom.h>
@@ -49,10 +48,12 @@ using namespace ATL;
 #include <EgLib/egLibSync.h>
 #include <EgLib/egLibThread.h>
 #include <EgLib/egLibMisc.h>
+#include <EgLib/EgLibStrategy.h>
+#include <EgLib/egLibReg.h>
 #include <EgLib/egLibDB.h>
 #include <EgLib/EgLibComError.h>
+#include <EgLib/EgLibTrace.h>
 using namespace EgLib;
-
 
 #include <vcue\collections.h>
 #include <OptionCalc\OptionCalc.h>
@@ -72,3 +73,52 @@ using namespace EgLib;
 #define CV_DATAPROVIDED_ID		0
 #define CV_DATANOTSUPPORTED (size_t) - 1
 
+//-------------------------------------------------------------------------------------------------------------//
+#define TRACE_COM_ERROR(__error)																			\
+	EgLib::CEgLibTraceManager::Trace(LogError,																\
+	__FUNCTION__,															\
+	_TEXT("ComError: %s[%d] FileName: %s Line: %d"),						\
+	(LPCSTR)__error.Description(), __error.Error(), __FILE__, __LINE__)		\
+
+#define TRACE_WARNING(__format, __description)																	\
+	EgLib::CEgLibTraceManager::Trace(LogWarning,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_INFO(__format, __description)																	\
+	EgLib::CEgLibTraceManager::Trace(LogInfo,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_DEBUG(__format, __description)																\
+	EgLib::CEgLibTraceManager::Trace(LogDebug,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_SYSTEM(__format, __description)																\
+	EgLib::CEgLibTraceManager::Trace(LogSystem,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_ERROR(__format, __description) 																\
+	EgLib::CEgLibTraceManager::Trace(LogError,																\
+	__FUNCTION__,															\
+	__format,																\
+	__description)															\
+
+#define TRACE_UNKNOWN_ERROR() 																				\
+	EgLib::CEgLibTraceManager::Trace(LogError,																\
+	__FUNCTION__,																			\
+	_TEXT("Unknown error! %s[%d] WinError: [%d]"),											\
+	__FILE__, __LINE__, ::GetLastError())														\
+
+#define TRACE_COM_ERROR_EX(__error, __info, __description)												\
+	EgLib::CEgLibTraceManager::Trace(LogError,															\
+	__FUNCTION__,																						\
+	__info _TEXT("ComError: %s[%d] FileName: %s Line: %d"),												\
+	__description,(LPCSTR)__error.Description(), __error.Error(), __FILE__, __LINE__)					\
+//-------------------------------------------------------------------------------------------------------------//
