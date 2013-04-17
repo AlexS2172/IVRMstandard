@@ -471,7 +471,7 @@ Private Sub LoadTrades(Optional ByVal bSupportStrategy As Boolean = True)
             aTrade.UnderlyingID = gCmn.ReadLng(rs!lUnderlyingID)
             aTrade.IsPos = gCmn.ReadByte(rs!bIsPosition)
             
-            aTrade.strike = gCmn.ReadDbl(rs!dStrike)
+            aTrade.Strike = gCmn.ReadDbl(rs!dStrike)
             aTrade.IsCall = gCmn.ReadByte(rs!bIsCall)
             aTrade.Expiry = gCmn.ReadDate(rs!dtExpiry)
             aTrade.RootName = gCmn.ReadStr(rs!vcRootSymbol)
@@ -798,20 +798,20 @@ Private Sub LoadPositions(ByVal bSetNewStrategyToOld As Boolean)
                         Dim contract_id As Long
                         Dim root_symbol As String
                         Dim expiration_date As Date
-                        Dim strike As Double
+                        Dim Strike As Double
                         
                         contract_id = gCmn.ReadLng(rs!iContractID)
                         root_symbol = gCmn.ReadStr(rs!vcOptionRootSymbol)
                         expiration_date = gCmn.ReadDate(rs!dtExpiryDate)
-                        strike = gCmn.ReadDbl(rs!fStrike)
+                        Strike = gCmn.ReadDbl(rs!fStrike)
                         
-                        Set aPos.Opt = aPos.Und.FindOption(root_symbol, gCmn.ReadByte(rs!tiIsCall), strike, expiration_date, contract_id)
+                        Set aPos.Opt = aPos.Und.FindOption(root_symbol, gCmn.ReadByte(rs!tiIsCall), Strike, expiration_date, contract_id)
                         
                         If aPos.Opt Is Nothing Then
                             MsgBox "ID: " & CStr(contract_id) & _
                                     " Root: " & root_symbol & _
                                     " Expiry: " & CStr(expiration_date) & _
-                                    " Strike: " & CStr(strike)
+                                    " Strike: " & CStr(Strike)
                                     
                             Err.Raise vbObjectError, AppTitle(), "Unexpected error was occured during reading positions from DB. Invalid options data."
                         End If
@@ -1080,8 +1080,15 @@ Private Function ParseLineOfFileFormatSage(ByVal nLineNumber As Long, ByRef sLin
     Else 'STOCK or OPTION
         Set aUnd = m_collUnd(sStockSymbol)
         If aUnd Is Nothing Then
-            Set aUnd = AddNewUnderlyingToDatabase(sStockSymbol)
+            ' There is no attepmt to add new asset to database.
+            ' This caused errors in position files from broker with invalid symbols
+            ' Added by Eugene Karnygin to prevent errors.
+            ' If Asset is not in database it should be added from master database not position file
+            m_frmEOD.LogMsg "Position skipped. Asset: " & sStockSymbol & " is not in database. Please contact support to add the asset into database. After that start reconcilation again."
+            'Set aUnd = AddNewUnderlyingToDatabase(sStockSymbol)
+            
             bStructureExist = False
+            Exit Function
         End If
         
         CheckTraderContract aTrader.ID, aUnd.ID

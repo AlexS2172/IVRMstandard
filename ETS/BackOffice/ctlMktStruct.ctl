@@ -586,7 +586,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentY        =   529
          _Version        =   393216
          CustomFormat    =   "MMM,dd yyy hh:mm tt"
-         Format          =   20381697
+         Format          =   20447233
          CurrentDate     =   38974
       End
       Begin VB.CheckBox chkDysplayAmountInFCE 
@@ -712,7 +712,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20381697
+         Format          =   20447233
          CurrentDate     =   36960
       End
       Begin VB.TextBox txtDivAmt 
@@ -886,7 +886,7 @@ Begin VB.UserControl ctlMktStruct
             _ExtentY        =   529
             _Version        =   393216
             CustomFormat    =   "MMM,dd yyy hh:mm tt"
-            Format          =   20381699
+            Format          =   20447235
             CurrentDate     =   38974.5416666667
          End
       End
@@ -1003,7 +1003,7 @@ Begin VB.UserControl ctlMktStruct
          _ExtentX        =   2355
          _ExtentY        =   529
          _Version        =   393216
-         Format          =   20381697
+         Format          =   20447233
          CurrentDate     =   36960
       End
       Begin ElladaFlatControls.FlatButton btnComponents 
