@@ -78,7 +78,7 @@ namespace EgLib
 			CString& GetLogLine()
 			{
 				InitializeTime();
-				m_strBuffer.Format(_T("%-2d[0x%04x] %-2.2i:%-2.2i:%-2.2i.%03i %-30s\t\t\t\t%s"), m_lLogLevel, m_uiThreadID, m_stEastern.wHour, m_stEastern.wMinute, m_stEastern.wSecond, m_stEastern.wMilliseconds, m_strInform.c_str(),m_strContext.c_str());
+				m_strBuffer.Format(_T("%-2d[0x%04x] %-2.2i:%-2.2i:%-2.2i.%03i %-30s\t\t\t\t%s"), m_lLogLevel, m_uiThreadID, m_stEastern.wHour, m_stEastern.wMinute, m_stEastern.wSecond, m_stEastern.wMilliseconds, m_strContext.c_str(), m_strInform.c_str());
 				return m_strBuffer;
 			}
 		};
