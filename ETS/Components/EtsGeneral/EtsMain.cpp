@@ -1481,18 +1481,18 @@ STDMETHODIMP CEtsMain::SendMail(BSTR sAddress, BSTR sSender, BSTR sSubject, BSTR
 		wchar_t *ptrNextTok = NULL;
 
 		CSMTPConnection SMTPConnection;
-		bRet = SMTPConnection.Connect( (char*)_bstr_t(sSMTPServer) );
-		if( !bRet ) {
+		bRet = SMTPConnection.Connect((char*)_bstr_t(sSMTPServer));
+		if (!bRet) 
 			return E_FAIL;
-		}
 
 		CMimeMessage Message;
 		_bstr_t sbsFilePath = sFilePath;
-		if( sbsFilePath != _bstr_t("") )
+		if (sbsFilePath != _bstr_t(""))
 			Message.AttachFile( (char*)sbsFilePath );
 
-		Message.SetSubject( (char*)_bstr_t(sSubject) );
-		Message.AddText( (char*)_bstr_t(sMessage) );
+		Message.SetSender((const char*)_bstr_t(sSender));
+		Message.SetSubject((const char*)_bstr_t(sSubject));
+		Message.AddText((const char*)_bstr_t(sMessage));
 		
 		ptrAddres = (wchar_t*)_bstr_t(sAddress);
 		ptrToken = wcstok_s(ptrAddres, (wchar_t*)(";"), &ptrNextTok);
@@ -1502,7 +1502,7 @@ STDMETHODIMP CEtsMain::SendMail(BSTR sAddress, BSTR sSender, BSTR sSubject, BSTR
 			ptrToken = wcstok_s( NULL, (wchar_t*)(";"), &ptrNextTok); 
 		}
 
-		bRet = SMTPConnection.SendMessage( Message, /*(char*)_bstr_t(sAddress)*/ NULL, (char*)_bstr_t(sSender) );
+		bRet = SMTPConnection.SendMessage(Message, /*(char*)_bstr_t(sAddress)*/ NULL, (char*)_bstr_t(sSender));
 
 		if( !bRet ) {
 			SMTPConnection.Disconnect();
@@ -1587,17 +1587,48 @@ SAFEARRAY* CEtsMain::PackRisks(ContractsVector& contract)
 	return NULL;
 };
 //---------------------------------------------------------------------------------------------//
-STDMETHODIMP 
-CEtsMain::SetQuote(ITicker* Ticker, QuoteUpdateInfo* Quote) {
+STDMETHODIMP CEtsMain::SetQuote(ITicker* Ticker, QuoteUpdateInfo* Quote) {
+	
+	CTicker symbol(*Ticker);
+	CQuote	quote(*Quote);
 
-	CTicker __ticker(*Ticker);
-	CQuote __quote(*Quote);
+	try
+	{
+		if (m_spContractsCache->SetQuote(&symbol, &quote) != NULL)
+			return S_OK;
+		
+		// the contract is not in the contract cache. search for the contract id by the symbol
+		long contractId = m_spContractsCache->GetContractID(&symbol);
+
+		// if no contract id found for ticked then throw exception
+		if (contractId <= 0) 
+			FOCL_THROW_EXCEPTION(IvRmException::ContractNotFound, "No contract id found for symbol " << symbol.m_sSymbol);
+
+		// load contract data to the cache
+		if (m_spContractsCache->GetContract(contractId) == NULL) // Contract has been found try to set quote again
+			FOCL_THROW_EXCEPTION(IvRmException::ContractNotFound, "Could not load contract (id = " << contractId << ")");
+		
+		if (m_spContractsCache->SetQuote(&symbol, &quote) == NULL)
+			FOCL_THROW_EXCEPTION(IvRmException::ContractNotFound, "Unknown situation in attempt to set contract quote");			
+	}
+	catch (IvRmException::AbstractException& e)
+	{
+		return EgLib::__ErrSet(E_FAIL, L"Financial Object Library", _bstr_t(e.toString().c_str()), __FILE__, __FUNCTION__ ,__LINE__);
+	}
+	catch (_com_error& err)
+	{
+		TRACE_COM_ERROR(err);
+		ATLASSERT(FALSE);
+		return E_FAIL;
+	}
+	catch (...)
+	{
+		TRACE_UNKNOWN_ERROR();
+		ATLASSERT(FALSE);
+		return E_FAIL;
+	}
 	
-	CAbstractContract* contract = m_spContractsCache->SetQuote(&__ticker, &__quote);
 	
-	
-	//if (contract)
-	//	calculation_mgr_->add_contract(contract);
 
 	return S_OK;
 };

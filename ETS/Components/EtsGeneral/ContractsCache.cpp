@@ -213,30 +213,44 @@ CContractsCache::GetVolatilitySource()
 	return NULL;
 };
 //--------------------------------------------------------------------------------------------------------
-bool	
-CContractsCache::AddContract(IContractPtr spContract)
+bool CContractsCache::AddContract(IContractPtr spContract)
 {
 	try
 	{
-		if (static_cast<bool>(spContract) && static_cast<bool>(m_spContracts))
-		{
-			CAbstractContract* pContract = dynamic_cast<CAbstractContract*>(spContract.GetInterfacePtr());
-			if (pContract)
-			{
-				IContractPtr	spRet = NULL;
-				CContractColl*	pContracts = dynamic_cast<CContractColl*>(m_spContracts.GetInterfacePtr());
+		if (spContract == NULL)
+			throw IvRmException::GeneralCacheException("Contract cache failed. Attempt to add null to contract cache");
+			
+		if (m_spContracts == NULL)
+			throw IvRmException::GeneralCacheException("Contract cache has been corrupted");
+		
+		// Get C++ class pointer from COM interface
+		CAbstractContract* contract = dynamic_cast<CAbstractContract*>(spContract.GetInterfacePtr());
 
-				_CHK(pContracts->Add(pContract->m_nID, (BSTR)pContract->m_bstrSymbol, spContract, &spRet), 
-					_T("Fail to Add contract in ContractCache Coll."));
+		if (contract == NULL)
+			throw IvRmException::GeneralCacheException("Contract cache failed. Attempt to add unknown object");
+		
+		// lookup for dealing and pricing asset
+		IAssetPtr dealingAsset = GetAsset(contract->m_nAssetID);
+		IAssetPtr pricingAsset = GetAsset(0); 
+		
+		if (dealingAsset == NULL || pricingAsset == NULL)
+			throw IvRmException::GeneralCacheException("Contract cache failed. Can not add contract with dealing or pricing asset that is not in asset cache");
 
-				pContract->SetBaseContract(GetContract(pContract->m_nBaseContractID));
-				pContract->SetAsset(GetAsset(pContract->m_nAssetID));
+		contract->SetAsset(dealingAsset);
+		contract->m_spPricingAsset = pricingAsset;
 
-				pContract->m_spPricingAsset = GetAsset(0);
-			};
+		// set base contact if exists 
+		contract->SetBaseContract(GetContract(contract->m_nBaseContractID));
 
-			return true;
-		}
+		IContractPtr	spRet = NULL;
+		CContractColl*	pContracts = dynamic_cast<CContractColl*>(m_spContracts.GetInterfacePtr());
+
+		_CHK(pContracts->Add(contract->m_nID, (BSTR)contract->m_bstrSymbol, spContract, &spRet), _T("Contract cache failed. Internal storage error."));
+		
+	}
+	catch (IvRmException::AbstractException& e)
+	{
+		throw IvRmException::GeneralCacheException("ContractCache::addContract failed.", e);
 	}
 	catch (_com_error& err)
 	{
@@ -250,11 +264,11 @@ CContractsCache::AddContract(IContractPtr spContract)
 		ATLASSERT(false);
 		throw;
 	}
-	return false;
+	
+	return true;
 }
 //--------------------------------------------------------------------------------------------------------//
-long	
-CContractsCache::GetContractID(CTicker* ptrTicker)
+long CContractsCache::GetContractID(CTicker* ptrTicker)
 {
 	InitializeDB();
 	try
@@ -299,38 +313,41 @@ CContractsCache::GetContractID(CTicker* ptrTicker)
 	return enCtNone;	
 };
 //--------------------------------------------------------------------------------------------------------//
-IContractPtr	
-CContractsCache::GetContract(long lContractID)
+IContractPtr CContractsCache::GetContract(long contractId)
 {
 	try
 	{
-		if (static_cast<bool>(m_spContracts) && lContractID > 0)
+		if (static_cast<bool>(m_spContracts) && contractId > 0)
 		{
 			CContractColl*	pContracts = dynamic_cast<CContractColl*>(m_spContracts.GetInterfacePtr());
 			IContractPtr	spSingleContract = NULL;
 
-			_CHK(pContracts->get_Item(lContractID, &spSingleContract), _T("Fail to get contract."));
+			_CHK(pContracts->get_Item(contractId, &spSingleContract), _T("Fail to get contract."));
 
-			if (static_cast<bool>(spSingleContract)){
+			if (static_cast<bool>(spSingleContract))
 				return	spSingleContract;
-			}
-			else
-			{
-				spSingleContract = LoadSingleContract(lContractID);
+
+			spSingleContract = LoadSingleContract(contractId);
 				
-				AddContract(spSingleContract);
+			if (spSingleContract == NULL) // was unable to load contract
+					FOCL_THROW_EXCEPTION(IvRmException::ContractNotFound, "Contract cache could not load contract (id = " << contractId << ") from Database");
+				
+			AddContract(spSingleContract);
 
-				SubscribeContract(spSingleContract);
+			SubscribeContract(spSingleContract);
 
-				return spSingleContract;
-			}
+			return spSingleContract;
 		}
 	}
 	catch (_com_error& err)
 	{
-		TRACE_COM_ERROR_EX(err,_T("ContractID: [%d] "), lContractID);
+		TRACE_COM_ERROR_EX(err,_T("ContractID: [%d] "), contractId);
 		ATLASSERT(false);
 		throw;
+	}
+	catch (IvRmException::AbstractException& e)
+	{
+		throw e;
 	}
 	catch (...)
 	{
@@ -683,7 +700,7 @@ CContractsCache::ParseFutureContract(CStoredProc<CClientRecordset>& recordset)
 			pFuture->m_dTickValue			= recordset[L"fTickValue"];
 
 			pFuture->m_nAssetID				= recordset[L"iAssetID"];
-			pFuture->m_nBaseContractID		= pFuture->m_nAssetID;
+			pFuture->m_nBaseContractID		= 0;//pFuture->m_nAssetID;
 
 			pFuture->m_spRoot = 
 				CContractRootCache::getInstance()->getContractRoot(pFuture->m_nRootID);
@@ -891,14 +908,14 @@ CContractsCache::DoRisksUpdate()
   }
 };
 //--------------------------------------------------------------------------------------------------------
-CAbstractContract*
-CContractsCache::find_contract_by_ticker(CTicker& ticker) {
-
+CAbstractContract* CContractsCache::find_contract_by_ticker(CTicker& ticker) 
+{
 	CTickerContractMap::iterator it = m_spTickerContract->find(ticker);
 
-	if (it == m_spTickerContract->end()) {
-	
-		if (ticker.m_enType == enSTK) {
+	if (it == m_spTickerContract->end()) 
+	{
+		if (ticker.m_enType == enSTK) 
+		{
 			ticker.m_enType = enIDX;
 			it = m_spTickerContract->find(ticker);
 			if (it == m_spTickerContract->end())
@@ -914,10 +931,9 @@ CContractsCache::find_contract_by_ticker(CTicker& ticker) {
 	}
 	
 	return dynamic_cast<CAbstractContract*>(it->second.GetInterfacePtr());
-};
+}
 //--------------------------------------------------------------------------------------------------------
-CAbstractContract* 
-CContractsCache::SetQuote(CTicker* ptrTicker, CQuote* ptrQuote) {
+CAbstractContract* CContractsCache::SetQuote(CTicker* ptrTicker, CQuote* ptrQuote) {
 
 	try	{
 	
@@ -927,7 +943,8 @@ CContractsCache::SetQuote(CTicker* ptrTicker, CQuote* ptrQuote) {
 						
 			CAbstractContract* contract = find_contract_by_ticker(*ptrTicker);
 			
-			if (contract) {
+			if (contract) 
+			{
 			
 				strInfo.Format(_T("Symbol: %s Bid= %.2f Ask= %.2f Last= %.2f"),
 								ptrTicker->m_sSymbol.c_str(),
@@ -946,37 +963,26 @@ CContractsCache::SetQuote(CTicker* ptrTicker, CQuote* ptrQuote) {
 				return contract;
 
 			}
-			else{
-			
-				strInfo.Format(_T("Symbol: [%s] Type: [%i]"),
-								ptrTicker->m_sSymbol.c_str(),
-								static_cast<long>(ptrTicker->m_enType));
-					
-				TRACE_WARNING(_TEXT("Contract not found: [%s] - trying to load."), strInfo);
-				
-				
-				long lContractID = GetContractID(ptrTicker);
-				
-				if (lContractID > 0) {
-				
-					GetContract(lContractID);
-					
-					return SetQuote(ptrTicker, ptrQuote);
-				}
-			}
 		}
 	}
-	catch (_com_error& err)	{
+	catch (_com_error& err)	
+	{
 		TRACE_COM_ERROR(err);
 		ATLASSERT(false);
 		throw;
 	}
-	catch (...)	{
+	catch (IvRmException::ContractNotFound)	
+	{
+		throw;
+	}
+	catch (...)	
+	{
 		TRACE_UNKNOWN_ERROR();
 		ATLASSERT(false);
 		throw;
 	};
-	return 0;
+	
+	return NULL;
 };
 //--------------------------------------------------------------------------------------------------------//
 void
@@ -1106,7 +1112,7 @@ CContractsCache::InitializeForAsset(CTicker* ptrAsset)
 		{
 			if (ptrAsset->m_enType == enSTK || ptrAsset->m_enType == enIDX)
 			{
-				TRACE_DEBUG(_TEXT("Loading spot option contract's for Asset: [%s]"), ptrAsset->m_sSymbol.c_str());
+				TRACE_INFO(_TEXT("Loading spot option contract's for Asset: [%s]"), ptrAsset->m_sSymbol.c_str());
 
 				long lAssetID = GetContractID(ptrAsset);
 
